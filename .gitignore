@@ -1,0 +1,108 @@
+# =========================
+# Logs
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# =========================
+# Runtime data
+# =========================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =========================
+# Coverage & Testing
+# =========================
+coverage/
+*.lcov
+.nyc_output
+
+# =========================
+# Dependencies
+# =========================
+node_modules/
+
+# =========================
+# Build & Cache
+# =========================
+dist/
+build/
+.npm
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.cache
+.parcel-cache
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =========================
+# IDEs and Editors
+# =========================
+.idea/
+.project
+.classpath
+.cproject
+.settings/
+*.sublime-workspace
+*.swp
+*.swo
+
+# Ignore VSCode local history/workspaces but keep project settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# =========================
+# Project Specific
+# =========================
+temp/
+docs/
+*.tgz
+
+# =========================
+# AI Tools & Agents
+# =========================
+.cursor/
+.cursorrules
+.cursorignore
+.aider*
+.cline/
+.clinerules
+.gemini/
+.antigravity/
+.chat/
+.copilotignore
+.claude/
+.claudeignore
+.claude.json

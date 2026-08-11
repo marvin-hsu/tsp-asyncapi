@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format Check
+        run: pnpm run format:check
+      - name: Lint
+        run: pnpm run lint
+      - name: Knip
+        run: pnpm run knip
+      - name: Build
+        run: pnpm run build
+      - name: API Extractor Check
+        run: pnpm run api-extractor:ci
+      - name: Test
+        run: pnpm run test
+
+  deploy-docs:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check for documentation changes
+        uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            docs:
+              - 'src/**'
+              - 'README.md'
+              - 'typedoc.json'
+              - 'package.json'
+              - 'tsconfig*.json'
+
+      - name: Install pnpm
+        if: steps.filter.outputs.docs == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node
+        if: steps.filter.outputs.docs == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        if: steps.filter.outputs.docs == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Docs
+        if: steps.filter.outputs.docs == 'true'
+        run: pnpm run docs
+
+      - name: Deploy to gh-pages branch
+        if: steps.filter.outputs.docs == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
