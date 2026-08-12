@@ -6,5 +6,6 @@
   "tsconfig": "tsconfig.build.json",
   "categorizeByGroup": true,
   "searchInComments": true,
-  "plugin": []
+  "plugin": [],
+  "highlightLanguages": ["typescript", "typespec", "yaml", "json", "bash"]
 }
