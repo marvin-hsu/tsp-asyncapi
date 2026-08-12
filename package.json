@@ -3,11 +3,17 @@
   "version": "1.0.0",
   "description": "AsyncAPI emitter for TypeSpec",
   "main": "dist/src/index.js",
+  "tspMain": "lib/main.tsp",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js",
       "default": "./dist/src/index.js"
+    },
+    "./testing": {
+      "types": "./dist/src/testing/index.d.ts",
+      "import": "./dist/src/testing/index.js",
+      "default": "./dist/src/testing/index.js"
     }
   },
   "types": "./dist/src/index.d.ts",
@@ -21,7 +27,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "pretest": "pnpm build",
     "test": "vitest run",
+    "test:cov": "vitest run --coverage",
     "test:watch": "vitest",
     "api-extractor:local": "api-extractor run --local",
     "api-extractor:ci": "api-extractor run",
@@ -46,12 +54,15 @@
     }
   },
   "dependencies": {
-    "@typespec/compiler": "^1.14.0"
+    "@typespec/compiler": "^1.14.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@microsoft/api-extractor": "^7.58.12",
     "@types/node": "^26.2.0",
+    "@types/yaml": "^1.9.7",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.1",
     "husky": "^9.1.7",
     "knip": "^6.32.1",

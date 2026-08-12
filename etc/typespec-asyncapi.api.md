@@ -4,15 +4,165 @@
 
 ```ts
 
+import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
+import { Diagnostic } from '@typespec/compiler';
+import { DiagnosticReport } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
+import { Namespace } from '@typespec/compiler';
+import { Program } from '@typespec/compiler';
+import { Type } from '@typespec/compiler';
+import { TypeSpecLibrary } from '@typespec/compiler';
+
+// @public
+export function $externalDocs(context: DecoratorContext_2, target: Type, url: string, description?: string): void;
+
+// Warning: (ae-incompatible-release-tags) The symbol "$info" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
+//
+// @public
+export function $info(context: DecoratorContext_2, target: Namespace, info: AsyncAPIInfoState): void;
+
+// @public
+export const $lib: TypeSpecLibrary<    {
+"multiple-services": {
+readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+};
+}, AsyncAPIEmitterOptions, never>;
 
 // @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;
 
 // @public
+export interface AsyncAPIDocument {
+    asyncapi: string;
+    channels?: Record<string, ChannelObject>;
+    components?: ComponentsObject;
+    defaultContentType?: string;
+    id?: string;
+    info: InfoObject;
+    operations?: Record<string, OperationObject>;
+}
+
+// @public
 export interface AsyncAPIEmitterOptions {
-    // (undocumented)
+    "asyncapi-id"?: string;
+    "default-content-type"?: string;
+    "file-type"?: "yaml" | "json";
     "output-file"?: string;
+}
+
+// Warning: (ae-internal-missing-underscore) The name "AsyncAPIInfoState" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface AsyncAPIInfoState {
+    // (undocumented)
+    contact?: {
+        name?: string;
+        url?: string;
+        email?: string;
+    };
+    // (undocumented)
+    description?: string;
+    // (undocumented)
+    license?: {
+        name: string;
+        url?: string;
+    };
+    // (undocumented)
+    termsOfService?: string;
+    // (undocumented)
+    version: string;
+}
+
+// @public
+export type ChannelObject = Record<string, never>;
+
+// @public
+export type ComponentsObject = Record<string, never>;
+
+// @public
+export interface ContactObject {
+    email?: string;
+    name?: string;
+    url?: string;
+}
+
+// @public (undocumented)
+export const createDiagnostic: <C extends "multiple-services", M extends keyof {
+    "multiple-services": {
+        readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+    };
+}[C]>(diag: DiagnosticReport<    {
+"multiple-services": {
+readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+};
+}, C, M>) => Diagnostic;
+
+// Warning: (ae-internal-missing-underscore) The name "ExternalDocsState" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface ExternalDocsState {
+    // (undocumented)
+    description?: string;
+    // (undocumented)
+    url: string;
+}
+
+// @public
+export interface ExternalDocumentationObject {
+    description?: string;
+    url: string;
+}
+
+// Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
+//
+// @public (undocumented)
+export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined;
+
+// Warning: (ae-incompatible-release-tags) The symbol "getInfo" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
+//
+// @public (undocumented)
+export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined;
+
+// @public
+export interface InfoObject {
+    contact?: ContactObject;
+    description?: string;
+    externalDocs?: ExternalDocumentationObject;
+    license?: LicenseObject;
+    tags?: TagObject[];
+    termsOfService?: string;
+    title: string;
+    version: string;
+}
+
+// @public
+export interface LicenseObject {
+    name: string;
+    url?: string;
+}
+
+// @public (undocumented)
+export const namespace = "AsyncAPI";
+
+// @public
+export type OperationObject = Record<string, never>;
+
+// @public
+export const reportDiagnostic: <C extends "multiple-services", M extends keyof {
+    "multiple-services": {
+        readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+    };
+}[C]>(program: Program, diag: DiagnosticReport<    {
+"multiple-services": {
+readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+};
+}, C, M>) => void;
+
+// @public
+export interface TagObject {
+    description?: string;
+    externalDocs?: ExternalDocumentationObject;
+    name: string;
 }
 
 // (No @packageDocumentation comment for this package)

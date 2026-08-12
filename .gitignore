@@ -60,8 +60,10 @@ build/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db
-
+tsp-output/
+.sonar-token
+.scannerwork/
+coverage/
 # =========================
 # IDEs and Editors
 # =========================
@@ -88,6 +90,7 @@ Thumbs.db
 # =========================
 temp/
 docs/
+plan/
 *.tgz
 
 # =========================

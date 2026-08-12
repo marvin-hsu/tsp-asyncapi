@@ -1,41 +1,56 @@
-import { EmitContext, emitFile, resolvePath } from "@typespec/compiler";
+import { EmitContext, emitFile, resolvePath, listServices, Service } from "@typespec/compiler";
+import { AsyncAPIEmitterOptions, reportDiagnostic } from "./lib.js";
+import { buildAsyncAPIDocument } from "./builders/document.js";
+import yaml from "yaml";
 
 /**
- * Options for the AsyncAPI Emitter.
- * @category Configuration
- * @public
- */
-export interface AsyncAPIEmitterOptions {
-  "output-file"?: string;
-}
-
-/**
- * Emits the AsyncAPI document.
+ * The main entry point for the AsyncAPI emitter.
+ * This function is automatically called by the TypeSpec compiler when `--emit typespec-asyncapi` is specified.
+ *
+ * It performs the following steps:
+ * 1. Generates the AsyncAPI 3.1.0 document object tree.
+ * 2. Serializes it to YAML or JSON based on emitter options.
+ * 3. Writes the output file to the disk.
+ *
+ * @param context - Context containing the program and emitter options.
  * @category Core Emitter
  * @public
  */
 export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
-  const emitterOptions = context.options;
+  const options = context.options;
+  const program = context.program;
 
-  // Create a minimal AsyncAPI spec as a placeholder
-  const asyncApiDocument = {
-    asyncapi: "2.6.0",
-    info: {
-      title: "AsyncAPI Document",
-      version: "1.0.0",
-    },
-    channels: {},
-  };
+  const services = listServices(program);
+  let service: Service | undefined = undefined;
+  if (services.length > 0) {
+    service = services[0];
+    if (services.length > 1) {
+      reportDiagnostic(program, {
+        code: "multiple-services",
+        target: services[1].type,
+      });
+    }
+  }
 
-  const outputFileName = emitterOptions["output-file"] ?? "asyncapi.yaml";
-  const outPath = resolvePath(context.emitterOutputDir, outputFileName);
+  const doc = buildAsyncAPIDocument(program, service, options);
 
-  const content = JSON.stringify(asyncApiDocument, null, 2);
+  // Default serialization
+  const fileType = options["file-type"] ?? "yaml";
+  const defaultFilename = fileType === "json" ? "asyncapi.json" : "asyncapi.yaml";
+  const filename = options["output-file"] ?? defaultFilename;
+
+  let outputContent: string;
+  if (fileType === "json") {
+    outputContent = JSON.stringify(doc, null, 2);
+  } else {
+    outputContent = yaml.stringify(doc);
+  }
 
   if (!context.program.compilerOptions.noEmit) {
-    await emitFile(context.program, {
+    const outPath = resolvePath(context.emitterOutputDir, filename);
+    await emitFile(program, {
       path: outPath,
-      content,
+      content: outputContent,
     });
   }
 }
