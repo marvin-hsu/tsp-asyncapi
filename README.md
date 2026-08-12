@@ -2,7 +2,7 @@
 
 An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/) — describe your event-driven APIs (Kafka, MQTT, WebSocket, …) in TypeSpec and emit AsyncAPI documents from a single source of truth.
 
-> **Status: Work in progress.** This project currently supports generating the Document Skeleton, Info metadata, Tags, and ExternalDocs for AsyncAPI 3.1.0. Channel, Operation, and Message schema mapping are under active development.
+> **Status: Work in progress.** This project currently supports generating the Document Skeleton, Info metadata, Tags, ExternalDocs, and **Basic Schemas** (Models, Scalars, Arrays, Records) for AsyncAPI 3.1.0. Channel, Operation, and Message mapping are under active development.
 
 ## Why
 
@@ -41,6 +41,20 @@ using AsyncAPI;
 @tag("payment")
 @externalDocs("https://example.com/docs", "Service Documentation")
 namespace Orders;
+
+// Standard TypeSpec models are automatically converted to AsyncAPI Schema Objects
+// and placed in components.schemas
+model Order {
+  id: string;
+  amount: float64;
+  items: OrderItem[];
+  metadata: Record<string>;
+}
+
+model OrderItem {
+  productId: string;
+  quantity: int32;
+}
 ```
 
 Configure the emitter in your `tspconfig.yaml`:
