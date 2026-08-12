@@ -5,6 +5,7 @@ using TypeSpec.Reflection;
 namespace AsyncAPI;
 
 extern dec info(target: Namespace, info: valueof AsyncAPIInfo);
+// Target is unknown because externalDocs can be applied to Namespace, Model, Operation, Message, etc.
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 
 model AsyncAPIInfo {

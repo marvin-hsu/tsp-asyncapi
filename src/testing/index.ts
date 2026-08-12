@@ -1,46 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-deprecated */
-import { resolvePath } from "@typespec/compiler";
-import {
-  createTestLibrary,
-  findTestPackageRoot,
-  createTestHost,
-  createTestWrapper,
-  StandardTestLibrary,
-} from "@typespec/compiler/testing";
+import { normalizePath, getDirectoryPath } from "@typespec/compiler";
+import { createTester } from "@typespec/compiler/testing";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 
-/**
- * @category Testing
- * @public
- */
-export const AsyncAPITestLibrary = createTestLibrary({
-  name: "typespec-asyncapi",
-  packageRoot: await findTestPackageRoot(import.meta.url),
-});
-
-/**
- * @category Testing
- * @public
- */
-export async function createAsyncAPITestHost() {
-  return createTestHost({
-    libraries: [AsyncAPITestLibrary, StandardTestLibrary],
-  });
+function findPackageRoot(fromUrl: string): string {
+  let dir = getDirectoryPath(normalizePath(fileURLToPath(fromUrl)));
+  while (!existsSync(`${dir}/package.json`)) {
+    const parent = getDirectoryPath(dir);
+    if (parent === dir) {
+      throw new Error(`Cannot find package.json above ${fromUrl}`);
+    }
+    dir = parent;
+  }
+  return dir;
 }
 
 /**
+ * Tester pre-configured with the typespec-asyncapi library imported and the
+ * `AsyncAPI` namespace in scope.
+ *
  * @category Testing
  * @public
  */
-export async function createAsyncAPITestRunner() {
-  const host = await createAsyncAPITestHost();
-  const runner = createTestWrapper(host, {
-    autoImports: ["typespec-asyncapi"],
-    autoUsings: ["AsyncAPI"],
-    compilerOptions: {
-      noEmit: false,
-      emit: ["typespec-asyncapi"],
-    },
-  });
-  return { host, runner };
-}
+export const AsyncAPITester = createTester(findPackageRoot(import.meta.url), {
+  libraries: ["typespec-asyncapi"],
+})
+  .importLibraries()
+  .using("AsyncAPI");

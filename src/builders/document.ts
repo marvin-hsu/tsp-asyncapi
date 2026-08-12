@@ -12,7 +12,7 @@ export function buildAsyncAPIDocument(
   options: AsyncAPIEmitterOptions,
 ): AsyncAPIDocument {
   // Base AsyncAPI 3.1.0 Document Skeleton
-  const doc: AsyncAPIDocument = {
+  return {
     asyncapi: "3.1.0",
     ...(options["asyncapi-id"] ? { id: options["asyncapi-id"] } : {}),
     info: service ? buildInfo(program, service) : { title: "AsyncAPI Document", version: "0.0.0" },
@@ -23,6 +23,4 @@ export function buildAsyncAPIDocument(
     operations: {},
     components: {},
   };
-
-  return doc;
 }

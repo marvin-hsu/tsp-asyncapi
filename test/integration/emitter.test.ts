@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { $lib } from "../src/lib.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "./test-host.js";
+import { $lib } from "../../src/lib.js";
+import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
 
 describe("AsyncAPI Emitter", () => {
   it("should have correct library name", () => {
@@ -50,6 +50,17 @@ describe("Phase 1: Document Skeleton & Info", () => {
     const code = `@service(#{ title: "Order Events" }) namespace Orders;`;
     const doc = await emitAsyncAPI(code);
     expect(doc.info.title).toBe("Order Events");
+  });
+
+  it("should throw error when @info is applied to a model", async () => {
+    const code = `
+      @service(#{ title: "My Service" }) namespace Test;
+      @AsyncAPI.info(#{ version: "1.0.0" })
+      model InvalidTarget {}
+    `;
+    const { diagnostics } = await emitAsyncAPIWithDiagnostics(code);
+    expect(diagnostics.length).toBeGreaterThan(0);
+    expect(diagnostics[0].code).toBe("decorator-wrong-target");
   });
 
   it("should fallback version to 0.0.0 without @info", async () => {

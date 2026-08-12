@@ -14,6 +14,14 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist/**", "node_modules/**", "eslint.config.mjs"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "docs/**",
+      "temp/**",
+      "tsp-output/**",
+      "eslint.config.mjs",
+    ],
   },
 );
