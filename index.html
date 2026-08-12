@@ -8,10 +8,97 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <h1>TypeSpec AsyncAPI Emitter</h1></div>
-<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Interfaces"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
-<h2 class="tsd-anchor-link" id="interfaces">Interfaces<a href="#interfaces" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2></summary><dl class="tsd-member-summaries"><dt class="tsd-member-summary" id="asyncapiemitteroptions"><span class="tsd-member-summary-name"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Interface"><use href="assets/icons.svg#icon-256"></use></svg><a href="interfaces/AsyncAPIEmitterOptions.html">AsyncAPIEmitterOptions</a><a href="#asyncapiemitteroptions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></span></dt><dd class="tsd-member-summary"></dd></dl></details>
-<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Functions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
-<h2 class="tsd-anchor-link" id="functions">Functions<a href="#functions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2></summary><dl class="tsd-member-summaries"><dt class="tsd-member-summary" id="onemit"><span class="tsd-member-summary-name"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Function"><use href="assets/icons.svg#icon-64"></use></svg><a href="functions/_onEmit.html">$onEmit</a><a href="#onemit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></span></dt><dd class="tsd-member-summary"></dd></dl></details></div>
+<div class="tsd-panel tsd-typography"><h1 id="typespec-asyncapi" class="tsd-anchor-link">typespec-asyncapi<a href="#typespec-asyncapi" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
+<p>An <a href="https://www.asyncapi.com/">AsyncAPI 3.1</a> emitter for <a href="https://typespec.io/">TypeSpec</a> — describe your event-driven APIs (Kafka, MQTT, WebSocket, …) in TypeSpec and emit AsyncAPI documents from a single source of truth.</p>
+<blockquote>
+<p><strong>Status: Work in progress.</strong> This project currently supports generating the Document Skeleton, Info metadata, Tags, and ExternalDocs for AsyncAPI 3.1.0. Channel, Operation, and Message schema mapping are under active development.</p>
+</blockquote>
+<h2 id="why" class="tsd-anchor-link">Why<a href="#why" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>TypeSpec has first-class emitters for OpenAPI, but the AsyncAPI story for event-driven contracts (message queues, streaming topics) is still young. This project explores building that emitter, so HTTP and async contracts can live side by side in one TypeSpec workspace.</p>
+<h2 id="installation" class="tsd-anchor-link">Installation<a href="#installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>This package is currently under development. To try it locally:</p>
+<pre><code class="bash"><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> &lt;</span><span class="hl-2">this</span><span class="hl-1"> </span><span class="hl-2">rep</span><span class="hl-1">o&gt;</span><br/><span class="hl-0">cd</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Then reference it from your TypeSpec project via a local file dependency or <code>pnpm link</code>.</p>
+<h2 id="usage" class="tsd-anchor-link">Usage<a href="#usage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Add the library to your <code>main.tsp</code> and use the provided decorators to annotate your service:</p>
+<pre><code class="typespec">import "typespec-asyncapi";
+
+using AsyncAPI;
+
+@service(#{ title: "Order Service API" })
+@info(#{
+  version: "1.0.0",
+  description: "This is a sample Order Service event-driven API.",
+  contact: #{ name: "API Support", email: "support@example.com" },
+  license: #{ name: "MIT", url: "https://opensource.org/licenses/MIT" }
+})
+@tag("orders")
+@tag("payment")
+@externalDocs("https://example.com/docs", "Service Documentation")
+namespace Orders;
+</code><button type="button">Copy</button></pre>
+
+<p>Configure the emitter in your <code>tspconfig.yaml</code>:</p>
+<pre><code class="yaml"><span class="hl-3">emit</span><span class="hl-1">:</span><br/><span class="hl-1">  - </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><br/><span class="hl-3">options</span><span class="hl-1">:</span><br/><span class="hl-1">  </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">:</span><br/><span class="hl-1">    </span><span class="hl-3">output-file</span><span class="hl-1">: </span><span class="hl-2">&quot;asyncapi.yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-3">file-type</span><span class="hl-1">: </span><span class="hl-2">&quot;yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-3">asyncapi-id</span><span class="hl-1">: </span><span class="hl-2">&quot;urn:com:example:orders&quot;</span><br/><span class="hl-1">    </span><span class="hl-3">default-content-type</span><span class="hl-1">: </span><span class="hl-2">&quot;application/json&quot;</span>
+</code><button type="button">Copy</button></pre>
+
+<p>Then compile:</p>
+<pre><code class="bash"><span class="hl-0">tsp</span><span class="hl-1"> </span><span class="hl-2">compile</span><span class="hl-1"> </span><span class="hl-2">.</span><span class="hl-1"> </span><span class="hl-4">--emit</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span>
+</code><button type="button">Copy</button></pre>
+
+<p>This will generate a fully compliant AsyncAPI 3.1.0 document.</p>
+<h2 id="emitter-options" class="tsd-anchor-link">Emitter Options<a href="#emitter-options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>You can configure the emitter using the following options in <code>tspconfig.yaml</code> or via CLI arguments:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>output-file</code></td>
+<td><code>string</code></td>
+<td><code>asyncapi.yaml</code></td>
+<td>Name of the emitted file.</td>
+</tr>
+<tr>
+<td><code>file-type</code></td>
+<td><code>string</code></td>
+<td><code>yaml</code></td>
+<td>Format of the generated document (<code>yaml</code> or <code>json</code>).</td>
+</tr>
+<tr>
+<td><code>asyncapi-id</code></td>
+<td><code>string</code></td>
+<td>-</td>
+<td>Global identifier for the AsyncAPI document (<code>id</code> field).</td>
+</tr>
+<tr>
+<td><code>default-content-type</code></td>
+<td><code>string</code></td>
+<td>-</td>
+<td>Default content type used for message payloads (<code>defaultContentType</code> field).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="available-decorators" class="tsd-anchor-link">Available Decorators<a href="#available-decorators" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><code>@AsyncAPI.info</code> - Sets the full AsyncAPI <code>info</code> block including version, description, contact, and license.</li>
+<li><code>@AsyncAPI.externalDocs</code> - Attaches external documentation links.</li>
+<li><code>@tag</code> - (Built-in) Adds standard tags to your AsyncAPI document.</li>
+<li><code>@service</code> - (Built-in) Extracts the API title automatically.</li>
+</ul>
+<h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1">        </span><span class="hl-5"># install dependencies</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">          </span><span class="hl-5"># compile TypeScript to dist/</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">           </span><span class="hl-5"># run tests (vitest)</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">           </span><span class="hl-5"># eslint</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">format</span><span class="hl-1">         </span><span class="hl-5"># prettier</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">           </span><span class="hl-5"># generate API docs (typedoc)</span>
+</code><button type="button">Copy</button></pre>
+
+</div></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -26,13 +113,16 @@
 <div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
 <details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
 <h3>On This Page</h3></summary>
-<div class="tsd-accordion-details">
-<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Interfaces"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>Interfaces</summary>
-<div><a href="#asyncapiemitteroptions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Interface"><use href="assets/icons.svg#icon-256"></use></svg><span>Async<wbr/>API<wbr/>Emitter<wbr/>Options</span></a></div></details>
-<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Functions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>Functions</summary>
-<div><a href="#onemit"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Function"><use href="assets/icons.svg#icon-64"></use></svg><span>$on<wbr/>Emit</span></a></div></details></div></details></div>
+<div class="tsd-accordion-details"><a href="#typespec-asyncapi"><span>typespec-<wbr/>asyncapi</span></a>
+<ul>
+<li><a href="#why"><span>Why</span></a></li>
+<li><a href="#installation"><span>Installation</span></a></li>
+<li><a href="#usage"><span>Usage</span></a></li>
+<li><a href="#emitter-options"><span>Emitter <wbr/>Options</span></a></li>
+<li><a href="#available-decorators"><span>Available <wbr/>Decorators</span></a></li>
+<li><a href="#development"><span>Development</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="index.html" class="current">TypeSpec AsyncAPI Emitter</a>
+<nav class="tsd-navigation"><a href="modules.html">TypeSpec AsyncAPI Emitter</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
 <li>Loading...</li></ul></nav></div></div></div><footer>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
