@@ -119,4 +119,42 @@ export type OperationObject = Record<string, never>;
  * @category Types
  * @public
  */
-export type ComponentsObject = Record<string, never>;
+export interface ComponentsObject {
+  /** Reusable schemas. */
+  schemas?: Record<string, SchemaObject>;
+  messages?: Record<string, never>;
+  channels?: Record<string, never>;
+}
+
+/**
+ * AsyncAPI Schema Object, which is a superset of JSON Schema Draft 07.
+ * @category Types
+ * @public
+ */
+export interface SchemaObject {
+  type?: string | string[];
+  title?: string;
+  description?: string;
+  format?: string;
+  properties?: Record<string, SchemaObject | ReferenceObject>;
+  additionalProperties?: boolean | SchemaObject | ReferenceObject;
+  items?: SchemaObject | ReferenceObject;
+  required?: string[];
+  enum?: unknown[];
+  default?: unknown;
+  examples?: unknown[];
+  anyOf?: (SchemaObject | ReferenceObject)[];
+  allOf?: (SchemaObject | ReferenceObject)[];
+  oneOf?: (SchemaObject | ReferenceObject)[];
+  not?: SchemaObject | ReferenceObject;
+  $ref?: string;
+}
+
+/**
+ * A simple object to allow referencing other components in the specification.
+ * @category Types
+ * @public
+ */
+export interface ReferenceObject {
+  $ref: string;
+}
