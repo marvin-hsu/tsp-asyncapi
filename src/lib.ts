@@ -83,4 +83,9 @@ export const $lib = createTypeSpecLibrary({
  * @public
  */
 export const reportDiagnostic = $lib.reportDiagnostic.bind($lib);
+
+/**
+ * @category Library
+ * @public
+ */
 export const createDiagnostic = $lib.createDiagnostic.bind($lib);

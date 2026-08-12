@@ -68,11 +68,11 @@ This will generate a fully compliant AsyncAPI 3.1.0 document.
 
 You can configure the emitter using the following options in `tspconfig.yaml` or via CLI arguments:
 
-| Option                 | Type     | Default         | Description |
-| ---------------------- | -------- | --------------- | ----------- |
-| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file. |
-| `file-type`            | `string` | `yaml`          | Format of the generated document (`yaml` or `json`). |
-| `asyncapi-id`          | `string` | -               | Global identifier for the AsyncAPI document (`id` field). |
+| Option                 | Type     | Default         | Description                                                                  |
+| ---------------------- | -------- | --------------- | ---------------------------------------------------------------------------- |
+| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file.                                                    |
+| `file-type`            | `string` | `yaml`          | Format of the generated document (`yaml` or `json`).                         |
+| `asyncapi-id`          | `string` | -               | Global identifier for the AsyncAPI document (`id` field).                    |
 | `default-content-type` | `string` | -               | Default content type used for message payloads (`defaultContentType` field). |
 
 ## Available Decorators

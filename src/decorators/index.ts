@@ -1,5 +1,6 @@
 import { DecoratorContext, Namespace, Type, Program } from "@typespec/compiler";
 
+/** @public */
 export const namespace = "AsyncAPI";
 
 const infoStateKey = Symbol.for("typespec-asyncapi.info");
@@ -43,6 +44,7 @@ export function $info(context: DecoratorContext, target: Namespace, info: AsyncA
   context.program.stateMap(infoStateKey).set(target, infoData);
 }
 
+/** @public */
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined {
   return program.stateMap(infoStateKey).get(target) as AsyncAPIInfoState | undefined;
 }
@@ -84,6 +86,7 @@ export function $externalDocs(
   context.program.stateMap(externalDocsKey).set(target, { url, description });
 }
 
+/** @public */
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined {
   return program.stateMap(externalDocsKey).get(target) as ExternalDocsState | undefined;
 }

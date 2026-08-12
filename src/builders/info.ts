@@ -9,7 +9,7 @@ import { buildExternalDocs } from "./external-docs.js";
  */
 export function buildInfo(program: Program, service: Service): InfoObject {
   const serviceType = service.type;
-  
+
   const info: InfoObject = {
     title: service.title ?? "AsyncAPI Document",
     version: "0.0.0",

@@ -32,8 +32,14 @@ jobs:
         run: pnpm run build
       - name: API Extractor Check
         run: pnpm run api-extractor:ci
-      - name: Test
-        run: pnpm run test
+      - name: Test and Coverage
+        run: pnpm run test:cov
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   deploy-docs:
     needs: build

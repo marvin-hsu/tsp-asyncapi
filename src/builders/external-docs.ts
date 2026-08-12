@@ -5,7 +5,10 @@ import { getExternalDocs } from "../decorators/index.js";
 /**
  * Extracts external documentation from a TypeSpec type.
  */
-export function buildExternalDocs(program: Program, target: Type): ExternalDocumentationObject | undefined {
+export function buildExternalDocs(
+  program: Program,
+  target: Type,
+): ExternalDocumentationObject | undefined {
   const extDocs = getExternalDocs(program, target);
   if (extDocs) {
     return {

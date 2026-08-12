@@ -86,7 +86,7 @@ export interface ContactObject {
     url?: string;
 }
 
-// @public (undocumented)
+// @public
 export const createDiagnostic: <C extends "multiple-services", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
