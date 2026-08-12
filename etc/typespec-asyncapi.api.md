@@ -77,7 +77,13 @@ export interface AsyncAPIInfoState {
 export type ChannelObject = Record<string, never>;
 
 // @public
-export type ComponentsObject = Record<string, never>;
+export interface ComponentsObject {
+    // (undocumented)
+    channels?: Record<string, never>;
+    // (undocumented)
+    messages?: Record<string, never>;
+    schemas?: Record<string, SchemaObject>;
+}
 
 // @public
 export interface ContactObject {
@@ -148,6 +154,12 @@ export const namespace = "AsyncAPI";
 export type OperationObject = Record<string, never>;
 
 // @public
+export interface ReferenceObject {
+    // (undocumented)
+    $ref: string;
+}
+
+// @public
 export const reportDiagnostic: <C extends "multiple-services", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
@@ -157,6 +169,42 @@ export const reportDiagnostic: <C extends "multiple-services", M extends keyof {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
 };
 }, C, M>) => void;
+
+// @public
+export interface SchemaObject {
+    // (undocumented)
+    $ref?: string;
+    // (undocumented)
+    additionalProperties?: boolean | SchemaObject | ReferenceObject;
+    // (undocumented)
+    allOf?: (SchemaObject | ReferenceObject)[];
+    // (undocumented)
+    anyOf?: (SchemaObject | ReferenceObject)[];
+    // (undocumented)
+    default?: unknown;
+    // (undocumented)
+    description?: string;
+    // (undocumented)
+    enum?: unknown[];
+    // (undocumented)
+    examples?: unknown[];
+    // (undocumented)
+    format?: string;
+    // (undocumented)
+    items?: SchemaObject | ReferenceObject;
+    // (undocumented)
+    not?: SchemaObject | ReferenceObject;
+    // (undocumented)
+    oneOf?: (SchemaObject | ReferenceObject)[];
+    // (undocumented)
+    properties?: Record<string, SchemaObject | ReferenceObject>;
+    // (undocumented)
+    required?: string[];
+    // (undocumented)
+    title?: string;
+    // (undocumented)
+    type?: string | string[];
+}
 
 // @public
 export interface TagObject {
