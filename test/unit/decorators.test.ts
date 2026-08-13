@@ -19,16 +19,16 @@ describe("Unit: Decorators", () => {
       getArgumentTarget: () => TestService,
     } as unknown as DecoratorContext;
 
-    const infoObj = program.checker.createType({
-      kind: "Object",
-      properties: {} as any,
-    } as any);
+    const infoObj = {
+      version: "1.2.3",
+      description: "My Test API",
+    } as any;
 
     $info(mockContext, TestService, infoObj);
 
-    // As long as it doesn't crash, and we can read it back. Since the internal state map is used, it should be set.
     const state = getInfo(program, TestService);
-    expect(state).toBeDefined();
+    expect(state?.version).toBe("1.2.3");
+    expect(state?.description).toBe("My Test API");
   });
 
   it("should set and get externalDocs state", async () => {

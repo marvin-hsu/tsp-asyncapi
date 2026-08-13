@@ -7,6 +7,7 @@ import {
   isRecordModelType,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../types/index.js";
+import { reportDiagnostic } from "../lib.js";
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
@@ -37,6 +38,10 @@ export class SchemaBuilder {
     }
   }
 
+  private building = new Set<Model>();
+  private builtModels = new Map<string, Model>();
+  private reportedCollisions = new Set<string>();
+
   private buildModelSchema(model: Model): SchemaObject | ReferenceObject {
     if (isArrayModelType(model)) {
       return {
@@ -53,32 +58,52 @@ export class SchemaBuilder {
     }
 
     if (model.name) {
-      // Named model, we should emit it to components and return a ref
-      const schema: SchemaObject = {
-        type: "object",
-        properties: {},
-      };
-      const required: string[] = [];
-
-      for (const prop of model.properties.values()) {
-        const propSchema = this.buildSchema(prop.type);
-        if (schema.properties) {
-          schema.properties[prop.name] = propSchema;
-        }
-        if (!prop.optional) {
-          required.push(prop.name);
-        }
+      if (
+        this.builtModels.has(model.name) &&
+        this.builtModels.get(model.name) !== model &&
+        !this.reportedCollisions.has(model.name)
+      ) {
+        this.reportedCollisions.add(model.name);
+        reportDiagnostic(this.program, {
+          code: "duplicate-schema-name",
+          target: model,
+          format: { name: model.name },
+        });
       }
 
-      if (required.length > 0) {
-        schema.required = required;
+      if (Object.hasOwn(this.schemas, model.name) || this.building.has(model)) {
+        return { $ref: `#/components/schemas/${model.name}` };
       }
+      this.building.add(model);
+      this.builtModels.set(model.name, model);
+    }
 
+    const schema: SchemaObject = {
+      type: "object",
+      properties: {},
+    };
+    const required: string[] = [];
+
+    for (const prop of model.properties.values()) {
+      const propSchema = this.buildSchema(prop.type);
+      if (schema.properties) {
+        schema.properties[prop.name] = propSchema;
+      }
+      if (!prop.optional) {
+        required.push(prop.name);
+      }
+    }
+
+    if (required.length > 0) {
+      schema.required = required;
+    }
+
+    if (model.name) {
       this.schemas[model.name] = schema;
+      this.building.delete(model);
       return { $ref: `#/components/schemas/${model.name}` };
     } else {
-      // Anonymous model
-      return { type: "object" };
+      return schema;
     }
   }
 
@@ -110,8 +135,9 @@ export class SchemaBuilder {
       case "float64":
         return { type: "number", format: "double" };
       case "decimal":
-      case "decimal128":
         return { type: "number", format: "decimal" };
+      case "decimal128":
+        return { type: "number", format: "decimal128" };
       case "bytes":
         return { type: "string", format: "byte" };
       case "plainDate":
