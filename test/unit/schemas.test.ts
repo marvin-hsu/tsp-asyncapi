@@ -1,9 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { AsyncAPITester } from "../../src/testing/index.js";
-import { t } from "@typespec/compiler/testing";
+import { t, TemplateWithMarkers } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../src/builders/schemas.js";
-import { Model } from "@typespec/compiler";
+import { Entity, Model } from "@typespec/compiler";
+
+/**
+ * Compiles `code` (which must produce a model named `M`) and immediately
+ * builds its schema, returning the builder alongside the full compile
+ * result (so a test needing other destructured symbols, e.g. `program`,
+ * can still reach them). Shared across the "documentation (2.7)" tests
+ * below, which otherwise all repeat the same four-line create-instance /
+ * compile / new-builder / build-schema setup.
+ */
+async function buildDocSchema<T extends Record<string, Entity> & { M: Model }>(
+  code: TemplateWithMarkers<T>,
+) {
+  const runner = await AsyncAPITester.createInstance();
+  const result = await runner.compile(code);
+  const builder = new SchemaBuilder(runner.program);
+  builder.buildSchema(result.M);
+  return { builder, runner, ...result };
+}
 
 describe("Unit: Schemas (Phase 2)", () => {
   describe("buildSchema", () => {
@@ -15,7 +33,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const schema = builder.buildSchema(TestModel) as any;
 
       expect(schema.$ref).toBe("#/components/schemas/TestModel");
@@ -60,7 +78,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(TestScalars);
 
       const props = builder.getSchemas().TestScalars.properties as Record<string, any>;
@@ -106,7 +124,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -131,7 +149,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -148,7 +166,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         model ${t.model("Empty")} {}
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Empty);
 
       // Mirrors the `required` handling: empty fields are not emitted.
@@ -163,7 +181,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(TestIntrinsics);
 
       const props = builder.getSchemas().TestIntrinsics.properties as Record<string, any>;
@@ -180,7 +198,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const schema = builder.getSchemas().M as any;
@@ -204,7 +222,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         op ${t.op("doIt")}(): void;
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       expect(builder.buildSchema(doIt.returnType)).toEqual({ not: {} });
     });
 
@@ -219,7 +237,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       // `Env` instantiated (via `M.e`) with no type argument gets
@@ -240,7 +258,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       // `Env` here is the template *declaration* itself (no
       // `templateMapper`), not an instantiation. Its `data` property's type
       // is a bare `TemplateParameter`, which has no real shape to build —
@@ -261,7 +279,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(W);
 
       const schemas = builder.getSchemas() as Record<string, any>;
@@ -291,7 +309,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const components = builder.getSchemas() as Record<string, any>;
@@ -318,7 +336,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         model Foo { z: string; }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(GlobalFoo as Model);
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
@@ -335,7 +353,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         model ${t.model("Derived")} extends Base { b: int32; }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Derived);
 
       const components = builder.getSchemas();
@@ -360,7 +378,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(TestCollections);
 
       const props = builder.getSchemas().TestCollections.properties as Record<string, any>;
@@ -383,7 +401,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const components = builder.getSchemas();
@@ -412,7 +430,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -440,7 +458,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref1 = builder.buildSchema(Type1 as Model) as any;
       const ref2 = builder.buildSchema(Type2 as Model) as any;
 
@@ -477,7 +495,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref1 = builder.buildSchema(NsFoo as Model) as any;
       const ref2 = builder.buildSchema(GlobalFoo as Model) as any;
 
@@ -509,7 +527,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
@@ -537,7 +555,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(W as Model);
 
       const components = builder.getSchemas();
@@ -578,7 +596,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref1 = builder.buildSchema(GlobalModel as Model) as any;
       const ref2 = builder.buildSchema(NestedModel as Model) as any;
 
@@ -615,7 +633,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Type1 as Model);
       builder.buildSchema(Type2 as Model);
       builder.buildSchema(Wrapper as Model);
@@ -644,7 +662,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(W);
 
       const props = builder.getSchemas().W.properties as Record<string, any>;
@@ -661,7 +679,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         enum ${t.enum("Color")} { Red, Green }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref = builder.buildSchema(Color) as any;
 
       expect(ref.$ref).toBe("#/components/schemas/Color");
@@ -677,7 +695,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         enum ${t.enum("Color")} { Red: "R", Green: "G" }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Color);
 
       expect(builder.getSchemas().Color).toEqual({
@@ -692,7 +710,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         enum ${t.enum("Status")} { Active: 1, Inactive: 2 }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Status);
 
       expect(builder.getSchemas().Status).toEqual({
@@ -707,7 +725,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         enum ${t.enum("Mixed")} { Active: 1, Other }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Mixed);
 
       // `type: "string"` would make the numeric member `1` unsatisfiable
@@ -726,7 +744,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -741,7 +759,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -758,7 +776,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -773,7 +791,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         union ${t.union("Named")} { string, int32 }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref = builder.buildSchema(Named) as any;
 
       expect(ref.$ref).toBe("#/components/schemas/Named");
@@ -788,7 +806,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         union ${t.union("Named")} { "a", "b" }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const ref = builder.buildSchema(Named) as any;
 
       expect(ref.$ref).toBe("#/components/schemas/Named");
@@ -801,7 +819,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         enum ${t.enum("E")} { }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(E);
 
       expect(builder.getSchemas().E).toEqual({ not: {} });
@@ -813,7 +831,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         union ${t.union("U")} { }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(U);
 
       expect(builder.getSchemas().U).toEqual({ not: {} });
@@ -828,7 +846,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -844,7 +862,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -865,7 +883,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       const declRef = builder.buildSchema(Wrap);
       expect(declRef).toEqual({});
       expect(Object.hasOwn(builder.getSchemas(), "Wrap")).toBe(false);
@@ -884,7 +902,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         union ${t.union("U")} { a: "x", b: "x" }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(U);
 
       expect(builder.getSchemas().U).toEqual({ type: "string", enum: ["x"] });
@@ -909,7 +927,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -934,7 +952,7 @@ describe("Unit: Schemas (Phase 2)", () => {
         }
       `);
 
-      const builder = new SchemaBuilder();
+      const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -943,6 +961,583 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(builder.getSchemas().Color).toEqual({ type: "string", enum: ["Red", "Green"] });
       expect(builder.getSchemas().Named).toEqual({
         anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+  });
+
+  describe("documentation (2.7)", () => {
+    it("should map a model's doc comment to description and @summary to title", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** A widget model. */
+        @summary("Widget")
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      expect(builder.getSchemas().M.title).toBe("Widget");
+      expect(builder.getSchemas().M.description).toBe("A widget model.");
+    });
+
+    it("should map a model's @example values to an examples array", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @example(#{ field: "hello" })
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      expect(builder.getSchemas().M.examples).toEqual([{ field: "hello" }]);
+    });
+
+    it("should emit only the bare example value, dropping @example's title/description options (draft-07 `examples` has nowhere to hang them; deferred to Phase 3's message-level examples)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @example(#{ field: "hello" }, #{ title: "A title", description: "A description" })
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      expect(builder.getSchemas().M.examples).toEqual([{ field: "hello" }]);
+      expect(builder.getSchemas().M.title).toBeUndefined();
+      expect(builder.getSchemas().M.description).toBeUndefined();
+    });
+
+    it("should omit title/description/examples keys entirely when not given", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      const schema = builder.getSchemas().M;
+      // `toBeUndefined` alone would also pass if the key were present with an
+      // `undefined` value (which would serialize to `title: null` etc. in
+      // YAML/JSON) — assert the key is genuinely absent instead.
+      expect(Object.hasOwn(schema, "title")).toBe(false);
+      expect(Object.hasOwn(schema, "description")).toBe(false);
+      expect(Object.hasOwn(schema, "examples")).toBe(false);
+    });
+
+    it("should omit a property's title/description/examples keys entirely when not given", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      const field = builder.getSchemas().M.properties?.field as Record<string, any>;
+      expect(Object.hasOwn(field, "title")).toBe(false);
+      expect(Object.hasOwn(field, "description")).toBe(false);
+      expect(Object.hasOwn(field, "examples")).toBe(false);
+    });
+
+    it("should map an explicit @doc decorator to description", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @doc("A widget model, via decorator.")
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      expect(builder.getSchemas().M.description).toBe("A widget model, via decorator.");
+    });
+
+    it("should map a property's doc comment to description and @summary to title", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          /** The widget's name. */
+          @summary("Name")
+          field: string;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({
+        type: "string",
+        title: "Name",
+        description: "The widget's name.",
+      });
+    });
+
+    it("should map a property's @example values to an examples array", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          @example("hello")
+          field: string;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({ type: "string", examples: ["hello"] });
+    });
+
+    it("should wrap a $ref property in allOf to carry its own documentation", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("Widget")} {
+          name: string;
+        }
+        model ${t.model("M")} {
+          /** The referenced widget. */
+          widget: Widget;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.widget).toEqual({
+        allOf: [{ $ref: "#/components/schemas/Widget" }],
+        description: "The referenced widget.",
+      });
+    });
+
+    it("should preserve multiple @example values in source order (model and property)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @example(#{ field: "a" })
+        @example(#{ field: "b" })
+        model ${t.model("M")} {
+          @example("x")
+          @example("y")
+          field: string;
+        }
+      `);
+
+      expect(builder.getSchemas().M.examples).toEqual([{ field: "a" }, { field: "b" }]);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field.examples).toEqual(["x", "y"]);
+    });
+
+    it("should not throw and should skip an example whose value cannot be serialized", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        scalar myDate extends utcDateTime {
+          init fromEpoch(v: int64);
+        }
+        model ${t.model("M")} {
+          @example(myDate.fromEpoch(0))
+          d: myDate;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      expect(() => builder.buildSchema(M)).not.toThrow();
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
+    });
+
+    it("should omit (not null-fill) an example that serializes to undefined", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+        model ${t.model("M")} {
+          @example(ipv4.fromBytes(1, 2, 3, 4))
+          ip: ipv4;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.ip).toEqual({ type: "string" });
+    });
+
+    it("should omit examples entirely when an array element cannot be serialized", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+        model ${t.model("M")} {
+          @example(#[ipv4.fromBytes(1, 2, 3, 4)])
+          ips: ipv4[];
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.ips).toEqual({ type: "array", items: { type: "string" } });
+    });
+
+    it("should omit examples entirely when an object property cannot be serialized, and report a diagnostic instead of dropping it silently", async () => {
+      const { builder, runner } = await buildDocSchema(t.code`
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+        @example(#{ ip: ipv4.fromBytes(1, 2, 3, 4), name: "x" })
+        model ${t.model("M")} {
+          ip: ipv4;
+          name: string;
+        }
+      `);
+
+      expect(Object.hasOwn(builder.getSchemas().M, "examples")).toBe(false);
+      // The whole example is dropped (even the sibling `name` field, which
+      // was itself perfectly serializable) -- that must not happen in total
+      // silence.
+      expect(runner.program.diagnostics).toHaveLength(1);
+      expect(runner.program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
+      expect(runner.program.diagnostics[0].severity).toBe("warning");
+    });
+
+    it("should apply a named scalar's own @summary/@doc at its use site", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** An email address. */
+        @summary("Email")
+        scalar Email extends string;
+        model ${t.model("M")} {
+          e: Email;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.e).toEqual({
+        type: "string",
+        title: "Email",
+        description: "An email address.",
+      });
+    });
+
+    it("should not mix a property's own title with an inherited scalar description", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** email doc */
+        @summary("EmailTitle")
+        scalar Email extends string;
+        model ${t.model("M")} {
+          @summary("PropTitle")
+          e: Email;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.e).toEqual({ type: "string", title: "PropTitle" });
+    });
+
+    it("should not surface a built-in scalar's own standard-library doc comment", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          field: string;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({ type: "string" });
+    });
+
+    it("should not apply a property's own @encode when serializing its @example (2.7 does not map @encode into type/format)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          @example(utcDateTime.fromISO("2020-01-01T00:00:00Z"))
+          ts: utcDateTime;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      // The schema's type/format do not yet reflect @encode (that's plan 2.8),
+      // so the example must not be encoded either -- otherwise the example
+      // value would not validate against its own property's schema.
+      expect(props.ts.type).toBe("string");
+      expect(props.ts.format).toBe("date-time");
+      expect(props.ts.examples).toEqual(["2020-01-01T00:00:00Z"]);
+    });
+
+    it("should keep an inherited scalar's title/description when a property only adds its own @example", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** An email address. */
+        @summary("Email")
+        scalar Email extends string;
+        model ${t.model("M")} {
+          @example("a@b.com")
+          e: Email;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.e).toEqual({
+        type: "string",
+        title: "Email",
+        description: "An email address.",
+        examples: ["a@b.com"],
+      });
+    });
+
+    it("should map property names through @encodedName when serializing an @example (regression: schema/example key mismatch)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @example(#{ userName: "bob" })
+        model ${t.model("M")} {
+          @encodedName("application/json", "user_name")
+          userName: string;
+        }
+      `);
+
+      const schema = builder.getSchemas().M as any;
+      const properties = schema.properties as Record<string, unknown>;
+      expect(schema.examples).toEqual([{ user_name: "bob" }]);
+      expect(Object.keys(properties)).toEqual(["user_name"]);
+      expect(schema.required).toEqual(["user_name"]);
+    });
+
+    it("should preserve source order for @@example augment decorators", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          a: string;
+        }
+        @@example(M.a, "aug1");
+        @@example(M.a, "aug2");
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.a.examples).toEqual(["aug1", "aug2"]);
+    });
+
+    it("should not apply @encode to a model-level @example's nested property (2.7 does not map @encode into type/format)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @example(#{ ts: utcDateTime.fromISO("2020-01-01T00:00:00Z") })
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime;
+        }
+      `);
+
+      const schema = builder.getSchemas().M as any;
+      expect(schema.properties.ts).toEqual({ type: "string", format: "date-time" });
+      expect(schema.examples).toEqual([{ ts: "2020-01-01T00:00:00Z" }]);
+    });
+
+    it("should not apply @encode to an @example on a property whose type is a model with an encoded nested property", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model Inner {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime;
+        }
+        model ${t.model("M")} {
+          @example(#{ ts: utcDateTime.fromISO("2020-01-01T00:00:00Z") })
+          p: Inner;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.p.examples).toEqual([{ ts: "2020-01-01T00:00:00Z" }]);
+      const inner = builder.getSchemas().Inner as any;
+      expect(inner.properties.ts).toEqual({ type: "string", format: "date-time" });
+    });
+
+    it("should not apply a scalar's own @encode when serializing its @example (2.7 does not map @encode into type/format)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        @encode("unixTimestamp", int32)
+        scalar MyTs extends utcDateTime;
+        model ${t.model("M")} {
+          @example(MyTs.fromISO("2020-01-01T00:00:00Z"))
+          a: MyTs;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.a.type).toBe("string");
+      expect(props.a.format).toBe("date-time");
+      expect(props.a.examples).toEqual(["2020-01-01T00:00:00Z"]);
+    });
+
+    it("should not let unrelated edits in a different file reorder cross-file @@example augment decorators", async () => {
+      const mainCode = t.code`
+        model ${t.model("M")} {
+          f: string;
+        }
+        @@example(M, #{ f: "fromMainFile" });
+      `;
+
+      const testerA = AsyncAPITester.files({
+        "aug.tsp": `@@example(M, #{ f: "fromAugFile" });`,
+      }).import("./aug.tsp");
+      const resultA = await testerA.compile(mainCode);
+      const MA = resultA.M;
+      const builderA = new SchemaBuilder(resultA.program);
+      builderA.buildSchema(MA);
+      const examplesA = (builderA.getSchemas().M as any).examples;
+
+      const testerB = AsyncAPITester.files({
+        "aug.tsp": `
+          // pad line 1
+          // pad line 2
+          // pad line 3
+          // pad line 4
+          // pad line 5
+          // pad line 6
+          // pad line 7
+          // pad line 8
+          // pad line 9
+          // pad line 10
+          @@example(M, #{ f: "fromAugFile" });
+        `,
+      }).import("./aug.tsp");
+      const resultB = await testerB.compile(mainCode);
+      const MB = resultB.M;
+      const builderB = new SchemaBuilder(resultB.program);
+      builderB.buildSchema(MB);
+      const examplesB = (builderB.getSchemas().M as any).examples;
+
+      expect(examplesB).toEqual(examplesA);
+    });
+
+    it("should keep the JSON-encoded property key/required name even when an XML @encodedName is also declared (pinned; Phase 3 must thread the message's real contentType)", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          @encodedName("application/json", "u_json")
+          @encodedName("application/xml", "u_xml")
+          userName: string;
+        }
+      `);
+
+      const schema = builder.getSchemas().M as any;
+      const properties = schema.properties as Record<string, unknown>;
+      expect(Object.keys(properties)).toEqual(["u_json"]);
+      expect(schema.required).toEqual(["u_json"]);
+    });
+
+    it("should apply docs to a named enum's registered schema", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** Colors. */
+        @summary("Color")
+        enum ${t.enum("Color")} { Red, Green }
+        model ${t.model("M")} {
+          c: Color;
+        }
+      `);
+
+      expect(builder.getSchemas().Color).toEqual({
+        type: "string",
+        enum: ["Red", "Green"],
+        title: "Color",
+        description: "Colors.",
+      });
+    });
+
+    it("should apply docs to a named union's registered schema", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** Either. */
+        union ${t.union("Either")} { string, int32 }
+        model ${t.model("M")} {
+          e: Either;
+        }
+      `);
+
+      expect(builder.getSchemas().Either).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+        description: "Either.",
+      });
+    });
+
+    // Note: this only exercises the doc comment/@summary half of the union
+    // variant fix, not @example. `@example` legally targets `UnionVariant`
+    // per `decorators.tsp`, but the installed compiler's own checker
+    // (`checkExampleValid` in `@typespec/compiler`'s decorators.js) validates
+    // the example value against the `UnionVariant` type itself rather than
+    // `variant.type` for this target kind, so *any* `@example` on a union
+    // variant currently fails to compile with an "unassignable" error --
+    // independent of and unrelated to this builder's own handling. The
+    // `withPropertyDocs` plumbing added here already threads a variant's
+    // `@example`s through once that upstream compiler bug is fixed.
+    it("should apply a union variant's own doc comment/@summary to its anyOf branch", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        union ${t.union("Either")} {
+          /** The numeric branch. */
+          @summary("Num")
+          num: int32,
+          str: string,
+        }
+        model ${t.model("M")} {
+          e: Either;
+        }
+      `);
+
+      expect(builder.getSchemas().Either).toEqual({
+        anyOf: [
+          {
+            type: "integer",
+            format: "int32",
+            title: "Num",
+            description: "The numeric branch.",
+          },
+          { type: "string" },
+        ],
+      });
+    });
+
+    it("should apply docs to a named array-alias model's registered schema", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** A list of names. */
+        model ${t.model("Names")} is string[];
+        model ${t.model("M")} {
+          n: Names;
+        }
+      `);
+
+      expect(builder.getSchemas().Names).toEqual({
+        type: "array",
+        items: { type: "string" },
+        description: "A list of names.",
+      });
+    });
+
+    it("should not throw and should skip a malformed duration @example (compiler's Temporal.Duration.from throws a plain RangeError), reporting a diagnostic instead of dropping it silently", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          @example(duration.fromISO("not-a-duration"))
+          d: duration;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      expect(() => builder.buildSchema(M)).not.toThrow();
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
+      expect(runner.program.diagnostics).toHaveLength(1);
+      expect(runner.program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
+      expect(runner.program.diagnostics[0].severity).toBe("warning");
+    });
+
+    it("should keep the registry usable after a build() failure instead of leaving a dangling $ref (registerNamed try/finally)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          f: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      const spy = vi
+        .spyOn(
+          builder as unknown as { buildObjectSchema: (m: unknown) => unknown },
+          "buildObjectSchema",
+        )
+        .mockImplementationOnce(() => {
+          throw new Error("boom");
+        });
+
+      expect(() => builder.buildSchema(M)).toThrow("boom");
+      spy.mockRestore();
+
+      // A retry must not return a $ref to a key that never got registered.
+      const ref = builder.buildSchema(M) as { $ref: string };
+      expect(ref.$ref).toBe("#/components/schemas/M");
+      expect(Object.hasOwn(builder.getSchemas(), "M")).toBe(true);
+    });
+
+    it("should carry a base scalar's @doc/@summary through more than one level of derivation", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        /** An email address. */
+        @summary("Email")
+        scalar Email extends string;
+        scalar WorkEmail extends Email;
+        model ${t.model("M")} {
+          e: WorkEmail;
+        }
+      `);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.e).toEqual({
+        type: "string",
+        title: "Email",
+        description: "An email address.",
       });
     });
   });
