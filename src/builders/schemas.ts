@@ -46,6 +46,24 @@ import { SchemaObject, ReferenceObject } from "../types/index.js";
 import { reportDiagnostic } from "../lib.js";
 
 /**
+ * JSON Schema `type` keyword values this emitter emits. `SchemaObject.type`
+ * (see `src/types/index.ts`) is typed as plain `string`, not a string-literal
+ * union, so nothing in the type system catches a typo in one of these the way
+ * a `Type["kind"]` discriminated-union branch would — collecting them here
+ * turns a typo into a single-point fix instead of a silent divergence at one
+ * of the many call sites that used to spell the literal out separately.
+ */
+const JSON_SCHEMA_TYPE = {
+  string: "string",
+  number: "number",
+  integer: "integer",
+  boolean: "boolean",
+  null: "null",
+  array: "array",
+  object: "object",
+} as const;
+
+/**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
  * formatted primitive schema.
  */
@@ -59,13 +77,13 @@ function withFormat(type: string, formats: Record<string, string>): Record<strin
  * TypeSpec built-in scalar name → AsyncAPI schema.
  */
 const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
-  string: { type: "string" },
-  boolean: { type: "boolean" },
+  string: { type: JSON_SCHEMA_TYPE.string },
+  boolean: { type: JSON_SCHEMA_TYPE.boolean },
   // Abstract numeric scalars: the width is unspecified, so no `format`.
-  numeric: { type: "number" },
-  integer: { type: "integer" },
-  float: { type: "number" },
-  ...withFormat("integer", {
+  numeric: { type: JSON_SCHEMA_TYPE.number },
+  integer: { type: JSON_SCHEMA_TYPE.integer },
+  float: { type: JSON_SCHEMA_TYPE.number },
+  ...withFormat(JSON_SCHEMA_TYPE.integer, {
     int8: "int8",
     int16: "int16",
     int32: "int32",
@@ -76,13 +94,13 @@ const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
     uint32: "uint32",
     uint64: "uint64",
   }),
-  ...withFormat("number", {
+  ...withFormat(JSON_SCHEMA_TYPE.number, {
     float32: "float",
     float64: "double",
     decimal: "decimal",
     decimal128: "decimal128",
   }),
-  ...withFormat("string", {
+  ...withFormat(JSON_SCHEMA_TYPE.string, {
     bytes: "byte",
     plainDate: "date",
     plainTime: "time",
@@ -93,6 +111,21 @@ const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
   }),
 };
 
+/** Name of the compiler's built-in global namespace (home of `Array`, `Record`, ...). */
+const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
+
+/**
+ * True for the namespace node representing the compiler's built-in
+ * `TypeSpec` namespace itself — the one sitting directly under the global
+ * (unnamed) namespace — as opposed to any other namespace, including a
+ * user one that happens to share the name. Shared by every call site that
+ * previously spelled out `ns?.name === "TypeSpec" && !ns.namespace?.name`
+ * (or the equivalent `ns.namespace?.name === ""` form) separately.
+ */
+function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {
+  return ns?.name === TYPESPEC_NAMESPACE_NAME && !ns.namespace?.name;
+}
+
 /**
  * True when `scalar` is one of TypeSpec's own built-in scalars (declared in
  * the global `TypeSpec` namespace), as opposed to a user-declared scalar that
@@ -101,8 +134,7 @@ const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
  * `SCALAR_SCHEMAS` by name — a user scalar must instead walk `baseScalar`.
  */
 function isBuiltinScalar(scalar: Scalar): boolean {
-  const ns = scalar.namespace;
-  return ns?.name === "TypeSpec" && !ns.namespace?.name;
+  return isGlobalTypeSpecNamespace(scalar.namespace);
 }
 
 /**
@@ -115,8 +147,7 @@ function isBuiltinScalar(scalar: Scalar): boolean {
  * global `TypeSpec` namespace; a user-declared alias never does.
  */
 function isBuiltinCollectionInstantiation(model: Model): boolean {
-  const ns = model.namespace;
-  return ns?.name === "TypeSpec" && !ns.namespace?.name;
+  return isGlobalTypeSpecNamespace(model.namespace);
 }
 
 /**
@@ -365,7 +396,7 @@ function namespacePrefix(namespace: Namespace | undefined): string {
     // real user namespace does (review 2026-08-14-118) — skip just this one
     // link in the chain and keep walking (a user namespace nested under it,
     // if that were even possible, would still be collected).
-    if (ns.name === "TypeSpec" && ns.namespace?.name === "") {
+    if (isGlobalTypeSpecNamespace(ns)) {
       ns = ns.namespace;
       continue;
     }
@@ -471,6 +502,12 @@ function sanitizeNumberDisplayName(valueAsString: string): string {
   return capitalizeFirst(negative ? `Neg${magnitude}` : magnitude);
 }
 
+/** Fallback base name for an anonymous `Model` template argument with no properties to derive one from. */
+const ANONYMOUS_MODEL_NAME_TOKEN = "Anonymous";
+
+/** Fallback base name for an anonymous `Union` template argument with no variants to derive one from. */
+const ANONYMOUS_UNION_NAME_TOKEN = "Union";
+
 /**
  * A structural display name for an anonymous (unnamed) `Model` template
  * argument, derived from its own properties' names *and types* instead of
@@ -508,7 +545,7 @@ function anonymousModelDisplayName(model: Model): string {
   const names = [...model.properties.values()].map(
     (property) => sanitizeLiteralDisplayName(property.name) + templateArgDisplayName(property.type),
   );
-  return "Anonymous" + names.join("");
+  return ANONYMOUS_MODEL_NAME_TOKEN + names.join("");
 }
 
 /**
@@ -525,7 +562,7 @@ function anonymousModelDisplayName(model: Model): string {
  */
 function anonymousUnionDisplayName(union: Union): string {
   const names = [...union.variants.values()].map((variant) => templateArgDisplayName(variant.type));
-  return "Union" + names.join("");
+  return ANONYMOUS_UNION_NAME_TOKEN + names.join("");
 }
 
 /**
@@ -650,7 +687,7 @@ function templateInstanceName(type: Model | Union): string {
 function buildIntrinsicSchema(type: IntrinsicType): SchemaObject {
   switch (type.name) {
     case "null":
-      return { type: "null" };
+      return { type: JSON_SCHEMA_TYPE.null };
     case "never":
     case "void":
       // No value is valid: nothing matches `{ not: {} }`.
@@ -1361,11 +1398,11 @@ export class SchemaBuilder {
         // `enum` is used uniformly for both literals and real enums so 2.6
         // has one code path to maintain; `const` would be equivalent here
         // but would need its own branch.
-        return { type: "string", enum: [type.value] };
+        return { type: JSON_SCHEMA_TYPE.string, enum: [type.value] };
       case "Number":
-        return { type: "number", enum: [type.value] };
+        return { type: JSON_SCHEMA_TYPE.number, enum: [type.value] };
       case "Boolean":
-        return { type: "boolean", enum: [type.value] };
+        return { type: JSON_SCHEMA_TYPE.boolean, enum: [type.value] };
       default:
         return {};
     }
@@ -1583,7 +1620,7 @@ export class SchemaBuilder {
     }
     if (variants.every((variant) => variant.type.kind === "String")) {
       return {
-        type: "string",
+        type: JSON_SCHEMA_TYPE.string,
         enum: [...new Set(variants.map((variant) => (variant.type as StringLiteral).value))],
       };
     }
@@ -1608,10 +1645,13 @@ export class SchemaBuilder {
    */
   private buildCollectionSchema(model: Model): SchemaObject | undefined {
     if (isArrayModelType(model)) {
-      return { type: "array", items: this.buildSchema(model.indexer.value) };
+      return { type: JSON_SCHEMA_TYPE.array, items: this.buildSchema(model.indexer.value) };
     }
     if (isRecordModelType(model)) {
-      return { type: "object", additionalProperties: this.buildSchema(model.indexer.value) };
+      return {
+        type: JSON_SCHEMA_TYPE.object,
+        additionalProperties: this.buildSchema(model.indexer.value),
+      };
     }
     return undefined;
   }
@@ -1916,7 +1956,7 @@ export class SchemaBuilder {
       }
     }
 
-    const schema: SchemaObject = { type: "object" };
+    const schema: SchemaObject = { type: JSON_SCHEMA_TYPE.object };
     // Omit empty fields instead of emitting `properties: {}` (same
     // omit-empty convention `required` follows below).
     if (Object.keys(propertySchemas).length > 0) {
