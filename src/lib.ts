@@ -5,7 +5,6 @@ import { createTypeSpecLibrary, JSONSchemaType, paramMessage } from "@typespec/c
  * the TypeSpec compiler. Other code that needs this name imports it from
  * here instead of repeating the literal string.
  *
- * @category Library
  * @public
  */
 export const LIBRARY_NAME = "typespec-asyncapi";
@@ -26,7 +25,6 @@ export const LIBRARY_NAME = "typespec-asyncapi";
  *     default-content-type: "application/json"
  * ```
  *
- * @category Library
  * @public
  */
 export interface AsyncAPIEmitterOptions {
@@ -69,7 +67,10 @@ const EmitterOptionsSchema: JSONSchemaType<AsyncAPIEmitterOptions> = {
 };
 
 /**
- * @category Library
+ * The TypeSpec library definition for this emitter. It registers the
+ * library name, the diagnostics, and the emitter options schema with
+ * the TypeSpec compiler.
+ *
  * @public
  */
 export const $lib = createTypeSpecLibrary({
@@ -151,13 +152,15 @@ export const $lib = createTypeSpecLibrary({
 });
 
 /**
- * @category Library
+ * Reports one of this library's diagnostics on a program.
+ *
  * @public
  */
 export const reportDiagnostic = $lib.reportDiagnostic.bind($lib);
 
 /**
- * @category Library
+ * Creates one of this library's diagnostics without reporting it.
+ *
  * @public
  */
 export const createDiagnostic = $lib.createDiagnostic.bind($lib);

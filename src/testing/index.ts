@@ -20,7 +20,6 @@ function findPackageRoot(fromUrl: string): string {
  * Tester pre-configured with the typespec-asyncapi library imported and the
  * `AsyncAPI` namespace in scope.
  *
- * @category Testing
  * @public
  */
 export const AsyncAPITester = createTester(findPackageRoot(import.meta.url), {

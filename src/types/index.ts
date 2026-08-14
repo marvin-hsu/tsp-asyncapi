@@ -4,7 +4,6 @@
 
 /**
  * Represents the root of the AsyncAPI 3.1.0 document.
- * @category Types
  * @public
  */
 export interface AsyncAPIDocument {
@@ -26,7 +25,6 @@ export interface AsyncAPIDocument {
 
 /**
  * Provides metadata about the API.
- * @category Types
  * @public
  */
 export interface InfoObject {
@@ -50,7 +48,6 @@ export interface InfoObject {
 
 /**
  * Contact information for the API.
- * @category Types
  * @public
  */
 export interface ContactObject {
@@ -64,7 +61,6 @@ export interface ContactObject {
 
 /**
  * License information for the API.
- * @category Types
  * @public
  */
 export interface LicenseObject {
@@ -76,7 +72,6 @@ export interface LicenseObject {
 
 /**
  * Metadata for a specific tag.
- * @category Types
  * @public
  */
 export interface TagObject {
@@ -90,7 +85,6 @@ export interface TagObject {
 
 /**
  * Allows referencing an external resource for extended documentation.
- * @category Types
  * @public
  */
 export interface ExternalDocumentationObject {
@@ -102,21 +96,18 @@ export interface ExternalDocumentationObject {
 
 /**
  * Describes the channels and their properties.
- * @category Types
  * @public
  */
 export type ChannelObject = Record<string, never>;
 
 /**
  * Describes a specific operation.
- * @category Types
  * @public
  */
 export type OperationObject = Record<string, never>;
 
 /**
  * Holds reusable components for the AsyncAPI document.
- * @category Types
  * @public
  */
 export interface ComponentsObject {
@@ -128,7 +119,6 @@ export interface ComponentsObject {
 
 /**
  * AsyncAPI Schema Object, which is a superset of JSON Schema Draft 07.
- * @category Types
  * @public
  */
 export interface SchemaObject {
@@ -178,7 +168,6 @@ export interface SchemaObject {
 
 /**
  * A simple object to allow referencing other components in the specification.
- * @category Types
  * @public
  */
 export interface ReferenceObject {

@@ -13,7 +13,6 @@ import yaml from "yaml";
  * 3. Writes the output file to the disk.
  *
  * @param context - Context containing the program and emitter options.
- * @category Core Emitter
  * @public
  */
 export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {

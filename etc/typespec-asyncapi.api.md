@@ -221,12 +221,12 @@ export interface ExternalDocumentationObject {
 
 // Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
 //
-// @public (undocumented)
+// @public
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined;
 
 // Warning: (ae-incompatible-release-tags) The symbol "getInfo" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
 //
-// @public (undocumented)
+// @public
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined;
 
 // Warning: (ae-incompatible-release-tags) The symbol "getJsonSchemaExtensions" is marked as @public, but its signature references "JsonSchemaExtensionRecord" which is marked as @internal
@@ -246,7 +246,7 @@ export interface InfoObject {
     version: string;
 }
 
-// @public (undocumented)
+// @public
 export function isOneOf(program: Program, target: Union): boolean;
 
 // Warning: (ae-internal-missing-underscore) The name "JsonSchemaExtensionRecord" should be prefixed with an underscore because the declaration is marked as @internal

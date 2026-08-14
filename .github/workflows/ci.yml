@@ -58,11 +58,9 @@ jobs:
         with:
           filters: |
             docs:
-              - 'src/**'
-              - 'README.md'
-              - 'typedoc.json'
+              - 'docs/**'
               - 'package.json'
-              - 'tsconfig*.json'
+              - 'pnpm-lock.yaml'
 
       - name: Install pnpm
         if: steps.filter.outputs.docs == 'true'
@@ -83,12 +81,12 @@ jobs:
 
       - name: Build Docs
         if: steps.filter.outputs.docs == 'true'
-        run: pnpm run docs
+        run: pnpm run docs:build
 
       - name: Deploy to gh-pages branch
         if: steps.filter.outputs.docs == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          publish_dir: ./docs/.vitepress/dist
           publish_branch: gh-pages

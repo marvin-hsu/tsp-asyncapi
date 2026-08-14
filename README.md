@@ -4,7 +4,9 @@
 
 An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). Describe an event-driven API in TypeSpec. Emit a full AsyncAPI document from one source of truth.
 
-> **Status: work in progress.** The emitter generates the document skeleton, `info` metadata, tags, external docs, and a complete TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords). Channels, operations, messages, servers, security, and protocol bindings are still in development.
+> **Status: work in progress.** The emitter generates the document skeleton and `info` metadata (title, version, contact, license, tags, external docs). The TypeSpec-to-AsyncAPI-schema conversion layer (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords) is implemented and unit-tested, but is not yet wired into the emitted file — it lands together with message payloads. Channels, operations, messages, servers, security, and protocol bindings are still in development.
+
+📖 **Documentation: see the [docs site](https://marvin-hsu.github.io/typespec-asyncapi/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
 
 ## Why
 
@@ -49,8 +51,9 @@ using AsyncAPI;
 @externalDocs("https://example.com/docs", "Service Documentation")
 namespace Orders;
 
-// This emitter converts a TypeSpec model to an AsyncAPI Schema Object
-// automatically. The result lands in components.schemas.
+// The schema conversion layer turns this model into an AsyncAPI Schema
+// Object (see the docs site); it lands in components.schemas once
+// message payloads are wired up.
 model Order {
   id: string;
   amount: float64;
@@ -129,8 +132,11 @@ pnpm watch          # Compile in watch mode.
 pnpm test           # Run tests (vitest).
 pnpm lint           # Run eslint.
 pnpm format         # Run prettier.
-pnpm docs           # Generate API docs (typedoc).
+pnpm docs:dev       # Run the documentation site locally (VitePress).
+pnpm docs:build     # Build the documentation site.
 ```
+
+The documentation site lives in `docs/` and is built with [VitePress](https://vitepress.dev/), in English and Traditional Chinese. Pushes to `main` deploy it to GitHub Pages.
 
 Other tools in this repo:
 

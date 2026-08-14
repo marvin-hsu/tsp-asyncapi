@@ -4,7 +4,9 @@
 
 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。用 TypeSpec 描述事件驅動 API，從單一事實來源（single source of truth）產出完整的 AsyncAPI 文件。
 
-> **狀態：開發中。** 目前 emitter 已經能產生文件骨架、`info` 中繼資料、tags、external docs，以及完整的 TypeSpec → AsyncAPI schema 轉換（model、scalar、array、record、enum、union、繼承、discriminator、驗證關鍵字）。Channel、operation、message、server、security、protocol binding 仍在開發中。
+> **狀態：開發中。** 目前 emitter 產出文件骨架與 `info` 中繼資料（title、version、contact、license、tags、external docs）。TypeSpec → AsyncAPI schema 轉換層（model、scalar、array、record、enum、union、繼承、discriminator、驗證關鍵字）已實作並有單元測試，但尚未接進輸出檔，會與 message payload 一起接上。Channel、operation、message、server、security、protocol binding 仍在開發中。
+
+📖 **文件請看 [docs 網站](https://marvin-hsu.github.io/typespec-asyncapi/)**：快速開始、經過驗證的 schema 轉換範例、完整的 decorator / 選項 / 診斷參考。提供英文與臺灣正體中文。
 
 ## 為什麼做這個
 
@@ -49,8 +51,8 @@ using AsyncAPI;
 @externalDocs("https://example.com/docs", "Service Documentation")
 namespace Orders;
 
-// 這個 emitter 會自動把 TypeSpec model 轉換成 AsyncAPI Schema Object，
-// 結果放進 components.schemas。
+// schema 轉換層會把這個 model 轉成 AsyncAPI Schema Object（見 docs 網站）。
+// message payload 接上後，結果會放進 components.schemas。
 model Order {
   id: string;
   amount: float64;
@@ -129,8 +131,11 @@ pnpm watch          # watch 模式編譯。
 pnpm test           # 執行測試（vitest）。
 pnpm lint           # 執行 eslint。
 pnpm format         # 執行 prettier。
-pnpm docs           # 產生 API 文件（typedoc）。
+pnpm docs:dev       # 在本機啟動文件站台（VitePress）。
+pnpm docs:build     # 建置文件站台。
 ```
+
+文件站台放在 `docs/`，以 [VitePress](https://vitepress.dev/) 建置。提供英文與臺灣正體中文。push 到 `main` 會部署到 GitHub Pages。
 
 其他工具：
 
