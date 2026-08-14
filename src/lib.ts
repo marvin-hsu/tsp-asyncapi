@@ -91,6 +91,30 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`This @${"decorator"} constraint targets a date/time/duration value, which draft-07 JSON Schema cannot express as a \`minimum\`/\`maximum\`, and was omitted from the emitted schema.`,
       },
     },
+    "missing-discriminator-property": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@discriminator("${"property"}") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so \`discriminator\` was omitted from the emitted schema.`,
+      },
+    },
+    "optional-discriminator-property": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@discriminator("${"property"}") names a property that is optional on this model. AsyncAPI requires the discriminating property to be required, so \`discriminator\` was omitted from the emitted schema.`,
+      },
+    },
+    "encoded-name-override-conflict": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Property "${"property"}" ${"reason"} Keeping the inherited schema as a separate \`allOf\`/\`$ref\` branch would require both properties' schemas on the same wire name at once, rejecting every valid payload — so this model's schema was flattened (inherited properties inlined) instead.`,
+      },
+    },
+    "never-typed-property-override": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Property "${"property"}" is declared \`never\` to remove an inherited property, but keeping the inherited schema as a separate \`allOf\`/\`$ref\` branch would still require it. This model's schema was flattened (inherited properties inlined, with the \`never\`-typed property omitted) instead.`,
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema,

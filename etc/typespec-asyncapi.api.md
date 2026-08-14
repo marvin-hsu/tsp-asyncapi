@@ -36,6 +36,18 @@ readonly default: CallableMessage<["decorator"]>;
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
 };
+"missing-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"optional-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"encoded-name-override-conflict": {
+readonly default: CallableMessage<["property", "reason"]>;
+};
+"never-typed-property-override": {
+readonly default: CallableMessage<["property"]>;
+};
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
@@ -103,7 +115,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -115,6 +127,18 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-temporal-range-constraint": {
         readonly default: CallableMessage<["decorator"]>;
+    };
+    "missing-discriminator-property": {
+        readonly default: CallableMessage<["property"]>;
+    };
+    "optional-discriminator-property": {
+        readonly default: CallableMessage<["property"]>;
+    };
+    "encoded-name-override-conflict": {
+        readonly default: CallableMessage<["property", "reason"]>;
+    };
+    "never-typed-property-override": {
+        readonly default: CallableMessage<["property"]>;
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -128,6 +152,18 @@ readonly default: CallableMessage<["decorator"]>;
 };
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
+};
+"missing-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"optional-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"encoded-name-override-conflict": {
+readonly default: CallableMessage<["property", "reason"]>;
+};
+"never-typed-property-override": {
+readonly default: CallableMessage<["property"]>;
 };
 }, C, M>) => Diagnostic;
 
@@ -188,7 +224,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -200,6 +236,18 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-temporal-range-constraint": {
         readonly default: CallableMessage<["decorator"]>;
+    };
+    "missing-discriminator-property": {
+        readonly default: CallableMessage<["property"]>;
+    };
+    "optional-discriminator-property": {
+        readonly default: CallableMessage<["property"]>;
+    };
+    "encoded-name-override-conflict": {
+        readonly default: CallableMessage<["property", "reason"]>;
+    };
+    "never-typed-property-override": {
+        readonly default: CallableMessage<["property"]>;
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -213,6 +261,18 @@ readonly default: CallableMessage<["decorator"]>;
 };
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
+};
+"missing-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"optional-discriminator-property": {
+readonly default: CallableMessage<["property"]>;
+};
+"encoded-name-override-conflict": {
+readonly default: CallableMessage<["property", "reason"]>;
+};
+"never-typed-property-override": {
+readonly default: CallableMessage<["property"]>;
 };
 }, C, M>) => void;
 
@@ -230,6 +290,7 @@ export interface SchemaObject {
     default?: unknown;
     // (undocumented)
     description?: string;
+    discriminator?: string;
     // (undocumented)
     enum?: unknown[];
     // (undocumented)
