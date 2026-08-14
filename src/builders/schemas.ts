@@ -1,17 +1,31 @@
 import {
   Type,
   Model,
+  ModelProperty,
   Scalar,
   IntrinsicType,
   Enum,
   EnumMember,
   Union,
+  UnionVariant,
   Namespace,
+  Program,
   StringLiteral,
   isArrayModelType,
   isRecordModelType,
+  getDoc,
+  getSummary,
+  getExamples,
+  serializeValueAsJson,
+  UnserializableValueError,
+  resolveEncodedName,
+  $example,
+  Example,
+  getSourceLocation,
+  EncodeData,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../types/index.js";
+import { reportDiagnostic } from "../lib.js";
 
 /**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
@@ -197,9 +211,263 @@ function refFor(key: string): ReferenceObject {
 }
 
 /**
+ * The mime type a schema's own property keys (and, via the compiler's own
+ * `serializeObjectValueAsJson`, an `@example`'s object keys) are resolved
+ * against through `@encodedName`. Hardcoded because 2.7 has no notion yet of
+ * a message's actual wire `contentType` — a model with e.g. both
+ * `@encodedName("application/json", ...)` and
+ * `@encodedName("application/xml", ...)` always emits the JSON name
+ * regardless of which content type a message actually declares. Phase 3
+ * (per-message content types) must thread the real `contentType` through to
+ * both this constant's use site and the example serialization it keeps in
+ * sync with, rather than assuming JSON everywhere.
+ */
+const SCHEMA_ENCODING_MIME_TYPE = "application/json";
+
+/**
+ * A defined (non-`undefined`) `encodeAs` whose `encoding` matches none of the
+ * compiler's known encodings (`unixTimestamp`/`rfc7231` for date-times,
+ * `seconds` for durations — see `ScalarSerializers` in
+ * `@typespec/compiler`'s `lib/examples.js`), so every serializer falls
+ * through to its un-encoded, "no `@encode` applied" representation. `type`
+ * is only read back out of this value on the `duration` + `seconds` branch,
+ * which this `encoding` never reaches, so any scalar can stand in for it.
+ */
+function neutralEncodeAs(type: Scalar): EncodeData {
+  return { encoding: "rfc3339", type };
+}
+
+/**
+ * `serializeValueAsJson`'s handlers hook, used below for two purposes: (1)
+ * turning a scalar it cannot represent (`resolveKnownScalar` returning
+ * `undefined` for an unsupported/custom scalar constructor) into a thrown
+ * `UnserializableValueError` instead of a silent `undefined` return —
+ * without this, an unrepresentable scalar nested inside an array or object
+ * value would leave a stray `undefined` buried in the result, invisible to a
+ * top-level `undefined` check; and (2) making sure no `@encode` — whether
+ * declared on the scalar itself, on a property of the immediate type, or on
+ * a property nested arbitrarily deep inside a model/array value — is ever
+ * applied while serializing an example. 2.7's `buildScalarSchema` does not
+ * map `@encode` into a schema's `type`/`format` (that is plan 2.8's scope),
+ * so an example that *did* apply `@encode` would encode a value the schema
+ * itself does not declare and fail validation against its own schema.
+ *
+ * The compiler binds `originalFn` to the exact `encodeAs` this call
+ * received, so re-invoking it with a different `encodeAs` argument has no
+ * effect (the extra argument is silently ignored) — and `resolveKnownScalar`
+ * unconditionally re-reads the scalar's own `@encode` internally regardless
+ * of what is passed in. So skipping `@encode` here instead re-enters the
+ * compiler's *exported* `serializeValueAsJson` (not the bound `originalFn`)
+ * with a defined, neutral `encodeAs` (see `neutralEncodeAs`): since
+ * `encodeAs ?? result.encodeAs` favors an already-defined `encodeAs`, this
+ * neutral value wins over any `@encode` `resolveKnownScalar` would otherwise
+ * pick up, without needing to know all the ways `@encode` could reach this
+ * value.
+ */
+function makeSerializeHandlers(program: Program): Parameters<typeof serializeValueAsJson>[4] {
+  return {
+    serializeScalarValue: (value, type, _encodeAs, originalFn) => {
+      void originalFn;
+      const result = serializeValueAsJson(
+        program,
+        value,
+        type,
+        neutralEncodeAs(value.scalar),
+        undefined,
+      );
+      if (result === undefined) {
+        throw new UnserializableValueError(
+          `Cannot serialize scalar '${value.scalar.name}' as JSON.`,
+        );
+      }
+      return result;
+    },
+  };
+}
+
+/**
+ * Recovers source order for `getExamples`' result. `getExamples` returns
+ * decorators in the order they were *applied*, not necessarily the order
+ * they appear in source: inline `@example` decorators execute bottom-up
+ * (last-listed executes first), while `@@example` augment decorators are
+ * spliced in *before* the inline ones by the checker (see `checkDecorators`
+ * in `@typespec/compiler`'s `checker.js`) — so a blanket reverse (correct
+ * for inline-only decorators) inverts the relative order of augment
+ * decorators instead. `target.decorators` is public, in the same execution
+ * order `getExamples`' raw result is in, and pairs up 1:1 with it — so
+ * filtering it down to the `@example` applications and sorting by each
+ * one's source position recovers true source order for both inline and
+ * augment decorators, and any mix of the two.
+ *
+ * A decorator's `node.pos` is only a byte offset *within its own source
+ * file* — comparing `pos` across two different `.tsp` files compares
+ * unrelated numbers, so when a type's `@example`s are spread across files
+ * the sort key must rank by file first. `program.sourceFiles` is a `Map`
+ * whose insertion order matches the order files were reached while
+ * compiling (`main.tsp` first, each `import` the first time it is reached),
+ * so indexing into it gives a stable, execution-order-consistent file
+ * ranking; `pos` remains the tie-break for two examples in the same file.
+ */
+function orderExamplesBySource(
+  program: Program,
+  target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
+  rawExamples: readonly Example[],
+): Example[] {
+  const exampleNodes = target.decorators.filter((d) => d.decorator === $example).map((d) => d.node);
+  if (exampleNodes.length !== rawExamples.length) {
+    // Should not happen (every applied `@example` has a source node), but
+    // fall back to the previous best-effort behavior rather than throw.
+    return [...rawExamples].reverse();
+  }
+  const fileOrder = new Map<string, number>();
+  for (const path of program.sourceFiles.keys()) {
+    fileOrder.set(path, fileOrder.size);
+  }
+  const keys: { fileIndex: number; pos: number }[] = [];
+  for (const node of exampleNodes) {
+    if (node === undefined) {
+      // Should not happen (every applied `@example` has a source node), but
+      // fall back to the previous best-effort behavior rather than throw.
+      return [...rawExamples].reverse();
+    }
+    const location = getSourceLocation(node);
+    keys.push({ fileIndex: fileOrder.get(location.file.path) ?? -1, pos: node.pos });
+  }
+  return rawExamples
+    .map((example, i) => ({ example, ...keys[i] }))
+    .sort((a, b) => a.fileIndex - b.fileIndex || a.pos - b.pos)
+    .map((entry) => entry.example);
+}
+
+/**
+ * `title`/`description`/`examples` contributed by a declaration's own
+ * documentation decorators: `@summary` → `title`, `@doc` (or a plain doc
+ * comment, which `getDoc` already resolves to the same thing) →
+ * `description`, and TypeSpec's built-in `@example` → `examples` (each
+ * example value serialized to plain JSON against `exampleValueType`, in
+ * source order — see `orderExamplesBySource`). A value `serializeValueAsJson`
+ * cannot represent (an unsupported scalar constructor, anywhere in the
+ * value — including nested inside an array or object — or a function value)
+ * causes that whole example to be dropped rather than left to throw past
+ * this builder or to leak in as a JSON `null`/a silently-missing key —
+ * either way the example carries no usable information. A dropped example
+ * still reports the `unserializable-example` warning diagnostic (targeting
+ * the declaration/property the `@example` was applied to) so the drop is not
+ * completely silent, even though the emitted schema itself has no field to
+ * say so. Omits any field whose decorator was not applied, per the emitter's
+ * omit-empty convention.
+ *
+ * Note: `ExampleOptions`'s `title`/`description` (the `@example`'s second
+ * argument) are deliberately not read here. draft-07's `examples` keyword is
+ * a bare array of values with nowhere to hang a per-entry title/description,
+ * so this phase has no field to put them in; Phase 3 (message-level
+ * examples, which have their own `name`/`summary` fields) is where they get
+ * picked up.
+ */
+function buildDocFields(
+  program: Program,
+  target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
+  exampleValueType: Type,
+): Pick<SchemaObject, "title" | "description" | "examples"> {
+  const title = getSummary(program, target);
+  const description = getDoc(program, target);
+  const handlers = makeSerializeHandlers(program);
+  // `@example`'s own `extern dec` declaration legally targets `UnionVariant`
+  // (see `decorators.tsp`), but `getExamples`'s exported TS signature omits
+  // it — a typing gap in `@typespec/compiler` itself, not a real runtime
+  // restriction (its state is stored generically over `Type`). The cast
+  // below only widens the static type to match what the decorator already
+  // allows.
+  const rawExamples = getExamples(program, target as Model | Scalar | Enum | Union | ModelProperty);
+  const examples = orderExamplesBySource(program, target, rawExamples)
+    .map((example) => {
+      try {
+        return serializeValueAsJson(program, example.value, exampleValueType, undefined, handlers);
+      } catch {
+        // An example that carries no usable information (unserializable
+        // scalar per `UnserializableValueError`, or any other failure —
+        // e.g. the compiler's own duration serializer throws a plain
+        // `RangeError` from `Temporal.Duration.from` on a malformed
+        // `duration.fromISO(...)` value that the compiler never validates)
+        // is dropped rather than left to crash the whole emit. Still surface
+        // it as a diagnostic rather than dropping it in total silence.
+        reportDiagnostic(program, { code: "unserializable-example", target });
+        return undefined;
+      }
+    })
+    .filter((value) => value !== undefined);
+  return {
+    ...(title !== undefined ? { title } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(examples.length > 0 ? { examples } : {}),
+  };
+}
+
+/**
+ * Merges a declaration's own documentation fields onto its (always plain,
+ * never-a-`$ref`) schema body — used for the model/enum/union bodies built
+ * inside `registerNamed`, which are never a bare `$ref` to themselves.
+ */
+function withDocs(
+  program: Program,
+  target: Model | Scalar | Enum | Union,
+  schema: SchemaObject,
+): SchemaObject {
+  return { ...schema, ...buildDocFields(program, target, target) };
+}
+
+/**
+ * Merges a property's (or union variant's) own documentation fields onto its
+ * schema entry. A property typed as a named declaration builds to a bare
+ * `$ref` (see `buildSchema`), which per JSON Schema has no sibling keywords
+ * of its own — so a ref is wrapped in `allOf` to give the property's
+ * `title`/`description`/`examples` somewhere valid to live, while a plain
+ * inline schema gets them merged in directly. `prop.type` (not `prop` itself)
+ * is passed as the example's value type: passing `prop` would make
+ * `serializeValueAsJson` apply the property's own `@encode` to the example,
+ * but 2.7's `buildScalarSchema` does not yet map `@encode` into the schema's
+ * `type`/`format` (that is plan 2.8's scope) — encoding only the example and
+ * not the schema would produce an example that fails validation against its
+ * own property's schema. Shared with `buildUnionSchemaBody` for a union
+ * variant's own `@doc`/`@summary`/`@example` (`UnionVariant` has the same
+ * `type` shape a `ModelProperty` does, and is a legal `@example` target per
+ * `decorators.tsp`).
+ */
+function withPropertyDocs(
+  program: Program,
+  prop: ModelProperty | UnionVariant,
+  schema: SchemaObject | ReferenceObject,
+): SchemaObject | ReferenceObject {
+  const docs = buildDocFields(program, prop, prop.type);
+  if (Object.keys(docs).length === 0) {
+    return schema;
+  }
+  if ("$ref" in schema) {
+    return { allOf: [schema], ...docs };
+  }
+  // The property has its own title and/or description: it fully determines
+  // this use site's title/description, replacing (not merging with)
+  // whatever the scalar's own schema shape may have baked in via
+  // `buildScalarSchema` — otherwise a property overriding only e.g.
+  // `@summary` would incoherently keep the underlying scalar's `@doc` as its
+  // `description`. `examples` does not affect either field, so a property
+  // that only adds its own `@example` must not strip the scalar's inherited
+  // `title`/`description` — only gate the deletion on the fields actually
+  // being overridden.
+  const rest: SchemaObject = { ...schema };
+  if (docs.title !== undefined || docs.description !== undefined) {
+    delete rest.title;
+    delete rest.description;
+  }
+  return { ...rest, ...docs };
+}
+
+/**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
  */
 export class SchemaBuilder {
+  public constructor(private readonly program: Program) {}
+
   private readonly schemas: Record<string, SchemaObject> = Object.create(null) as Record<
     string,
     SchemaObject
@@ -286,7 +554,12 @@ export class SchemaBuilder {
       return {};
     }
 
-    const build = () => this.buildCollectionSchema(model) ?? this.buildObjectSchema(model);
+    const build = () =>
+      withDocs(
+        this.program,
+        model,
+        this.buildCollectionSchema(model) ?? this.buildObjectSchema(model),
+      );
 
     // The anonymous use site (`string[]`, `Record<int32>`) has no name of
     // its own worth registering — it always inlines. A *named* array/record
@@ -326,21 +599,35 @@ export class SchemaBuilder {
       return refFor(key);
     }
     this.building.add(type);
-    const schema = build();
-    this.schemas[key] = schema;
-    this.building.delete(type);
+    try {
+      this.schemas[key] = build();
+    } catch (error) {
+      // `build()` failed: release the key this type claimed so it is not
+      // left registered under `schemaKeys`/`usedKeys` with no corresponding
+      // entry in `this.schemas` — otherwise a retry (or another reference to
+      // the same type) would see `this.building` no longer containing it and
+      // `this.schemas` still missing the key, and return a `$ref` pointing at
+      // a component that will never exist.
+      this.schemaKeys.delete(type);
+      this.usedKeys.delete(key);
+      throw error;
+    } finally {
+      this.building.delete(type);
+    }
     return refFor(key);
   }
 
   private buildEnumSchema(type: Enum): ReferenceObject {
-    return this.registerNamed(type, type.name, type.namespace, () => buildEnumSchemaBody(type));
+    return this.registerNamed(type, type.name, type.namespace, () =>
+      withDocs(this.program, type, buildEnumSchemaBody(type)),
+    );
   }
 
   private buildUnionSchema(type: Union): SchemaObject | ReferenceObject {
     if (isUninstantiatedTemplateDeclaration(type)) {
       return {};
     }
-    const build = () => this.buildUnionSchemaBody(type);
+    const build = () => withDocs(this.program, type, this.buildUnionSchemaBody(type));
     if (type.name === undefined) {
       return build();
     }
@@ -359,6 +646,14 @@ export class SchemaBuilder {
    * `buildIntrinsicSchema` — it returns `{ not: {} }` (nothing is valid)
    * rather than `{}` (anything is valid): `anyOf: []` would be the literally
    * correct encoding of "no variant" but is not a valid draft-07 schema.
+   *
+   * Each `anyOf` branch is passed through `withPropertyDocs` so a variant's
+   * own `@doc`/`@summary`/`@example` (legal directly on a `UnionVariant`, see
+   * `decorators.tsp`) is not silently dropped — same merge/`allOf`-wrap
+   * behavior a model property's documentation already gets. The
+   * string-literal-collapsing branch above stays untouched: it already
+   * discards individual variants in favor of one shared `enum`, so there is
+   * no single variant left to hang per-branch documentation off of.
    */
   private buildUnionSchemaBody(type: Union): SchemaObject {
     const variants = [...type.variants.values()];
@@ -371,7 +666,11 @@ export class SchemaBuilder {
         enum: [...new Set(variants.map((variant) => (variant.type as StringLiteral).value))],
       };
     }
-    return { anyOf: variants.map((variant) => this.buildSchema(variant.type)) };
+    return {
+      anyOf: variants.map((variant) =>
+        withPropertyDocs(this.program, variant, this.buildSchema(variant.type)),
+      ),
+    };
   }
 
   /**
@@ -408,9 +707,16 @@ export class SchemaBuilder {
       if (prop.type.kind === "Intrinsic" && prop.type.name === "never") {
         continue;
       }
-      properties[prop.name] = this.buildSchema(prop.type);
+      // The compiler's own example serializer (`serializeValueAsJson`, used
+      // by `buildDocFields` below) resolves each nested object property name
+      // through `@encodedName` for `SCHEMA_ENCODING_MIME_TYPE`; the schema's
+      // own property key must match it, or a model-level/property-level
+      // `@example` naming this property by its wire name would fail
+      // validation against `required`/`properties` here.
+      const wireName = resolveEncodedName(this.program, prop, SCHEMA_ENCODING_MIME_TYPE);
+      properties[wireName] = withPropertyDocs(this.program, prop, this.buildSchema(prop.type));
       if (!prop.optional) {
-        required.push(prop.name);
+        required.push(wireName);
       }
     }
 
@@ -427,16 +733,39 @@ export class SchemaBuilder {
   }
 
   private buildScalarSchema(scalar: Scalar): SchemaObject {
-    if (isBuiltinScalar(scalar) && Object.hasOwn(SCALAR_SCHEMAS, scalar.name)) {
-      return { ...SCALAR_SCHEMAS[scalar.name] };
+    // TypeSpec's own built-in scalars (`string`, `int32`, ...) carry their
+    // own standard-library doc comments (e.g. `string` → "A sequence of
+    // textual characters."); surfacing those on every plain `string`/`int32`
+    // field would flood the output, so only a user-declared scalar's own
+    // documentation is applied here. `buildScalarSchemaShapeWithDocs` walks
+    // the whole `baseScalar` chain so documentation on an intermediate/base
+    // user scalar is not lost when the use site is derived through more than
+    // one level (e.g. `scalar WorkEmail extends Email;` where only `Email`
+    // itself carries `@doc`/`@summary`/`@example`).
+    return this.buildScalarSchemaShapeWithDocs(scalar);
+  }
+
+  /**
+   * The `type`/`format` shape for `scalar`, merged with documentation
+   * collected along the entire `baseScalar` chain: the base's own docs are
+   * applied first, then each more-derived level's own `@summary`/`@doc`
+   * /`@example` overrides them (`withDocs`'s object-spread semantics already
+   * give the more specific fields priority when merged last). Built-in
+   * scalars never contribute documentation (see `isBuiltinScalar` at the
+   * `buildScalarSchema` call site's doc comment) — only the shape. Bottoms
+   * out at the first built-in ancestor found (or the unconstrained `{}`
+   * shape for an unmapped root scalar) and merges each user-declared level's
+   * docs back on the way up. `withPropertyDocs` on the use site can still
+   * override with the property's own documentation afterwards.
+   */
+  private buildScalarSchemaShapeWithDocs(scalar: Scalar): SchemaObject {
+    if (isBuiltinScalar(scalar)) {
+      return Object.hasOwn(SCALAR_SCHEMAS, scalar.name) ? { ...SCALAR_SCHEMAS[scalar.name] } : {};
     }
-    // Derived scalar: fall back to its base scalar.
-    if (scalar.baseScalar) {
-      return this.buildScalarSchema(scalar.baseScalar);
-    }
-    // Unmapped root scalar (e.g. a user-declared `scalar Opaque;`): nothing
-    // is known about its values, so emit the unconstrained schema — the same
-    // mapping `unknown` gets — instead of guessing a primitive type.
-    return {};
+    // Derived (user-declared) scalar: start from its base scalar's shape
+    // (recursing all the way to a built-in ancestor, or `{}` for an unmapped
+    // root scalar), then merge this level's own documentation on top.
+    const base = scalar.baseScalar ? this.buildScalarSchemaShapeWithDocs(scalar.baseScalar) : {};
+    return withDocs(this.program, scalar, base);
   }
 }

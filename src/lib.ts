@@ -72,6 +72,13 @@ export const $lib = createTypeSpecLibrary({
           "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.",
       },
     },
+    "unserializable-example": {
+      severity: "warning",
+      messages: {
+        default:
+          "This @example could not be serialized to JSON and was omitted from the emitted schema.",
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema,

@@ -13,7 +13,7 @@ describe("Unit: Schemas edge cases (review 08/09 regression)", () => {
         next?: Node;
       }
     `);
-    const builder = new SchemaBuilder();
+    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(Node)).not.toThrow();
     const schema = builder.getSchemas().Node as any;
     expect(schema.properties.next).toEqual({ $ref: "#/components/schemas/Node" });
@@ -26,7 +26,7 @@ describe("Unit: Schemas edge cases (review 08/09 regression)", () => {
       model ${t.model("A")} { b?: B; }
       model B { a?: A; }
     `);
-    const builder = new SchemaBuilder();
+    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(A)).not.toThrow();
     expect(builder.getSchemas().A).toBeDefined();
     expect(builder.getSchemas().B).toBeDefined();
@@ -39,7 +39,7 @@ describe("Unit: Schemas edge cases (review 08/09 regression)", () => {
         inline: { x: string; y?: int32 };
       }
     `);
-    const builder = new SchemaBuilder();
+    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Outer);
     const props = builder.getSchemas().Outer.properties as Record<string, any>;
     expect(props.inline.type).toBe("object");
