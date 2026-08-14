@@ -653,4 +653,297 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
     });
   });
+
+  describe("enum and union (plan 2.6)", () => {
+    it("should build a string enum from unvalued members, using each member's own name as its value", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Color } = await runner.compile(t.code`
+        enum ${t.enum("Color")} { Red, Green }
+      `);
+
+      const builder = new SchemaBuilder();
+      const ref = builder.buildSchema(Color) as any;
+
+      expect(ref.$ref).toBe("#/components/schemas/Color");
+      expect(builder.getSchemas().Color).toEqual({
+        type: "string",
+        enum: ["Red", "Green"],
+      });
+    });
+
+    it("should use explicit string values instead of member names", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Color } = await runner.compile(t.code`
+        enum ${t.enum("Color")} { Red: "R", Green: "G" }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(Color);
+
+      expect(builder.getSchemas().Color).toEqual({
+        type: "string",
+        enum: ["R", "G"],
+      });
+    });
+
+    it("should build a number enum when every member has a numeric value", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Status } = await runner.compile(t.code`
+        enum ${t.enum("Status")} { Active: 1, Inactive: 2 }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(Status);
+
+      expect(builder.getSchemas().Status).toEqual({
+        type: "number",
+        enum: [1, 2],
+      });
+    });
+
+    it("should fall back to a string enum when a mix of numeric and unvalued/string members appear", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Mixed } = await runner.compile(t.code`
+        enum ${t.enum("Mixed")} { Active: 1, Other }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(Mixed);
+
+      // `type: "string"` would make the numeric member `1` unsatisfiable
+      // (see plan/review/solved/2026-08-14-35-mixed-enum-type-excludes-numeric-values.md) —
+      // omit `type` so `enum` alone constrains both numeric and string values.
+      expect(builder.getSchemas().Mixed).toEqual({
+        enum: [1, "Other"],
+      });
+    });
+
+    it("should build a string enum for a string literal union", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          status: "a" | "b";
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.status).toEqual({ type: "string", enum: ["a", "b"] });
+    });
+
+    it("should build anyOf for a general (non string-literal) union", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          field: string | int32;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+
+    it('should build `T | null` as `anyOf: [T, { type: "null" }]` (plan 2.6 decision)', async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          field: string | null;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({
+        anyOf: [{ type: "string" }, { type: "null" }],
+      });
+    });
+
+    it("should register a named union in components.schemas and return a $ref", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Named } = await runner.compile(t.code`
+        union ${t.union("Named")} { string, int32 }
+      `);
+
+      const builder = new SchemaBuilder();
+      const ref = builder.buildSchema(Named) as any;
+
+      expect(ref.$ref).toBe("#/components/schemas/Named");
+      expect(builder.getSchemas().Named).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+
+    it("should register a named string-literal union as a string enum, still behind a $ref", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Named } = await runner.compile(t.code`
+        union ${t.union("Named")} { "a", "b" }
+      `);
+
+      const builder = new SchemaBuilder();
+      const ref = builder.buildSchema(Named) as any;
+
+      expect(ref.$ref).toBe("#/components/schemas/Named");
+      expect(builder.getSchemas().Named).toEqual({ type: "string", enum: ["a", "b"] });
+    });
+
+    it("should build an unsatisfiable schema for an empty enum instead of enum: [] or {}", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { E } = await runner.compile(t.code`
+        enum ${t.enum("E")} { }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(E);
+
+      expect(builder.getSchemas().E).toEqual({ not: {} });
+    });
+
+    it("should build an unsatisfiable schema for an empty named union instead of anyOf: [] or {}", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { U } = await runner.compile(t.code`
+        union ${t.union("U")} { }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(U);
+
+      expect(builder.getSchemas().U).toEqual({ not: {} });
+    });
+
+    it("should build a schema for a single enum member reference", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        enum Color { Red, Green }
+        model ${t.model("M")} {
+          c: Color.Red;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.c).toEqual({ type: "string", enum: ["Red"] });
+    });
+
+    it("should build a schema for a union of enum members", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        enum Color { Red, Green }
+        model ${t.model("M")} {
+          d: Color.Red | Color.Green;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.d).toEqual({
+        anyOf: [
+          { type: "string", enum: ["Red"] },
+          { type: "string", enum: ["Green"] },
+        ],
+      });
+    });
+
+    it("should not register an uninstantiated union template declaration, and should key the real instantiation under the template's own name", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Wrap, M } = await runner.compile(t.code`
+        union ${t.union("Wrap")}<T> { a: T, b: string }
+        model ${t.model("M")} {
+          x: Wrap<int32>;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      const declRef = builder.buildSchema(Wrap);
+      expect(declRef).toEqual({});
+      expect(Object.hasOwn(builder.getSchemas(), "Wrap")).toBe(false);
+
+      builder.buildSchema(M);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.x).toEqual({ $ref: "#/components/schemas/Wrap" });
+      expect(builder.getSchemas().Wrap).toEqual({
+        anyOf: [{ type: "integer", format: "int32" }, { type: "string" }],
+      });
+    });
+
+    it("should deduplicate repeated literal values in a string-literal union's enum", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { U } = await runner.compile(t.code`
+        union ${t.union("U")} { a: "x", b: "x" }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(U);
+
+      expect(builder.getSchemas().U).toEqual({ type: "string", enum: ["x"] });
+    });
+
+    it("should keep model, enum, and union in separate registry slots when they share a bare name", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      // Both the model and the enum are named `Color` (one in `NS`, one in
+      // the global namespace) — reaching them only through `M`'s properties
+      // (rather than marking each with its own `t.model`/`t.enum`) avoids a
+      // duplicate marker key while still exercising the real name collision.
+      const { M } = await runner.compile(t.code`
+        namespace NS {
+          enum Color { Red }
+        }
+        model Color {
+          x: string;
+        }
+        model ${t.model("M")} {
+          a: Color;
+          b: NS.Color;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.a).toEqual({ $ref: "#/components/schemas/Color" });
+      expect(props.b).toEqual({ $ref: "#/components/schemas/NS.Color" });
+      expect(builder.getSchemas().Color).toEqual({
+        type: "object",
+        properties: { x: { type: "string" } },
+        required: ["x"],
+      });
+      expect(builder.getSchemas()["NS.Color"]).toEqual({ type: "string", enum: ["Red"] });
+    });
+
+    it("should build $ref for named enum and named union fields on a model", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        enum ${t.enum("Color")} { Red, Green }
+        union ${t.union("Named")} { string, int32 }
+        model ${t.model("M")} {
+          c: Color;
+          n: Named;
+        }
+      `);
+
+      const builder = new SchemaBuilder();
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.c).toEqual({ $ref: "#/components/schemas/Color" });
+      expect(props.n).toEqual({ $ref: "#/components/schemas/Named" });
+      expect(builder.getSchemas().Color).toEqual({ type: "string", enum: ["Red", "Green"] });
+      expect(builder.getSchemas().Named).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+  });
 });

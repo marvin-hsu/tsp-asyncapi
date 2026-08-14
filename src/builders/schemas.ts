@@ -3,6 +3,11 @@ import {
   Model,
   Scalar,
   IntrinsicType,
+  Enum,
+  EnumMember,
+  Union,
+  Namespace,
+  StringLiteral,
   isArrayModelType,
   isRecordModelType,
 } from "@typespec/compiler";
@@ -83,12 +88,14 @@ function isBuiltinCollectionInstantiation(model: Model): boolean {
 }
 
 /**
- * Returns the dot-separated fully qualified name of a model
- * (e.g. `Foo.Bar.Model`). Models in the global namespace have no prefix.
+ * Returns the dot-separated fully qualified name of a named declaration
+ * (e.g. `Foo.Bar.Model`). Declarations in the global namespace have no
+ * prefix. Shared by every kind of named type that can be registered into
+ * `components.schemas` (model, enum, named union).
  */
-function getQualifiedName(model: Model): string {
-  const parts = [model.name];
-  let ns = model.namespace;
+function getQualifiedName(name: string, namespace: Namespace | undefined): string {
+  const parts = [name];
+  let ns = namespace;
   while (ns?.name) {
     parts.unshift(ns.name);
     ns = ns.namespace;
@@ -127,19 +134,60 @@ function buildIntrinsicSchema(type: IntrinsicType): SchemaObject {
 }
 
 /**
+ * TypeSpec `enum` → AsyncAPI schema. Each member contributes its explicit
+ * value (`Red: "R"`) when given, falling back to the member's own name
+ * otherwise (`enum Color { Red, Green }` → values `"Red"`, `"Green"`) — the
+ * same default TypeSpec itself uses for an unvalued member. `type` is
+ * `"number"` only when every member ends up with a numeric value, `"string"`
+ * only when every member ends up with a string value; a mix of the two omits
+ * `type` entirely (rather than picking one) since `enum` alone already
+ * constrains the value and a mismatched `type` would make the members of the
+ * other kind unsatisfiable. An empty enum has no member to be, so — like
+ * `never`/`void` in `buildIntrinsicSchema` — it returns `{ not: {} }` (nothing
+ * is valid) rather than `{}` (anything is valid): `enum: []` would be the
+ * literally correct encoding of "no value" but is not a valid draft-07
+ * schema, so `{ not: {} }` stands in as the closest valid equivalent.
+ */
+function buildEnumSchemaBody(type: Enum): SchemaObject {
+  if (type.members.size === 0) {
+    return { not: {} };
+  }
+  const values: (string | number)[] = [
+    ...new Set([...type.members.values()].map((member) => member.value ?? member.name)),
+  ];
+  const isNumeric = values.every((value) => typeof value === "number");
+  const isString = values.every((value) => typeof value === "string");
+  return {
+    ...(isNumeric ? { type: "number" } : isString ? { type: "string" } : {}),
+    enum: values,
+  };
+}
+
+/**
+ * A single enum member used as a type on its own (`Color.Red`, or as one
+ * variant of a union like `Color.Red | Color.Green`) is the same shape as a
+ * `string`/`number` literal type: a schema constrained to exactly one value.
+ */
+function buildEnumMemberSchema(member: EnumMember): SchemaObject {
+  const value = member.value ?? member.name;
+  return { type: typeof value === "number" ? "number" : "string", enum: [value] };
+}
+
+/**
  * True for an uninstantiated template *declaration* (e.g. the `Env` reached
  * by naming it directly in source, as opposed to an instantiation like
- * `Env<string>` or a defaulted use site `Env`). Its properties are bare
- * `TemplateParameter`s with no real shape, so there is nothing meaningful to
- * build — the caller emits the unconstrained schema instead of registering a
- * bogus key.
+ * `Env<string>` or a defaulted use site `Env`). Its properties/variants are
+ * bare `TemplateParameter`s with no real shape, so there is nothing
+ * meaningful to build — the caller emits the unconstrained schema instead of
+ * registering a bogus key. Shared by every named declaration kind that can
+ * be a template (model, union).
  */
-function isUninstantiatedTemplateDeclaration(model: Model): boolean {
+function isUninstantiatedTemplateDeclaration(type: Model | Union): boolean {
   return (
-    model.node !== undefined &&
-    "templateParameters" in model.node &&
-    model.node.templateParameters.length > 0 &&
-    model.templateMapper === undefined
+    type.node !== undefined &&
+    "templateParameters" in type.node &&
+    type.node.templateParameters.length > 0 &&
+    type.templateMapper === undefined
   );
 }
 
@@ -170,11 +218,11 @@ export class SchemaBuilder {
       case "Intrinsic":
         return buildIntrinsicSchema(type);
       case "Enum":
-        // return this.buildEnumSchema(type);
-        return { type: "string" };
+        return this.buildEnumSchema(type);
+      case "EnumMember":
+        return buildEnumMemberSchema(type);
       case "Union":
-        // return this.buildUnionSchema(type);
-        return {};
+        return this.buildUnionSchema(type);
       case "String":
         // `enum` is used uniformly for both literals and real enums so 2.6
         // has one code path to maintain; `const` would be equivalent here
@@ -189,35 +237,39 @@ export class SchemaBuilder {
     }
   }
 
-  private readonly building = new Set<Model>();
-  private readonly schemaKeys = new Map<Model, string>();
+  // Keyed by the type itself (model, enum, or named union) rather than a
+  // narrower type so every kind of named declaration shares one registry —
+  // and, with it, one circular-reference guard.
+  private readonly building = new Set<Type>();
+  private readonly schemaKeys = new Map<Type, string>();
   private readonly usedKeys = new Set<string>();
 
   /**
-   * Returns the `components.schemas` key for a named model. Uses the bare
-   * model name unless another model already claimed it, in which case the
+   * Returns the `components.schemas` key for a named declaration (model,
+   * enum, or named union), registering it on first use. Uses the bare name
+   * unless another declaration already claimed it, in which case the
    * dot-separated fully qualified name (e.g. `Foo.Bar.Model`) is used.
    * The qualified name is not guaranteed unique either — a global-namespace
-   * model's qualified name equals its bare name, and every instantiation of
-   * one template shares both — so taken candidates fall through to the
-   * qualified name with a numeric suffix (e.g. `Foo.Bar.Model_2`).
+   * declaration's qualified name equals its bare name, and every
+   * instantiation of one template shares both — so taken candidates fall
+   * through to the qualified name with a numeric suffix (e.g. `Foo.Bar.Model_2`).
    */
-  private getSchemaKey(model: Model): string {
-    const cached = this.schemaKeys.get(model);
+  private getSchemaKey(type: Type, name: string, namespace: Namespace | undefined): string {
+    const cached = this.schemaKeys.get(type);
     if (cached !== undefined) {
       return cached;
     }
-    const key = this.findFreeKey(model);
-    this.schemaKeys.set(model, key);
+    const key = this.findFreeKey(name, namespace);
+    this.schemaKeys.set(type, key);
     this.usedKeys.add(key);
     return key;
   }
 
-  private findFreeKey(model: Model): string {
-    if (!this.usedKeys.has(model.name)) {
-      return model.name;
+  private findFreeKey(name: string, namespace: Namespace | undefined): string {
+    if (!this.usedKeys.has(name)) {
+      return name;
     }
-    const qualified = getQualifiedName(model);
+    const qualified = getQualifiedName(name, namespace);
     if (!this.usedKeys.has(qualified)) {
       return qualified;
     }
@@ -234,6 +286,8 @@ export class SchemaBuilder {
       return {};
     }
 
+    const build = () => this.buildCollectionSchema(model) ?? this.buildObjectSchema(model);
+
     // The anonymous use site (`string[]`, `Record<int32>`) has no name of
     // its own worth registering — it always inlines. A *named* array/record
     // alias (`model Names is string[];`) is a real declaration and must go
@@ -246,22 +300,78 @@ export class SchemaBuilder {
       }
     }
 
-    const key = model.name ? this.getSchemaKey(model) : undefined;
-    if (key !== undefined) {
-      if (Object.hasOwn(this.schemas, key) || this.building.has(model)) {
-        return refFor(key);
-      }
-      this.building.add(model);
+    if (!model.name) {
+      return build();
     }
+    return this.registerNamed(model, model.name, model.namespace, build);
+  }
 
-    const schema = this.buildCollectionSchema(model) ?? this.buildObjectSchema(model);
-
-    if (key === undefined) {
-      return schema;
+  /**
+   * Registers `type` under a fresh `components.schemas` key on first use
+   * (computing its schema body via `build`) and returns a `$ref` to it;
+   * repeat calls for the same type — including a call reached while `build`
+   * for it is still running, i.e. a circular reference — return the same
+   * `$ref` without recomputing. Shared by every named declaration kind
+   * (model, enum, named union) so the register/$ref/circular-guard dance
+   * lives in exactly one place.
+   */
+  private registerNamed(
+    type: Type,
+    name: string,
+    namespace: Namespace | undefined,
+    build: () => SchemaObject,
+  ): ReferenceObject {
+    const key = this.getSchemaKey(type, name, namespace);
+    if (Object.hasOwn(this.schemas, key) || this.building.has(type)) {
+      return refFor(key);
     }
+    this.building.add(type);
+    const schema = build();
     this.schemas[key] = schema;
-    this.building.delete(model);
+    this.building.delete(type);
     return refFor(key);
+  }
+
+  private buildEnumSchema(type: Enum): ReferenceObject {
+    return this.registerNamed(type, type.name, type.namespace, () => buildEnumSchemaBody(type));
+  }
+
+  private buildUnionSchema(type: Union): SchemaObject | ReferenceObject {
+    if (isUninstantiatedTemplateDeclaration(type)) {
+      return {};
+    }
+    const build = () => this.buildUnionSchemaBody(type);
+    if (type.name === undefined) {
+      return build();
+    }
+    return this.registerNamed(type, type.name, type.namespace, build);
+  }
+
+  /**
+   * A union of only string literals (`"a" | "b"`) collapses to the same
+   * `{ type: "string", enum: [...] }` shape a `string`-valued enum gets —
+   * one code path for "a closed set of string values", same as `buildSchema`
+   * already does for a lone string literal. Any other union (including
+   * `T | null`) falls through to `anyOf`, one member per variant; JSON
+   * Schema (unlike OpenAPI 3.0's `nullable`) has no separate nullability
+   * keyword, so `T | null` becomes `anyOf: [T, { type: "null" }]`. An empty
+   * union has no variant to be, so — like `never`/`void` in
+   * `buildIntrinsicSchema` — it returns `{ not: {} }` (nothing is valid)
+   * rather than `{}` (anything is valid): `anyOf: []` would be the literally
+   * correct encoding of "no variant" but is not a valid draft-07 schema.
+   */
+  private buildUnionSchemaBody(type: Union): SchemaObject {
+    const variants = [...type.variants.values()];
+    if (variants.length === 0) {
+      return { not: {} };
+    }
+    if (variants.every((variant) => variant.type.kind === "String")) {
+      return {
+        type: "string",
+        enum: [...new Set(variants.map((variant) => (variant.type as StringLiteral).value))],
+      };
+    }
+    return { anyOf: variants.map((variant) => this.buildSchema(variant.type)) };
   }
 
   /**
