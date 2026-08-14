@@ -466,7 +466,7 @@ function sanitizeNumberDisplayName(valueAsString: string): string {
   const negative = text.startsWith("-");
   const magnitudeText = (negative ? text.slice(1) : text).replaceAll(".", "_");
   const magnitude = Array.from(magnitudeText)
-    .map((ch) => (/[A-Za-z0-9_]/.test(ch) ? ch : `Sep${String(ch.codePointAt(0) ?? 0)}`))
+    .map((ch) => (/\w/.test(ch) ? ch : `Sep${String(ch.codePointAt(0) ?? 0)}`))
     .join("");
   return capitalizeFirst(negative ? `Neg${magnitude}` : magnitude);
 }
