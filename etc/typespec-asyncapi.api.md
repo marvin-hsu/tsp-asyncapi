@@ -4,7 +4,6 @@
 
 ```ts
 
-import { CallableMessage } from '@typespec/compiler';
 import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
@@ -26,9 +25,6 @@ export function $info(context: DecoratorContext_2, target: Namespace, info: Asyn
 export const $lib: TypeSpecLibrary<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
-};
-"duplicate-schema-name": {
-readonly default: CallableMessage<["name"]>;
 };
 }, AsyncAPIEmitterOptions, never>;
 
@@ -97,19 +93,13 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "duplicate-schema-name", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
-    };
-    "duplicate-schema-name": {
-        readonly default: CallableMessage<["name"]>;
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
-};
-"duplicate-schema-name": {
-readonly default: CallableMessage<["name"]>;
 };
 }, C, M>) => Diagnostic;
 
@@ -170,19 +160,13 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "duplicate-schema-name", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
-    };
-    "duplicate-schema-name": {
-        readonly default: CallableMessage<["name"]>;
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
-};
-"duplicate-schema-name": {
-readonly default: CallableMessage<["name"]>;
 };
 }, C, M>) => void;
 

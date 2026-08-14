@@ -1,4 +1,4 @@
-import { createTypeSpecLibrary, JSONSchemaType, paramMessage } from "@typespec/compiler";
+import { createTypeSpecLibrary, JSONSchemaType } from "@typespec/compiler";
 
 /**
  * Configuration options for the AsyncAPI emitter.
@@ -70,12 +70,6 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default:
           "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.",
-      },
-    },
-    "duplicate-schema-name": {
-      severity: "error",
-      messages: {
-        default: paramMessage`Duplicate schema name '${"name"}'. Models from different namespaces have the same name.`,
       },
     },
   },
