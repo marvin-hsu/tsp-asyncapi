@@ -61,7 +61,7 @@ readonly default: CallableMessage<["name"]>;
 readonly default: CallableMessage<["kind"]>;
 };
 "unrepresentable-circular-reference": {
-readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
 };
 }, AsyncAPIEmitterOptions, never>;
 
@@ -165,7 +165,7 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["kind"]>;
     };
     "unrepresentable-circular-reference": {
-        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -199,7 +199,7 @@ readonly default: CallableMessage<["name"]>;
 readonly default: CallableMessage<["kind"]>;
 };
 "unrepresentable-circular-reference": {
-readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
 };
 }, C, M>) => Diagnostic;
 
@@ -313,7 +313,7 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["kind"]>;
     };
     "unrepresentable-circular-reference": {
-        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -347,7 +347,7 @@ readonly default: CallableMessage<["name"]>;
 readonly default: CallableMessage<["kind"]>;
 };
 "unrepresentable-circular-reference": {
-readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
 };
 }, C, M>) => void;
 
