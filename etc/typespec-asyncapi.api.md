@@ -26,6 +26,9 @@ export const $lib: TypeSpecLibrary<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
 };
+"unserializable-example": {
+readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+};
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
@@ -93,13 +96,19 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+    };
+    "unserializable-example": {
+        readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+};
+"unserializable-example": {
+readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
 };
 }, C, M>) => Diagnostic;
 
@@ -160,13 +169,19 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+    };
+    "unserializable-example": {
+        readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
 readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
+};
+"unserializable-example": {
+readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
 };
 }, C, M>) => void;
 
