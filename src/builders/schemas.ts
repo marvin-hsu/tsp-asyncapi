@@ -171,10 +171,13 @@ function buildEnumSchemaBody(type: Enum): SchemaObject {
   ];
   const isNumeric = values.every((value) => typeof value === "number");
   const isString = values.every((value) => typeof value === "string");
-  return {
-    ...(isNumeric ? { type: "number" } : isString ? { type: "string" } : {}),
-    enum: values,
-  };
+  let schemaType: SchemaObject["type"];
+  if (isNumeric) {
+    schemaType = "number";
+  } else if (isString) {
+    schemaType = "string";
+  }
+  return { ...(schemaType !== undefined ? { type: schemaType } : {}), enum: values };
 }
 
 /**
@@ -266,15 +269,8 @@ function neutralEncodeAs(type: Scalar): EncodeData {
  */
 function makeSerializeHandlers(program: Program): Parameters<typeof serializeValueAsJson>[4] {
   return {
-    serializeScalarValue: (value, type, _encodeAs, originalFn) => {
-      void originalFn;
-      const result = serializeValueAsJson(
-        program,
-        value,
-        type,
-        neutralEncodeAs(value.scalar),
-        undefined,
-      );
+    serializeScalarValue: (value, type) => {
+      const result = serializeValueAsJson(program, value, type, neutralEncodeAs(value.scalar));
       if (result === undefined) {
         throw new UnserializableValueError(
           `Cannot serialize scalar '${value.scalar.name}' as JSON.`,
