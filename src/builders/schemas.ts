@@ -186,18 +186,15 @@ interface EncodedNameOverrideConflict {
   reason: string;
 }
 
-function findEncodedNameOverrideConflict(
-  program: Program,
-  model: Model,
-): EncodedNameOverrideConflict | undefined {
-  if (model.baseModel === undefined) {
-    return undefined;
-  }
-  // Every ancestor property's wire name, first (i.e. most-derived) match
-  // wins — same precedence `walkPropertiesInherited` gives an override.
+/**
+ * Every ancestor property's wire name reachable through `model`'s
+ * `baseModel` chain, first (i.e. most-derived) match winning — same
+ * precedence `walkPropertiesInherited` gives an override.
+ */
+function collectAncestorWireNames(program: Program, baseModel: Model): Map<string, ModelProperty> {
   const ancestorWireNames = new Map<string, ModelProperty>();
   for (
-    let current: Model | undefined = model.baseModel;
+    let current: Model | undefined = baseModel;
     current !== undefined;
     current = current.baseModel
   ) {
@@ -211,37 +208,73 @@ function findEncodedNameOverrideConflict(
       }
     }
   }
+  return ancestorWireNames;
+}
+
+/**
+ * Checks a single own property of `model` for either of
+ * `findEncodedNameOverrideConflict`'s two conflict shapes (see its doc
+ * comment above). Split out so the per-property branching (each case is its
+ * own early return) does not add to the caller's own loop-plus-branch
+ * complexity.
+ */
+function checkPropertyEncodedNameConflict(
+  program: Program,
+  baseModel: Model,
+  prop: ModelProperty,
+  ancestorWireNames: Map<string, ModelProperty>,
+): EncodedNameOverrideConflict | undefined {
+  const ownWireName = resolveEncodedName(program, prop, SCHEMA_ENCODING_MIME_TYPE);
+  const sameNameAncestor = findDiscriminatingProperty(baseModel, prop.name);
+  if (sameNameAncestor !== undefined) {
+    // Case 1: a same-named override. Only a conflict when the wire names
+    // actually diverge — a consistent override (same name, same wire name,
+    // e.g. no `@encodedName` at all) is not a conflict.
+    const ancestorWireName = resolveEncodedName(
+      program,
+      sameNameAncestor,
+      SCHEMA_ENCODING_MIME_TYPE,
+    );
+    if (ownWireName === ancestorWireName) {
+      return undefined;
+    }
+    return {
+      property: prop,
+      reason: `overrides an inherited property but resolves to a different wire name ("${ownWireName}" vs "${ancestorWireName}") via @encodedName.`,
+    };
+  }
+  // Case 2: no same-named ancestor, but this (new) property's wire name
+  // still collides with a *different* ancestor property's wire name.
+  if (ancestorWireNames.has(ownWireName)) {
+    return {
+      property: prop,
+      reason:
+        "resolves to the same wire name (via @encodedName) as a different, unrelated inherited property.",
+    };
+  }
+  return undefined;
+}
+
+function findEncodedNameOverrideConflict(
+  program: Program,
+  model: Model,
+): EncodedNameOverrideConflict | undefined {
+  if (model.baseModel === undefined) {
+    return undefined;
+  }
+  const ancestorWireNames = collectAncestorWireNames(program, model.baseModel);
   for (const prop of model.properties.values()) {
     if (isNeverTypedProperty(prop)) {
       continue;
     }
-    const ownWireName = resolveEncodedName(program, prop, SCHEMA_ENCODING_MIME_TYPE);
-    const sameNameAncestor = findDiscriminatingProperty(model.baseModel, prop.name);
-    if (sameNameAncestor !== undefined) {
-      // Case 1: a same-named override. Only a conflict when the wire names
-      // actually diverge — a consistent override (same name, same wire
-      // name, e.g. no `@encodedName` at all) is not a conflict.
-      const ancestorWireName = resolveEncodedName(
-        program,
-        sameNameAncestor,
-        SCHEMA_ENCODING_MIME_TYPE,
-      );
-      if (ownWireName !== ancestorWireName) {
-        return {
-          property: prop,
-          reason: `overrides an inherited property but resolves to a different wire name ("${ownWireName}" vs "${ancestorWireName}") via @encodedName.`,
-        };
-      }
-      continue;
-    }
-    // Case 2: no same-named ancestor, but this (new) property's wire name
-    // still collides with a *different* ancestor property's wire name.
-    if (ancestorWireNames.has(ownWireName)) {
-      return {
-        property: prop,
-        reason:
-          "resolves to the same wire name (via @encodedName) as a different, unrelated inherited property.",
-      };
+    const conflict = checkPropertyEncodedNameConflict(
+      program,
+      model.baseModel,
+      prop,
+      ancestorWireNames,
+    );
+    if (conflict !== undefined) {
+      return conflict;
     }
   }
   return undefined;
