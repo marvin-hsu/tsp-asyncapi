@@ -1,157 +1,25 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>TypeSpec AsyncAPI Emitter</title><meta name="description" content="Documentation for TypeSpec AsyncAPI Emitter"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
-<div class="tsd-toolbar-contents container"><a href="index.html" class="title">TypeSpec AsyncAPI Emitter</a>
-<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
-<ul role="listbox" id="tsd-search-results"></ul>
-<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
-<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header>
-<div class="container container-main">
-<div class="col-content">
-<div class="tsd-page-title">
-<h1>TypeSpec AsyncAPI Emitter</h1></div>
-<div class="tsd-panel tsd-typography"><h1 id="typespec-asyncapi" class="tsd-anchor-link">typespec-asyncapi<a href="#typespec-asyncapi" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
-<p><a href="./">English</a> | <a href="media/README.zh-TW.md">繁體中文</a></p>
-<p>An <a href="https://www.asyncapi.com/">AsyncAPI 3.1</a> emitter for <a href="https://typespec.io/">TypeSpec</a>. Describe an event-driven API in TypeSpec. Emit a full AsyncAPI document from one source of truth.</p>
-<blockquote>
-<p><strong>Status: work in progress.</strong> The emitter generates the document skeleton, <code>info</code> metadata, tags, external docs, and a complete TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords). Channels, operations, messages, servers, security, and protocol bindings are still in development.</p>
-</blockquote>
-<h2 id="why" class="tsd-anchor-link">Why<a href="#why" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>TypeSpec has a mature, first-class OpenAPI emitter. The AsyncAPI side, for event-driven contracts like message queues and streaming topics, is still young. This project builds that emitter, so an HTTP API and an async API can live side by side in one TypeSpec workspace.</p>
-<h2 id="requirements" class="tsd-anchor-link">Requirements<a href="#requirements" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<ul>
-<li>Node.js &gt;= 20</li>
-<li><a href="https://pnpm.io/">pnpm</a> (this repo's <code>devEngines</code> field pins ^11)</li>
-</ul>
-<h2 id="installation" class="tsd-anchor-link">Installation<a href="#installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>This package is not yet published to npm. To try it locally:</p>
-<pre><code class="bash"><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> &lt;</span><span class="hl-2">this</span><span class="hl-1"> </span><span class="hl-2">rep</span><span class="hl-1">o&gt;</span><br/><span class="hl-0">cd</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span>
-</code><button type="button">Copy</button></pre>
-
-<p>Then reference it from your TypeSpec project, either as a local <code>file:</code> dependency or via <code>pnpm link</code>.</p>
-<h2 id="usage" class="tsd-anchor-link">Usage<a href="#usage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>Add the library to your <code>main.tsp</code> and annotate your service with the provided decorators:</p>
-<pre><code class="typespec"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">using</span><span class="hl-1"> </span><span class="hl-4">AsyncAPI</span><span class="hl-1">;</span><br/><br/><span class="hl-5">@service</span><span class="hl-1">(#{ </span><span class="hl-6">title</span><span class="hl-1">: </span><span class="hl-2">&quot;Order Service API&quot;</span><span class="hl-1"> })</span><br/><span class="hl-5">@info</span><span class="hl-1">(#{</span><br/><span class="hl-1">  </span><span class="hl-6">version</span><span class="hl-1">: </span><span class="hl-2">&quot;1.0.0&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">description</span><span class="hl-1">: </span><span class="hl-2">&quot;This is a sample Order Service event-driven API.&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">contact</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;API Support&quot;</span><span class="hl-1">, </span><span class="hl-6">email</span><span class="hl-1">: </span><span class="hl-2">&quot;support@example.com&quot;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-6">license</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;MIT&quot;</span><span class="hl-1">, </span><span class="hl-6">url</span><span class="hl-1">: </span><span class="hl-2">&quot;https://opensource.org/licenses/MIT&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">})</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;orders&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;payment&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@externalDocs</span><span class="hl-1">(</span><span class="hl-2">&quot;https://example.com/docs&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;Service Documentation&quot;</span><span class="hl-1">)</span><br/><span class="hl-3">namespace</span><span class="hl-1"> </span><span class="hl-4">Orders</span><span class="hl-1">;</span><br/><br/><span class="hl-7">// This emitter converts a TypeSpec model to an AsyncAPI Schema Object</span><br/><span class="hl-7">// automatically. The result lands in components.schemas.</span><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">Order</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">id</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">amount</span><span class="hl-1">: </span><span class="hl-4">float64</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">items</span><span class="hl-1">: </span><span class="hl-4">OrderItem</span><span class="hl-1">[];</span><br/><span class="hl-1">  </span><span class="hl-6">metadata</span><span class="hl-1">: </span><span class="hl-4">Record</span><span class="hl-1">&lt;</span><span class="hl-4">string</span><span class="hl-1">&gt;;</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">OrderItem</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">productId</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">quantity</span><span class="hl-1">: </span><span class="hl-4">int32</span><span class="hl-1">;</span><br/><span class="hl-1">}</span>
-</code><button type="button">Copy</button></pre>
-
-<p>Configure the emitter in <code>tspconfig.yaml</code>:</p>
-<pre><code class="yaml"><span class="hl-5">emit</span><span class="hl-1">:</span><br/><span class="hl-1">  - </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><br/><span class="hl-5">options</span><span class="hl-1">:</span><br/><span class="hl-1">  </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">:</span><br/><span class="hl-1">    </span><span class="hl-5">output-file</span><span class="hl-1">: </span><span class="hl-2">&quot;asyncapi.yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">file-type</span><span class="hl-1">: </span><span class="hl-2">&quot;yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">asyncapi-id</span><span class="hl-1">: </span><span class="hl-2">&quot;urn:com:example:orders&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">default-content-type</span><span class="hl-1">: </span><span class="hl-2">&quot;application/json&quot;</span>
-</code><button type="button">Copy</button></pre>
-
-<p>Then compile:</p>
-<pre><code class="bash"><span class="hl-0">tsp</span><span class="hl-1"> </span><span class="hl-2">compile</span><span class="hl-1"> </span><span class="hl-2">.</span><span class="hl-1"> </span><span class="hl-3">--emit</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span>
-</code><button type="button">Copy</button></pre>
-
-<p>This produces a fully compliant AsyncAPI 3.1.0 document.</p>
-<h2 id="emitter-options" class="tsd-anchor-link">Emitter options<a href="#emitter-options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>Set these in <code>tspconfig.yaml</code>, or pass them as CLI arguments:</p>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>output-file</code></td>
-<td><code>string</code></td>
-<td><code>asyncapi.yaml</code></td>
-<td>Name of the emitted file.</td>
-</tr>
-<tr>
-<td><code>file-type</code></td>
-<td><code>string</code></td>
-<td><code>yaml</code></td>
-<td>Format of the generated document: <code>yaml</code> or <code>json</code>.</td>
-</tr>
-<tr>
-<td><code>asyncapi-id</code></td>
-<td><code>string</code></td>
-<td>-</td>
-<td>Global identifier for the document. Maps to the <code>id</code> field.</td>
-</tr>
-<tr>
-<td><code>default-content-type</code></td>
-<td><code>string</code></td>
-<td>-</td>
-<td>Default content type for message payloads. Maps to <code>defaultContentType</code>.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="schema-conversion" class="tsd-anchor-link">Schema conversion<a href="#schema-conversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>This emitter converts a TypeSpec model, scalar, enum, or union to an AsyncAPI Schema Object automatically. Supported constructs include:</p>
-<ul>
-<li>Models, including nested models, arrays, and <code>Record&lt;T&gt;</code>.</li>
-<li>Scalars, including TypeSpec's built-in numeric/string/date scalars and user-declared derived scalars.</li>
-<li>Enums and unions, including string-literal unions and <code>T | null</code>.</li>
-<li>Inheritance (<code>extends</code>) and <code>@discriminator</code>, mapped to <code>allOf</code> and a <code>discriminator</code> field.</li>
-<li>Validation keywords: <code>@minLength</code>, <code>@maxLength</code>, <code>@minValue</code>, <code>@maxValue</code>, <code>@minItems</code>, <code>@maxItems</code>, <code>@pattern</code>, and related decorators.</li>
-<li>Documentation: <code>@doc</code>, <code>@summary</code>, and <code>@example</code>.</li>
-<li><code>@encodedName</code> for renaming a property's wire-format key.</li>
-<li>Stable, argument-derived names for template instantiations (for example, <code>Page&lt;string&gt;</code> becomes <code>PageString</code> in <code>components.schemas</code>).</li>
-</ul>
-<p>A name collision between two declarations reports a diagnostic error. It does not rename either declaration automatically.</p>
-<h2 id="available-decorators" class="tsd-anchor-link">Available decorators<a href="#available-decorators" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<ul>
-<li><code>@AsyncAPI.info</code> — Sets the full AsyncAPI <code>info</code> block: version, description, contact, and license.</li>
-<li><code>@AsyncAPI.externalDocs</code> — Attaches external documentation links.</li>
-<li><code>@AsyncAPI.oneOf</code> — Marks a union to emit <code>oneOf</code> instead of the default <code>anyOf</code>.</li>
-<li><code>@AsyncAPI.jsonSchemaExtension</code> — Adds one JSON Schema keyword this emitter has no dedicated decorator for, e.g. <code>@jsonSchemaExtension(&quot;unevaluatedProperties&quot;, false)</code>. Repeatable; each application adds one key/value pair.</li>
-<li><code>@tag</code> — Built-in. Adds standard tags to the document.</li>
-<li><code>@service</code> — Built-in. Extracts the API title automatically.</li>
-</ul>
-<h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1">        </span><span class="hl-7"># Install dependencies.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">          </span><span class="hl-7"># Compile TypeScript to dist/.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">watch</span><span class="hl-1">          </span><span class="hl-7"># Compile in watch mode.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">           </span><span class="hl-7"># Run tests (vitest).</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">           </span><span class="hl-7"># Run eslint.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">format</span><span class="hl-1">         </span><span class="hl-7"># Run prettier.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">           </span><span class="hl-7"># Generate API docs (typedoc).</span>
-</code><button type="button">Copy</button></pre>
-
-<p>Other tools in this repo:</p>
-<ul>
-<li><strong>api-extractor</strong> — Tracks the public API surface (<code>pnpm api-extractor:local</code>).</li>
-<li><strong>knip</strong> — Finds unused code and dependencies (<code>pnpm knip</code>).</li>
-<li><strong>husky + lint-staged</strong> — Runs lint and format checks before each commit.</li>
-</ul>
-<h2 id="roadmap" class="tsd-anchor-link">Roadmap<a href="#roadmap" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<ul>
-<li>[x] Document skeleton, <code>info</code>, tags, external docs.</li>
-<li>[x] TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, validation).</li>
-<li>[ ] Channel, operation (send/receive), and message decorators.</li>
-<li>[ ] Mapping a TypeSpec model to an AsyncAPI message payload.</li>
-<li>[ ] Server and protocol bindings, starting with Kafka.</li>
-<li>[ ] Publish to npm.</li>
-</ul>
-<h2 id="license" class="tsd-anchor-link">License<a href="#license" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p><a href="media/LICENSE">MIT</a></p>
-</div></div>
-<div class="col-sidebar">
-<div class="page-menu">
-<div class="tsd-navigation settings">
-<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
-<h3>Settings</h3></summary>
-<div class="tsd-accordion-details">
-<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
-<ul id="tsd-filter-options">
-<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
-<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
-<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
-<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
-<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg>
-<h3>On This Page</h3></summary>
-<div class="tsd-accordion-details"><a href="#typespec-asyncapi"><span>typespec-<wbr/>asyncapi</span></a>
-<ul>
-<li><a href="#why"><span>Why</span></a></li>
-<li><a href="#requirements"><span>Requirements</span></a></li>
-<li><a href="#installation"><span>Installation</span></a></li>
-<li><a href="#usage"><span>Usage</span></a></li>
-<li><a href="#emitter-options"><span>Emitter options</span></a></li>
-<li><a href="#schema-conversion"><span>Schema conversion</span></a></li>
-<li><a href="#available-decorators"><span>Available decorators</span></a></li>
-<li><a href="#development"><span>Development</span></a></li>
-<li><a href="#roadmap"><span>Roadmap</span></a></li>
-<li><a href="#license"><span>License</span></a></li></ul></div></details></div>
-<div class="site-menu">
-<nav class="tsd-navigation"><a href="modules.html">TypeSpec AsyncAPI Emitter</a>
-<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
-<li>Loading...</li></ul></nav></div></div></div><footer>
-<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
-<div class="overlay"></div></body></html>
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>TypeSpec AsyncAPI</title>
+    <meta name="description" content="An AsyncAPI 3.1 emitter for TypeSpec">
+    <meta name="generator" content="VitePress v1.6.4">
+    <link rel="preload stylesheet" href="/typespec-asyncapi/assets/style.ChSbMm_R.css" as="style">
+    <link rel="preload stylesheet" href="/typespec-asyncapi/vp-icons.css" as="style">
+    
+    <script type="module" src="/typespec-asyncapi/assets/app.DP_qZL9j.js"></script>
+    <link rel="preload" href="/typespec-asyncapi/assets/inter-roman-latin.Di8DUHzh.woff2" as="font" type="font/woff2" crossorigin="">
+    <link rel="modulepreload" href="/typespec-asyncapi/assets/chunks/theme.CUJfcvbx.js">
+    <link rel="modulepreload" href="/typespec-asyncapi/assets/chunks/framework.mS4Otty6.js">
+    <link rel="modulepreload" href="/typespec-asyncapi/assets/index.md.DIZn7O_y.lean.js">
+    <script id="check-dark-mode">(()=>{const e=localStorage.getItem("vitepress-theme-appearance")||"auto",a=window.matchMedia("(prefers-color-scheme: dark)").matches;(!e||e==="auto"?a:e==="dark")&&document.documentElement.classList.add("dark")})();</script>
+    <script id="check-mac-os">document.documentElement.classList.toggle("mac",/Mac|iPhone|iPod|iPad/i.test(navigator.platform));</script>
+  </head>
+  <body>
+    <div id="app"><div class="Layout" data-v-c4a9f059><!--[--><!--]--><!--[--><span tabindex="-1" data-v-e9421282></span><a href="#VPContent" class="VPSkipLink visually-hidden" data-v-e9421282>Skip to content</a><!--]--><!----><header class="VPNav" data-v-c4a9f059 data-v-d2f705fe><div class="VPNavBar" data-v-d2f705fe data-v-b236efa4><div class="wrapper" data-v-b236efa4><div class="container" data-v-b236efa4><div class="title" data-v-b236efa4><div class="VPNavBarTitle" data-v-b236efa4 data-v-fa6ac5b8><a class="title" href="/typespec-asyncapi/" data-v-fa6ac5b8><!--[--><!--]--><!----><span data-v-fa6ac5b8>TypeSpec AsyncAPI</span><!--[--><!--]--></a></div></div><div class="content" data-v-b236efa4><div class="content-body" data-v-b236efa4><!--[--><!--]--><div class="VPNavBarSearch search" data-v-b236efa4><!--[--><!----><div id="local-search"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search"><span class="DocSearch-Button-Container"><span class="vp-icon DocSearch-Search-Icon"></span><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"><kbd class="DocSearch-Button-Key"></kbd><kbd class="DocSearch-Button-Key">K</kbd></span></button></div><!--]--></div><nav aria-labelledby="main-nav-aria-label" class="VPNavBarMenu menu" data-v-b236efa4 data-v-cdf24dea><span id="main-nav-aria-label" class="visually-hidden" data-v-cdf24dea> Main Navigation </span><!--[--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/typespec-asyncapi/guide/getting-started.html" tabindex="0" data-v-cdf24dea data-v-60ec579c><!--[--><span data-v-60ec579c>Guide</span><!--]--></a><!--]--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/typespec-asyncapi/reference/emitter-options.html" tabindex="0" data-v-cdf24dea data-v-60ec579c><!--[--><span data-v-60ec579c>Reference</span><!--]--></a><!--]--><!--]--></nav><div class="VPFlyout VPNavBarTranslations translations" data-v-b236efa4 data-v-04bc580e data-v-4069e3c3><button type="button" class="button" aria-haspopup="true" aria-expanded="false" aria-label="Change language" data-v-4069e3c3><span class="text" data-v-4069e3c3><span class="vpi-languages option-icon" data-v-4069e3c3></span><!----><span class="vpi-chevron-down text-icon" data-v-4069e3c3></span></span></button><div class="menu" data-v-4069e3c3><div class="VPMenu" data-v-4069e3c3 data-v-fdd2e398><!----><!--[--><!--[--><div class="items" data-v-04bc580e><p class="title" data-v-04bc580e>English</p><!--[--><div class="VPMenuLink" data-v-04bc580e data-v-c9d6bfb3><a class="VPLink link" href="/typespec-asyncapi/zh-tw/" data-v-c9d6bfb3><!--[--><span data-v-c9d6bfb3>繁體中文</span><!--]--></a></div><!--]--></div><!--]--><!--]--></div></div></div><div class="VPNavBarAppearance appearance" data-v-b236efa4 data-v-d01c0167><button class="VPSwitch VPSwitchAppearance" type="button" role="switch" title aria-checked="false" data-v-d01c0167 data-v-e4e88925 data-v-68f38f9a><span class="check" data-v-68f38f9a><span class="icon" data-v-68f38f9a><!--[--><span class="vpi-sun sun" data-v-e4e88925></span><span class="vpi-moon moon" data-v-e4e88925></span><!--]--></span></span></button></div><div class="VPSocialLinks VPNavBarSocialLinks social-links" data-v-b236efa4 data-v-9162d38e data-v-c4cd9029><!--[--><a class="VPSocialLink no-icon" href="https://github.com/marvin-hsu/typespec-asyncapi" aria-label="github" target="_blank" rel="noopener" data-v-c4cd9029 data-v-1f6d3965><span class="vpi-social-github"></span></a><!--]--></div><div class="VPFlyout VPNavBarExtra extra" data-v-b236efa4 data-v-afd536c3 data-v-4069e3c3><button type="button" class="button" aria-haspopup="true" aria-expanded="false" aria-label="extra navigation" data-v-4069e3c3><span class="vpi-more-horizontal icon" data-v-4069e3c3></span></button><div class="menu" data-v-4069e3c3><div class="VPMenu" data-v-4069e3c3 data-v-fdd2e398><!----><!--[--><!--[--><div class="group translations" data-v-afd536c3><p class="trans-title" data-v-afd536c3>English</p><!--[--><div class="VPMenuLink" data-v-afd536c3 data-v-c9d6bfb3><a class="VPLink link" href="/typespec-asyncapi/zh-tw/" data-v-c9d6bfb3><!--[--><span data-v-c9d6bfb3>繁體中文</span><!--]--></a></div><!--]--></div><div class="group" data-v-afd536c3><div class="item appearance" data-v-afd536c3><p class="label" data-v-afd536c3>Appearance</p><div class="appearance-action" data-v-afd536c3><button class="VPSwitch VPSwitchAppearance" type="button" role="switch" title aria-checked="false" data-v-afd536c3 data-v-e4e88925 data-v-68f38f9a><span class="check" data-v-68f38f9a><span class="icon" data-v-68f38f9a><!--[--><span class="vpi-sun sun" data-v-e4e88925></span><span class="vpi-moon moon" data-v-e4e88925></span><!--]--></span></span></button></div></div></div><div class="group" data-v-afd536c3><div class="item social-links" data-v-afd536c3><div class="VPSocialLinks social-links-list" data-v-afd536c3 data-v-c4cd9029><!--[--><a class="VPSocialLink no-icon" href="https://github.com/marvin-hsu/typespec-asyncapi" aria-label="github" target="_blank" rel="noopener" data-v-c4cd9029 data-v-1f6d3965><span class="vpi-social-github"></span></a><!--]--></div></div></div><!--]--><!--]--></div></div></div><!--[--><!--]--><button type="button" class="VPNavBarHamburger hamburger" aria-label="mobile navigation" aria-expanded="false" aria-controls="VPNavScreen" data-v-b236efa4 data-v-01bc6096><span class="container" data-v-01bc6096><span class="top" data-v-01bc6096></span><span class="middle" data-v-01bc6096></span><span class="bottom" data-v-01bc6096></span></span></button></div></div></div></div><div class="divider" data-v-b236efa4><div class="divider-line" data-v-b236efa4></div></div></div><!----></header><!----><!----><div class="VPContent is-home" id="VPContent" data-v-c4a9f059 data-v-d9659f43><div class="VPHome" data-v-d9659f43 data-v-5ec60980><!--[--><!--]--><div class="VPHero VPHomeHero" data-v-5ec60980 data-v-ff6a3853><div class="container" data-v-ff6a3853><div class="main" data-v-ff6a3853><!--[--><!--]--><!--[--><h1 class="heading" data-v-ff6a3853><span class="name clip" data-v-ff6a3853>TypeSpec AsyncAPI</span><span class="text" data-v-ff6a3853>AsyncAPI 3.1 emitter for TypeSpec</span></h1><p class="tagline" data-v-ff6a3853>Describe an event-driven API in TypeSpec. Emit an AsyncAPI document from one source of truth.</p><!--]--><!--[--><!--]--><div class="actions" data-v-ff6a3853><!--[--><div class="action" data-v-ff6a3853><a class="VPButton medium brand" href="/typespec-asyncapi/guide/getting-started.html" data-v-ff6a3853 data-v-e8bbfad9>Getting Started</a></div><div class="action" data-v-ff6a3853><a class="VPButton medium alt" href="/typespec-asyncapi/guide/schema-conversion.html" data-v-ff6a3853 data-v-e8bbfad9>Schema Conversion Reference</a></div><div class="action" data-v-ff6a3853><a class="VPButton medium alt" href="https://github.com/marvin-hsu/typespec-asyncapi" target="_blank" rel="noreferrer" data-v-ff6a3853 data-v-e8bbfad9>GitHub</a></div><!--]--></div><!--[--><!--]--></div><!----></div></div><!--[--><!--]--><!--[--><!--]--><div class="VPFeatures VPHomeFeatures" data-v-5ec60980 data-v-22d018be><div class="container" data-v-22d018be><div class="items" data-v-22d018be><!--[--><div class="grid-3 item" data-v-22d018be><div class="VPLink no-icon VPFeature" data-v-22d018be data-v-bd83f838><!--[--><article class="box" data-v-bd83f838><!----><h2 class="title" data-v-bd83f838>One source of truth</h2><p class="details" data-v-bd83f838>Keep your HTTP API and your async API in one TypeSpec workspace. Emit OpenAPI and AsyncAPI from the same models.</p><!----></article><!--]--></div></div><div class="grid-3 item" data-v-22d018be><div class="VPLink no-icon VPFeature" data-v-22d018be data-v-bd83f838><!--[--><article class="box" data-v-bd83f838><!----><h2 class="title" data-v-bd83f838>Verified conversion rules</h2><p class="details" data-v-bd83f838>Every input/output pair in these docs was generated by the actual converter — models, scalars, enums, unions, inheritance, discriminators, and validation keywords.</p><!----></article><!--]--></div></div><div class="grid-3 item" data-v-22d018be><div class="VPLink no-icon VPFeature" data-v-22d018be data-v-bd83f838><!--[--><article class="box" data-v-bd83f838><!----><h2 class="title" data-v-bd83f838>No silent drops</h2><p class="details" data-v-bd83f838>Anything the emitter cannot represent is omitted with a warning or reported as an error — never silently rewritten. Each diagnostic is documented with its cause and fix.</p><!----></article><!--]--></div></div><!--]--></div></div></div><!--[--><!--]--><div class="vp-doc container" style="" data-v-5ec60980 data-v-2b4cef5a><!--[--><div style="position:relative;" data-v-5ec60980><div><div class="warning custom-block"><p class="custom-block-title">Work in progress</p><p>Today the emitter produces the document skeleton and a complete <code>info</code> block. The schema conversion layer is implemented and unit-tested but not yet wired into the output; channels, operations, messages, servers, and protocol bindings are in development. <a href="/typespec-asyncapi/guide/getting-started.html#what-the-emitter-produces-today">What you get today →</a></p></div></div></div><!--]--></div></div></div><!----><!--[--><!--]--></div></div>
+    <script>window.__VP_HASH_MAP__=JSON.parse("{\"guide_getting-started.md\":\"DchzvA7w\",\"guide_schema-conversion.md\":\"Cf1dHQqC\",\"index.md\":\"DIZn7O_y\",\"reference_decorators.md\":\"CbIAfQsC\",\"reference_diagnostics.md\":\"Cph--yLF\",\"reference_emitter-options.md\":\"DBbWy44k\",\"zh-tw_guide_getting-started.md\":\"C7Fm0a_G\",\"zh-tw_guide_schema-conversion.md\":\"DFidq4je\",\"zh-tw_index.md\":\"Bvw-VGcd\",\"zh-tw_reference_decorators.md\":\"B-lEzPTd\",\"zh-tw_reference_diagnostics.md\":\"CsI7LU8q\",\"zh-tw_reference_emitter-options.md\":\"CI_KxuqW\"}");window.__VP_SITE_DATA__=JSON.parse("{\"lang\":\"en-US\",\"dir\":\"ltr\",\"title\":\"TypeSpec AsyncAPI\",\"description\":\"An AsyncAPI 3.1 emitter for TypeSpec\",\"base\":\"/typespec-asyncapi/\",\"head\":[],\"router\":{\"prefetchLinks\":true},\"appearance\":true,\"themeConfig\":{\"socialLinks\":[{\"icon\":\"github\",\"link\":\"https://github.com/marvin-hsu/typespec-asyncapi\"}],\"search\":{\"provider\":\"local\"}},\"locales\":{\"root\":{\"label\":\"English\",\"lang\":\"en\",\"themeConfig\":{\"nav\":[{\"text\":\"Guide\",\"link\":\"/guide/getting-started\"},{\"text\":\"Reference\",\"link\":\"/reference/emitter-options\"}],\"sidebar\":[{\"text\":\"Guide\",\"items\":[{\"text\":\"Getting Started\",\"link\":\"/guide/getting-started\"},{\"text\":\"Schema Conversion\",\"link\":\"/guide/schema-conversion\"}]},{\"text\":\"Reference\",\"items\":[{\"text\":\"Emitter Options\",\"link\":\"/reference/emitter-options\"},{\"text\":\"Decorators\",\"link\":\"/reference/decorators\"},{\"text\":\"Diagnostics\",\"link\":\"/reference/diagnostics\"}]}],\"editLink\":{\"pattern\":\"https://github.com/marvin-hsu/typespec-asyncapi/edit/main/docs/:path\",\"text\":\"Edit this page on GitHub\"},\"outline\":{\"label\":\"On this page\"},\"lastUpdated\":{\"text\":\"Last updated\"}}},\"zh-tw\":{\"label\":\"繁體中文\",\"lang\":\"zh-TW\",\"link\":\"/zh-tw/\",\"themeConfig\":{\"nav\":[{\"text\":\"指南\",\"link\":\"/zh-tw/guide/getting-started\"},{\"text\":\"參考\",\"link\":\"/zh-tw/reference/emitter-options\"}],\"sidebar\":[{\"text\":\"指南\",\"items\":[{\"text\":\"快速開始\",\"link\":\"/zh-tw/guide/getting-started\"},{\"text\":\"Schema 轉換\",\"link\":\"/zh-tw/guide/schema-conversion\"}]},{\"text\":\"參考\",\"items\":[{\"text\":\"Emitter 選項\",\"link\":\"/zh-tw/reference/emitter-options\"},{\"text\":\"Decorator\",\"link\":\"/zh-tw/reference/decorators\"},{\"text\":\"診斷訊息\",\"link\":\"/zh-tw/reference/diagnostics\"}]}],\"editLink\":{\"pattern\":\"https://github.com/marvin-hsu/typespec-asyncapi/edit/main/docs/:path\",\"text\":\"在 GitHub 上編輯此頁\"},\"outline\":{\"label\":\"本頁目錄\"},\"lastUpdated\":{\"text\":\"最後更新\"},\"docFooter\":{\"prev\":\"上一頁\",\"next\":\"下一頁\"},\"darkModeSwitchLabel\":\"深色模式\",\"sidebarMenuLabel\":\"選單\",\"returnToTopLabel\":\"回到頂端\",\"langMenuLabel\":\"切換語言\"}}},\"scrollOffset\":134,\"cleanUrls\":false}");</script>
+    
+  </body>
+</html>
