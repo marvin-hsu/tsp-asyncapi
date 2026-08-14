@@ -136,6 +136,24 @@ export interface SchemaObject {
   title?: string;
   description?: string;
   format?: string;
+  /** Minimum string length (`@minLength`). */
+  minLength?: number;
+  /** Maximum string length (`@maxLength`). */
+  maxLength?: number;
+  /** Regular expression a string must match (`@pattern`). */
+  pattern?: string;
+  /** Inclusive minimum numeric value (`@minValue`). */
+  minimum?: number;
+  /** Inclusive maximum numeric value (`@maxValue`). */
+  maximum?: number;
+  /** Exclusive minimum numeric value (`@minValueExclusive`). */
+  exclusiveMinimum?: number;
+  /** Exclusive maximum numeric value (`@maxValueExclusive`). */
+  exclusiveMaximum?: number;
+  /** Minimum array length (`@minItems`). */
+  minItems?: number;
+  /** Maximum array length (`@maxItems`). */
+  maxItems?: number;
   properties?: Record<string, SchemaObject | ReferenceObject>;
   additionalProperties?: boolean | SchemaObject | ReferenceObject;
   items?: SchemaObject | ReferenceObject;

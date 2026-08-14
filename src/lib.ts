@@ -1,4 +1,4 @@
-import { createTypeSpecLibrary, JSONSchemaType } from "@typespec/compiler";
+import { createTypeSpecLibrary, JSONSchemaType, paramMessage } from "@typespec/compiler";
 
 /**
  * Configuration options for the AsyncAPI emitter.
@@ -77,6 +77,18 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default:
           "This @example could not be serialized to JSON and was omitted from the emitted schema.",
+      },
+    },
+    "unrepresentable-numeric-constraint": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`This @${"decorator"} constraint could not be represented as a JSON number (its value overflows or loses precision as a JS number) and was omitted from the emitted schema.`,
+      },
+    },
+    "unsupported-temporal-range-constraint": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`This @${"decorator"} constraint targets a date/time/duration value, which draft-07 JSON Schema cannot express as a \`minimum\`/\`maximum\`, and was omitted from the emitted schema.`,
       },
     },
   },

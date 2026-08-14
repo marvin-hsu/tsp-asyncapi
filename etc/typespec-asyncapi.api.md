@@ -4,6 +4,7 @@
 
 ```ts
 
+import { CallableMessage } from '@typespec/compiler';
 import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
@@ -28,6 +29,12 @@ readonly default: "Multiple services found. AsyncAPI only supports one service p
 };
 "unserializable-example": {
 readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+};
+"unrepresentable-numeric-constraint": {
+readonly default: CallableMessage<["decorator"]>;
+};
+"unsupported-temporal-range-constraint": {
+readonly default: CallableMessage<["decorator"]>;
 };
 }, AsyncAPIEmitterOptions, never>;
 
@@ -96,12 +103,18 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
     "unserializable-example": {
         readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+    };
+    "unrepresentable-numeric-constraint": {
+        readonly default: CallableMessage<["decorator"]>;
+    };
+    "unsupported-temporal-range-constraint": {
+        readonly default: CallableMessage<["decorator"]>;
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -109,6 +122,12 @@ readonly default: "Multiple services found. AsyncAPI only supports one service p
 };
 "unserializable-example": {
 readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+};
+"unrepresentable-numeric-constraint": {
+readonly default: CallableMessage<["decorator"]>;
+};
+"unsupported-temporal-range-constraint": {
+readonly default: CallableMessage<["decorator"]>;
 };
 }, C, M>) => Diagnostic;
 
@@ -169,12 +188,18 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
     "unserializable-example": {
         readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+    };
+    "unrepresentable-numeric-constraint": {
+        readonly default: CallableMessage<["decorator"]>;
+    };
+    "unsupported-temporal-range-constraint": {
+        readonly default: CallableMessage<["decorator"]>;
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -182,6 +207,12 @@ readonly default: "Multiple services found. AsyncAPI only supports one service p
 };
 "unserializable-example": {
 readonly default: "This @example could not be serialized to JSON and was omitted from the emitted schema.";
+};
+"unrepresentable-numeric-constraint": {
+readonly default: CallableMessage<["decorator"]>;
+};
+"unsupported-temporal-range-constraint": {
+readonly default: CallableMessage<["decorator"]>;
 };
 }, C, M>) => void;
 
@@ -203,14 +234,23 @@ export interface SchemaObject {
     enum?: unknown[];
     // (undocumented)
     examples?: unknown[];
+    exclusiveMaximum?: number;
+    exclusiveMinimum?: number;
     // (undocumented)
     format?: string;
     // (undocumented)
     items?: SchemaObject | ReferenceObject;
+    maximum?: number;
+    maxItems?: number;
+    maxLength?: number;
+    minimum?: number;
+    minItems?: number;
+    minLength?: number;
     // (undocumented)
     not?: SchemaObject | ReferenceObject;
     // (undocumented)
     oneOf?: (SchemaObject | ReferenceObject)[];
+    pattern?: string;
     // (undocumented)
     properties?: Record<string, SchemaObject | ReferenceObject>;
     // (undocumented)
