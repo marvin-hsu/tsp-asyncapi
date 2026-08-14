@@ -127,10 +127,32 @@ function buildIntrinsicSchema(type: IntrinsicType): SchemaObject {
 }
 
 /**
+ * True for an uninstantiated template *declaration* (e.g. the `Env` reached
+ * by naming it directly in source, as opposed to an instantiation like
+ * `Env<string>` or a defaulted use site `Env`). Its properties are bare
+ * `TemplateParameter`s with no real shape, so there is nothing meaningful to
+ * build — the caller emits the unconstrained schema instead of registering a
+ * bogus key.
+ */
+function isUninstantiatedTemplateDeclaration(model: Model): boolean {
+  return (
+    model.node !== undefined &&
+    "templateParameters" in model.node &&
+    model.node.templateParameters.length > 0 &&
+    model.templateMapper === undefined
+  );
+}
+
+/** A `$ref` pointing at `key` inside `components.schemas`. */
+function refFor(key: string): ReferenceObject {
+  return { $ref: `#/components/schemas/${toJsonPointerToken(key)}` };
+}
+
+/**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
  */
 export class SchemaBuilder {
-  private schemas: Record<string, SchemaObject> = Object.create(null) as Record<
+  private readonly schemas: Record<string, SchemaObject> = Object.create(null) as Record<
     string,
     SchemaObject
   >;
@@ -167,9 +189,9 @@ export class SchemaBuilder {
     }
   }
 
-  private building = new Set<Model>();
-  private schemaKeys = new Map<Model, string>();
-  private usedKeys = new Set<string>();
+  private readonly building = new Set<Model>();
+  private readonly schemaKeys = new Map<Model, string>();
+  private readonly usedKeys = new Set<string>();
 
   /**
    * Returns the `components.schemas` key for a named model. Uses the bare
@@ -208,20 +230,7 @@ export class SchemaBuilder {
   }
 
   private buildModelSchema(model: Model): SchemaObject | ReferenceObject {
-    // An uninstantiated template *declaration* (e.g. the `Env` reached by
-    // naming it directly in source, as opposed to an instantiation like
-    // `Env<string>` or a defaulted use site `Env`) has properties whose
-    // types are bare `TemplateParameter`s with no real shape. Building it
-    // would fall into the `default: return {}` branch per property and
-    // silently emit a required-but-unconstrained schema. There is nothing
-    // meaningful to build here, so emit the unconstrained schema instead of
-    // registering a bogus key.
-    if (
-      model.node !== undefined &&
-      "templateParameters" in model.node &&
-      model.node.templateParameters.length > 0 &&
-      model.templateMapper === undefined
-    ) {
+    if (isUninstantiatedTemplateDeclaration(model)) {
       return {};
     }
 
@@ -230,10 +239,7 @@ export class SchemaBuilder {
     // alias (`model Names is string[];`) is a real declaration and must go
     // through the same register-and-$ref path as any other named model
     // instead, so only the anonymous case returns early here.
-    const isAnonymousCollection =
-      isBuiltinCollectionInstantiation(model) &&
-      (isArrayModelType(model) || isRecordModelType(model));
-    if (isAnonymousCollection) {
+    if (isBuiltinCollectionInstantiation(model)) {
       const collection = this.buildCollectionSchema(model);
       if (collection !== undefined) {
         return collection;
@@ -241,58 +247,21 @@ export class SchemaBuilder {
     }
 
     const key = model.name ? this.getSchemaKey(model) : undefined;
-
     if (key !== undefined) {
       if (Object.hasOwn(this.schemas, key) || this.building.has(model)) {
-        return { $ref: `#/components/schemas/${toJsonPointerToken(key)}` };
+        return refFor(key);
       }
       this.building.add(model);
     }
 
-    let schema: SchemaObject;
+    const schema = this.buildCollectionSchema(model) ?? this.buildObjectSchema(model);
 
-    const collection = this.buildCollectionSchema(model);
-    if (collection !== undefined) {
-      schema = collection;
-    } else {
-      const properties: Record<string, SchemaObject | ReferenceObject> = Object.create(
-        null,
-      ) as Record<string, SchemaObject | ReferenceObject>;
-      const required: string[] = [];
-
-      for (const prop of model.properties.values()) {
-        // A never-typed property means "this property does not exist" (e.g. a
-        // template default `model Env<T = never> { data: T; }` instantiated as
-        // `Env` with no type argument, or a direct `x: never` declaration).
-        // Emitting it — let alone requiring it — would make the schema
-        // unsatisfiable, so skip it entirely. Standalone `never` still maps to
-        // `{ not: {} }`.
-        if (prop.type.kind === "Intrinsic" && prop.type.name === "never") {
-          continue;
-        }
-        properties[prop.name] = this.buildSchema(prop.type);
-        if (!prop.optional) {
-          required.push(prop.name);
-        }
-      }
-
-      schema = { type: "object" };
-      // Omit empty fields instead of emitting `properties: {}` (same
-      // omit-empty convention `required` follows below).
-      if (Object.keys(properties).length > 0) {
-        schema.properties = properties;
-      }
-      if (required.length > 0) {
-        schema.required = required;
-      }
+    if (key === undefined) {
+      return schema;
     }
-
-    if (key !== undefined) {
-      this.schemas[key] = schema;
-      this.building.delete(model);
-      return { $ref: `#/components/schemas/${toJsonPointerToken(key)}` };
-    }
-    return schema;
+    this.schemas[key] = schema;
+    this.building.delete(model);
+    return refFor(key);
   }
 
   /**
@@ -310,6 +279,41 @@ export class SchemaBuilder {
       return { type: "object", additionalProperties: this.buildSchema(model.indexer.value) };
     }
     return undefined;
+  }
+
+  /** Builds the `object` shape for a plain (non-collection) model. */
+  private buildObjectSchema(model: Model): SchemaObject {
+    const properties: Record<string, SchemaObject | ReferenceObject> = Object.create(
+      null,
+    ) as Record<string, SchemaObject | ReferenceObject>;
+    const required: string[] = [];
+
+    for (const prop of model.properties.values()) {
+      // A never-typed property means "this property does not exist" (e.g. a
+      // template default `model Env<T = never> { data: T; }` instantiated as
+      // `Env` with no type argument, or a direct `x: never` declaration).
+      // Emitting it — let alone requiring it — would make the schema
+      // unsatisfiable, so skip it entirely. Standalone `never` still maps to
+      // `{ not: {} }`.
+      if (prop.type.kind === "Intrinsic" && prop.type.name === "never") {
+        continue;
+      }
+      properties[prop.name] = this.buildSchema(prop.type);
+      if (!prop.optional) {
+        required.push(prop.name);
+      }
+    }
+
+    const schema: SchemaObject = { type: "object" };
+    // Omit empty fields instead of emitting `properties: {}` (same
+    // omit-empty convention `required` follows below).
+    if (Object.keys(properties).length > 0) {
+      schema.properties = properties;
+    }
+    if (required.length > 0) {
+      schema.required = required;
+    }
+    return schema;
   }
 
   private buildScalarSchema(scalar: Scalar): SchemaObject {
