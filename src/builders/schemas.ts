@@ -11,6 +11,8 @@ import {
   Namespace,
   Program,
   StringLiteral,
+  Value,
+  IndeterminateEntity,
   isArrayModelType,
   isRecordModelType,
   walkPropertiesInherited,
@@ -336,6 +338,309 @@ function getQualifiedName(name: string, namespace: Namespace | undefined): strin
  */
 function toJsonPointerToken(key: string): string {
   return key.replaceAll("~", "~0").replaceAll("/", "~1");
+}
+
+/** Upper-cases just the first character, leaving the rest of `text` as-is. */
+function capitalizeFirst(text: string): string {
+  return text.length === 0 ? text : text[0].toUpperCase() + text.slice(1);
+}
+
+/**
+ * Capitalized, dot-free concatenation of a namespace chain (e.g. `A.B` →
+ * `"AB"`), used to prefix a `Model`/`Union` template argument's display name
+ * with its namespace so two same-named models in different namespaces don't
+ * collapse to the same template-instantiation name (review
+ * 2026-08-14-114). The global namespace's name is `""`, so an unnamespaced
+ * argument yields `""` and every pre-existing (unnamespaced) instantiation
+ * name is unaffected.
+ */
+function namespacePrefix(namespace: Namespace | undefined): string {
+  const parts: string[] = [];
+  let ns = namespace;
+  while (ns?.name) {
+    // The compiler's built-in `TypeSpec` namespace (home of `Array`,
+    // `Record`, and the other built-in collection types) sits directly
+    // under the global namespace (`ns.namespace?.name === ""`). It isn't a
+    // user namespace, so it shouldn't leak into a synthesized key the way a
+    // real user namespace does (review 2026-08-14-118) — skip just this one
+    // link in the chain and keep walking (a user namespace nested under it,
+    // if that were even possible, would still be collected).
+    if (ns.name === "TypeSpec" && ns.namespace?.name === "") {
+      ns = ns.namespace;
+      continue;
+    }
+    parts.unshift(capitalizeFirst(ns.name));
+    ns = ns.namespace;
+  }
+  // Joined with `.` (legal in the AsyncAPI Components Object key charset,
+  // `^[a-zA-Z0-9\.\-_]+$`), not concatenated bare: a bare join is not
+  // injective — namespace `A.B` and a sibling top-level namespace `AB` would
+  // otherwise both produce the prefix `"AB"` (review 2026-08-14-125). This
+  // still leaves one narrower, accepted collision: `sanitizeLiteralDisplayName`
+  // keeps `.` verbatim in a literal argument's own text, so a literal
+  // containing `.` can compose the same name as an unrelated namespaced
+  // argument (`P<"a.b">` vs. a model named `B` inside `namespace PA`) — left
+  // to `findFreeKey`'s suffix ladder like the other rare, documented
+  // collisions in this file, rather than introducing a second reserved
+  // marker for what both call sites already treat as a safe passthrough
+  // character.
+  return parts.join(".");
+}
+
+/**
+ * A human-legible display name for a literal template argument's value that
+ * preserves separator characters instead of deleting them, so distinct
+ * literals that differ only in their separators (`"user-created"` vs.
+ * `"user_created"`) don't collapse to the same composed name (review
+ * 2026-08-14-115). Splits on runs of non-alphanumeric characters, keeping
+ * the separator runs verbatim and capitalizing only the alphanumeric
+ * segments between them. A degenerate input that sanitizes to the empty
+ * string (only the empty string itself — any actual separator character
+ * survives, either verbatim or as the `Sep` stand-in described below) falls
+ * back to a fixed non-empty token so it can't collapse the composed name
+ * down to the bare template name.
+ *
+ * Only `-`, `_`, and `.` are kept verbatim — characters that
+ * `refFor`/`toJsonPointerToken` don't already escape (`~`, `/`) and that are
+ * otherwise unsafe or ambiguous inside a `$ref`'s URI fragment (`#`, space,
+ * etc.) are each encoded as `Sep<codePoint>` (e.g. `#` → `Sep35`, a space →
+ * `Sep32`) instead of passing through raw or collapsing to one indistinct
+ * `Sep` token (review 2026-08-14-121). Distinct literals stay distinguishable
+ * regardless of which unsafe separator character they use
+ * (`"user#created"` → `UserSep35Created`, `"has space"` → `HasSep32Space`)
+ * while the composed name is guaranteed never to carry a character that
+ * would make the emitted `$ref` illegal or resolve to the wrong fragment.
+ *
+ * The alphanumeric segments (the `i % 2 === 0` branch below) are passed
+ * through unescaped, which would let a literal that spells the escape
+ * marker itself (e.g. `"ASep32B"`) compose the same name as a literal using
+ * the real separator that marker encodes (e.g. `"A B"`) — a genuine,
+ * non-injective collision in the escaping scheme (review 2026-08-14-124),
+ * distinct from the intentional, accepted collisions `findFreeKey` already
+ * handles. Any occurrence of the marker pattern itself (`Sep` immediately
+ * followed by a digit) is therefore escaped to `SepSep` before composing, so
+ * a literal payload can never be mistaken for an escaped separator.
+ */
+function sanitizeLiteralDisplayName(raw: string): string {
+  if (raw.length === 0) {
+    return "Empty";
+  }
+  const parts = raw.split(/([^\dA-Za-z]+)/);
+  const out = parts
+    .map((part, i) => {
+      if (i % 2 === 0) {
+        return capitalizeFirst(part.replace(/Sep(?=\d)/g, "SepSep"));
+      }
+      if (/^[-_.]+$/.test(part)) {
+        return part;
+      }
+      return Array.from(part)
+        .map((ch) => `Sep${String(ch.codePointAt(0) ?? 0)}`)
+        .join("");
+    })
+    .join("");
+  return out.length === 0 ? "Empty" : out;
+}
+
+/**
+ * A human-legible display name for a numeric template argument's value that
+ * encodes its sign and decimal point instead of deleting them, so `-1` and
+ * `1` (and `1.5` and `15`) don't collapse to the same composed name (review
+ * 2026-08-14-112).
+ *
+ * Built from the compiler's `NumericLiteral.valueAsString` (the literal's
+ * original source text) rather than `String(value)`: `String()` round-trips
+ * through a JS `number`, which is both lossy for values outside the safe
+ * integer/precision range and, for very large or very small magnitudes,
+ * renders in exponent notation with a `+` (e.g. `1e+21`) — a character the
+ * AsyncAPI 3.0 Components Object key charset (`^[a-zA-Z0-9\.\-_]+$`) forbids,
+ * which would otherwise leak unescaped into the `components.schemas` key and
+ * the emitted `$ref` (review 2026-08-14-122). Any character the source text
+ * can still carry that isn't already handled (`+` from source-level exponent
+ * signs, in particular) is Sep-encoded the same way
+ * `sanitizeLiteralDisplayName` encodes unsafe separators, so the composed
+ * name can never carry a charset-violating character.
+ */
+function sanitizeNumberDisplayName(valueAsString: string): string {
+  const text = valueAsString;
+  const negative = text.startsWith("-");
+  const magnitudeText = (negative ? text.slice(1) : text).replaceAll(".", "_");
+  const magnitude = Array.from(magnitudeText)
+    .map((ch) => (/[A-Za-z0-9_]/.test(ch) ? ch : `Sep${String(ch.codePointAt(0) ?? 0)}`))
+    .join("");
+  return capitalizeFirst(negative ? `Neg${magnitude}` : magnitude);
+}
+
+/**
+ * A structural display name for an anonymous (unnamed) `Model` template
+ * argument, derived from its own properties' names *and types* instead of
+ * the fixed `"Anonymous"` token (review 2026-08-14-120). `{x: string}` →
+ * `AnonymousXString`, `{x: string, y: int32}` → `AnonymousXStringYInt32`. The
+ * name comes entirely from the argument's own properties (in their own
+ * declaration order), never from the position of the field that references
+ * it, so the same anonymous-model argument always composes the same key no
+ * matter which field of the enclosing model it's declared on or in what
+ * order. Each property's type is included, not just its name, so two
+ * anonymous models that share property names but differ in property types
+ * (e.g. `{x: string}` vs. `{x: int32}`) don't compose the same base name and
+ * fall into `findFreeKey`'s order-dependent numeric-suffix ladder (review
+ * 2026-08-14-123). A property-less anonymous model (`{}`) falls back to the
+ * bare `"Anonymous"` token; any resulting collision is a genuine one, left to
+ * `findFreeKey`.
+ *
+ * Each property's own name is run through `sanitizeLiteralDisplayName` (not
+ * `capitalizeFirst`, which passes everything but the first character
+ * through verbatim): a backtick-quoted property name can carry arbitrary
+ * characters, and inserting one unescaped would leak a character outside
+ * the AsyncAPI Components Object key charset into the composed name —
+ * the exact leak `sanitizeLiteralDisplayName` already closes for a literal
+ * template argument's own text (review 2026-08-14-127).
+ *
+ * Two syntactically distinct anonymous models with identical property
+ * names/types are still two separate `Model` objects and so register two
+ * separate (byte-identical) components under `findFreeKey`'s numeric-suffix
+ * ladder — not wrong output, just an accepted duplication rather than a
+ * dedup this function attempts (review 2026-08-14-128's option (a): treating
+ * structural dedup of anonymous instantiations as a possible future
+ * refactor, not a defect in this round).
+ */
+function anonymousModelDisplayName(model: Model): string {
+  const names = [...model.properties.values()].map(
+    (property) => sanitizeLiteralDisplayName(property.name) + templateArgDisplayName(property.type),
+  );
+  return "Anonymous" + names.join("");
+}
+
+/**
+ * A structural display name for an anonymous (unnamed) `Union` template
+ * argument, derived from its own variants' display names instead of the
+ * fixed `"Union"` token (review 2026-08-14-120). `string | int32` →
+ * `UnionStringInt32`. The name comes entirely from the union's own variants
+ * (in their own declaration order), never from the position of the field
+ * that references it, so the same anonymous-union argument always composes
+ * the same key no matter which field of the enclosing model it's declared on
+ * or in what order. A variant-less union (impossible in practice) falls back
+ * to the bare `"Union"` token; any resulting collision is a genuine one, left
+ * to `findFreeKey`.
+ */
+function anonymousUnionDisplayName(union: Union): string {
+  const names = [...union.variants.values()].map((variant) => templateArgDisplayName(variant.type));
+  return "Union" + names.join("");
+}
+
+/**
+ * A short, human-legible name for one template argument, used to build a
+ * stable `components.schemas` key for a template instantiation (e.g.
+ * `Envelope<Order>` → `EnvelopeOrder`). Only `Type` arguments have a
+ * meaningful display name; a genuine `Value` argument (legal wherever the
+ * template parameter is constrained to a value rather than a type) has no
+ * name of its own worth surfacing, so it falls back to a fixed placeholder —
+ * collisions coming from that are handled the same way any other name
+ * collision is, by `findFreeKey`'s qualified-name/suffix ladder.
+ *
+ * A literal or enum member written directly in a template argument list
+ * (e.g. `P<"created">`, `P<42>`, `P<Color.Red>`) does **not** arrive here as
+ * its own `Type.kind` — `@typespec/compiler` 1.14.0 wraps it in an
+ * `IndeterminateEntity` (`entityKind: "Indeterminate"`, no top-level `kind`)
+ * since the compiler has not yet decided whether the template parameter is
+ * being used as a type or a value. `IndeterminateEntity.type` is always one
+ * of `StringLiteral | StringTemplate | NumericLiteral | BooleanLiteral |
+ * EnumMember | UnionVariant | NullType` — all real `Type`s with a `kind` — so
+ * unwrapping it and recursing here recovers the same meaningful name a
+ * directly-typed literal argument gets, instead of collapsing to the
+ * "Value" placeholder for the overwhelmingly common case of a literal/enum-
+ * member template argument (see plan/review/solved/2026-08-14-106-*.md).
+ */
+function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string {
+  if ("entityKind" in arg && arg.entityKind === "Indeterminate") {
+    return templateArgDisplayName(arg.type);
+  }
+  if (!("kind" in arg)) {
+    return "Value";
+  }
+  switch (arg.kind) {
+    case "Model":
+      return arg.name
+        ? namespacePrefix(arg.namespace) + templateInstanceName(arg)
+        : anonymousModelDisplayName(arg);
+    case "Scalar":
+      return namespacePrefix(arg.namespace) + capitalizeFirst(arg.name);
+    case "Enum":
+      return namespacePrefix(arg.namespace) + arg.name;
+    case "EnumMember":
+      return namespacePrefix(arg.enum.namespace) + arg.enum.name + capitalizeFirst(arg.name);
+    case "Union":
+      return arg.name !== undefined
+        ? namespacePrefix(arg.namespace) + templateInstanceName(arg)
+        : anonymousUnionDisplayName(arg);
+    case "String":
+      return sanitizeLiteralDisplayName(arg.value);
+    case "StringTemplate":
+      // `stringValue` is set whenever the compiler could reduce the whole
+      // template to a plain string at check time (no interpolation, or every
+      // interpolated part is itself a literal) — treat it exactly like a
+      // `StringLiteral` in that case. Otherwise compose from `spans`: a
+      // literal span's own text through the same sanitizer a `StringLiteral`
+      // argument gets, an interpolated span recursed into so its own display
+      // name (whatever `Type` it turns out to be) contributes, instead of
+      // every unreduced string-template argument falling to the shared
+      // `Unhandled${arg.kind}` fallback below and colliding with each other
+      // (review 2026-08-14-126).
+      if (arg.stringValue !== undefined) {
+        return sanitizeLiteralDisplayName(arg.stringValue);
+      }
+      return arg.spans
+        .map((span) =>
+          span.isInterpolated
+            ? templateArgDisplayName(span.type)
+            : sanitizeLiteralDisplayName(span.type.value),
+        )
+        .join("");
+    case "Number":
+      return sanitizeNumberDisplayName(arg.valueAsString);
+    case "Boolean":
+      return arg.value ? "True" : "False";
+    case "Intrinsic":
+      return capitalizeFirst(arg.name);
+    case "Tuple":
+      return "Tuple" + arg.values.map((value) => templateArgDisplayName(value)).join("");
+    default:
+      // A fallback token that no handled case can produce (in particular,
+      // distinct from `Intrinsic`'s legitimate `"Unknown"` for `unknown`),
+      // so an unhandled argument kind never collides with a real type
+      // (review 2026-08-14-113).
+      return `Unhandled${arg.kind}`;
+  }
+}
+
+/**
+ * Stable `components.schemas` key base for a template instantiation, built
+ * from the template's own name plus each type argument's display name (e.g.
+ * `Envelope<Order>` → `EnvelopeOrder`, `Page<string>` → `PageString`). This
+ * is the long-term naming strategy promised in plan 2.1/2.10, replacing the
+ * short-name-collides-so-fall-back-to-qualified-name ladder as the *first*
+ * candidate for a template instantiation specifically — every instantiation
+ * of the same template already gets its own distinguishable name up front,
+ * so the qualified-name/numeric-suffix ladder in `findFreeKey` is only ever
+ * reached here for a genuine further collision (e.g. two unrelated
+ * templates that happen to produce the same composed name), not for the
+ * routine case of "two instantiations of the same template". Returns the
+ * plain declaration name unchanged for a non-template (or uninstantiated
+ * template declaration, though that path never reaches registration).
+ *
+ * Shared by `Model` and `Union` — both support templates, and both carry the
+ * same `name`/`templateMapper` shape — so a template *union* instantiation
+ * (`Wrapper<int32>`) gets the exact same stable-key treatment a template
+ * model instantiation does, instead of falling back to the traversal-order-
+ * dependent short-name-plus-suffix ladder (see plan/review/solved/
+ * 2026-08-14-108-*.md).
+ */
+function templateInstanceName(type: Model | Union): string {
+  const mapper = type.templateMapper;
+  if (mapper === undefined || mapper.args.length === 0) {
+    return type.name ?? "";
+  }
+  return (type.name ?? "") + mapper.args.map(templateArgDisplayName).join("");
 }
 
 /**
@@ -1191,7 +1496,7 @@ export class SchemaBuilder {
     if (!model.name) {
       return build();
     }
-    return this.registerNamed(model, model.name, model.namespace, build);
+    return this.registerNamed(model, templateInstanceName(model), model.namespace, build);
   }
 
   /**
@@ -1247,7 +1552,7 @@ export class SchemaBuilder {
     if (type.name === undefined) {
       return build();
     }
-    return this.registerNamed(type, type.name, type.namespace, build);
+    return this.registerNamed(type, templateInstanceName(type), type.namespace, build);
   }
 
   /**

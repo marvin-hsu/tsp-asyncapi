@@ -4,6 +4,7 @@ import { AsyncAPITester } from "../../src/testing/index.js";
 import { t, TemplateWithMarkers } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../src/builders/schemas.js";
 import { Entity, Model } from "@typespec/compiler";
+import { Ajv } from "ajv";
 
 /**
  * Compiles `code` (which must produce a model named `M`) and immediately
@@ -240,14 +241,16 @@ describe("Unit: Schemas (Phase 2)", () => {
       const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M);
 
-      // `Env` instantiated (via `M.e`) with no type argument gets
-      // `data: never`, which must be omitted entirely (no `properties`, no
-      // `required`). Assert the full key set so an extra schema built from
-      // the uninstantiated template *declaration* (a different `Model`
-      // object, reachable only if something walks it separately) cannot
-      // slip in silently.
-      expect(Object.keys(builder.getSchemas())).toEqual(["Env", "M"]);
-      expect(builder.getSchemas().Env).toEqual({ type: "object" });
+      // `Env` instantiated (via `M.e`) with no explicit type argument still
+      // has a `templateMapper` (its default, `never`), so plan 2.10's
+      // templateMapper-based naming names it `EnvNever`. Its `data: never`
+      // property must be omitted entirely (no `properties`, no `required`).
+      // Assert the full key set so an extra schema built from the
+      // uninstantiated template *declaration* (a different `Model` object,
+      // reachable only if something walks it separately) cannot slip in
+      // silently.
+      expect(Object.keys(builder.getSchemas())).toEqual(["EnvNever", "M"]);
+      expect(builder.getSchemas().EnvNever).toEqual({ type: "object" });
     });
 
     it("should not register a bogus schema when handed an uninstantiated template declaration directly", async () => {
@@ -1158,14 +1161,15 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.W.properties as Record<string, any>;
       const refs = [props.a.$ref, props.b.$ref, props.c.$ref] as string[];
-      // Every instantiation of Page<T> shares one name in one namespace, so
-      // each must be disambiguated to its own key. Pin the exact fallback
-      // ladder from plan 2.1: bare name → qualified name → qualified name
-      // with a numeric suffix starting at 2.
+      // Every instantiation of Page<T> is named from the template's own name
+      // plus its type argument's display name (plan 2.10's long-term
+      // strategy), so each gets its own distinguishable key up front instead
+      // of falling through the qualified-name/numeric-suffix ladder that
+      // only ever a *further* collision would still need.
       expect(refs).toEqual([
-        "#/components/schemas/Page",
-        "#/components/schemas/NS.Page",
-        "#/components/schemas/NS.Page_2",
+        "#/components/schemas/PageString",
+        "#/components/schemas/PageInt32",
+        "#/components/schemas/PageBoolean",
       ]);
 
       const itemTypes = refs.map((ref) => {
@@ -1471,7 +1475,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should not register an uninstantiated union template declaration, and should key the real instantiation under the template's own name", async () => {
+    it("should not register an uninstantiated union template declaration, and should key the real instantiation from the template name plus its type argument (plan 2.10; review 2026-08-14-108)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Wrap, M } = await runner.compile(t.code`
         union ${t.union("Wrap")}<T> { a: T, b: string }
@@ -1487,8 +1491,8 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       builder.buildSchema(M);
       const props = builder.getSchemas().M.properties as Record<string, any>;
-      expect(props.x).toEqual({ $ref: "#/components/schemas/Wrap" });
-      expect(builder.getSchemas().Wrap).toEqual({
+      expect(props.x).toEqual({ $ref: "#/components/schemas/WrapInt32" });
+      expect(builder.getSchemas().WrapInt32).toEqual({
         anyOf: [{ type: "integer", format: "int32" }, { type: "string" }],
       });
     });
@@ -2614,6 +2618,732 @@ describe("Unit: Schemas (Phase 2)", () => {
         (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
       );
       expect(occurrences).toHaveLength(2);
+    });
+  });
+
+  describe("template instantiation naming and @encodedName properties (plan 2.10)", () => {
+    it("should name a template model instantiation from the template name plus its type argument (Envelope<Order> -> EnvelopeOrder)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        model Order {
+          id: string;
+        }
+        model Envelope<T> {
+          data: T;
+        }
+        @test("W")
+        model W {
+          order: Envelope<Order>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.order.$ref).toBe("#/components/schemas/EnvelopeOrder");
+      expect(components.EnvelopeOrder).toBeDefined();
+      const envelopeSchema = components.EnvelopeOrder as any;
+      expect(envelopeSchema.properties.data).toEqual({ $ref: "#/components/schemas/Order" });
+
+      // The same instantiation reached through another field must reuse the
+      // exact same key/schema rather than being registered a second time.
+      const { W2 } = await runner.compile(t.code`
+        model Order {
+          id: string;
+        }
+        model Envelope<T> {
+          data: T;
+        }
+        @test("W2")
+        model W2 {
+          a: Envelope<Order>;
+          b: Envelope<Order>;
+        }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(W2 as Model);
+      const props2 = builder2.getSchemas().W2.properties as Record<string, any>;
+      expect(props2.a.$ref).toBe(props2.b.$ref);
+      expect(
+        Object.keys(builder2.getSchemas()).filter((k) => k.startsWith("Envelope")),
+      ).toHaveLength(1);
+    });
+
+    it('should name a template instantiation from a string literal template argument (P<"created"> -> PCreated) stably regardless of field order (review 2026-08-14-106)', async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("W")
+        model W { a: P<"created">; b: P<"deleted">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/PCreated");
+      expect(props.b.$ref).toBe("#/components/schemas/PDeleted");
+      expect((components.PCreated as any).properties.v).toEqual({
+        type: "string",
+        enum: ["created"],
+      });
+      expect((components.PDeleted as any).properties.v).toEqual({
+        type: "string",
+        enum: ["deleted"],
+      });
+
+      // Swapping the field declaration order must not change which key gets
+      // which schema (the instability 2.10 was written to remove).
+      const { W2 } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("W2")
+        model W2 { b: P<"deleted">; a: P<"created">; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(W2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.W2.properties as Record<string, any>;
+      expect(props2.a.$ref).toBe("#/components/schemas/PCreated");
+      expect(props2.b.$ref).toBe("#/components/schemas/PDeleted");
+    });
+
+    it("should name a template instantiation from a numeric/boolean literal argument (P<42> -> P42, P<true> -> PTrue) (review 2026-08-14-106)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("W")
+        model W { c: P<42>; d: P<true>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.c.$ref).toBe("#/components/schemas/P42");
+      expect(props.d.$ref).toBe("#/components/schemas/PTrue");
+    });
+
+    it("should name a template instantiation from an enum member template argument (P<Color.Red> -> PColorRed) (review 2026-08-14-106)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        enum Color { Red, Green }
+        model P<T> { v: T; }
+        @test("W")
+        model W { a: P<Color.Red>; b: P<Color.Green>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/PColorRed");
+      expect(props.b.$ref).toBe("#/components/schemas/PColorGreen");
+    });
+
+    it("should name a template union instantiation from the template name plus its type argument (Wrapper<int32> -> WrapperInt32) (review 2026-08-14-108)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        union Wrapper<T> { a: T, b: string }
+        @test("W")
+        model W { x: Wrapper<int32>; y: Wrapper<boolean>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.x.$ref).toBe("#/components/schemas/WrapperInt32");
+      expect(props.y.$ref).toBe("#/components/schemas/WrapperBoolean");
+
+      // Order stability: swap field order, same keys must result.
+      const { W2 } = await runner.compile(t.code`
+        union Wrapper<T> { a: T, b: string }
+        @test("W2")
+        model W2 { y: Wrapper<boolean>; x: Wrapper<int32>; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(W2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.W2.properties as Record<string, any>;
+      expect(props2.x.$ref).toBe("#/components/schemas/WrapperInt32");
+      expect(props2.y.$ref).toBe("#/components/schemas/WrapperBoolean");
+    });
+
+    it("documents that a synthesized template-instantiation name and a user-declared model with the same composed name race for the short key, first-come-first-served (plan 2.1 decision; review 2026-08-14-107 disputed)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        model Order { id: string; }
+        model Envelope<T> { data: T; }
+        model EnvelopeOrder { x: string; }
+        @test("W")
+        model W { a: Envelope<Order>; b: EnvelopeOrder; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      // First-come-first-served: the instantiation (reached first via
+      // property `a`) claims the bare `EnvelopeOrder` key; the user's own
+      // declaration (reached second via `b`) is pushed to the numeric
+      // suffix. This is the documented, accepted behavior (see
+      // plan/review/unsolved/2026-08-14-107-*.md) — not something this test
+      // expects to change.
+      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeOrder");
+      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder_2");
+    });
+
+    it("should include the argument's namespace in a template instantiation name so same-named models in different namespaces don't collide (review 2026-08-14-114)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        namespace A { model Order { a: string; } }
+        namespace B { model Order { b: string; } }
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { x: Envelope<A.Order>; y: Envelope<B.Order>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeAOrder");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeBOrder");
+
+      // Order stability: swap field order, same keys must result.
+      const { M2 } = await runner.compile(t.code`
+        namespace A { model Order { a: string; } }
+        namespace B { model Order { b: string; } }
+        model Envelope<T> { data: T; }
+        @test("M2")
+        model M2 { y: Envelope<B.Order>; x: Envelope<A.Order>; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(M2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.M2.properties as Record<string, any>;
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeAOrder");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeBOrder");
+    });
+
+    it("should join a multi-level namespace chain with '.' so it doesn't collide with a differently-nested sibling namespace of the concatenated name (review 2026-08-14-125)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        namespace A.B { model Order { id: string; } }
+        namespace AB { model Order { other: string; } }
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { x: Envelope<A.B.Order>; y: Envelope<AB.Order>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.BOrder");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeABOrder");
+
+      // Order stability: swap field order, same keys must result.
+      const { M2 } = await runner.compile(t.code`
+        namespace A.B { model Order { id: string; } }
+        namespace AB { model Order { other: string; } }
+        model Envelope<T> { data: T; }
+        @test("M2")
+        model M2 { y: Envelope<AB.Order>; x: Envelope<A.B.Order>; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(M2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.M2.properties as Record<string, any>;
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.BOrder");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeABOrder");
+    });
+
+    it("should preserve separator characters in a string-literal template argument so distinct literals don't collide (review 2026-08-14-115)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<"user-created">; b: P<"user_created">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(props.a.$ref).toBe("#/components/schemas/PUser-Created");
+      expect(props.b.$ref).toBe("#/components/schemas/PUser_Created");
+
+      // Degenerate case: empty literal and a lone separator must not both
+      // collapse to the bare template name `P`.
+      const { M2 } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M2")
+        model M2 { a: P<"">; b: P<"-">; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(M2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.M2.properties as Record<string, any>;
+      expect(props2.a.$ref).not.toBe("#/components/schemas/P");
+      expect(props2.a.$ref).not.toBe(props2.b.$ref);
+    });
+
+    it("should include the argument's namespace for enum/scalar/union template arguments too, not just Model (review 2026-08-14-116)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        namespace A { enum Status { Ok } }
+        namespace B { enum Status { No } }
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { x: Envelope<A.Status>; y: Envelope<B.Status>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeAStatus");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeBStatus");
+
+      // Order stability: swap field order, same keys must result.
+      const { M2 } = await runner.compile(t.code`
+        namespace A { enum Status { Ok } }
+        namespace B { enum Status { No } }
+        model Envelope<T> { data: T; }
+        @test("M2")
+        model M2 { y: Envelope<B.Status>; x: Envelope<A.Status>; }
+      `);
+      const builder2 = new SchemaBuilder(runner.program);
+      builder2.buildSchema(M2 as Model);
+      const components2 = builder2.getSchemas();
+      const props2 = components2.M2.properties as Record<string, any>;
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeAStatus");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeBStatus");
+
+      // Same instability for scalar arguments.
+      const { M3 } = await runner.compile(t.code`
+        namespace A { scalar Email extends string; }
+        namespace B { scalar Email extends string; }
+        model Envelope2<T> { data: T; }
+        @test("M3")
+        model M3 { x: Envelope2<A.Email>; y: Envelope2<B.Email>; }
+      `);
+      const builder3 = new SchemaBuilder(runner.program);
+      builder3.buildSchema(M3 as Model);
+      const components3 = builder3.getSchemas();
+      const props3 = components3.M3.properties as Record<string, any>;
+      expect(props3.x.$ref).toBe("#/components/schemas/Envelope2AEmail");
+      expect(props3.y.$ref).toBe("#/components/schemas/Envelope2BEmail");
+    });
+
+    it("should not let a string-literal template argument's separator characters produce an unsafe or malformed $ref (review 2026-08-14-117)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<"user#created">; b: P<"a/b">; c: P<"has space">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      // A conforming $ref is a single URI fragment: exactly one '#', no raw
+      // spaces, and it must resolve to a key that actually exists.
+      for (const ref of [props.a.$ref, props.b.$ref, props.c.$ref] as string[]) {
+        expect((ref.match(/#/g) ?? []).length).toBe(1);
+        expect(ref).not.toMatch(/ /);
+        const key = decodeURIComponent(ref.replace("#/components/schemas/", "")).replaceAll(
+          "~1",
+          "/",
+        );
+        expect(Object.prototype.hasOwnProperty.call(components, key)).toBe(true);
+      }
+    });
+
+    it("should not leak the built-in TypeSpec namespace into a template instantiation name for Array/Record arguments (review 2026-08-14-118)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Order { id: string; }
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { a: Envelope<Order[]>; b: Envelope<Record<string>>; c: Envelope<string[]>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeArrayOrder");
+      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeRecordString");
+      expect(props.c.$ref).toBe("#/components/schemas/EnvelopeArrayString");
+    });
+
+    it("should encode sign and decimal point in a numeric-literal template argument so different numbers don't collide (review 2026-08-14-112)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<1>; b: P<-1>; c: P<1.5>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/P1");
+      expect(props.b.$ref).toBe("#/components/schemas/PNeg1");
+      expect(props.c.$ref).toBe("#/components/schemas/P1_5");
+    });
+
+    it('should distinguish a tuple template argument from the unknown intrinsic instead of both falling back to "Unknown" (review 2026-08-14-113)', async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<unknown>; b: P<[string, int32]>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/PUnknown");
+      expect(props.b.$ref).toBe("#/components/schemas/PTupleStringInt32");
+    });
+
+    it("should distinguish a tuple template argument from its bare element type, and keep composed names stable regardless of field order (review 2026-08-14-119)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<string>; b: P<[string]>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/PString");
+      expect(props.b.$ref).toBe("#/components/schemas/PTupleString");
+
+      const runnerReversed = await AsyncAPITester.createInstance();
+      const { M: M2 } = await runnerReversed.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { b: P<[string]>; a: P<string>; }
+      `);
+      const builder2 = new SchemaBuilder(runnerReversed.program);
+      builder2.buildSchema(M2 as Model);
+      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+
+      expect(props2.a.$ref).toBe("#/components/schemas/PString");
+      expect(props2.b.$ref).toBe("#/components/schemas/PTupleString");
+    });
+
+    it("should derive a structural display name for anonymous model/union template arguments instead of a fixed token, stably regardless of field order (review 2026-08-14-120)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { a: Envelope<{x: string}>; b: Envelope<{y: int32}>; c: Envelope<string | int32>; d: Envelope<boolean | null>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
+      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousYInt32");
+      expect(props.c.$ref).toBe("#/components/schemas/EnvelopeUnionStringInt32");
+      expect(props.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
+
+      const runnerReversed = await AsyncAPITester.createInstance();
+      const { M: M2 } = await runnerReversed.compile(t.code`
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { b: Envelope<{y: int32}>; a: Envelope<{x: string}>; d: Envelope<boolean | null>; c: Envelope<string | int32>; }
+      `);
+      const builder2 = new SchemaBuilder(runnerReversed.program);
+      builder2.buildSchema(M2 as Model);
+      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+
+      expect(props2.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
+      expect(props2.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousYInt32");
+      expect(props2.c.$ref).toBe("#/components/schemas/EnvelopeUnionStringInt32");
+      expect(props2.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
+    });
+
+    it("should encode distinct separator characters differently instead of collapsing them all to the same 'Sep' token (review 2026-08-14-121)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<"a b">; b: P<"a#b">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(props.a.$ref).toBe("#/components/schemas/PASep32B");
+      expect(props.b.$ref).toBe("#/components/schemas/PASep35B");
+    });
+
+    it("should not let a numeric template argument in exponent form emit an unsafe '+' into the schema key (review 2026-08-14-122)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<100000000000000000000000>; b: P<1e21>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      for (const ref of [props.a.$ref, props.b.$ref] as string[]) {
+        const key = ref.replace("#/components/schemas/", "");
+        expect(key).toMatch(/^[A-Za-z0-9._-]+$/);
+        expect(Object.prototype.hasOwnProperty.call(components, key)).toBe(true);
+      }
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+    });
+
+    it("should include property types (not just property names) in an anonymous-model template argument's display name so same-named-different-typed instantiations stay distinct and order-stable (review 2026-08-14-123)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { a: Envelope<{x: string}>; b: Envelope<{x: int32}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+
+      const runnerReversed = await AsyncAPITester.createInstance();
+      const { M: M2 } = await runnerReversed.compile(t.code`
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { b: Envelope<{x: int32}>; a: Envelope<{x: string}>; }
+      `);
+      const builder2 = new SchemaBuilder(runnerReversed.program);
+      builder2.buildSchema(M2 as Model);
+      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+
+      expect(props2.a.$ref).toBe(props.a.$ref);
+      expect(props2.b.$ref).toBe(props.b.$ref);
+    });
+
+    it("should keep a literal that spells the Sep escape marker distinct from a literal using the real separator it encodes, stably regardless of field order (review 2026-08-14-124)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<"a b">; b: P<"ASep32B">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+
+      const runnerReversed = await AsyncAPITester.createInstance();
+      const { M: M2 } = await runnerReversed.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { b: P<"ASep32B">; a: P<"a b">; }
+      `);
+      const builder2 = new SchemaBuilder(runnerReversed.program);
+      builder2.buildSchema(M2 as Model);
+      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+
+      expect(props2.a.$ref).toBe(props.a.$ref);
+      expect(props2.b.$ref).toBe(props.b.$ref);
+    });
+
+    it("should derive a distinct display name for an unreduced string-template literal template argument instead of colliding on a shared 'Unhandled' fallback (review 2026-08-14-126)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<"a-\${"x"}">; b: P<"b-\${"y"}">; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(String(props.a.$ref)).not.toContain("Unhandled");
+      expect(String(props.b.$ref)).not.toContain("Unhandled");
+
+      const runnerReversed = await AsyncAPITester.createInstance();
+      const { M: M2 } = await runnerReversed.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { b: P<"b-\${"y"}">; a: P<"a-\${"x"}">; }
+      `);
+      const builder2 = new SchemaBuilder(runnerReversed.program);
+      builder2.buildSchema(M2 as Model);
+      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+
+      expect(props2.a.$ref).toBe(props.a.$ref);
+      expect(props2.b.$ref).toBe(props.b.$ref);
+    });
+
+    it("should Sep-encode an anonymous-model template argument's backtick-quoted property name so it can't leak a character outside the AsyncAPI key charset (review 2026-08-14-127)", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T> { v: T; }
+        @test("M")
+        model M { a: P<{ \`x/y\`: string }>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const key = String(props.a.$ref).replace("#/components/schemas/", "");
+
+      expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+      expect(Object.hasOwn(builder.getSchemas(), key)).toBe(true);
+    });
+
+    it("should use the @encodedName('application/json', ...) name as the schema property key", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @test("M")
+        model M {
+          @encodedName("application/json", "user_name")
+          userName: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const schema = builder.getSchemas().M as any;
+
+      expect(schema.properties.user_name).toEqual({ type: "string" });
+      expect(schema.properties.userName).toBeUndefined();
+      expect(schema.required).toEqual(["user_name"]);
+    });
+
+    it("should produce a valid schema for a complex model combining nesting, union, enum, and validation decorators", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Order } = await runner.compile(t.code`
+        enum Status {
+          Pending,
+          Shipped,
+          Delivered,
+        }
+        model Address {
+          city: string;
+          zip?: string;
+        }
+        @test("Order")
+        model Order {
+          @minLength(1)
+          @maxLength(64)
+          id: string;
+
+          status: Status;
+
+          shipTo: Address;
+
+          @minValue(0)
+          total: float64;
+
+          tags: string[];
+
+          contact: string | int32;
+
+          note?: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(Order as Model);
+      const components = builder.getSchemas();
+      const schema = components.Order as any;
+
+      expect(schema.type).toBe("object");
+      // Exact match (not `arrayContaining`): a regression that puts the
+      // optional `note` field into `required` must fail this assertion (see
+      // plan/review/solved/2026-08-14-111-*.md).
+      expect(schema.required).toEqual(["id", "status", "shipTo", "total", "tags", "contact"]);
+      expect(schema.properties.id).toEqual({
+        type: "string",
+        minLength: 1,
+        maxLength: 64,
+      });
+      expect(schema.properties.status).toEqual({ $ref: "#/components/schemas/Status" });
+      expect(components.Status).toEqual({
+        type: "string",
+        enum: ["Pending", "Shipped", "Delivered"],
+      });
+      expect(schema.properties.shipTo).toEqual({ $ref: "#/components/schemas/Address" });
+      expect(components.Address).toEqual({
+        type: "object",
+        properties: {
+          city: { type: "string" },
+          zip: { type: "string" },
+        },
+        required: ["city"],
+      });
+      expect(schema.properties.total).toEqual({
+        type: "number",
+        format: "double",
+        minimum: 0,
+      });
+      expect(schema.properties.tags).toEqual({
+        type: "array",
+        items: { type: "string" },
+      });
+      expect(schema.properties.contact).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+      expect(schema.properties.note).toEqual({ type: "string" });
+
+      // Actually run the assembled components through a real draft-07
+      // validator (review 2026-08-14-110): a `toEqual` shape assertion alone
+      // cannot catch a regression that produces a shape-correct but
+      // schema-invalid document (e.g. `enum: []`/`anyOf: []`).
+      const ajv = new Ajv({ strict: false });
+      for (const [key, componentSchema] of Object.entries(components)) {
+        ajv.addSchema(componentSchema, `#/components/schemas/${key}`);
+      }
+      const validate = ajv.getSchema("#/components/schemas/Order");
+      expect(validate).toBeDefined();
+      if (validate === undefined) {
+        throw new Error("unreachable: asserted above");
+      }
+
+      expect(
+        validate({
+          id: "abc",
+          status: "Pending",
+          shipTo: { city: "Taipei" },
+          total: 12.5,
+          tags: ["a", "b"],
+          contact: "someone",
+        }),
+      ).toBe(true);
+
+      // Violates both `minLength(1)` (empty id) and `minValue(0)` (negative
+      // total).
+      expect(
+        validate({
+          id: "",
+          status: "Pending",
+          shipTo: { city: "Taipei" },
+          total: -5,
+          tags: ["a"],
+          contact: 1,
+        }),
+      ).toBe(false);
     });
   });
 });
