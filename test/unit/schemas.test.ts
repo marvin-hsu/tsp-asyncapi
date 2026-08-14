@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { t, TemplateWithMarkers } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../src/builders/schemas.js";
+import { SchemaBuilder } from "../../src/builders/schemas/builder.js";
 import { Entity, Model } from "@typespec/compiler";
 import { Ajv } from "ajv";
 
@@ -155,7 +155,7 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
       // These names collide with built-in `duration`/`url`, but these are
-      // user-declared scalars in `MyLib`, not the TypeSpec built-ins — they
+      // user-declared scalars in `MyLib`, not the TypeSpec built-ins. They
       // must resolve via their own baseScalar chain, not the lookup table.
       expect(props.d).toEqual({ type: "integer", format: "int32" });
       expect(props.u).toEqual({ type: "integer", format: "int64" });
@@ -174,7 +174,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(builder.getSchemas().Empty).toEqual({ type: "object" });
     });
 
-    it("should build schema for intrinsic types (plan 2.2 null row)", async () => {
+    it("should build schema for intrinsic types", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { TestIntrinsics } = await runner.compile(t.code`
         model ${t.model("TestIntrinsics")} {
@@ -208,8 +208,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(Object.keys(schema.properties as Record<string, any>)).toEqual(["a"]);
       expect(schema.required).toEqual(["a"]);
 
-      // Standalone `never` keeps the plan 2.2 mapping: nothing matches
-      // `{ not: {} }`. Only the property-level path skips it.
+      // Standalone `never` still maps to `{ not: {} }`. Only the
+      // property-level path skips emitting it.
       const neverType = M.properties.get("b")?.type;
       expect(neverType).toBeDefined();
       if (neverType) {
@@ -217,7 +217,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       }
     });
 
-    it("should build `{ not: {} }` for standalone `void` (plan 2.2)", async () => {
+    it("should build `{ not: {} }` for standalone `void`", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { doIt } = await runner.compile(t.code`
         op ${t.op("doIt")}(): void;
@@ -242,9 +242,10 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M);
 
       // `Env` instantiated (via `M.e`) with no explicit type argument still
-      // has a `templateMapper` (its default, `never`), so plan 2.10's
-      // templateMapper-based naming names it `EnvNever`. Its `data: never`
-      // property must be omitted entirely (no `properties`, no `required`).
+      // has a `templateMapper` (its default, `never`). The
+      // templateMapper-based naming strategy names it `EnvNever`. Its
+      // `data: never` property must be omitted entirely (no `properties`,
+      // no `required`).
       // Assert the full key set so an extra schema built from the
       // uninstantiated template *declaration* (a different `Model` object,
       // reachable only if something walks it separately) cannot slip in
@@ -264,10 +265,11 @@ describe("Unit: Schemas (Phase 2)", () => {
       const builder = new SchemaBuilder(runner.program);
       // `Env` here is the template *declaration* itself (no
       // `templateMapper`), not an instantiation. Its `data` property's type
-      // is a bare `TemplateParameter`, which has no real shape to build —
-      // building it anyway would emit a required-but-unconstrained `data`
-      // property under a registered key. Must fall back to the unconstrained
-      // schema instead, and must not register anything in components.schemas.
+      // is a bare `TemplateParameter`, which has no real shape to build.
+      // Building it anyway would emit a required-but-unconstrained `data`
+      // property under a registered key. It must fall back to the
+      // unconstrained schema instead, and must not register anything in
+      // components.schemas.
       expect(builder.buildSchema(Env)).toEqual({});
       expect(builder.getSchemas()).toEqual({});
     });
@@ -329,10 +331,10 @@ describe("Unit: Schemas (Phase 2)", () => {
     });
 
     it("reports a diagnostic error for two same-named models even when one sits in a `/`-containing namespace", async () => {
-      // Formerly exercised the qualified-name fallback's `/` -> `~1`
-      // JSON-Pointer escaping (a `/`-containing namespace's qualified name,
-      // e.g. `a/b.Foo`, needed escaping before use as a `$ref`). That
-      // fallback no longer exists under the hard-error policy — a
+      // This formerly exercised the qualified-name fallback's `/` -> `~1`
+      // JSON-Pointer escaping. A `/`-containing namespace's qualified name,
+      // e.g. `a/b.Foo`, needed escaping before use as a `$ref`. That
+      // fallback no longer exists under the hard-error policy. A
       // namespace's name never enters the candidate key at all, so there
       // is nothing here left to escape. Both models compute the same bare
       // "Foo" name and collide.
@@ -358,7 +360,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(diagnostic?.severity).toBe("error");
     });
 
-    it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models (plan 2.9)", async () => {
+    it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Derived } = await runner.compile(t.code`
         model Base { a: string; }
@@ -369,9 +371,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(Derived);
 
       const components = builder.getSchemas();
-      // `Derived`'s own declared properties (`b`) are layered as a sibling to
-      // a `$ref` back to `Base` — `Base` is registered too, rather than its
-      // properties being inlined/duplicated into `Derived`.
+      // `Derived`'s own declared properties (`b`) are layered as a sibling
+      // to a `$ref` back to `Base`. `Base` is registered too, rather than
+      // its properties being inlined/duplicated into `Derived`.
       expect(components.Base).toEqual({
         type: "object",
         properties: { a: { type: "string" } },
@@ -401,8 +403,8 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const components = builder.getSchemas();
       // TypeSpec's own spread semantics already copy `Base`'s members onto
-      // `M` at the type level (`model.properties` includes them directly, no
-      // `baseModel` link is created) — so this is the same plain-object
+      // `M` at the type level. `model.properties` includes them directly,
+      // and no `baseModel` link is created. So this is the same plain-object
       // shape a model with those two properties declared directly would get,
       // with no `allOf`/`$ref` involved and no separate `Base` registered.
       expect(Object.keys(components)).toEqual(["M"]);
@@ -459,7 +461,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should hoist discriminator to the schema root even when the @discriminator-annotated model itself has a baseModel (plan 2.9)", async () => {
+    it("should hoist discriminator to the schema root even when the @discriminator-annotated model itself has a baseModel", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Pet, Dog, Poodle } = await runner.compile(t.code`
         @discriminator("kind")
@@ -476,9 +478,9 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const components = builder.getSchemas();
       // `Dog` has its own baseModel (`Pet`) *and* its own `@discriminator`.
-      // `discriminator` must sit at the schema root, alongside `allOf` — not
-      // buried inside `allOf`'s second (own-shape) branch, where no AsyncAPI
-      // 3.x consumer would ever look for it.
+      // `discriminator` must sit at the schema root, alongside `allOf`. It
+      // must not be buried inside `allOf`'s second (own-shape) branch,
+      // where no AsyncAPI 3.x consumer would ever look for it.
       expect(components.Dog).toMatchObject({ discriminator: "breed" });
       expect((components.Dog as any).allOf).toBeDefined();
       expect((components.Dog as any).discriminator).toBe("breed");
@@ -813,7 +815,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should flatten (not allOf) a derived model whose override property has a different @encodedName than the inherited one (review 2026-08-14-94)", async () => {
+    it("should flatten (not allOf) a derived model whose override property has a different @encodedName than the inherited one", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Cat } = await runner.compile(t.code`
         model Pet { kind: string; }
@@ -828,8 +830,8 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const components = builder.getSchemas();
       // The flattened schema must be keyed entirely by the actual (winning)
-      // wire name `k` — no stale `allOf` branch left requiring the base's
-      // `kind` key, which `Cat`'s wire payload never carries.
+      // wire name `k`. No stale `allOf` branch should remain requiring the
+      // base's `kind` key, which `Cat`'s wire payload never carries.
       expect(components.Cat).toEqual({
         type: "object",
         properties: { k: { type: "string", enum: ["cat"] } },
@@ -846,7 +848,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       );
     });
 
-    it("should flatten (not allOf) a derived model whose new property's wire name collides with a different inherited property's wire name (review 2026-08-14-97)", async () => {
+    it("should flatten (not allOf) a derived model whose new property's wire name collides with a different inherited property's wire name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Derived } = await runner.compile(t.code`
         model Base { a: string; }
@@ -897,8 +899,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       // The flattened schema must still carry Base's `additionalProperties`
       // constraint (via its Record indexer) alongside the flattened `y`
-      // property — losing it would let a payload with a non-string extra
-      // property validate even though Base's indexer forbids it.
+      // property. Losing it would let a payload with a non-string extra
+      // property validate, even though Base's indexer forbids it.
       expect(components.Derived).toEqual({
         type: "object",
         additionalProperties: { type: "string" },
@@ -907,7 +909,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should drop a `never`-typed override of an inherited property under `extends`, matching the flatten fallback's behavior (review 2026-08-14-98)", async () => {
+    it("should drop a `never`-typed override of an inherited property under `extends`, matching the flatten fallback's behavior", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Derived } = await runner.compile(t.code`
         model Base { a: string; b: string; }
@@ -933,7 +935,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       ).toBe(true);
     });
 
-    it("should report missing-discriminator-property when @discriminator is applied to a collection-backed model (review 2026-08-14-95)", async () => {
+    it("should report missing-discriminator-property when @discriminator is applied to a collection-backed model", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Names } = await runner.compile(t.code`
         @discriminator("kind")
@@ -952,15 +954,15 @@ describe("Unit: Schemas (Phase 2)", () => {
       ).toBe(true);
     });
 
-    it("should emit a plain anyOf for a @discriminated union, not yet reflecting its envelope semantics (plan 2.9, known gap)", async () => {
-      // Known, documented gap (plan/03-schemas.md 2.9): the newer
-      // `@discriminated` union decorator (envelope: "object" by default) is
-      // not yet supported — this pins the current (incomplete) `anyOf`
-      // output so the gap cannot silently regress into looking "supported"
-      // without anyone noticing. The real wire shape for `envelope: "object"`
-      // is `{ "kind": "a", "value": { ... } }`, which does NOT validate
-      // against this schema; full envelope support is deferred to a future
-      // phase per plan/03-schemas.md.
+    it("should emit a plain anyOf for a @discriminated union, not yet reflecting its envelope semantics", async () => {
+      // This is a known, documented gap. The newer `@discriminated` union
+      // decorator defaults to `envelope: "object"`, but this emitter does
+      // not yet support that envelope shape. This test pins the current,
+      // incomplete `anyOf` output. That way the gap cannot silently regress
+      // into looking "supported" without anyone noticing. The real wire
+      // shape for `envelope: "object"` is `{ "kind": "a", "value": { ... } }`.
+      // That shape does NOT validate against this schema. Full envelope
+      // support is deferred to a future phase.
       const runner = await AsyncAPITester.createInstance();
       const { U } = await runner.compile(t.code`
         model A { kind: "a"; }
@@ -1170,11 +1172,11 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.W.properties as Record<string, any>;
       const refs = [props.a.$ref, props.b.$ref, props.c.$ref] as string[];
-      // Every instantiation of Page<T> is named from the template's own name
-      // plus its type argument's display name (plan 2.10's long-term
-      // strategy), so each gets its own distinguishable key up front instead
-      // of falling through the qualified-name/numeric-suffix ladder that
-      // only ever a *further* collision would still need.
+      // Every instantiation of Page<T> is named from the template's own
+      // name plus its type argument's display name. Each instantiation gets
+      // its own distinguishable key up front. It does not fall through the
+      // qualified-name/numeric-suffix ladder, which only a *further*
+      // collision would still need.
       expect(refs).toEqual([
         "#/components/schemas/PageString",
         "#/components/schemas/PageInt32",
@@ -1251,7 +1253,7 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const components = builder.getSchemas();
       // `Wrapper.inner` references `Type2` (NS2.Duplicate1), which collided
-      // with `Type1` and was cached under the same bare key — the $ref
+      // with `Type1` and was cached under the same bare key. The $ref
       // reflects that cached key, not a fresh lookup.
       expect(components.Wrapper.properties?.inner).toEqual({
         $ref: "#/components/schemas/Duplicate1",
@@ -1296,8 +1298,8 @@ describe("Unit: Schemas (Phase 2)", () => {
     });
   });
 
-  describe("enum and union (plan 2.6)", () => {
-    it("should build a string enum from unvalued members, using each member's own name as its value", async () => {
+  describe("enum and union", () => {
+    it("should build a string enum from members with no explicit value, using each member's own name as its value", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Color } = await runner.compile(t.code`
         enum ${t.enum("Color")} { Red, Green }
@@ -1343,7 +1345,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should fall back to a string enum when a mix of numeric and unvalued/string members appear", async () => {
+    it("should fall back to a string enum when a mix of numeric members and members with no explicit value appear", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Mixed } = await runner.compile(t.code`
         enum ${t.enum("Mixed")} { Active: 1, Other }
@@ -1352,9 +1354,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(Mixed);
 
-      // `type: "string"` would make the numeric member `1` unsatisfiable
-      // (see plan/review/solved/2026-08-14-35-mixed-enum-type-excludes-numeric-values.md) —
-      // omit `type` so `enum` alone constrains both numeric and string values.
+      // `type: "string"` would make the numeric member `1` unsatisfiable.
+      // Omit `type` so `enum` alone constrains both numeric and string
+      // values.
       expect(builder.getSchemas().Mixed).toEqual({
         enum: [1, "Other"],
       });
@@ -1392,7 +1394,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it('should build `T | null` as `anyOf: [T, { type: "null" }]` (plan 2.6 decision)', async () => {
+    it('should build `T | null` as `anyOf: [T, { type: "null" }]`', async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model ${t.model("M")} {
@@ -1498,7 +1500,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       });
     });
 
-    it("should not register an uninstantiated union template declaration, and should key the real instantiation from the template name plus its type argument (plan 2.10; review 2026-08-14-108)", async () => {
+    it("should not register an uninstantiated union template declaration, and should key the real instantiation from the template name plus its type argument", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Wrap, M } = await runner.compile(t.code`
         union ${t.union("Wrap")}<T> { a: T, b: string }
@@ -1534,15 +1536,16 @@ describe("Unit: Schemas (Phase 2)", () => {
 
     it("reports a diagnostic error when a model and an enum of a different kind share a bare name (registry is not scoped per-kind)", async () => {
       const runner = await AsyncAPITester.createInstance();
-      // Both the model and the enum are named `Color` (one in `NS`, one in
-      // the global namespace) — reaching them only through `M`'s properties
-      // (rather than marking each with its own `t.model`/`t.enum`) avoids a
-      // duplicate marker key while still exercising the real name collision.
-      // `SchemaKeyRegistry` shares one key namespace across every declared
-      // kind (model/enum/union), so this is a genuine collision, not two
-      // "separate registry slots" — it used to be resolved by falling
-      // through to the enum's qualified name (`NS.Color`); under the
-      // hard-error policy it is now a reported diagnostic instead.
+      // Both the model and the enum are named `Color`, one in `NS` and one
+      // in the global namespace. This test reaches them only through `M`'s
+      // properties, rather than marking each with its own
+      // `t.model`/`t.enum`. That avoids a duplicate marker key while still
+      // exercising the real name collision. `SchemaKeyRegistry` shares one
+      // key namespace across every declared kind (model/enum/union). So
+      // this is a genuine collision, not two "separate registry slots". It
+      // used to be resolved by falling through to the enum's qualified name
+      // (`NS.Color`). Under the hard-error policy it is now a reported
+      // diagnostic instead.
       const { M } = await runner.compile(t.code`
         namespace NS {
           enum Color { Red }
@@ -1640,9 +1643,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       `);
 
       const schema = builder.getSchemas().M;
-      // `toBeUndefined` alone would also pass if the key were present with an
-      // `undefined` value (which would serialize to `title: null` etc. in
-      // YAML/JSON) — assert the key is genuinely absent instead.
+      // `toBeUndefined` alone would also pass if the key were present with
+      // an `undefined` value. That would serialize to `title: null` etc. in
+      // YAML/JSON. Assert the key is genuinely absent instead.
       expect(Object.hasOwn(schema, "title")).toBe(false);
       expect(Object.hasOwn(schema, "description")).toBe(false);
       expect(Object.hasOwn(schema, "examples")).toBe(false);
@@ -1849,7 +1852,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.field).toEqual({ type: "string" });
     });
 
-    it("should not apply a property's own @encode when serializing its @example (2.7 does not map @encode into type/format)", async () => {
+    it("should not apply a property's own @encode when serializing its @example", async () => {
       const { builder } = await buildDocSchema(t.code`
         model ${t.model("M")} {
           @encode("unixTimestamp", int32)
@@ -1859,9 +1862,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       `);
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
-      // The schema's type/format do not yet reflect @encode (that's plan 2.8),
-      // so the example must not be encoded either -- otherwise the example
-      // value would not validate against its own property's schema.
+      // The schema's type/format do not yet reflect @encode. So the example
+      // must not be encoded either. Otherwise, the example value would not
+      // validate against its own property's schema.
       expect(props.ts.type).toBe("string");
       expect(props.ts.format).toBe("date-time");
       expect(props.ts.examples).toEqual(["2020-01-01T00:00:00Z"]);
@@ -2422,8 +2425,8 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
       // Tight's stricter minLength(5)/pattern must still be enforced
-      // alongside Loose's own (weaker) minLength(2) — losing them would let
-      // "ab" validate even though Tight forbids it.
+      // alongside Loose's own (weaker) minLength(2). Losing them would let
+      // "ab" validate, even though Tight forbids it.
       expect(props.v).toEqual({
         allOf: [{ type: "string", minLength: 5, pattern: "^[a-z]+$" }],
         minLength: 2,
@@ -2479,8 +2482,8 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
       // The scalar's own (stricter) constraints must still be enforced
-      // alongside the property's own (weaker) ones — losing them would let
-      // `"AB"` validate even though `Username` forbids it.
+      // alongside the property's own (weaker) ones. Losing them would let
+      // `"AB"` validate, even though `Username` forbids it.
       expect(props.name).toEqual({
         allOf: [{ type: "string", minLength: 5, pattern: "^[a-z]+$" }],
         minLength: 2,
@@ -2519,7 +2522,7 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
       // The exact bound cannot be represented as a JS number, so it is not
-      // emitted as `minimum`/`maximum` — but the drop must be diagnosed.
+      // emitted as `minimum`/`maximum`. But the drop must be diagnosed.
       expect(props.v.minimum).toBeUndefined();
       expect(props.v.maximum).toBeUndefined();
       expect(
@@ -2649,7 +2652,7 @@ describe("Unit: Schemas (Phase 2)", () => {
     });
   });
 
-  describe("template instantiation naming and @encodedName properties (plan 2.10)", () => {
+  describe("template instantiation naming and @encodedName properties", () => {
     it("should name a template model instantiation from the template name plus its type argument (Envelope<Order> -> EnvelopeOrder)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
@@ -2699,7 +2702,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       ).toHaveLength(1);
     });
 
-    it('should name a template instantiation from a string literal template argument (P<"created"> -> PCreated) stably regardless of field order (review 2026-08-14-106)', async () => {
+    it('should name a template instantiation from a string literal template argument (P<"created"> -> PCreated) stably regardless of field order', async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -2737,7 +2740,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe("#/components/schemas/PDeleted");
     });
 
-    it("should name a template instantiation from a numeric/boolean literal argument (P<42> -> P42, P<true> -> PTrue) (review 2026-08-14-106)", async () => {
+    it("should name a template instantiation from a numeric/boolean literal argument (P<42> -> P42, P<true> -> PTrue)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -2753,7 +2756,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.d.$ref).toBe("#/components/schemas/PTrue");
     });
 
-    it("should name a template instantiation from an enum member template argument (P<Color.Red> -> PColorRed) (review 2026-08-14-106)", async () => {
+    it("should name a template instantiation from an enum member template argument (P<Color.Red> -> PColorRed)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         enum Color { Red, Green }
@@ -2770,7 +2773,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.b.$ref).toBe("#/components/schemas/PColorGreen");
     });
 
-    it("should name a template union instantiation from the template name plus its type argument (Wrapper<int32> -> WrapperInt32) (review 2026-08-14-108)", async () => {
+    it("should name a template union instantiation from the template name plus its type argument (Wrapper<int32> -> WrapperInt32)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         union Wrapper<T> { a: T, b: string }
@@ -2800,15 +2803,15 @@ describe("Unit: Schemas (Phase 2)", () => {
     });
 
     it("reports a diagnostic error when a synthesized template-instantiation name collides with a user-declared model's key", async () => {
-      // Superseded policy (plan 2.1 decision; review 2026-08-14-107,
-      // disputed): this used to document first-come-first-served
-      // auto-suffixing — the instantiation (reached first via property
-      // `a`) claimed the bare `EnvelopeOrder` key, and the user's own
-      // declaration (reached second via `b`) was silently pushed to a
-      // numeric suffix. The architecture review (2026-08-14) replaced that
-      // with a hard diagnostic error, matching `@typespec/openapi3`'s own
-      // collision policy: whichever of the two is built second now reports
-      // `duplicate-schema-key` and degrades to the same (colliding) key
+      // This test used to document a different, superseded policy:
+      // first-come-first-served auto-suffixing. Under that old policy, the
+      // instantiation reached first via property `a` claimed the bare
+      // `EnvelopeOrder` key. The user's own declaration, reached second via
+      // property `b`, was silently pushed to a numeric suffix. An
+      // architecture review replaced that policy with a hard diagnostic
+      // error. This matches `@typespec/openapi3`'s own collision policy.
+      // Whichever of the two is built second now reports
+      // `duplicate-schema-key` and degrades to the same colliding key,
       // instead of being silently renamed.
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
@@ -2833,7 +2836,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(diagnostic?.severity).toBe("error");
     });
 
-    it("should include the argument's namespace in a template instantiation name so same-named models in different namespaces don't collide (review 2026-08-14-114)", async () => {
+    it("should include the argument's namespace in a template instantiation name so same-named models in different namespaces don't collide", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         namespace A { model Order { a: string; } }
@@ -2866,7 +2869,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeBOrder");
     });
 
-    it("should join a multi-level namespace chain with '.' so it doesn't collide with a differently-nested sibling namespace of the concatenated name (review 2026-08-14-125)", async () => {
+    it("should join a multi-level namespace chain with '.' so it doesn't collide with a differently-nested sibling namespace of the concatenated name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         namespace A.B { model Order { id: string; } }
@@ -2899,7 +2902,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeABOrder");
     });
 
-    it("should preserve separator characters in a string-literal template argument so distinct literals don't collide (review 2026-08-14-115)", async () => {
+    it("should preserve separator characters in a string-literal template argument so distinct literals don't collide", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -2930,7 +2933,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.a.$ref).not.toBe(props2.b.$ref);
     });
 
-    it("should include the argument's namespace for enum/scalar/union template arguments too, not just Model (review 2026-08-14-116)", async () => {
+    it("should include the argument's namespace for enum/scalar/union template arguments too, not just Model", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         namespace A { enum Status { Ok } }
@@ -2978,7 +2981,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props3.y.$ref).toBe("#/components/schemas/Envelope2BEmail");
     });
 
-    it("should not let a string-literal template argument's separator characters produce an unsafe or malformed $ref (review 2026-08-14-117)", async () => {
+    it("should not let a string-literal template argument's separator characters produce an unsafe or malformed $ref", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3003,7 +3006,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       }
     });
 
-    it("should not leak the built-in TypeSpec namespace into a template instantiation name for Array/Record arguments (review 2026-08-14-118)", async () => {
+    it("should not leak the built-in TypeSpec namespace into a template instantiation name for Array/Record arguments", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Order { id: string; }
@@ -3021,7 +3024,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.c.$ref).toBe("#/components/schemas/EnvelopeArrayString");
     });
 
-    it("should encode sign and decimal point in a numeric-literal template argument so different numbers don't collide (review 2026-08-14-112)", async () => {
+    it("should encode sign and decimal point in a numeric-literal template argument so different numbers don't collide", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3038,7 +3041,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.c.$ref).toBe("#/components/schemas/P1_5");
     });
 
-    it('should distinguish a tuple template argument from the unknown intrinsic instead of both falling back to "Unknown" (review 2026-08-14-113)', async () => {
+    it('should distinguish a tuple template argument from the unknown intrinsic instead of both falling back to "Unknown"', async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3054,7 +3057,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.b.$ref).toBe("#/components/schemas/PTupleStringInt32");
     });
 
-    it("should distinguish a tuple template argument from its bare element type, and keep composed names stable regardless of field order (review 2026-08-14-119)", async () => {
+    it("should distinguish a tuple template argument from its bare element type, and keep composed names stable regardless of field order", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3083,7 +3086,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe("#/components/schemas/PTupleString");
     });
 
-    it("should derive a structural display name for anonymous model/union template arguments instead of a fixed token, stably regardless of field order (review 2026-08-14-120)", async () => {
+    it("should derive a structural display name for anonymous model/union template arguments instead of a fixed token, stably regardless of field order", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3115,16 +3118,15 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
     });
 
-    it("reports a diagnostic error when two structurally-identical anonymous model template arguments compute the same name (finding 128)", async () => {
+    it("reports a diagnostic error when two structurally-identical anonymous model template arguments compute the same name", async () => {
       // Two separate anonymous-model type arguments with the same shape
-      // (`{x: string}`) are distinct `Type` objects, but
+      // (`{x: string}`) are distinct `Type` objects. But
       // `templateInstanceName` derives the same structural display name for
-      // both — a genuine key collision between two different types, not
-      // just a cache hit on one. Previously documented (plan/03-schemas.md
-      // finding 128) as an accepted `_2`-suffix duplicate-registration
-      // limitation with no regression test; under the hard-error policy
-      // this is a `duplicate-schema-key` diagnostic like any other
-      // collision.
+      // both. This is a genuine key collision between two different types,
+      // not just a cache hit on one. This used to be an accepted `_2`-suffix
+      // duplicate-registration limitation, with no regression test. Under
+      // the hard-error policy, this is now a `duplicate-schema-key`
+      // diagnostic like any other collision.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3145,7 +3147,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(diagnostic?.severity).toBe("error");
     });
 
-    it("should encode distinct separator characters differently instead of collapsing them all to the same 'Sep' token (review 2026-08-14-121)", async () => {
+    it("should encode distinct separator characters differently instead of collapsing them all to the same 'Sep' token", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3161,7 +3163,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.b.$ref).toBe("#/components/schemas/PASep35B");
     });
 
-    it("should not let a numeric template argument in exponent form emit an unsafe '+' into the schema key (review 2026-08-14-122)", async () => {
+    it("should not let a numeric template argument in exponent form emit an unsafe '+' into the schema key", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3181,7 +3183,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.a.$ref).not.toBe(props.b.$ref);
     });
 
-    it("should include property types (not just property names) in an anonymous-model template argument's display name so same-named-different-typed instantiations stay distinct and order-stable (review 2026-08-14-123)", async () => {
+    it("should include property types (not just property names) in an anonymous-model template argument's display name so same-named-different-typed instantiations stay distinct and order-stable", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3208,7 +3210,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe(props.b.$ref);
     });
 
-    it("should keep a literal that spells the Sep escape marker distinct from a literal using the real separator it encodes, stably regardless of field order (review 2026-08-14-124)", async () => {
+    it("should keep a literal that spells the Sep escape marker distinct from a literal using the real separator it encodes, stably regardless of field order", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3235,7 +3237,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe(props.b.$ref);
     });
 
-    it("should derive a distinct display name for an unreduced string-template literal template argument instead of colliding on a shared 'Unhandled' fallback (review 2026-08-14-126)", async () => {
+    it("should derive a distinct display name for an unreduced string-template literal template argument instead of colliding on a shared 'Unhandled' fallback", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3264,7 +3266,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe(props.b.$ref);
     });
 
-    it("should Sep-encode an anonymous-model template argument's backtick-quoted property name so it can't leak a character outside the AsyncAPI key charset (review 2026-08-14-127)", async () => {
+    it("should Sep-encode an anonymous-model template argument's backtick-quoted property name so it can't leak a character outside the AsyncAPI key charset", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3338,9 +3340,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       const schema = components.Order as any;
 
       expect(schema.type).toBe("object");
-      // Exact match (not `arrayContaining`): a regression that puts the
-      // optional `note` field into `required` must fail this assertion (see
-      // plan/review/solved/2026-08-14-111-*.md).
+      // This is an exact match, not `arrayContaining`. A regression that
+      // puts the optional `note` field into `required` must fail this
+      // assertion.
       expect(schema.required).toEqual(["id", "status", "shipTo", "total", "tags", "contact"]);
       expect(schema.properties.id).toEqual({
         type: "string",
@@ -3376,9 +3378,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(schema.properties.note).toEqual({ type: "string" });
 
       // Actually run the assembled components through a real draft-07
-      // validator (review 2026-08-14-110): a `toEqual` shape assertion alone
-      // cannot catch a regression that produces a shape-correct but
-      // schema-invalid document (e.g. `enum: []`/`anyOf: []`).
+      // validator. A `toEqual` shape assertion alone cannot catch a
+      // regression that produces a shape-correct but schema-invalid
+      // document (e.g. `enum: []`/`anyOf: []`).
       const ajv = new Ajv({ strict: false });
       for (const [key, componentSchema] of Object.entries(components)) {
         ajv.addSchema(componentSchema, `#/components/schemas/${key}`);

@@ -2,6 +2,7 @@ import { normalizePath, getDirectoryPath } from "@typespec/compiler";
 import { createTester } from "@typespec/compiler/testing";
 import { existsSync } from "fs";
 import { fileURLToPath } from "url";
+import { LIBRARY_NAME } from "../lib.js";
 
 function findPackageRoot(fromUrl: string): string {
   let dir = getDirectoryPath(normalizePath(fileURLToPath(fromUrl)));
@@ -23,7 +24,7 @@ function findPackageRoot(fromUrl: string): string {
  * @public
  */
 export const AsyncAPITester = createTester(findPackageRoot(import.meta.url), {
-  libraries: ["typespec-asyncapi"],
+  libraries: [LIBRARY_NAME],
 })
   .importLibraries()
   .using("AsyncAPI");

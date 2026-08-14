@@ -215,6 +215,9 @@ export interface InfoObject {
 }
 
 // @public
+export const LIBRARY_NAME = "typespec-asyncapi";
+
+// @public
 export interface LicenseObject {
     name: string;
     url?: string;

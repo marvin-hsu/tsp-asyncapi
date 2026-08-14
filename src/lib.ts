@@ -1,6 +1,16 @@
 import { createTypeSpecLibrary, JSONSchemaType, paramMessage } from "@typespec/compiler";
 
 /**
+ * This package's name, as declared in `package.json` and registered with
+ * the TypeSpec compiler. Other code that needs this name imports it from
+ * here instead of repeating the literal string.
+ *
+ * @category Library
+ * @public
+ */
+export const LIBRARY_NAME = "typespec-asyncapi";
+
+/**
  * Configuration options for the AsyncAPI emitter.
  *
  * @example
@@ -63,7 +73,7 @@ const EmitterOptionsSchema: JSONSchemaType<AsyncAPIEmitterOptions> = {
  * @public
  */
 export const $lib = createTypeSpecLibrary({
-  name: "typespec-asyncapi",
+  name: LIBRARY_NAME,
   diagnostics: {
     "multiple-services": {
       severity: "warning",

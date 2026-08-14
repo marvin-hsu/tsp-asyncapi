@@ -167,10 +167,10 @@ export interface SchemaObject {
   not?: SchemaObject | ReferenceObject;
   /**
    * Name of the property used to discriminate between the schemas in a
-   * polymorphic (`@discriminator`) hierarchy. Unlike OpenAPI 3.0's
-   * `Discriminator` object (`{ propertyName, mapping }`), AsyncAPI 3.x's
-   * Schema Object defines `discriminator` as a bare string: the discriminating
-   * property's name.
+   * polymorphic (`@discriminator`) hierarchy. OpenAPI 3.0's `Discriminator`
+   * object uses `{ propertyName, mapping }`. AsyncAPI 3.x's Schema Object is
+   * different. It defines `discriminator` as a bare string: the
+   * discriminating property's name.
    */
   discriminator?: string;
   $ref?: string;

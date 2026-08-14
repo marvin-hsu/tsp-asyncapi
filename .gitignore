@@ -109,3 +109,6 @@ plan/
 .claude/
 .claudeignore
 .claude.json
+CLAUDE.md
+AGENTS.md
+GEMINI.md
