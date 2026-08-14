@@ -328,7 +328,14 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.r).toEqual({ $ref: "#/components/schemas/a~0b" });
     });
 
-    it("should escape `/` produced by the qualified-name fallback for a `/`-containing namespace", async () => {
+    it("reports a diagnostic error for two same-named models even when one sits in a `/`-containing namespace", async () => {
+      // Formerly exercised the qualified-name fallback's `/` -> `~1`
+      // JSON-Pointer escaping (a `/`-containing namespace's qualified name,
+      // e.g. `a/b.Foo`, needed escaping before use as a `$ref`). That
+      // fallback no longer exists under the hard-error policy — a
+      // namespace's name never enters the candidate key at all, so there
+      // is nothing here left to escape. Both models compute the same bare
+      // "Foo" name and collide.
       const runner = await AsyncAPITester.createInstance();
       const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace \`a/b\` {
@@ -343,10 +350,12 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(GlobalFoo as Model);
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
-      // Qualified name is `a/b.Foo`; the `/` inside it must be escaped too.
-      expect(ref2.$ref).toBe("#/components/schemas/a~1b.Foo");
-      const components = builder.getSchemas();
-      expect(Object.hasOwn(components, "a/b.Foo")).toBe(true);
+      expect(ref2.$ref).toBe("#/components/schemas/Foo");
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
     it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models (plan 2.9)", async () => {
@@ -1041,9 +1050,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.flag).toEqual({ type: "boolean", enum: [true] });
     });
 
-    it("should qualify colliding model names from different namespaces", async () => {
+    it("reports a diagnostic error for colliding model names from different namespaces", async () => {
       const runner = await AsyncAPITester.createInstance();
-      const { Type1, Type2, program } = await runner.compile(t.code`
+      const { Type1, Type2 } = await runner.compile(t.code`
         namespace NS1 {
           @test("Type1")
           model Duplicate1 {
@@ -1062,27 +1071,25 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(Type1 as Model) as any;
       const ref2 = builder.buildSchema(Type2 as Model) as any;
 
-      // First model keeps the bare name; the later collider gets the
-      // dot-separated fully qualified name.
+      // First model keeps the bare name; the later collider hits the
+      // hard-error policy (matching `@typespec/openapi3`'s own
+      // `duplicate-type-name` diagnostic) instead of being silently
+      // renamed. It still degrades to a usable (if colliding) $ref/key
+      // rather than crashing.
       expect(ref1.$ref).toBe("#/components/schemas/Duplicate1");
-      expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
+      expect(ref2.$ref).toBe("#/components/schemas/Duplicate1");
 
-      const components = builder.getSchemas();
-      expect(components.Duplicate1).toBeDefined();
-      expect(components.Duplicate1.properties?.field1).toEqual({ type: "string" });
-      expect(components["NS2.Duplicate1"]).toBeDefined();
-      expect(components["NS2.Duplicate1"].properties?.field2).toEqual({
-        type: "integer",
-        format: "int32",
-      });
-
-      // The rename policy needs no diagnostic.
-      expect(program.diagnostics).toHaveLength(0);
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
+      expect(String(diagnostic?.message)).toMatch(/Duplicate schema name: 'Duplicate1'/);
     });
 
-    it("should disambiguate a global-namespace model colliding with a namespaced one (namespaced first)", async () => {
+    it("reports a diagnostic error disambiguating a global-namespace model colliding with a namespaced one (namespaced first)", async () => {
       const runner = await AsyncAPITester.createInstance();
-      const { NsFoo, GlobalFoo, program } = await runner.compile(t.code`
+      const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace NS2 {
           @test("NsFoo")
           model Foo {
@@ -1099,20 +1106,20 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(NsFoo as Model) as any;
       const ref2 = builder.buildSchema(GlobalFoo as Model) as any;
 
-      // The global model's qualified name equals its bare name, so it must
-      // fall through to the documented fallback: qualified name + numeric
-      // suffix starting at 2 (plan 2.1).
+      // Both models compute the same bare candidate name ("Foo"); the
+      // second one to be built collides and gets a hard-error diagnostic
+      // instead of a numeric-suffix rename.
       expect(ref1.$ref).toBe("#/components/schemas/Foo");
-      expect(ref2.$ref).toBe("#/components/schemas/Foo_2");
+      expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
-      const components = builder.getSchemas();
-      expect(components.Foo.properties?.a).toEqual({ type: "string" });
-      expect(components.Foo_2).toBeDefined();
-      expect(components.Foo_2.properties?.b).toEqual({ type: "integer", format: "int32" });
-      expect(program.diagnostics).toHaveLength(0);
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
-    it("should disambiguate a global-namespace model colliding with a namespaced one (global first)", async () => {
+    it("reports a diagnostic error disambiguating a global-namespace model colliding with a namespaced one (global first)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace NS2 {
@@ -1132,11 +1139,13 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
       expect(ref1.$ref).toBe("#/components/schemas/Foo");
-      expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
+      expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
-      const components = builder.getSchemas();
-      expect(components.Foo.properties?.b).toEqual({ type: "integer", format: "int32" });
-      expect(components["NS2.Foo"].properties?.a).toEqual({ type: "string" });
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
     it("should give each template instantiation its own schema key", async () => {
@@ -1180,7 +1189,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(itemTypes).toEqual(["string", "integer", "boolean"]);
     });
 
-    it("should qualify with the full multi-level namespace chain", async () => {
+    it("reports a diagnostic error for two same-named models under different multi-level namespace chains", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { GlobalModel, NestedModel } = await runner.compile(t.code`
         @test("GlobalModel")
@@ -1201,19 +1210,20 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(GlobalModel as Model) as any;
       const ref2 = builder.buildSchema(NestedModel as Model) as any;
 
-      // The qualified name walks the whole namespace chain, outermost first
-      // (plan 2.1's literal example), not just the innermost namespace.
+      // Namespace nesting is no longer consulted as a fallback candidate:
+      // both models compute the same bare "Widget" name, so the second one
+      // built hits the hard-error policy.
       expect(ref1.$ref).toBe("#/components/schemas/Widget");
-      expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
+      expect(ref2.$ref).toBe("#/components/schemas/Widget");
 
-      const components = builder.getSchemas();
-      expect(components["Foo.Bar.Widget"].properties?.b).toEqual({
-        type: "integer",
-        format: "int32",
-      });
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
-    it("should keep a stable $ref when a renamed model is referenced again", async () => {
+    it("keeps a stable (colliding) $ref, and does not re-report the diagnostic, when a collided model is referenced again", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Type1, Type2, Wrapper } = await runner.compile(t.code`
         namespace NS1 {
@@ -1240,19 +1250,28 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(Wrapper as Model);
 
       const components = builder.getSchemas();
+      // `Wrapper.inner` references `Type2` (NS2.Duplicate1), which collided
+      // with `Type1` and was cached under the same bare key — the $ref
+      // reflects that cached key, not a fresh lookup.
       expect(components.Wrapper.properties?.inner).toEqual({
-        $ref: "#/components/schemas/NS2.Duplicate1",
+        $ref: "#/components/schemas/Duplicate1",
       });
+
+      // The collision was already reported once when Type2 itself was
+      // built; referencing it again from Wrapper must not re-report it.
+      const diagnostics = runner.program.diagnostics.filter(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostics).toHaveLength(1);
     });
 
-    it("pins that bare-name ownership between colliding models depends on referencing-property order, not source order", async () => {
-      // Known, accepted limitation of the lazy key policy (plan 2.1): which
-      // colliding model keeps the bare name is decided by which one is
-      // *visited* first while walking a referencing model's properties, not
-      // by namespace or declaration order. Reordering W's properties below
-      // (with neither `Foo` declaration touched) flips who gets the bare
-      // name — this test pins the current behaviour so a future change to
-      // it is deliberate rather than accidental.
+    it("reports a diagnostic error for colliding models regardless of referencing-property order", async () => {
+      // Under the auto-suffix policy this used to be observable as
+      // *which* colliding model kept the bare name depending on
+      // referencing-property visitation order rather than source order.
+      // Under the hard-error policy there is no alternate key to race for:
+      // both properties resolve to the same bare "Foo" key either way, and
+      // exactly one collision diagnostic is reported regardless of order.
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         namespace NS1 { model Foo { a: string; } }
@@ -1267,9 +1286,13 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(W);
 
       const props = builder.getSchemas().W.properties as Record<string, any>;
-      // `x` (NS2.Foo) is visited first, so it claims the bare name.
       expect(props.x).toEqual({ $ref: "#/components/schemas/Foo" });
-      expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
+      expect(props.y).toEqual({ $ref: "#/components/schemas/Foo" });
+
+      const diagnostics = runner.program.diagnostics.filter(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostics).toHaveLength(1);
     });
   });
 
@@ -1509,12 +1532,17 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(builder.getSchemas().U).toEqual({ type: "string", enum: ["x"] });
     });
 
-    it("should keep model, enum, and union in separate registry slots when they share a bare name", async () => {
+    it("reports a diagnostic error when a model and an enum of a different kind share a bare name (registry is not scoped per-kind)", async () => {
       const runner = await AsyncAPITester.createInstance();
       // Both the model and the enum are named `Color` (one in `NS`, one in
       // the global namespace) — reaching them only through `M`'s properties
       // (rather than marking each with its own `t.model`/`t.enum`) avoids a
       // duplicate marker key while still exercising the real name collision.
+      // `SchemaKeyRegistry` shares one key namespace across every declared
+      // kind (model/enum/union), so this is a genuine collision, not two
+      // "separate registry slots" — it used to be resolved by falling
+      // through to the enum's qualified name (`NS.Color`); under the
+      // hard-error policy it is now a reported diagnostic instead.
       const { M } = await runner.compile(t.code`
         namespace NS {
           enum Color { Red }
@@ -1533,13 +1561,13 @@ describe("Unit: Schemas (Phase 2)", () => {
 
       const props = builder.getSchemas().M.properties as Record<string, any>;
       expect(props.a).toEqual({ $ref: "#/components/schemas/Color" });
-      expect(props.b).toEqual({ $ref: "#/components/schemas/NS.Color" });
-      expect(builder.getSchemas().Color).toEqual({
-        type: "object",
-        properties: { x: { type: "string" } },
-        required: ["x"],
-      });
-      expect(builder.getSchemas()["NS.Color"]).toEqual({ type: "string", enum: ["Red"] });
+      expect(props.b).toEqual({ $ref: "#/components/schemas/Color" });
+
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
     it("should build $ref for named enum and named union fields on a model", async () => {
@@ -2771,7 +2799,17 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.y.$ref).toBe("#/components/schemas/WrapperBoolean");
     });
 
-    it("documents that a synthesized template-instantiation name and a user-declared model with the same composed name race for the short key, first-come-first-served (plan 2.1 decision; review 2026-08-14-107 disputed)", async () => {
+    it("reports a diagnostic error when a synthesized template-instantiation name collides with a user-declared model's key", async () => {
+      // Superseded policy (plan 2.1 decision; review 2026-08-14-107,
+      // disputed): this used to document first-come-first-served
+      // auto-suffixing — the instantiation (reached first via property
+      // `a`) claimed the bare `EnvelopeOrder` key, and the user's own
+      // declaration (reached second via `b`) was silently pushed to a
+      // numeric suffix. The architecture review (2026-08-14) replaced that
+      // with a hard diagnostic error, matching `@typespec/openapi3`'s own
+      // collision policy: whichever of the two is built second now reports
+      // `duplicate-schema-key` and degrades to the same (colliding) key
+      // instead of being silently renamed.
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         model Order { id: string; }
@@ -2785,14 +2823,14 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.W.properties as Record<string, any>;
 
-      // First-come-first-served: the instantiation (reached first via
-      // property `a`) claims the bare `EnvelopeOrder` key; the user's own
-      // declaration (reached second via `b`) is pushed to the numeric
-      // suffix. This is the documented, accepted behavior (see
-      // plan/review/unsolved/2026-08-14-107-*.md) — not something this test
-      // expects to change.
       expect(props.a.$ref).toBe("#/components/schemas/EnvelopeOrder");
-      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder_2");
+      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder");
+
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
     it("should include the argument's namespace in a template instantiation name so same-named models in different namespaces don't collide (review 2026-08-14-114)", async () => {
@@ -3075,6 +3113,36 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props2.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousYInt32");
       expect(props2.c.$ref).toBe("#/components/schemas/EnvelopeUnionStringInt32");
       expect(props2.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
+    });
+
+    it("reports a diagnostic error when two structurally-identical anonymous model template arguments compute the same name (finding 128)", async () => {
+      // Two separate anonymous-model type arguments with the same shape
+      // (`{x: string}`) are distinct `Type` objects, but
+      // `templateInstanceName` derives the same structural display name for
+      // both — a genuine key collision between two different types, not
+      // just a cache hit on one. Previously documented (plan/03-schemas.md
+      // finding 128) as an accepted `_2`-suffix duplicate-registration
+      // limitation with no regression test; under the hard-error policy
+      // this is a `duplicate-schema-key` diagnostic like any other
+      // collision.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Envelope<T> { data: T; }
+        @test("M")
+        model M { a: Envelope<{x: string}>; b: Envelope<{x: string}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
+      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
+
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
     });
 
     it("should encode distinct separator characters differently instead of collapsing them all to the same 'Sep' token (review 2026-08-14-121)", async () => {

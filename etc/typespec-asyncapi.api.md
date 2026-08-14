@@ -48,6 +48,9 @@ readonly default: CallableMessage<["property", "reason"]>;
 "never-typed-property-override": {
 readonly default: CallableMessage<["property"]>;
 };
+"duplicate-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
@@ -115,7 +118,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -139,6 +142,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "never-typed-property-override": {
         readonly default: CallableMessage<["property"]>;
+    };
+    "duplicate-schema-key": {
+        readonly default: CallableMessage<["name"]>;
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -164,6 +170,9 @@ readonly default: CallableMessage<["property", "reason"]>;
 };
 "never-typed-property-override": {
 readonly default: CallableMessage<["property"]>;
+};
+"duplicate-schema-key": {
+readonly default: CallableMessage<["name"]>;
 };
 }, C, M>) => Diagnostic;
 
@@ -224,7 +233,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -248,6 +257,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "never-typed-property-override": {
         readonly default: CallableMessage<["property"]>;
+    };
+    "duplicate-schema-key": {
+        readonly default: CallableMessage<["name"]>;
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -273,6 +285,9 @@ readonly default: CallableMessage<["property", "reason"]>;
 };
 "never-typed-property-override": {
 readonly default: CallableMessage<["property"]>;
+};
+"duplicate-schema-key": {
+readonly default: CallableMessage<["name"]>;
 };
 }, C, M>) => void;
 
