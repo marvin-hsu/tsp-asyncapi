@@ -82,6 +82,33 @@ describe("Unit: Schemas edge cases (regression)", () => {
     expect(diagnostic?.message).toContain("Interface");
   });
 
+  it("reports unrepresentable-circular-reference instead of crashing for a self-referencing anonymous model", async () => {
+    // `alias` only expands its right-hand side. It builds a self-referencing
+    // anonymous `Model` with no named declaration in between, unlike a
+    // circular reference through a named model (see the tests above).
+    // `buildModelSchema`'s anonymous branch used to skip the `building`
+    // guard entirely, so this used to throw
+    // "RangeError: Maximum call stack size exceeded" instead of reporting a
+    // diagnostic.
+    const runner = await AsyncAPITester.createInstance();
+    const { M } = await runner.compile(t.code`
+      alias Recursive = { a: Recursive };
+      model ${t.model("M")} {
+        field: Recursive;
+      }
+    `);
+    const builder = new SchemaBuilder(runner.program);
+    expect(() => builder.buildSchema(M)).not.toThrow();
+    const fieldSchema = (builder.getSchemas().M as any).properties.field;
+    expect(fieldSchema.type).toBe("object");
+    expect(fieldSchema.properties.a).toEqual({});
+    const diagnostic = runner.program.diagnostics.find(
+      (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
+    );
+    expect(diagnostic).toBeDefined();
+    expect(diagnostic?.severity).toBe("error");
+  });
+
   it("anonymous model keeps its properties", async () => {
     const runner = await AsyncAPITester.createInstance();
     const { Outer } = await runner.compile(t.code`

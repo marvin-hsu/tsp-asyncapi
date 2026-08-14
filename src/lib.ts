@@ -137,6 +137,13 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`This emitter does not support a \`${"kind"}\` here. Use a model, scalar, enum, union, or literal value instead.`,
       },
     },
+    "unrepresentable-circular-reference": {
+      severity: "error",
+      messages: {
+        default:
+          "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.",
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema,

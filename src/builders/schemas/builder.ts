@@ -213,9 +213,46 @@ export class SchemaBuilder {
     }
 
     if (!model.name) {
-      return build();
+      return this.buildAnonymousGuarded(model, build);
     }
     return this.registerNamed(model, build);
+  }
+
+  /**
+   * Builds the schema for an anonymous (unnamed) `Model` or `Union`, guarded
+   * against a self-referencing cycle.
+   * An anonymous type has no `components.schemas` key, so it always inlines
+   * instead of going through `registerNamed`'s `$ref`-and-cache path. That
+   * path is also where the `building` Set's circular-reference guard lives.
+   * An anonymous type on its own bypassed that guard entirely.
+   * A named model can only reference itself indirectly, through a property.
+   * A named model requires a name. But TypeSpec's `alias` construct can
+   * still produce a self-referencing anonymous `Model`, for example
+   * `alias Foo = { a: Foo };`. `alias` only expands its right-hand side; it
+   * does not need or create a name for it. Building that shape recurses
+   * forever and crashes with a stack overflow, since there is no cached
+   * `$ref` to return once the cycle is detected.
+   * A plain (non-`$ref`) schema cannot express a self-referencing cycle at
+   * all: expanding one more level always leaves another self-reference
+   * behind. So this guard cannot return a correct expansion once a cycle is
+   * detected. It reports `unrepresentable-circular-reference` and degrades
+   * to `{}` instead, matching how `unsupported-payload-type` degrades an
+   * unrepresentable case elsewhere in this class.
+   */
+  private buildAnonymousGuarded(type: Model | Union, build: () => SchemaObject): SchemaObject {
+    if (this.building.has(type)) {
+      reportDiagnostic(this.program, {
+        code: "unrepresentable-circular-reference",
+        target: type,
+      });
+      return {};
+    }
+    this.building.add(type);
+    try {
+      return build();
+    } finally {
+      this.building.delete(type);
+    }
   }
 
   /**
@@ -265,7 +302,7 @@ export class SchemaBuilder {
     const build = () =>
       withDocs(this.program, type, this.buildUnionSchemaBody(type), this.diagnosedTargets);
     if (type.name === undefined) {
-      return build();
+      return this.buildAnonymousGuarded(type, build);
     }
     return this.registerNamed(type, build);
   }

@@ -60,6 +60,9 @@ readonly default: CallableMessage<["name"]>;
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
+"unrepresentable-circular-reference": {
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
+};
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
@@ -130,7 +133,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -160,6 +163,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
+    };
+    "unrepresentable-circular-reference": {
+        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -191,6 +197,9 @@ readonly default: CallableMessage<["name"]>;
 };
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
+};
+"unrepresentable-circular-reference": {
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
 };
 }, C, M>) => Diagnostic;
 
@@ -272,7 +281,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -302,6 +311,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
+    };
+    "unrepresentable-circular-reference": {
+        readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -333,6 +345,9 @@ readonly default: CallableMessage<["name"]>;
 };
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
+};
+"unrepresentable-circular-reference": {
+readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-\\$ref) schema cannot express that cycle. Give the type a name so it can be referenced through \\$ref instead.";
 };
 }, C, M>) => void;
 
