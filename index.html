@@ -9,24 +9,30 @@
 <div class="tsd-page-title">
 <h1>TypeSpec AsyncAPI Emitter</h1></div>
 <div class="tsd-panel tsd-typography"><h1 id="typespec-asyncapi" class="tsd-anchor-link">typespec-asyncapi<a href="#typespec-asyncapi" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
-<p>An <a href="https://www.asyncapi.com/">AsyncAPI 3.1</a> emitter for <a href="https://typespec.io/">TypeSpec</a> — describe your event-driven APIs (Kafka, MQTT, WebSocket, …) in TypeSpec and emit AsyncAPI documents from a single source of truth.</p>
+<p><a href="./">English</a> | <a href="media/README.zh-TW.md">繁體中文</a></p>
+<p>An <a href="https://www.asyncapi.com/">AsyncAPI 3.1</a> emitter for <a href="https://typespec.io/">TypeSpec</a>. Describe an event-driven API in TypeSpec. Emit a full AsyncAPI document from one source of truth.</p>
 <blockquote>
-<p><strong>Status: Work in progress.</strong> This project currently supports generating the Document Skeleton, Info metadata, Tags, ExternalDocs, and <strong>Basic Schemas</strong> (Models, Scalars, Arrays, Records) for AsyncAPI 3.1.0. Channel, Operation, and Message mapping are under active development.</p>
+<p><strong>Status: work in progress.</strong> The emitter generates the document skeleton, <code>info</code> metadata, tags, external docs, and a complete TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords). Channels, operations, messages, servers, security, and protocol bindings are still in development.</p>
 </blockquote>
 <h2 id="why" class="tsd-anchor-link">Why<a href="#why" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>TypeSpec has first-class emitters for OpenAPI, but the AsyncAPI story for event-driven contracts (message queues, streaming topics) is still young. This project explores building that emitter, so HTTP and async contracts can live side by side in one TypeSpec workspace.</p>
+<p>TypeSpec has a mature, first-class OpenAPI emitter. The AsyncAPI side, for event-driven contracts like message queues and streaming topics, is still young. This project builds that emitter, so an HTTP API and an async API can live side by side in one TypeSpec workspace.</p>
+<h2 id="requirements" class="tsd-anchor-link">Requirements<a href="#requirements" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>Node.js &gt;= 20</li>
+<li><a href="https://pnpm.io/">pnpm</a> (this repo's <code>devEngines</code> field pins ^11)</li>
+</ul>
 <h2 id="installation" class="tsd-anchor-link">Installation<a href="#installation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>This package is currently under development. To try it locally:</p>
+<p>This package is not yet published to npm. To try it locally:</p>
 <pre><code class="bash"><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> &lt;</span><span class="hl-2">this</span><span class="hl-1"> </span><span class="hl-2">rep</span><span class="hl-1">o&gt;</span><br/><span class="hl-0">cd</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span>
 </code><button type="button">Copy</button></pre>
 
-<p>Then reference it from your TypeSpec project via a local file dependency or <code>pnpm link</code>.</p>
+<p>Then reference it from your TypeSpec project, either as a local <code>file:</code> dependency or via <code>pnpm link</code>.</p>
 <h2 id="usage" class="tsd-anchor-link">Usage<a href="#usage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>Add the library to your <code>main.tsp</code> and use the provided decorators to annotate your service:</p>
-<pre><code class="typespec"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">using</span><span class="hl-1"> </span><span class="hl-4">AsyncAPI</span><span class="hl-1">;</span><br/><br/><span class="hl-5">@service</span><span class="hl-1">(#{ </span><span class="hl-6">title</span><span class="hl-1">: </span><span class="hl-2">&quot;Order Service API&quot;</span><span class="hl-1"> })</span><br/><span class="hl-5">@info</span><span class="hl-1">(#{</span><br/><span class="hl-1">  </span><span class="hl-6">version</span><span class="hl-1">: </span><span class="hl-2">&quot;1.0.0&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">description</span><span class="hl-1">: </span><span class="hl-2">&quot;This is a sample Order Service event-driven API.&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">contact</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;API Support&quot;</span><span class="hl-1">, </span><span class="hl-6">email</span><span class="hl-1">: </span><span class="hl-2">&quot;support@example.com&quot;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-6">license</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;MIT&quot;</span><span class="hl-1">, </span><span class="hl-6">url</span><span class="hl-1">: </span><span class="hl-2">&quot;https://opensource.org/licenses/MIT&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">})</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;orders&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;payment&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@externalDocs</span><span class="hl-1">(</span><span class="hl-2">&quot;https://example.com/docs&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;Service Documentation&quot;</span><span class="hl-1">)</span><br/><span class="hl-3">namespace</span><span class="hl-1"> </span><span class="hl-4">Orders</span><span class="hl-1">;</span><br/><br/><span class="hl-7">// Standard TypeSpec models are automatically converted to AsyncAPI Schema Objects</span><br/><span class="hl-7">// and placed in components.schemas</span><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">Order</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">id</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">amount</span><span class="hl-1">: </span><span class="hl-4">float64</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">items</span><span class="hl-1">: </span><span class="hl-4">OrderItem</span><span class="hl-1">[];</span><br/><span class="hl-1">  </span><span class="hl-6">metadata</span><span class="hl-1">: </span><span class="hl-4">Record</span><span class="hl-1">&lt;</span><span class="hl-4">string</span><span class="hl-1">&gt;;</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">OrderItem</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">productId</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">quantity</span><span class="hl-1">: </span><span class="hl-4">int32</span><span class="hl-1">;</span><br/><span class="hl-1">}</span>
+<p>Add the library to your <code>main.tsp</code> and annotate your service with the provided decorators:</p>
+<pre><code class="typespec"><span class="hl-3">import</span><span class="hl-1"> </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-3">using</span><span class="hl-1"> </span><span class="hl-4">AsyncAPI</span><span class="hl-1">;</span><br/><br/><span class="hl-5">@service</span><span class="hl-1">(#{ </span><span class="hl-6">title</span><span class="hl-1">: </span><span class="hl-2">&quot;Order Service API&quot;</span><span class="hl-1"> })</span><br/><span class="hl-5">@info</span><span class="hl-1">(#{</span><br/><span class="hl-1">  </span><span class="hl-6">version</span><span class="hl-1">: </span><span class="hl-2">&quot;1.0.0&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">description</span><span class="hl-1">: </span><span class="hl-2">&quot;This is a sample Order Service event-driven API.&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-6">contact</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;API Support&quot;</span><span class="hl-1">, </span><span class="hl-6">email</span><span class="hl-1">: </span><span class="hl-2">&quot;support@example.com&quot;</span><span class="hl-1"> },</span><br/><span class="hl-1">  </span><span class="hl-6">license</span><span class="hl-1">: #{ </span><span class="hl-6">name</span><span class="hl-1">: </span><span class="hl-2">&quot;MIT&quot;</span><span class="hl-1">, </span><span class="hl-6">url</span><span class="hl-1">: </span><span class="hl-2">&quot;https://opensource.org/licenses/MIT&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">})</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;orders&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@tag</span><span class="hl-1">(</span><span class="hl-2">&quot;payment&quot;</span><span class="hl-1">)</span><br/><span class="hl-5">@externalDocs</span><span class="hl-1">(</span><span class="hl-2">&quot;https://example.com/docs&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;Service Documentation&quot;</span><span class="hl-1">)</span><br/><span class="hl-3">namespace</span><span class="hl-1"> </span><span class="hl-4">Orders</span><span class="hl-1">;</span><br/><br/><span class="hl-7">// This emitter converts a TypeSpec model to an AsyncAPI Schema Object</span><br/><span class="hl-7">// automatically. The result lands in components.schemas.</span><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">Order</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">id</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">amount</span><span class="hl-1">: </span><span class="hl-4">float64</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">items</span><span class="hl-1">: </span><span class="hl-4">OrderItem</span><span class="hl-1">[];</span><br/><span class="hl-1">  </span><span class="hl-6">metadata</span><span class="hl-1">: </span><span class="hl-4">Record</span><span class="hl-1">&lt;</span><span class="hl-4">string</span><span class="hl-1">&gt;;</span><br/><span class="hl-1">}</span><br/><br/><span class="hl-3">model</span><span class="hl-1"> </span><span class="hl-4">OrderItem</span><span class="hl-1"> {</span><br/><span class="hl-1">  </span><span class="hl-6">productId</span><span class="hl-1">: </span><span class="hl-4">string</span><span class="hl-1">;</span><br/><span class="hl-1">  </span><span class="hl-6">quantity</span><span class="hl-1">: </span><span class="hl-4">int32</span><span class="hl-1">;</span><br/><span class="hl-1">}</span>
 </code><button type="button">Copy</button></pre>
 
-<p>Configure the emitter in your <code>tspconfig.yaml</code>:</p>
+<p>Configure the emitter in <code>tspconfig.yaml</code>:</p>
 <pre><code class="yaml"><span class="hl-5">emit</span><span class="hl-1">:</span><br/><span class="hl-1">  - </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><br/><span class="hl-5">options</span><span class="hl-1">:</span><br/><span class="hl-1">  </span><span class="hl-2">&quot;typespec-asyncapi&quot;</span><span class="hl-1">:</span><br/><span class="hl-1">    </span><span class="hl-5">output-file</span><span class="hl-1">: </span><span class="hl-2">&quot;asyncapi.yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">file-type</span><span class="hl-1">: </span><span class="hl-2">&quot;yaml&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">asyncapi-id</span><span class="hl-1">: </span><span class="hl-2">&quot;urn:com:example:orders&quot;</span><br/><span class="hl-1">    </span><span class="hl-5">default-content-type</span><span class="hl-1">: </span><span class="hl-2">&quot;application/json&quot;</span>
 </code><button type="button">Copy</button></pre>
 
@@ -34,9 +40,9 @@
 <pre><code class="bash"><span class="hl-0">tsp</span><span class="hl-1"> </span><span class="hl-2">compile</span><span class="hl-1"> </span><span class="hl-2">.</span><span class="hl-1"> </span><span class="hl-3">--emit</span><span class="hl-1"> </span><span class="hl-2">typespec-asyncapi</span>
 </code><button type="button">Copy</button></pre>
 
-<p>This will generate a fully compliant AsyncAPI 3.1.0 document.</p>
-<h2 id="emitter-options" class="tsd-anchor-link">Emitter Options<a href="#emitter-options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<p>You can configure the emitter using the following options in <code>tspconfig.yaml</code> or via CLI arguments:</p>
+<p>This produces a fully compliant AsyncAPI 3.1.0 document.</p>
+<h2 id="emitter-options" class="tsd-anchor-link">Emitter options<a href="#emitter-options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>Set these in <code>tspconfig.yaml</code>, or pass them as CLI arguments:</p>
 <table>
 <thead>
 <tr>
@@ -57,33 +63,65 @@
 <td><code>file-type</code></td>
 <td><code>string</code></td>
 <td><code>yaml</code></td>
-<td>Format of the generated document (<code>yaml</code> or <code>json</code>).</td>
+<td>Format of the generated document: <code>yaml</code> or <code>json</code>.</td>
 </tr>
 <tr>
 <td><code>asyncapi-id</code></td>
 <td><code>string</code></td>
 <td>-</td>
-<td>Global identifier for the AsyncAPI document (<code>id</code> field).</td>
+<td>Global identifier for the document. Maps to the <code>id</code> field.</td>
 </tr>
 <tr>
 <td><code>default-content-type</code></td>
 <td><code>string</code></td>
 <td>-</td>
-<td>Default content type used for message payloads (<code>defaultContentType</code> field).</td>
+<td>Default content type for message payloads. Maps to <code>defaultContentType</code>.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="available-decorators" class="tsd-anchor-link">Available Decorators<a href="#available-decorators" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<h2 id="schema-conversion" class="tsd-anchor-link">Schema conversion<a href="#schema-conversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p>This emitter converts a TypeSpec model, scalar, enum, or union to an AsyncAPI Schema Object automatically. Supported constructs include:</p>
 <ul>
-<li><code>@AsyncAPI.info</code> - Sets the full AsyncAPI <code>info</code> block including version, description, contact, and license.</li>
-<li><code>@AsyncAPI.externalDocs</code> - Attaches external documentation links.</li>
-<li><code>@tag</code> - (Built-in) Adds standard tags to your AsyncAPI document.</li>
-<li><code>@service</code> - (Built-in) Extracts the API title automatically.</li>
+<li>Models, including nested models, arrays, and <code>Record&lt;T&gt;</code>.</li>
+<li>Scalars, including TypeSpec's built-in numeric/string/date scalars and user-declared derived scalars.</li>
+<li>Enums and unions, including string-literal unions and <code>T | null</code>.</li>
+<li>Inheritance (<code>extends</code>) and <code>@discriminator</code>, mapped to <code>allOf</code> and a <code>discriminator</code> field.</li>
+<li>Validation keywords: <code>@minLength</code>, <code>@maxLength</code>, <code>@minValue</code>, <code>@maxValue</code>, <code>@minItems</code>, <code>@maxItems</code>, <code>@pattern</code>, and related decorators.</li>
+<li>Documentation: <code>@doc</code>, <code>@summary</code>, and <code>@example</code>.</li>
+<li><code>@encodedName</code> for renaming a property's wire-format key.</li>
+<li>Stable, argument-derived names for template instantiations (for example, <code>Page&lt;string&gt;</code> becomes <code>PageString</code> in <code>components.schemas</code>).</li>
+</ul>
+<p>A name collision between two declarations reports a diagnostic error. It does not rename either declaration automatically.</p>
+<h2 id="available-decorators" class="tsd-anchor-link">Available decorators<a href="#available-decorators" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li><code>@AsyncAPI.info</code> — Sets the full AsyncAPI <code>info</code> block: version, description, contact, and license.</li>
+<li><code>@AsyncAPI.externalDocs</code> — Attaches external documentation links.</li>
+<li><code>@AsyncAPI.oneOf</code> — Marks a union to emit <code>oneOf</code> instead of the default <code>anyOf</code>.</li>
+<li><code>@AsyncAPI.jsonSchemaExtension</code> — Adds one JSON Schema keyword this emitter has no dedicated decorator for, e.g. <code>@jsonSchemaExtension(&quot;unevaluatedProperties&quot;, false)</code>. Repeatable; each application adds one key/value pair.</li>
+<li><code>@tag</code> — Built-in. Adds standard tags to the document.</li>
+<li><code>@service</code> — Built-in. Extracts the API title automatically.</li>
 </ul>
 <h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1">        </span><span class="hl-7"># install dependencies</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">          </span><span class="hl-7"># compile TypeScript to dist/</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">           </span><span class="hl-7"># run tests (vitest)</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">           </span><span class="hl-7"># eslint</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">format</span><span class="hl-1">         </span><span class="hl-7"># prettier</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">           </span><span class="hl-7"># generate API docs (typedoc)</span>
+<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><span class="hl-1">        </span><span class="hl-7"># Install dependencies.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">          </span><span class="hl-7"># Compile TypeScript to dist/.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">watch</span><span class="hl-1">          </span><span class="hl-7"># Compile in watch mode.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">           </span><span class="hl-7"># Run tests (vitest).</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">           </span><span class="hl-7"># Run eslint.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">format</span><span class="hl-1">         </span><span class="hl-7"># Run prettier.</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">           </span><span class="hl-7"># Generate API docs (typedoc).</span>
 </code><button type="button">Copy</button></pre>
 
+<p>Other tools in this repo:</p>
+<ul>
+<li><strong>api-extractor</strong> — Tracks the public API surface (<code>pnpm api-extractor:local</code>).</li>
+<li><strong>knip</strong> — Finds unused code and dependencies (<code>pnpm knip</code>).</li>
+<li><strong>husky + lint-staged</strong> — Runs lint and format checks before each commit.</li>
+</ul>
+<h2 id="roadmap" class="tsd-anchor-link">Roadmap<a href="#roadmap" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<ul>
+<li>[x] Document skeleton, <code>info</code>, tags, external docs.</li>
+<li>[x] TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, validation).</li>
+<li>[ ] Channel, operation (send/receive), and message decorators.</li>
+<li>[ ] Mapping a TypeSpec model to an AsyncAPI message payload.</li>
+<li>[ ] Server and protocol bindings, starting with Kafka.</li>
+<li>[ ] Publish to npm.</li>
+</ul>
+<h2 id="license" class="tsd-anchor-link">License<a href="#license" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><a href="media/LICENSE">MIT</a></p>
 </div></div>
 <div class="col-sidebar">
 <div class="page-menu">
@@ -102,11 +140,15 @@
 <div class="tsd-accordion-details"><a href="#typespec-asyncapi"><span>typespec-<wbr/>asyncapi</span></a>
 <ul>
 <li><a href="#why"><span>Why</span></a></li>
+<li><a href="#requirements"><span>Requirements</span></a></li>
 <li><a href="#installation"><span>Installation</span></a></li>
 <li><a href="#usage"><span>Usage</span></a></li>
-<li><a href="#emitter-options"><span>Emitter <wbr/>Options</span></a></li>
-<li><a href="#available-decorators"><span>Available <wbr/>Decorators</span></a></li>
-<li><a href="#development"><span>Development</span></a></li></ul></div></details></div>
+<li><a href="#emitter-options"><span>Emitter options</span></a></li>
+<li><a href="#schema-conversion"><span>Schema conversion</span></a></li>
+<li><a href="#available-decorators"><span>Available decorators</span></a></li>
+<li><a href="#development"><span>Development</span></a></li>
+<li><a href="#roadmap"><span>Roadmap</span></a></li>
+<li><a href="#license"><span>License</span></a></li></ul></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="modules.html">TypeSpec AsyncAPI Emitter</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
