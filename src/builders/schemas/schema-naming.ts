@@ -356,7 +356,8 @@ function templateInstanceName(program: Program, type: Model | Union): string | u
     return ownName;
   }
   const argNames = mapper.args.map((arg) => templateArgDisplayName(program, arg));
-  return argNames.some((name) => name === undefined) ? undefined : ownName + argNames.join("");
+  // One unspeakable argument makes the whole instantiation unspeakable.
+  return argNames.includes(undefined) ? undefined : ownName + argNames.join("");
 }
 
 /**
