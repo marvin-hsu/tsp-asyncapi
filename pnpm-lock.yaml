@@ -207,9 +207,9 @@ importers:
 
   .:
     dependencies:
-      '@typespec/asset-emitter':
-        specifier: ^0.79.1
-        version: 0.79.1(@typespec/compiler@1.14.0(@types/node@26.2.0))
+      '@alloy-js/core':
+        specifier: ^0.24.1
+        version: 0.24.1
       '@typespec/compiler':
         specifier: ^1.14.0
         version: 1.14.0(@types/node@26.2.0)
@@ -217,9 +217,6 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
     devDependencies:
-      '@alloy-js/core':
-        specifier: ^0.24.1
-        version: 0.24.1
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.8.1(jiti@2.7.0)(supports-color@8.1.1))
@@ -1014,12 +1011,6 @@ packages:
   '@typescript-eslint/visitor-keys@8.66.0':
     resolution: {integrity: sha512-dkKR8q+lKciskj1Y3vthHktl+3cMLWGyVUP23bRiPZ5O9BRT++4EqDDV+TVeIKBL1VXVEqrJlz8MYbcnvJcAlg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@typespec/asset-emitter@0.79.1':
-    resolution: {integrity: sha512-53s3GLu5BwNkl7Itr/OizfhymTV2u7k5/cwjUOAt03AUDfiKlwbsp+iCIsq1vccJuoDOiXOceJOfL8rAf4/9LQ==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      '@typespec/compiler': ^1.10.0
 
   '@typespec/compiler@1.14.0':
     resolution: {integrity: sha512-RRN0LGVDlonG/IbB2b4mvRjdCo6LywwB9/J8lOp6UaH7vtaFnKe5FL+rpxhof4rXx/zI/4OWnQO6c01bTCz4/Q==}
@@ -2691,10 +2682,6 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.66.0
       eslint-visitor-keys: 5.0.1
-
-  '@typespec/asset-emitter@0.79.1(@typespec/compiler@1.14.0(@types/node@26.2.0))':
-    dependencies:
-      '@typespec/compiler': 1.14.0(@types/node@26.2.0)
 
   '@typespec/compiler@1.14.0(@types/node@26.2.0)':
     dependencies:

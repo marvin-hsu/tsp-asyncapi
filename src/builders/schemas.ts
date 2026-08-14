@@ -13,7 +13,6 @@ import {
   StringLiteral,
   Value,
   IndeterminateEntity,
-  EmitContext,
   isArrayModelType,
   isRecordModelType,
   walkPropertiesInherited,
@@ -43,14 +42,6 @@ import {
   getMaxItemsAsNumeric,
   getDiscriminator,
 } from "@typespec/compiler";
-import {
-  AssetEmitter,
-  createAssetEmitter,
-  Declaration,
-  Scope,
-  TypeEmitter,
-  TypeSpecDeclaration,
-} from "@typespec/asset-emitter";
 import { SchemaObject, ReferenceObject } from "../types/index.js";
 import { reportDiagnostic } from "../lib.js";
 import {
@@ -1327,45 +1318,21 @@ function withPropertyDocs(
 }
 
 /**
- * `@typespec/asset-emitter` `TypeEmitter` used solely to host the
- * `declarationName` hook that `SchemaBuilder.registerNamed` calls into (via
- * `AssetEmitter.emitDeclarationName`). None of the framework's own type-graph
- * traversal (`emitType`/`emitProgram`, the `*Declaration`/`*Context` methods)
- * is used here — `SchemaBuilder` keeps its own hand-written recursive walk
- * (`buildSchema` and friends) and only borrows the framework's
- * `Declaration`/`Scope` bookkeeping plus this one naming hook.
- *
- * The actual name-collision handling lives entirely in `SchemaKeyRegistry`
- * (`./schema-key-registry.js`) — see that module's top-of-file comment for
- * why this port exists and when to remove it. This class is deliberately
- * kept to a single, thin override so that logic stays isolated there rather
- * than smeared across a `TypeEmitter` subclass.
- *
- * Built via a factory (rather than a fixed class reading a module-level
- * registry) so each `SchemaBuilder` instance gets its own `SchemaKeyRegistry`:
- * `createAssetEmitter` constructs the `TypeEmitter` itself
- * (`new TypeEmitterClass(assetEmitter)`, with no room for extra constructor
- * arguments), so the registry is threaded in via closure instead.
+ * Computes the `components.schemas` key candidate for a named declaration
+ * (model, enum, named union) and registers it through `registry.keyFor` —
+ * the sole naming/collision-handling hook `SchemaBuilder.registerNamed`
+ * calls into. See `./schema-key-registry.js`'s top-of-file comment for the
+ * collision policy this delegates to and why this naming/collision layer is
+ * kept isolated from the rest of this file's schema-shape building logic.
  */
-function createSchemaKeyEmitterClass(
-  registry: SchemaKeyRegistry,
-): typeof TypeEmitter<SchemaObject> {
-  return class SchemaKeyEmitter extends TypeEmitter<SchemaObject> {
-    public override declarationName(type: TypeSpecDeclaration): string | undefined {
-      switch (type.kind) {
-        case "Model":
-        case "Union":
-          return registry.keyFor(type, templateInstanceName(type));
-        case "Enum":
-          return registry.keyFor(type, type.name);
-        default:
-          // `registerNamed` (the only caller of `emitDeclarationName`) is
-          // never invoked with any other kind — kept for interface
-          // completeness/framework-compliance only.
-          return super.declarationName(type);
-      }
-    }
-  };
+function declarationKeyFor(registry: SchemaKeyRegistry, type: Model | Enum | Union): string {
+  switch (type.kind) {
+    case "Model":
+    case "Union":
+      return registry.keyFor(type, templateInstanceName(type));
+    case "Enum":
+      return registry.keyFor(type, type.name);
+  }
 }
 
 /**
@@ -1373,23 +1340,13 @@ function createSchemaKeyEmitterClass(
  */
 export class SchemaBuilder {
   private readonly keyRegistry: SchemaKeyRegistry;
-  private readonly emitter: AssetEmitter<SchemaObject>;
-  private readonly scope: Scope<SchemaObject>;
+  // Final `components.schemas` key -> built schema, in the order each
+  // declaration was first successfully built (mirrors the insertion order a
+  // single flat `Scope.declarations` array would have given).
+  private readonly declaredSchemas = new Map<string, SchemaObject>();
 
   public constructor(private readonly program: Program) {
     this.keyRegistry = new SchemaKeyRegistry(program);
-    this.emitter = createAssetEmitter(
-      program,
-      createSchemaKeyEmitterClass(this.keyRegistry),
-      // Minimal `EmitContext` stub: `SchemaBuilder` never writes files to
-      // disk or reads emitter-specific options, so only the fields
-      // `createAssetEmitter` itself reads (`program`, `emitterOutputDir`,
-      // `options`) need real values.
-      { program, emitterOutputDir: "", options: {} } as EmitContext,
-    );
-    // One scope for the whole run: we want a single flat
-    // `components.schemas`-shaped object, not multiple files/scopes.
-    this.scope = this.emitter.createSourceFile("schemas.json").globalScope;
   }
 
   public getSchemas(): Record<string, SchemaObject> {
@@ -1397,8 +1354,8 @@ export class SchemaBuilder {
       string,
       SchemaObject
     >;
-    for (const declaration of this.scope.declarations) {
-      schemas[declaration.name] = declaration.value as SchemaObject;
+    for (const [key, value] of this.declaredSchemas) {
+      schemas[key] = value;
     }
     return schemas;
   }
@@ -1435,9 +1392,10 @@ export class SchemaBuilder {
   // narrower type so every kind of named declaration shares one registry —
   // and, with it, one circular-reference guard.
   private readonly building = new Set<Type>();
-  // Types whose declaration has already been built and pushed into `scope`
-  // (as opposed to merely having claimed a key — see `SchemaKeyRegistry`).
-  private readonly declaredTypes = new Map<Type, Declaration<SchemaObject>>();
+  // Types whose declaration has already been built and pushed into
+  // `declaredSchemas` (as opposed to merely having claimed a key — see
+  // `SchemaKeyRegistry`), mapped to their final `components.schemas` key.
+  private readonly declaredTypes = new Map<Type, string>();
 
   // Dedupes range/length-constraint diagnostics per (target, diagnostic
   // code) so a scalar re-walked at every use site (see
@@ -1532,37 +1490,27 @@ export class SchemaBuilder {
    * (model, enum, named union) so the register/$ref/circular-guard dance
    * lives in exactly one place.
    *
-   * The `components.schemas` key itself comes from
-   * `AssetEmitter.emitDeclarationName`, which delegates to
-   * `SchemaKeyEmitter.declarationName` (above) — the framework's own
-   * collision-handling hook, backed here by `SchemaKeyRegistry`. The built
-   * value is then wrapped in an `@typespec/asset-emitter` `Declaration` and
-   * pushed onto this builder's single `Scope`, mirroring what the framework
-   * itself would do for a declaration emitted through its own traversal.
+   * The `components.schemas` key itself comes from `declarationKeyFor`, which
+   * delegates to `SchemaKeyRegistry.keyFor` — this builder's own
+   * collision-handling hook (see `./schema-key-registry.js`). The built value
+   * is then stored directly in `declaredSchemas` under that key.
    */
   private registerNamed(type: Model | Enum | Union, build: () => SchemaObject): ReferenceObject {
-    const key = this.emitter.emitDeclarationName(type);
-    if (key === undefined) {
-      // Cannot happen in practice: `SchemaKeyEmitter.declarationName` handles
-      // every kind `registerNamed` is ever called with (Model/Enum/Union).
-      // Guarded rather than asserted so a future change to that switch can't
-      // silently smuggle an `undefined` key past this point.
-      throw new Error(`Could not compute a components.schemas key for "${type.kind}".`);
-    }
+    const key = declarationKeyFor(this.keyRegistry, type);
     if (this.declaredTypes.has(type) || this.building.has(type)) {
       return refFor(key);
     }
     this.building.add(type);
     try {
-      const declaration = new Declaration<SchemaObject>(key, this.scope, build());
-      this.scope.declarations.push(declaration);
-      this.declaredTypes.set(type, declaration);
+      const value = build();
+      this.declaredTypes.set(type, key);
+      this.declaredSchemas.set(key, value);
     } catch (error) {
       // `build()` failed: release the key this type claimed so it is not
-      // left reserved in `keyRegistry` with no corresponding declaration in
-      // `scope.declarations` — otherwise a retry (or another reference to
-      // the same type) would see `this.building` no longer containing it and
-      // no declaration present, and return a `$ref` pointing at a component
+      // left reserved in `keyRegistry` with no corresponding entry in
+      // `declaredSchemas` — otherwise a retry (or another reference to the
+      // same type) would see `this.building` no longer containing it and no
+      // declaration present, and return a `$ref` pointing at a component
       // that will never exist.
       this.keyRegistry.release(type);
       throw error;
