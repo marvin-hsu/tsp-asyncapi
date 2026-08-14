@@ -16,7 +16,7 @@ Types</p>
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">SchemaObject</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#ref">$ref</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#additionalproperties">additionalProperties</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#allof">allOf</a><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#anyof">anyOf</a><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#default">default</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#description">description</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#discriminator">discriminator</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#enum">enum</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#examples">examples</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exclusivemaximum">exclusiveMaximum</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exclusiveminimum">exclusiveMinimum</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#format">format</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#items">items</a><span class="tsd-signature-symbol">?:</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maximum">maximum</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxitems">maxItems</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxlength">maxLength</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#minimum">minimum</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#minitems">minItems</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#minlength">minLength</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#not">not</a><span class="tsd-signature-symbol">?:</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#oneof">oneOf</a><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#pattern">pattern</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#properties">properties</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#required">required</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#title">title</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#type">type</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L134">types/index.ts:134</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L134">types/index.ts:134</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -58,32 +58,32 @@ Types</p>
 <h3 class="tsd-anchor-link" id="ref"><code class="tsd-tag">Optional</code><span>$ref</span><a href="#ref" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">$ref</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L176">types/index.ts:176</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L176">types/index.ts:176</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="additionalproperties"><code class="tsd-tag">Optional</code><span>additional<wbr/>Properties</span><a href="#additionalproperties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">additionalProperties</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L158">types/index.ts:158</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L158">types/index.ts:158</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="allof"><code class="tsd-tag">Optional</code><span>all<wbr/>Of</span><a href="#allof" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">allOf</span><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L165">types/index.ts:165</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L165">types/index.ts:165</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="anyof"><code class="tsd-tag">Optional</code><span>any<wbr/>Of</span><a href="#anyof" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">anyOf</span><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L164">types/index.ts:164</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L164">types/index.ts:164</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="default"><code class="tsd-tag">Optional</code><span>default</span><a href="#default" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">default</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L162">types/index.ts:162</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L162">types/index.ts:162</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="description"><code class="tsd-tag">Optional</code><span>description</span><a href="#description" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">description</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L137">types/index.ts:137</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L137">types/index.ts:137</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="discriminator"><code class="tsd-tag">Optional</code><span>discriminator</span><a href="#discriminator" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">discriminator</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
@@ -94,120 +94,120 @@ Schema Object defines <code>discriminator</code> as a bare string: the discrimin
 property's name.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L175">types/index.ts:175</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L175">types/index.ts:175</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="enum"><code class="tsd-tag">Optional</code><span>enum</span><a href="#enum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">enum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L161">types/index.ts:161</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L161">types/index.ts:161</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="examples"><code class="tsd-tag">Optional</code><span>examples</span><a href="#examples" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">examples</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L163">types/index.ts:163</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L163">types/index.ts:163</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="exclusivemaximum"><code class="tsd-tag">Optional</code><span>exclusive<wbr/>Maximum</span><a href="#exclusivemaximum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">exclusiveMaximum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Exclusive maximum numeric value (<code>@maxValueExclusive</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L152">types/index.ts:152</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L152">types/index.ts:152</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="exclusiveminimum"><code class="tsd-tag">Optional</code><span>exclusive<wbr/>Minimum</span><a href="#exclusiveminimum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">exclusiveMinimum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Exclusive minimum numeric value (<code>@minValueExclusive</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L150">types/index.ts:150</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L150">types/index.ts:150</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="format"><code class="tsd-tag">Optional</code><span>format</span><a href="#format" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">format</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L138">types/index.ts:138</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L138">types/index.ts:138</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="items"><code class="tsd-tag">Optional</code><span>items</span><a href="#items" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">items</span><span class="tsd-signature-symbol">?:</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L159">types/index.ts:159</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L159">types/index.ts:159</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maximum"><code class="tsd-tag">Optional</code><span>maximum</span><a href="#maximum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maximum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Inclusive maximum numeric value (<code>@maxValue</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L148">types/index.ts:148</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L148">types/index.ts:148</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxitems"><code class="tsd-tag">Optional</code><span>max<wbr/>Items</span><a href="#maxitems" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxItems</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Maximum array length (<code>@maxItems</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L156">types/index.ts:156</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L156">types/index.ts:156</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxlength"><code class="tsd-tag">Optional</code><span>max<wbr/>Length</span><a href="#maxlength" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxLength</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Maximum string length (<code>@maxLength</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L142">types/index.ts:142</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L142">types/index.ts:142</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="minimum"><code class="tsd-tag">Optional</code><span>minimum</span><a href="#minimum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">minimum</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Inclusive minimum numeric value (<code>@minValue</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L146">types/index.ts:146</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L146">types/index.ts:146</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="minitems"><code class="tsd-tag">Optional</code><span>min<wbr/>Items</span><a href="#minitems" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">minItems</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Minimum array length (<code>@minItems</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L154">types/index.ts:154</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L154">types/index.ts:154</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="minlength"><code class="tsd-tag">Optional</code><span>min<wbr/>Length</span><a href="#minlength" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">minLength</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Minimum string length (<code>@minLength</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L140">types/index.ts:140</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L140">types/index.ts:140</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="not"><code class="tsd-tag">Optional</code><span>not</span><a href="#not" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">not</span><span class="tsd-signature-symbol">?:</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L167">types/index.ts:167</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L167">types/index.ts:167</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="oneof"><code class="tsd-tag">Optional</code><span>one<wbr/>Of</span><a href="#oneof" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">oneOf</span><span class="tsd-signature-symbol">?:</span> (<a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a>)<span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L166">types/index.ts:166</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L166">types/index.ts:166</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="pattern"><code class="tsd-tag">Optional</code><span>pattern</span><a href="#pattern" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">pattern</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Regular expression a string must match (<code>@pattern</code>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L144">types/index.ts:144</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L144">types/index.ts:144</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="properties"><code class="tsd-tag">Optional</code><span>properties</span><a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">properties</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="" class="tsd-signature-type tsd-kind-interface">SchemaObject</a> <span class="tsd-signature-symbol">|</span> <a href="ReferenceObject.html" class="tsd-signature-type tsd-kind-interface">ReferenceObject</a><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L157">types/index.ts:157</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L157">types/index.ts:157</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="required"><code class="tsd-tag">Optional</code><span>required</span><a href="#required" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">required</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L160">types/index.ts:160</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L160">types/index.ts:160</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="title"><code class="tsd-tag">Optional</code><span>title</span><a href="#title" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">title</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L136">types/index.ts:136</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L136">types/index.ts:136</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="type"><code class="tsd-tag">Optional</code><span>type</span><a href="#type" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">type</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/b81fbda845065110b3d2d00a63493b73677c8ea4/src/types/index.ts#L135">types/index.ts:135</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/marvin-hsu/typespec-asyncapi/blob/0080d9e50b5e01055c718aa7d4684689c07ae402/src/types/index.ts#L135">types/index.ts:135</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
