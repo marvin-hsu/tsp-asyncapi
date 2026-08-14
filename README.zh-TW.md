@@ -72,7 +72,7 @@ pnpm docs           # 產生 API 文件（typedoc）
 
 ## Roadmap
 
-- [ ] channel、operation（publish / subscribe）、message 的 decorator
+- [ ] channel、operation（send / receive）、message 的 decorator
 - [ ] 將 TypeSpec model 對應為 AsyncAPI message payload schema
 - [ ] AsyncAPI 3.0 輸出
 - [ ] Server / protocol binding（Kafka 優先）
