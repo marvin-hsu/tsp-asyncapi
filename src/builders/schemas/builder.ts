@@ -15,6 +15,7 @@ import {
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
+import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";
 import { refFor, isUninstantiatedTemplateDeclaration } from "./schema-naming.js";
 import { SchemaKeyRegistry } from "./schema-key-registration.js";
@@ -89,6 +90,28 @@ export class SchemaBuilder {
       case "Boolean":
         return { type: JSON_SCHEMA_TYPE.boolean, enum: [type.value] };
       default:
+        // `Type.kind` has far more variants than this emitter handles, e.g.
+        // `Interface`, `Namespace`, `Operation`. TypeScript's static
+        // exhaustiveness check cannot catch a missing case here; the
+        // `Type` union is deliberately open-ended.
+        // A user can reach this branch by mistake, e.g. naming an
+        // `Interface` or `Namespace` where a payload/property type is
+        // expected. The compiler itself does not reject that; only this
+        // emitter does. So report it here rather than silently emitting an
+        // unconstrained `{}` schema with no indication anything is wrong.
+        // This is deliberately not deduped through `diagnosedTargets`, unlike
+        // the range/temporal-constraint diagnostics elsewhere in this class.
+        // Those dedupe because a single *scalar* is re-walked at every use
+        // site, so the same root cause would otherwise fire once per
+        // property. Here, each occurrence is a distinct property or payload
+        // location naming the unsupported type; every one of them is a
+        // separate mistake the user needs to see and fix at its own call
+        // site, not one root cause re-encountered.
+        reportDiagnostic(this.program, {
+          code: "unsupported-payload-type",
+          target: type,
+          format: { kind: type.kind },
+        });
         return {};
     }
   }
@@ -252,10 +275,15 @@ export class SchemaBuilder {
    * same `{ type: "string", enum: [...] }` shape a `string`-valued enum
    * gets. This gives one code path for "a closed set of string values", the
    * same way `buildSchema` already handles a lone string literal.
-   * Any other union, including `T | null`, falls through to `anyOf`, one
-   * member per variant. JSON Schema, unlike OpenAPI 3.0's `nullable`, has no
-   * separate nullability keyword. So `T | null` becomes
-   * `anyOf: [T, { type: "null" }]`.
+   * Any other union, including `T | null`, falls through to `anyOf` (or
+   * `oneOf`, see below), one member per variant. JSON Schema, unlike OpenAPI
+   * 3.0's `nullable`, has no separate nullability keyword. So `T | null`
+   * becomes `anyOf: [T, { type: "null" }]` by default.
+   *
+   * `@oneOf` on the union switches the keyword from `anyOf` to `oneOf`,
+   * keeping the same variant-schema array. `oneOf` requires exactly one
+   * variant to match, rather than `anyOf`'s "at least one". This is opt-in;
+   * a union with no `@oneOf` keeps emitting `anyOf` exactly as before.
    * An empty union has no variant to be. Like `never`/`void` in
    * `buildIntrinsicSchema`, it returns `{ not: {} }`, meaning nothing is
    * valid, rather than `{}`, meaning anything is valid. `anyOf: []` would be
@@ -282,16 +310,15 @@ export class SchemaBuilder {
         enum: [...new Set(variants.map((variant) => (variant.type as StringLiteral).value))],
       };
     }
-    return {
-      anyOf: variants.map((variant) =>
-        withPropertyDocs(
-          this.program,
-          variant,
-          this.buildSchema(variant.type),
-          this.diagnosedTargets,
-        ),
+    const variantSchemas = variants.map((variant) =>
+      withPropertyDocs(
+        this.program,
+        variant,
+        this.buildSchema(variant.type),
+        this.diagnosedTargets,
       ),
-    };
+    );
+    return isOneOf(this.program, type) ? { oneOf: variantSchemas } : { anyOf: variantSchemas };
   }
 
   /**

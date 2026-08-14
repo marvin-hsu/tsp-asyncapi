@@ -26,7 +26,7 @@ export class SchemaKeyRegistry {
     if (cached !== undefined) {
       return cached;
     }
-    const name = declarationNameFor(type);
+    const name = declarationNameFor(this.program, type);
     this.schemaKeys.set(type, name);
     const owner = this.claimedBy.get(name);
     if (owner === undefined) {

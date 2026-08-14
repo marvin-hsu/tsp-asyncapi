@@ -33,6 +33,7 @@ import {
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
+import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 
 /**
  * The mime type a schema's own property keys are resolved against through
@@ -493,6 +494,22 @@ export function buildValidationKeywords(
 }
 
 /**
+ * Turns `@jsonSchemaExtension`'s accumulated `{ key, value }` records into a
+ * plain object of top-level schema keywords, one property per record.
+ * A target with no `@jsonSchemaExtension` application returns `{}`, so
+ * merging this in is always a no-op for the common case.
+ */
+function buildJsonSchemaExtensionFields(
+  extensions: readonly JsonSchemaExtensionRecord[],
+): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+  for (const { key, value } of extensions) {
+    fields[key] = value;
+  }
+  return fields;
+}
+
+/**
  * Wraps `schema` in `allOf` and hoists `title`/`description`/`examples`
  * above it. `withDocs` and `withPropertyDocs` both call this on a
  * validation-keyword collision. Left inside the `allOf` branch, these three
@@ -568,6 +585,19 @@ export function withDocs(
   const collidesWithBase = Object.keys(restValidation).some(
     (key) => key in (schema as Record<string, unknown>),
   );
+  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
+  // `lib/main.tsp`). `Scalar`/`Enum`/`Union` never carry one, so this is
+  // always `{}` for them.
+  // These fields are merged in last, after everything above, deliberately.
+  // A user reaching for this escape hatch to set a keyword this emitter
+  // already produces from a dedicated decorator, e.g. `unevaluatedProperties`
+  // alongside `@discriminator`-driven keywords, is doing so on purpose. So an
+  // extension key always wins over one this builder would otherwise have
+  // produced, rather than being silently dropped as "already present".
+  const extensionFields =
+    target.kind === "Model"
+      ? buildJsonSchemaExtensionFields(getJsonSchemaExtensions(program, target))
+      : {};
   if (collidesWithBase) {
     // `title`/`description`/`examples` are annotations. Left inside the
     // `allOf` branch, they would not propagate to the parent schema. So any
@@ -575,12 +605,16 @@ export function withDocs(
     // nothing whenever an unrelated validation keyword happens to collide.
     // A derived scalar that only adds a validation keyword, with no `@doc`
     // of its own, must not lose the base's inherited description.
-    return hoistAnnotationsAboveAllOf(schema, docs, restValidation, format);
+    return {
+      ...hoistAnnotationsAboveAllOf(schema, docs, restValidation, format),
+      ...extensionFields,
+    };
   }
   return {
     ...schema,
     ...docs,
     ...validation,
+    ...extensionFields,
   };
 }
 
@@ -636,7 +670,16 @@ export function withPropertyDocs(
 ): SchemaObject | ReferenceObject {
   const docs = buildDocFields(program, prop, prop.type);
   const validation = buildValidationKeywords(program, prop, reported);
-  const extra = { ...docs, ...validation };
+  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
+  // `lib/main.tsp`); a `UnionVariant` never carries one, so this is always
+  // `{}` in that case. These fields are merged in last, after everything
+  // else, deliberately. See `withDocs`'s matching comment for the
+  // collision-priority rationale.
+  const extensionFields =
+    prop.kind === "ModelProperty"
+      ? buildJsonSchemaExtensionFields(getJsonSchemaExtensions(program, prop))
+      : {};
+  const extra = { ...docs, ...validation, ...extensionFields };
   if (Object.keys(extra).length === 0) {
     return schema;
   }
@@ -660,7 +703,10 @@ export function withPropertyDocs(
     // parent schema. A property that only adds a colliding validation
     // keyword, with no `@doc` of its own, must not lose the scalar's
     // inherited description.
-    return hoistAnnotationsAboveAllOf(schema, docs, restValidation, format);
+    return {
+      ...hoistAnnotationsAboveAllOf(schema, docs, restValidation, format),
+      ...extensionFields,
+    };
   }
   // The property has its own title and/or description here. It fully
   // determines this use site's title/description. This replaces, rather

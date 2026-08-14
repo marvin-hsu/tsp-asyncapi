@@ -7,6 +7,13 @@ namespace AsyncAPI;
 extern dec info(target: Namespace, info: valueof AsyncAPIInfo);
 // Target is unknown because externalDocs can be applied to Namespace, Model, Operation, Message, etc.
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
+// Marks a union's schema to emit `oneOf` (mutually exclusive variants)
+// instead of the default `anyOf`.
+extern dec oneOf(target: Union);
+// Adds one raw key/value pair to a model's or property's own emitted schema.
+// Repeatable: apply it more than once on the same target to add more than
+// one pair.
+extern dec jsonSchemaExtension(target: Model | ModelProperty, key: valueof string, value: valueof unknown);
 
 model AsyncAPIInfo {
   version: string;

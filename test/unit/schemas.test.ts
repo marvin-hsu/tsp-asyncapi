@@ -161,6 +161,28 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.u).toEqual({ type: "integer", format: "int64" });
     });
 
+    it("falls back to the unconstrained schema for a scalar derived from a built-in that has no dedicated table entry", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      // `unixTimestamp32` is a real TypeSpec standard-library scalar (it
+      // extends `utcDateTime`), but `SCALAR_SCHEMAS` carries no entry for
+      // it. A built-in scalar is always looked up by its own name; it never
+      // falls through to its `baseScalar`'s mapping. So a user scalar
+      // derived from it bottoms out at the unconstrained `{}` shape, the
+      // same as a user scalar derived from no built-in at all.
+      const { M } = await runner.compile(t.code`
+        scalar Foo extends unixTimestamp32;
+        model ${t.model("M")} {
+          a: Foo;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.a).toEqual({});
+    });
+
     it("should omit `properties` for an empty model (omit-empty convention)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Empty } = await runner.compile(t.code`
@@ -303,7 +325,14 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(wProps.p).toEqual({ $ref: "#/components/schemas/__proto__" });
     });
 
-    it("should escape `/` and `~` in schema keys when building `$ref` (RFC 6901)", async () => {
+    it("should Sep-encode `/` and `~` out of a backtick-declared model's own name, rather than leaking them into the schema key", async () => {
+      // A model's own name is now sanitized before it becomes a
+      // `components.schemas` key (see `sanitizeDeclarationName`). So `/`
+      // and `~`, both outside the AsyncAPI Components Object key charset,
+      // never reach the key at all. There is nothing left here for
+      // `toJsonPointerToken`'s RFC 6901 escaping to do; it stays in place
+      // as a defense-in-depth guard for a key from any other future
+      // source.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model \`x/y\` { z: string; }
@@ -318,16 +347,18 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M);
 
       const components = builder.getSchemas() as Record<string, any>;
-      // The raw (unescaped) key is still used to store the schema itself.
-      expect(Object.hasOwn(components, "x/y")).toBe(true);
-      expect(Object.hasOwn(components, "a~b")).toBe(true);
+      expect(Object.hasOwn(components, "x/y")).toBe(false);
+      expect(Object.hasOwn(components, "a~b")).toBe(false);
 
       const props = components.M.properties as Record<string, any>;
-      // But the `$ref` string must escape per RFC 6901 (`~` -> `~0` before
-      // `/` -> `~1`), or a conforming resolver misreads `x/y` as a path
-      // through nested objects `x`.`y`.
-      expect(props.q).toEqual({ $ref: "#/components/schemas/x~1y" });
-      expect(props.r).toEqual({ $ref: "#/components/schemas/a~0b" });
+      for (const ref of [props.q.$ref, props.r.$ref] as string[]) {
+        const key = ref.replace("#/components/schemas/", "");
+        expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+        expect(Object.hasOwn(components, key)).toBe(true);
+      }
+      // '/' (47) and '~' (126) are each Sep-encoded distinctly.
+      expect(props.q.$ref).toBe("#/components/schemas/XSep47Y");
+      expect(props.r.$ref).toBe("#/components/schemas/ASep126B");
     });
 
     it("reports a diagnostic error for two same-named models even when one sits in a `/`-containing namespace", async () => {
@@ -1296,6 +1327,42 @@ describe("Unit: Schemas (Phase 2)", () => {
       );
       expect(diagnostics).toHaveLength(1);
     });
+
+    it("resolves a same-named-model collision the same way when one namespace is declared blockless", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      // `namespace Foo;` (no braces) must be the file's first statement. It
+      // puts every following top-level declaration into `Foo`, the same way
+      // `namespace Foo { ... }` would. `Bar` is then a nested block
+      // namespace inside `Foo`. This must collide with `Foo.Widget` exactly
+      // like the block-form multi-level case above, since symbol resolution
+      // must not depend on which namespace syntax produced the name.
+      const { FooWidget, BarWidget } = await runner.compile(t.code`
+        namespace Foo;
+        @test("FooWidget")
+        model Widget {
+          a: string;
+        }
+        namespace Bar {
+          @test("BarWidget")
+          model Widget {
+            b: int32;
+          }
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      const ref1 = builder.buildSchema(FooWidget as Model) as any;
+      const ref2 = builder.buildSchema(BarWidget as Model) as any;
+
+      expect(ref1.$ref).toBe("#/components/schemas/Widget");
+      expect(ref2.$ref).toBe("#/components/schemas/Widget");
+
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
+    });
   });
 
   describe("enum and union", () => {
@@ -1391,6 +1458,59 @@ describe("Unit: Schemas (Phase 2)", () => {
       const props = builder.getSchemas().M.properties as Record<string, any>;
       expect(props.field).toEqual({
         anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+
+    it("should build oneOf instead of anyOf for a union marked with @oneOf", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @AsyncAPI.oneOf
+        union Shape { string, int32 }
+        model ${t.model("M")} {
+          field: Shape;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({ $ref: "#/components/schemas/Shape" });
+      expect(builder.getSchemas().Shape).toEqual({
+        oneOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+
+    it("should still build anyOf for a union with no @oneOf", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          field: string | int32;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.field).toEqual({
+        anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
+      });
+    });
+
+    it("should build oneOf for a named union marked with @oneOf, still behind a $ref", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Named } = await runner.compile(t.code`
+        @AsyncAPI.oneOf
+        union ${t.union("Named")} { string, int32 }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      const ref = builder.buildSchema(Named) as any;
+
+      expect(ref.$ref).toBe("#/components/schemas/Named");
+      expect(builder.getSchemas().Named).toEqual({
+        oneOf: [{ type: "string" }, { type: "integer", format: "int32" }],
       });
     });
 
@@ -1594,6 +1714,80 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(builder.getSchemas().Named).toEqual({
         anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
       });
+    });
+  });
+
+  describe("@jsonSchemaExtension", () => {
+    it("merges two separate applications' key/value pairs alongside a model's own properties", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @AsyncAPI.jsonSchemaExtension("unevaluatedProperties", false)
+        @AsyncAPI.jsonSchemaExtension("propertyNames", #{ pattern: "^[a-z]+$" })
+        model ${t.model("M")} {
+          id: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      expect(builder.getSchemas().M).toEqual({
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+        unevaluatedProperties: false,
+        propertyNames: { pattern: "^[a-z]+$" },
+      });
+    });
+
+    it("merges its key/value pair into a property's own schema entry", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          @AsyncAPI.jsonSchemaExtension("deprecated", true)
+          name: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      expect(props.name).toEqual({ type: "string", deprecated: true });
+    });
+
+    it("leaves a model or property with no application completely unaffected", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model ${t.model("M")} {
+          name: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      expect(builder.getSchemas().M).toEqual({
+        type: "object",
+        properties: { name: { type: "string" } },
+        required: ["name"],
+      });
+    });
+
+    it("lets an extension key override a keyword this emitter already produces for that model", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @AsyncAPI.jsonSchemaExtension("type", "override")
+        model ${t.model("M")} {
+          name: string;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M);
+
+      const schema = builder.getSchemas().M as Record<string, any>;
+      expect(schema.type).toBe("override");
     });
   });
 
@@ -2172,6 +2366,41 @@ describe("Unit: Schemas (Phase 2)", () => {
         description: "An email address.",
       });
     });
+
+    it("keeps a generic model's own @doc/@summary on every instantiation", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      // `Envelope`'s own doc/summary are declared once, on the
+      // uninstantiated template. TypeSpec's instantiation semantics copy
+      // the type definition, so each instantiation must carry them too,
+      // not just the first one built.
+      const { W } = await runner.compile(t.code`
+        /** A generic envelope. */
+        @summary("Envelope")
+        model Envelope<T> {
+          data: T;
+        }
+        model Order { id: string; }
+        model Product { sku: string; }
+        @test("W")
+        model W {
+          order: Envelope<Order>;
+          product: Envelope<Product>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+
+      expect(components.EnvelopeOrder).toMatchObject({
+        title: "Envelope",
+        description: "A generic envelope.",
+      });
+      expect(components.EnvelopeProduct).toMatchObject({
+        title: "Envelope",
+        description: "A generic envelope.",
+      });
+    });
   });
 
   describe("validation keywords (2.8)", () => {
@@ -2649,6 +2878,40 @@ describe("Unit: Schemas (Phase 2)", () => {
         (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
       );
       expect(occurrences).toHaveLength(2);
+    });
+
+    it("keeps a generic model property's validation decorator on every instantiation", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      // `@minLength` is declared once, on `Wrapper<T>`'s own `label`
+      // property. TypeSpec's instantiation semantics copy the type
+      // definition, so each instantiation's built schema must keep it too.
+      const { W } = await runner.compile(t.code`
+        model Wrapper<T> {
+          @minLength(3)
+          label: string;
+          data: T;
+        }
+        model Order { id: string; }
+        model Product { sku: string; }
+        @test("W")
+        model W {
+          order: Wrapper<Order>;
+          product: Wrapper<Product>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+
+      expect((components.WrapperOrder.properties as Record<string, any>).label).toEqual({
+        type: "string",
+        minLength: 3,
+      });
+      expect((components.WrapperProduct.properties as Record<string, any>).label).toEqual({
+        type: "string",
+        minLength: 3,
+      });
     });
   });
 
@@ -3414,6 +3677,140 @@ describe("Unit: Schemas (Phase 2)", () => {
           contact: 1,
         }),
       ).toBe(false);
+    });
+
+    it("should Sep-encode a backtick-declared model's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model \`Foo/Bar\` { x: string; }
+        @test("M")
+        model M { field: \`Foo/Bar\`; }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const key = String(props.field.$ref).replace("#/components/schemas/", "");
+
+      expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+      expect(Object.hasOwn(builder.getSchemas(), key)).toBe(true);
+      // '/' (code point 47) is Sep-encoded the same way it already is for a
+      // literal template argument's own text.
+      expect(key).toBe("FooSep47Bar");
+    });
+
+    it("should Sep-encode a backtick-declared enum's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        enum \`Foo/Bar\` { A, B }
+        @test("M")
+        model M { field: \`Foo/Bar\`; }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const key = String(props.field.$ref).replace("#/components/schemas/", "");
+
+      expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+      expect(Object.hasOwn(builder.getSchemas(), key)).toBe(true);
+    });
+
+    it("should use @friendlyName's resolved, interpolated name as the components.schemas key for a template instantiation", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        @friendlyName("{name}Envelope", T)
+        model Envelope<T> {
+          data: T;
+        }
+        model Order {
+          id: string;
+        }
+        @test("W")
+        model W {
+          order: Envelope<Order>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      // `@friendlyName("{name}Envelope")` resolves `{name}` to the type
+      // argument's own name, `Order`, giving `OrderEnvelope` rather than the
+      // structural `EnvelopeOrder`.
+      expect(props.order.$ref).toBe("#/components/schemas/OrderEnvelope");
+      expect(components.OrderEnvelope).toBeDefined();
+      expect(components.EnvelopeOrder).toBeUndefined();
+    });
+
+    it("should report duplicate-schema-key when two template instantiations resolve to the same @friendlyName", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        @friendlyName("Wrapped")
+        model Envelope<T> {
+          data: T;
+        }
+        model Order { id: string; }
+        model Invoice { id: string; }
+        @test("W")
+        model W {
+          order: Envelope<Order>;
+          invoice: Envelope<Invoice>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeDefined();
+      expect(diagnostic?.severity).toBe("error");
+    });
+
+    it("should still use the structural name for a template instantiation with no @friendlyName", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { W } = await runner.compile(t.code`
+        model Envelope<T> {
+          data: T;
+        }
+        model Order {
+          id: string;
+        }
+        @test("W")
+        model W {
+          order: Envelope<Order>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(W as Model);
+      const components = builder.getSchemas();
+      const props = components.W.properties as Record<string, any>;
+
+      expect(props.order.$ref).toBe("#/components/schemas/EnvelopeOrder");
+      expect(components.EnvelopeOrder).toBeDefined();
+    });
+
+    it("should use @friendlyName's resolved name as the components.schemas key for an enum", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @friendlyName("Renamed")
+        enum Color { Red, Green }
+        @test("M")
+        model M { color: Color; }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(props.color.$ref).toBe("#/components/schemas/Renamed");
+      expect(components.Renamed).toBeDefined();
+      expect(components.Color).toBeUndefined();
     });
   });
 });

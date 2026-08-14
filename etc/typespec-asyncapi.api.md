@@ -9,10 +9,13 @@ import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
+import { Model } from '@typespec/compiler';
+import { ModelProperty } from '@typespec/compiler';
 import { Namespace } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
+import { Union } from '@typespec/compiler';
 
 // @public
 export function $externalDocs(context: DecoratorContext_2, target: Type, url: string, description?: string): void;
@@ -21,6 +24,9 @@ export function $externalDocs(context: DecoratorContext_2, target: Type, url: st
 //
 // @public
 export function $info(context: DecoratorContext_2, target: Namespace, info: AsyncAPIInfoState): void;
+
+// @public
+export function $jsonSchemaExtension(context: DecoratorContext_2, target: Model | ModelProperty, key: string, value: unknown): void;
 
 // @public
 export const $lib: TypeSpecLibrary<    {
@@ -51,10 +57,16 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"unsupported-payload-type": {
+readonly default: CallableMessage<["kind"]>;
+};
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;
+
+// @public
+export function $oneOf(context: DecoratorContext_2, target: Union): void;
 
 // @public
 export interface AsyncAPIDocument {
@@ -118,7 +130,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -145,6 +157,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "unsupported-payload-type": {
+        readonly default: CallableMessage<["kind"]>;
     };
 }[C]>(diag: DiagnosticReport<    {
 "multiple-services": {
@@ -174,6 +189,9 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"unsupported-payload-type": {
+readonly default: CallableMessage<["kind"]>;
+};
 }, C, M>) => Diagnostic;
 
 // Warning: (ae-internal-missing-underscore) The name "ExternalDocsState" should be prefixed with an underscore because the declaration is marked as @internal
@@ -202,6 +220,11 @@ export function getExternalDocs(program: Program, target: Type): ExternalDocsSta
 // @public (undocumented)
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined;
 
+// Warning: (ae-incompatible-release-tags) The symbol "getJsonSchemaExtensions" is marked as @public, but its signature references "JsonSchemaExtensionRecord" which is marked as @internal
+//
+// @public (undocumented)
+export function getJsonSchemaExtensions(program: Program, target: Model | ModelProperty): JsonSchemaExtensionRecord[];
+
 // @public
 export interface InfoObject {
     contact?: ContactObject;
@@ -212,6 +235,19 @@ export interface InfoObject {
     termsOfService?: string;
     title: string;
     version: string;
+}
+
+// @public (undocumented)
+export function isOneOf(program: Program, target: Union): boolean;
+
+// Warning: (ae-internal-missing-underscore) The name "JsonSchemaExtensionRecord" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface JsonSchemaExtensionRecord {
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    value: unknown;
 }
 
 // @public
@@ -236,7 +272,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -263,6 +299,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "unsupported-payload-type": {
+        readonly default: CallableMessage<["kind"]>;
     };
 }[C]>(program: Program, diag: DiagnosticReport<    {
 "multiple-services": {
@@ -291,6 +330,9 @@ readonly default: CallableMessage<["property"]>;
 };
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
+};
+"unsupported-payload-type": {
+readonly default: CallableMessage<["kind"]>;
 };
 }, C, M>) => void;
 

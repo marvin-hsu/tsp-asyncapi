@@ -6,6 +6,8 @@ import {
   Namespace,
   Value,
   IndeterminateEntity,
+  Program,
+  getFriendlyName,
 } from "@typespec/compiler";
 import { ReferenceObject } from "../../types/index.js";
 import {
@@ -143,6 +145,34 @@ function sanitizeLiteralDisplayName(raw: string): string {
 }
 
 /**
+ * The AsyncAPI 3.0 Components Object key charset. A `components.schemas`
+ * key outside this charset is not a legal member name.
+ */
+const SAFE_KEY_CHARSET = /^[a-zA-Z0-9.\-_]+$/;
+
+/**
+ * Sanitizes a named declaration's own name, e.g. `Model.name`, for use as a
+ * `components.schemas` key candidate.
+ * A plain TypeSpec identifier already lies entirely inside
+ * `SAFE_KEY_CHARSET`; it is returned unchanged, case included. This keeps
+ * every existing key stable.
+ * A backtick-quoted name can carry arbitrary characters, e.g.
+ * `` `Foo/Bar` ``. Such a name is run through `sanitizeLiteralDisplayName`,
+ * the same Sep-encoding a literal template argument's own text already
+ * gets, so a charset-violating character never leaks into the key or the
+ * `$ref` built from it.
+ * An empty name is returned unchanged. This only ever occurs for an
+ * anonymous type; callers already special-case that before a name is ever
+ * needed.
+ */
+function sanitizeDeclarationName(name: string): string {
+  if (name.length === 0 || SAFE_KEY_CHARSET.test(name)) {
+    return name;
+  }
+  return sanitizeLiteralDisplayName(name);
+}
+
+/**
  * Builds a human-legible display name for a numeric template argument's
  * value.
  * This name encodes its sign and decimal point instead of deleting them.
@@ -209,9 +239,10 @@ function sanitizeNumberDisplayName(valueAsString: string): string {
  * Deduplicating structurally-identical anonymous instantiations is a
  * possible future refactor. This function does not attempt it.
  */
-function anonymousModelDisplayName(model: Model): string {
+function anonymousModelDisplayName(program: Program, model: Model): string {
   const names = [...model.properties.values()].map(
-    (property) => sanitizeLiteralDisplayName(property.name) + templateArgDisplayName(property.type),
+    (property) =>
+      sanitizeLiteralDisplayName(property.name) + templateArgDisplayName(program, property.type),
   );
   return ANONYMOUS_MODEL_NAME_TOKEN + names.join("");
 }
@@ -231,8 +262,10 @@ function anonymousModelDisplayName(model: Model): string {
  * `"Union"` token. Any resulting collision is a genuine one, left to
  * `findFreeKey`.
  */
-function anonymousUnionDisplayName(union: Union): string {
-  const names = [...union.variants.values()].map((variant) => templateArgDisplayName(variant.type));
+function anonymousUnionDisplayName(program: Program, union: Union): string {
+  const names = [...union.variants.values()].map((variant) =>
+    templateArgDisplayName(program, variant.type),
+  );
   return ANONYMOUS_UNION_NAME_TOKEN + names.join("");
 }
 
@@ -264,9 +297,9 @@ function anonymousUnionDisplayName(union: Union): string {
  * overwhelmingly common case of a literal or enum-member template argument
  * would collapse to the "Value" placeholder instead.
  */
-function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string {
+function templateArgDisplayName(program: Program, arg: Type | Value | IndeterminateEntity): string {
   if ("entityKind" in arg && arg.entityKind === "Indeterminate") {
-    return templateArgDisplayName(arg.type);
+    return templateArgDisplayName(program, arg.type);
   }
   if (!("kind" in arg)) {
     return "Value";
@@ -274,8 +307,8 @@ function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string
   switch (arg.kind) {
     case "Model":
       return arg.name
-        ? namespacePrefix(arg.namespace) + templateInstanceName(arg)
-        : anonymousModelDisplayName(arg);
+        ? namespacePrefix(arg.namespace) + templateInstanceName(program, arg)
+        : anonymousModelDisplayName(program, arg);
     case "Scalar":
       return namespacePrefix(arg.namespace) + capitalizeFirst(arg.name);
     case "Enum":
@@ -284,8 +317,8 @@ function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string
       return namespacePrefix(arg.enum.namespace) + arg.enum.name + capitalizeFirst(arg.name);
     case "Union":
       return arg.name !== undefined
-        ? namespacePrefix(arg.namespace) + templateInstanceName(arg)
-        : anonymousUnionDisplayName(arg);
+        ? namespacePrefix(arg.namespace) + templateInstanceName(program, arg)
+        : anonymousUnionDisplayName(program, arg);
     case "String":
       return sanitizeLiteralDisplayName(arg.value);
     case "StringTemplate":
@@ -306,7 +339,7 @@ function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string
       return arg.spans
         .map((span) =>
           span.isInterpolated
-            ? templateArgDisplayName(span.type)
+            ? templateArgDisplayName(program, span.type)
             : sanitizeLiteralDisplayName(span.type.value),
         )
         .join("");
@@ -317,7 +350,7 @@ function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string
     case "Intrinsic":
       return capitalizeFirst(arg.name);
     case "Tuple":
-      return "Tuple" + arg.values.map((value) => templateArgDisplayName(value)).join("");
+      return "Tuple" + arg.values.map((value) => templateArgDisplayName(program, value)).join("");
     default:
       // This fallback token is one no handled case can produce.
       // It is distinct, in particular, from `Intrinsic`'s legitimate
@@ -351,13 +384,31 @@ function templateArgDisplayName(arg: Type | Value | IndeterminateEntity): string
  * instantiation, such as `Wrapper<int32>`, gets the exact same stable-key
  * treatment a template model instantiation does. It does not fall back to
  * the traversal-order-dependent short-name-plus-suffix ladder.
+ *
+ * A user-applied `@friendlyName`, e.g.
+ * `` @friendlyName("{name}Envelope") model Envelope<T> { ... } ``, is
+ * checked first. The compiler resolves its own template-parameter
+ * interpolation, e.g. `{name}`, per instantiation. When present, that
+ * resolved name is used as the key candidate outright, instead of the
+ * structural `name` + arguments composition below. This lets a user who
+ * already reaches for the compiler's own naming decorator get the name they
+ * asked for, rather than a structural name they did not choose.
+ * Two instantiations resolving to the same `@friendlyName` collide exactly
+ * like any other candidate-name collision: `SchemaKeyRegistry.keyFor`
+ * reports `duplicate-schema-key`. No special-casing happens here.
+ * When absent, the existing structural composition is unchanged.
  */
-function templateInstanceName(type: Model | Union): string {
-  const mapper = type.templateMapper;
-  if (mapper === undefined || mapper.args.length === 0) {
-    return type.name ?? "";
+function templateInstanceName(program: Program, type: Model | Union): string {
+  const friendlyName = getFriendlyName(program, type);
+  if (friendlyName !== undefined) {
+    return sanitizeDeclarationName(friendlyName);
   }
-  return (type.name ?? "") + mapper.args.map(templateArgDisplayName).join("");
+  const mapper = type.templateMapper;
+  const ownName = sanitizeDeclarationName(type.name ?? "");
+  if (mapper === undefined || mapper.args.length === 0) {
+    return ownName;
+  }
+  return ownName + mapper.args.map((arg) => templateArgDisplayName(program, arg)).join("");
 }
 
 /**
@@ -395,12 +446,20 @@ export function refFor(key: string): ReferenceObject {
  * is handed to `SchemaBuilder.registerNamed`, which decides whether that
  * candidate is actually free.
  */
-export function declarationNameFor(type: Model | Enum | Union): string {
+export function declarationNameFor(program: Program, type: Model | Enum | Union): string {
   switch (type.kind) {
     case "Model":
     case "Union":
-      return templateInstanceName(type);
-    case "Enum":
-      return type.name;
+      return templateInstanceName(program, type);
+    case "Enum": {
+      // `@friendlyName` is just as legal on a plain `enum` declaration as on
+      // a model or union; see `templateInstanceName`'s own doc comment. An
+      // `Enum` never has template arguments, so there is no structural
+      // composition to fall back through, only the bare declaration name.
+      const friendlyName = getFriendlyName(program, type);
+      return friendlyName !== undefined
+        ? sanitizeDeclarationName(friendlyName)
+        : sanitizeDeclarationName(type.name);
+    }
   }
 }

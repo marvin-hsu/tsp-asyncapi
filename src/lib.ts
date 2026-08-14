@@ -131,6 +131,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Duplicate schema name: '${"name"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
       },
     },
+    "unsupported-payload-type": {
+      severity: "error",
+      messages: {
+        default: paramMessage`This emitter does not support a \`${"kind"}\` here. Use a model, scalar, enum, union, or literal value instead.`,
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema,
