@@ -1,16 +1,23 @@
 # typespec-asyncapi
 
-An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/) — describe your event-driven APIs (Kafka, MQTT, WebSocket, …) in TypeSpec and emit AsyncAPI documents from a single source of truth.
+[English](./README.md) | [繁體中文](./README.zh-TW.md)
 
-> **Status: Work in progress.** This project currently supports generating the Document Skeleton, Info metadata, Tags, ExternalDocs, and **Basic Schemas** (Models, Scalars, Arrays, Records) for AsyncAPI 3.1.0. Channel, Operation, and Message mapping are under active development.
+An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). Describe an event-driven API in TypeSpec. Emit a full AsyncAPI document from one source of truth.
+
+> **Status: work in progress.** The emitter generates the document skeleton, `info` metadata, tags, external docs, and a complete TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords). Channels, operations, messages, servers, security, and protocol bindings are still in development.
 
 ## Why
 
-TypeSpec has first-class emitters for OpenAPI, but the AsyncAPI story for event-driven contracts (message queues, streaming topics) is still young. This project explores building that emitter, so HTTP and async contracts can live side by side in one TypeSpec workspace.
+TypeSpec has a mature, first-class OpenAPI emitter. The AsyncAPI side, for event-driven contracts like message queues and streaming topics, is still young. This project builds that emitter, so an HTTP API and an async API can live side by side in one TypeSpec workspace.
+
+## Requirements
+
+- Node.js >= 20
+- [pnpm](https://pnpm.io/) (this repo's `devEngines` field pins ^11)
 
 ## Installation
 
-This package is currently under development. To try it locally:
+This package is not yet published to npm. To try it locally:
 
 ```bash
 git clone <this repo>
@@ -19,11 +26,11 @@ pnpm install
 pnpm build
 ```
 
-Then reference it from your TypeSpec project via a local file dependency or `pnpm link`.
+Then reference it from your TypeSpec project, either as a local `file:` dependency or via `pnpm link`.
 
 ## Usage
 
-Add the library to your `main.tsp` and use the provided decorators to annotate your service:
+Add the library to your `main.tsp` and annotate your service with the provided decorators:
 
 ```typespec
 import "typespec-asyncapi";
@@ -42,8 +49,8 @@ using AsyncAPI;
 @externalDocs("https://example.com/docs", "Service Documentation")
 namespace Orders;
 
-// Standard TypeSpec models are automatically converted to AsyncAPI Schema Objects
-// and placed in components.schemas
+// This emitter converts a TypeSpec model to an AsyncAPI Schema Object
+// automatically. The result lands in components.schemas.
 model Order {
   id: string;
   amount: float64;
@@ -57,7 +64,7 @@ model OrderItem {
 }
 ```
 
-Configure the emitter in your `tspconfig.yaml`:
+Configure the emitter in `tspconfig.yaml`:
 
 ```yaml
 emit:
@@ -76,33 +83,70 @@ Then compile:
 tsp compile . --emit typespec-asyncapi
 ```
 
-This will generate a fully compliant AsyncAPI 3.1.0 document.
+This produces a fully compliant AsyncAPI 3.1.0 document.
 
-## Emitter Options
+## Emitter options
 
-You can configure the emitter using the following options in `tspconfig.yaml` or via CLI arguments:
+Set these in `tspconfig.yaml`, or pass them as CLI arguments:
 
-| Option                 | Type     | Default         | Description                                                                  |
-| ---------------------- | -------- | --------------- | ---------------------------------------------------------------------------- |
-| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file.                                                    |
-| `file-type`            | `string` | `yaml`          | Format of the generated document (`yaml` or `json`).                         |
-| `asyncapi-id`          | `string` | -               | Global identifier for the AsyncAPI document (`id` field).                    |
-| `default-content-type` | `string` | -               | Default content type used for message payloads (`defaultContentType` field). |
+| Option                 | Type     | Default         | Description                                                              |
+| ---------------------- | -------- | --------------- | ------------------------------------------------------------------------ |
+| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file.                                                |
+| `file-type`            | `string` | `yaml`          | Format of the generated document: `yaml` or `json`.                      |
+| `asyncapi-id`          | `string` | -               | Global identifier for the document. Maps to the `id` field.              |
+| `default-content-type` | `string` | -               | Default content type for message payloads. Maps to `defaultContentType`. |
 
-## Available Decorators
+## Schema conversion
 
-- `@AsyncAPI.info` - Sets the full AsyncAPI `info` block including version, description, contact, and license.
-- `@AsyncAPI.externalDocs` - Attaches external documentation links.
-- `@tag` - (Built-in) Adds standard tags to your AsyncAPI document.
-- `@service` - (Built-in) Extracts the API title automatically.
+This emitter converts a TypeSpec model, scalar, enum, or union to an AsyncAPI Schema Object automatically. Supported constructs include:
+
+- Models, including nested models, arrays, and `Record<T>`.
+- Scalars, including TypeSpec's built-in numeric/string/date scalars and user-declared derived scalars.
+- Enums and unions, including string-literal unions and `T | null`.
+- Inheritance (`extends`) and `@discriminator`, mapped to `allOf` and a `discriminator` field.
+- Validation keywords: `@minLength`, `@maxLength`, `@minValue`, `@maxValue`, `@minItems`, `@maxItems`, `@pattern`, and related decorators.
+- Documentation: `@doc`, `@summary`, and `@example`.
+- `@encodedName` for renaming a property's wire-format key.
+- Stable, argument-derived names for template instantiations (for example, `Page<string>` becomes `PageString` in `components.schemas`).
+
+A name collision between two declarations reports a diagnostic error. It does not rename either declaration automatically.
+
+## Available decorators
+
+- `@AsyncAPI.info` — Sets the full AsyncAPI `info` block: version, description, contact, and license.
+- `@AsyncAPI.externalDocs` — Attaches external documentation links.
+- `@AsyncAPI.oneOf` — Marks a union to emit `oneOf` instead of the default `anyOf`.
+- `@AsyncAPI.jsonSchemaExtension` — Adds one JSON Schema keyword this emitter has no dedicated decorator for, e.g. `@jsonSchemaExtension("unevaluatedProperties", false)`. Repeatable; each application adds one key/value pair.
+- `@tag` — Built-in. Adds standard tags to the document.
+- `@service` — Built-in. Extracts the API title automatically.
 
 ## Development
 
 ```bash
-pnpm install        # install dependencies
-pnpm build          # compile TypeScript to dist/
-pnpm test           # run tests (vitest)
-pnpm lint           # eslint
-pnpm format         # prettier
-pnpm docs           # generate API docs (typedoc)
+pnpm install        # Install dependencies.
+pnpm build          # Compile TypeScript to dist/.
+pnpm watch          # Compile in watch mode.
+pnpm test           # Run tests (vitest).
+pnpm lint           # Run eslint.
+pnpm format         # Run prettier.
+pnpm docs           # Generate API docs (typedoc).
 ```
+
+Other tools in this repo:
+
+- **api-extractor** — Tracks the public API surface (`pnpm api-extractor:local`).
+- **knip** — Finds unused code and dependencies (`pnpm knip`).
+- **husky + lint-staged** — Runs lint and format checks before each commit.
+
+## Roadmap
+
+- [x] Document skeleton, `info`, tags, external docs.
+- [x] TypeSpec-to-AsyncAPI-schema conversion (models, scalars, arrays, records, enums, unions, inheritance, validation).
+- [ ] Channel, operation (send/receive), and message decorators.
+- [ ] Mapping a TypeSpec model to an AsyncAPI message payload.
+- [ ] Server and protocol bindings, starting with Kafka.
+- [ ] Publish to npm.
+
+## License
+
+[MIT](./LICENSE)
