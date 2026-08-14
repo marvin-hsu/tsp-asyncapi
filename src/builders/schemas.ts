@@ -50,7 +50,6 @@ import {
   ANONYMOUS_MODEL_NAME_TOKEN,
   ANONYMOUS_UNION_NAME_TOKEN,
 } from "../constants.js";
-import { SchemaKeyRegistry } from "./schema-key-registry.js";
 
 /**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
@@ -1319,19 +1318,19 @@ function withPropertyDocs(
 
 /**
  * Computes the `components.schemas` key candidate for a named declaration
- * (model, enum, named union) and registers it through `registry.keyFor` —
- * the sole naming/collision-handling hook `SchemaBuilder.registerNamed`
- * calls into. See `./schema-key-registry.js`'s top-of-file comment for the
- * collision policy this delegates to and why this naming/collision layer is
- * kept isolated from the rest of this file's schema-shape building logic.
+ * (model, enum, named union) — a bare name, or, for a template instantiation,
+ * the name already composed with its type arguments' own names/namespaces
+ * (see `templateInstanceName`). No further disambiguation happens here: this
+ * is exactly one candidate, handed to `SchemaBuilder.registerNamed`, which
+ * decides whether that candidate is actually free.
  */
-function declarationKeyFor(registry: SchemaKeyRegistry, type: Model | Enum | Union): string {
+function declarationNameFor(type: Model | Enum | Union): string {
   switch (type.kind) {
     case "Model":
     case "Union":
-      return registry.keyFor(type, templateInstanceName(type));
+      return templateInstanceName(type);
     case "Enum":
-      return registry.keyFor(type, type.name);
+      return type.name;
   }
 }
 
@@ -1339,15 +1338,11 @@ function declarationKeyFor(registry: SchemaKeyRegistry, type: Model | Enum | Uni
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
  */
 export class SchemaBuilder {
-  private readonly keyRegistry: SchemaKeyRegistry;
   // Final `components.schemas` key -> built schema, in the order each
-  // declaration was first successfully built (mirrors the insertion order a
-  // single flat `Scope.declarations` array would have given).
+  // declaration was first successfully built.
   private readonly declaredSchemas = new Map<string, SchemaObject>();
 
-  public constructor(private readonly program: Program) {
-    this.keyRegistry = new SchemaKeyRegistry(program);
-  }
+  public constructor(private readonly program: Program) {}
 
   public getSchemas(): Record<string, SchemaObject> {
     const schemas: Record<string, SchemaObject> = Object.create(null) as Record<
@@ -1394,8 +1389,52 @@ export class SchemaBuilder {
   private readonly building = new Set<Type>();
   // Types whose declaration has already been built and pushed into
   // `declaredSchemas` (as opposed to merely having claimed a key — see
-  // `SchemaKeyRegistry`), mapped to their final `components.schemas` key.
+  // `schemaKeys`/`claimedBy` below), mapped to their final `components.schemas`
+  // key.
   private readonly declaredTypes = new Map<Type, string>();
+
+  /**
+   * ==========================================================================
+   * `components.schemas` key-collision handling.
+   * ==========================================================================
+   *
+   * Policy (architecture review, 2026-08-14 — supersedes the earlier
+   * auto-qualify/numeric-suffix ladder, see `plan/03-schemas.md` 2.10 finding
+   * 107): a name collision is a **hard diagnostic error**, not something this
+   * emitter silently resolves on the user's behalf. This mirrors
+   * `@typespec/openapi`'s own `checkDuplicateTypeName`/`duplicate-type-name`
+   * diagnostic (`packages/openapi/src/helpers.ts` in microsoft/typespec),
+   * verified firsthand as that package's actual, shipped behavior: it reports
+   * an error and lets the caller carry on, rather than inventing an alternate
+   * name.
+   *
+   * `@typespec/compiler/utils` ships a `DuplicateTracker<K, V>` built for
+   * exactly this kind of "record everything, then report the duplicates"
+   * check (it's what `@typespec/json-schema`'s own emitter uses for its
+   * `duplicate-id` diagnostic) — considered here first before hand-rolling
+   * anything. It doesn't fit this use site, though: several tests here check
+   * `program.diagnostics` immediately after a single `buildSchema` call,
+   * without ever calling `getSchemas()` — the diagnostic must be reported
+   * *synchronously*, the moment a second type claims an already-taken name,
+   * not deferred to one batch pass at the end the way `DuplicateTracker`'s
+   * `entries()` is designed to be consumed. A plain `Map<string, Type>`
+   * recording each key's first claimant gives that synchronous check in O(1)
+   * with no extra machinery.
+   *
+   * (This also replaces two earlier versions of this same mechanism that
+   * lived in a separate `schema-key-registry.ts` module: one built on
+   * `@typespec/asset-emitter`'s `Declaration`/`Scope` — which does zero
+   * dedup/collision detection of its own — and one on `@alloy-js/core`'s
+   * `Binder`/`NameConflictResolver` — which does, but only via a queued
+   * reactive job that has to be manually flushed per lookup, and pulls in an
+   * entire code-generation framework whose actual value-add here was this one
+   * hook. Neither is needed: the policy is small enough, and specific enough
+   * to this project's synchronous-reporting requirement, to just live here as
+   * two plain fields.)
+   * ==========================================================================
+   */
+  private readonly schemaKeys = new Map<Type, string>();
+  private readonly claimedBy = new Map<string, Type>();
 
   // Dedupes range/length-constraint diagnostics per (target, diagnostic
   // code) so a scalar re-walked at every use site (see
@@ -1495,8 +1534,55 @@ export class SchemaBuilder {
    * collision-handling hook (see `./schema-key-registry.js`). The built value
    * is then stored directly in `declaredSchemas` under that key.
    */
+  /**
+   * Returns the `components.schemas` key for `type`, registering it (and, on
+   * a genuine collision with a *different* type, reporting
+   * `duplicate-schema-key`) on first use. See this class's `schemaKeys`/
+   * `claimedBy` fields above for the collision policy.
+   */
+  private keyFor(type: Model | Enum | Union): string {
+    const cached = this.schemaKeys.get(type);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const name = declarationNameFor(type);
+    this.schemaKeys.set(type, name);
+    const owner = this.claimedBy.get(name);
+    if (owner === undefined) {
+      this.claimedBy.set(name, type);
+    } else if (owner !== type) {
+      reportDiagnostic(this.program, {
+        code: "duplicate-schema-key",
+        target: type,
+        format: { name },
+      });
+    }
+    return name;
+  }
+
+  /**
+   * Releases the key claimed by `type`, if any — used when building that
+   * type's schema body fails partway through, so the key is not left
+   * reserved with no corresponding emitted schema (which would otherwise
+   * leave any `$ref` to it dangling).
+   */
+  private releaseKey(type: Type): void {
+    const key = this.schemaKeys.get(type);
+    if (key === undefined) {
+      return;
+    }
+    this.schemaKeys.delete(type);
+    // Only clear the name -> type reservation if `type` is still its owner: a
+    // type that lost the race (the collision branch above) never became the
+    // owner, so releasing it must not evict whichever other type actually
+    // holds that slot.
+    if (this.claimedBy.get(key) === type) {
+      this.claimedBy.delete(key);
+    }
+  }
+
   private registerNamed(type: Model | Enum | Union, build: () => SchemaObject): ReferenceObject {
-    const key = declarationKeyFor(this.keyRegistry, type);
+    const key = this.keyFor(type);
     if (this.declaredTypes.has(type) || this.building.has(type)) {
       return refFor(key);
     }
@@ -1507,12 +1593,11 @@ export class SchemaBuilder {
       this.declaredSchemas.set(key, value);
     } catch (error) {
       // `build()` failed: release the key this type claimed so it is not
-      // left reserved in `keyRegistry` with no corresponding entry in
-      // `declaredSchemas` — otherwise a retry (or another reference to the
-      // same type) would see `this.building` no longer containing it and no
-      // declaration present, and return a `$ref` pointing at a component
-      // that will never exist.
-      this.keyRegistry.release(type);
+      // left reserved with no corresponding entry in `declaredSchemas` —
+      // otherwise a retry (or another reference to the same type) would see
+      // `this.building` no longer containing it and no declaration present,
+      // and return a `$ref` pointing at a component that will never exist.
+      this.releaseKey(type);
       throw error;
     } finally {
       this.building.delete(type);
