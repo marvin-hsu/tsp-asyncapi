@@ -54,6 +54,7 @@
     }
   },
   "dependencies": {
+    "@alloy-js/core": "^0.24.1",
     "@typespec/compiler": "^1.14.0",
     "yaml": "^2.9.0"
   },

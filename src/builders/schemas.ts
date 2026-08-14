@@ -50,6 +50,7 @@ import {
   ANONYMOUS_MODEL_NAME_TOKEN,
   ANONYMOUS_UNION_NAME_TOKEN,
 } from "../constants.js";
+import { SchemaKeyRegistry } from "./schema-key-registry.js";
 
 /**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
@@ -314,22 +315,6 @@ function findNeverOverrideOfInheritedProperty(model: Model): ModelProperty | und
     }
   }
   return undefined;
-}
-
-/**
- * Returns the dot-separated fully qualified name of a named declaration
- * (e.g. `Foo.Bar.Model`). Declarations in the global namespace have no
- * prefix. Shared by every kind of named type that can be registered into
- * `components.schemas` (model, enum, named union).
- */
-function getQualifiedName(name: string, namespace: Namespace | undefined): string {
-  const parts = [name];
-  let ns = namespace;
-  while (ns?.name) {
-    parts.unshift(ns.name);
-    ns = ns.namespace;
-  }
-  return parts.join(".");
 }
 
 /**
@@ -1333,18 +1318,46 @@ function withPropertyDocs(
 }
 
 /**
+ * Computes the `components.schemas` key candidate for a named declaration
+ * (model, enum, named union) and registers it through `registry.keyFor` —
+ * the sole naming/collision-handling hook `SchemaBuilder.registerNamed`
+ * calls into. See `./schema-key-registry.js`'s top-of-file comment for the
+ * collision policy this delegates to and why this naming/collision layer is
+ * kept isolated from the rest of this file's schema-shape building logic.
+ */
+function declarationKeyFor(registry: SchemaKeyRegistry, type: Model | Enum | Union): string {
+  switch (type.kind) {
+    case "Model":
+    case "Union":
+      return registry.keyFor(type, templateInstanceName(type));
+    case "Enum":
+      return registry.keyFor(type, type.name);
+  }
+}
+
+/**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
  */
 export class SchemaBuilder {
-  public constructor(private readonly program: Program) {}
+  private readonly keyRegistry: SchemaKeyRegistry;
+  // Final `components.schemas` key -> built schema, in the order each
+  // declaration was first successfully built (mirrors the insertion order a
+  // single flat `Scope.declarations` array would have given).
+  private readonly declaredSchemas = new Map<string, SchemaObject>();
 
-  private readonly schemas: Record<string, SchemaObject> = Object.create(null) as Record<
-    string,
-    SchemaObject
-  >;
+  public constructor(private readonly program: Program) {
+    this.keyRegistry = new SchemaKeyRegistry(program);
+  }
 
   public getSchemas(): Record<string, SchemaObject> {
-    return this.schemas;
+    const schemas: Record<string, SchemaObject> = Object.create(null) as Record<
+      string,
+      SchemaObject
+    >;
+    for (const [key, value] of this.declaredSchemas) {
+      schemas[key] = value;
+    }
+    return schemas;
   }
 
   public buildSchema(type: Type): SchemaObject | ReferenceObject {
@@ -1379,8 +1392,10 @@ export class SchemaBuilder {
   // narrower type so every kind of named declaration shares one registry —
   // and, with it, one circular-reference guard.
   private readonly building = new Set<Type>();
-  private readonly schemaKeys = new Map<Type, string>();
-  private readonly usedKeys = new Set<string>();
+  // Types whose declaration has already been built and pushed into
+  // `declaredSchemas` (as opposed to merely having claimed a key — see
+  // `SchemaKeyRegistry`), mapped to their final `components.schemas` key.
+  private readonly declaredTypes = new Map<Type, string>();
 
   // Dedupes range/length-constraint diagnostics per (target, diagnostic
   // code) so a scalar re-walked at every use site (see
@@ -1388,43 +1403,6 @@ export class SchemaBuilder {
   // `registerNamed` gives models/enums/unions) is not re-diagnosed once per
   // property that uses it.
   private readonly diagnosedTargets = new Map<Type, Set<string>>();
-
-  /**
-   * Returns the `components.schemas` key for a named declaration (model,
-   * enum, or named union), registering it on first use. Uses the bare name
-   * unless another declaration already claimed it, in which case the
-   * dot-separated fully qualified name (e.g. `Foo.Bar.Model`) is used.
-   * The qualified name is not guaranteed unique either — a global-namespace
-   * declaration's qualified name equals its bare name, and every
-   * instantiation of one template shares both — so taken candidates fall
-   * through to the qualified name with a numeric suffix (e.g. `Foo.Bar.Model_2`).
-   */
-  private getSchemaKey(type: Type, name: string, namespace: Namespace | undefined): string {
-    const cached = this.schemaKeys.get(type);
-    if (cached !== undefined) {
-      return cached;
-    }
-    const key = this.findFreeKey(name, namespace);
-    this.schemaKeys.set(type, key);
-    this.usedKeys.add(key);
-    return key;
-  }
-
-  private findFreeKey(name: string, namespace: Namespace | undefined): string {
-    if (!this.usedKeys.has(name)) {
-      return name;
-    }
-    const qualified = getQualifiedName(name, namespace);
-    if (!this.usedKeys.has(qualified)) {
-      return qualified;
-    }
-    for (let n = 2; ; n++) {
-      const candidate = `${qualified}_${String(n)}`;
-      if (!this.usedKeys.has(candidate)) {
-        return candidate;
-      }
-    }
-  }
 
   private buildModelSchema(model: Model): SchemaObject | ReferenceObject {
     if (isUninstantiatedTemplateDeclaration(model)) {
@@ -1500,7 +1478,7 @@ export class SchemaBuilder {
     if (!model.name) {
       return build();
     }
-    return this.registerNamed(model, templateInstanceName(model), model.namespace, build);
+    return this.registerNamed(model, build);
   }
 
   /**
@@ -1511,29 +1489,30 @@ export class SchemaBuilder {
    * `$ref` without recomputing. Shared by every named declaration kind
    * (model, enum, named union) so the register/$ref/circular-guard dance
    * lives in exactly one place.
+   *
+   * The `components.schemas` key itself comes from `declarationKeyFor`, which
+   * delegates to `SchemaKeyRegistry.keyFor` — this builder's own
+   * collision-handling hook (see `./schema-key-registry.js`). The built value
+   * is then stored directly in `declaredSchemas` under that key.
    */
-  private registerNamed(
-    type: Type,
-    name: string,
-    namespace: Namespace | undefined,
-    build: () => SchemaObject,
-  ): ReferenceObject {
-    const key = this.getSchemaKey(type, name, namespace);
-    if (Object.hasOwn(this.schemas, key) || this.building.has(type)) {
+  private registerNamed(type: Model | Enum | Union, build: () => SchemaObject): ReferenceObject {
+    const key = declarationKeyFor(this.keyRegistry, type);
+    if (this.declaredTypes.has(type) || this.building.has(type)) {
       return refFor(key);
     }
     this.building.add(type);
     try {
-      this.schemas[key] = build();
+      const value = build();
+      this.declaredTypes.set(type, key);
+      this.declaredSchemas.set(key, value);
     } catch (error) {
       // `build()` failed: release the key this type claimed so it is not
-      // left registered under `schemaKeys`/`usedKeys` with no corresponding
-      // entry in `this.schemas` — otherwise a retry (or another reference to
-      // the same type) would see `this.building` no longer containing it and
-      // `this.schemas` still missing the key, and return a `$ref` pointing at
-      // a component that will never exist.
-      this.schemaKeys.delete(type);
-      this.usedKeys.delete(key);
+      // left reserved in `keyRegistry` with no corresponding entry in
+      // `declaredSchemas` — otherwise a retry (or another reference to the
+      // same type) would see `this.building` no longer containing it and no
+      // declaration present, and return a `$ref` pointing at a component
+      // that will never exist.
+      this.keyRegistry.release(type);
       throw error;
     } finally {
       this.building.delete(type);
@@ -1542,7 +1521,7 @@ export class SchemaBuilder {
   }
 
   private buildEnumSchema(type: Enum): ReferenceObject {
-    return this.registerNamed(type, type.name, type.namespace, () =>
+    return this.registerNamed(type, () =>
       withDocs(this.program, type, buildEnumSchemaBody(type), this.diagnosedTargets),
     );
   }
@@ -1556,7 +1535,7 @@ export class SchemaBuilder {
     if (type.name === undefined) {
       return build();
     }
-    return this.registerNamed(type, templateInstanceName(type), type.namespace, build);
+    return this.registerNamed(type, build);
   }
 
   /**

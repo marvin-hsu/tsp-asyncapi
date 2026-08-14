@@ -115,6 +115,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Property "${"property"}" is declared \`never\` to remove an inherited property, but keeping the inherited schema as a separate \`allOf\`/\`$ref\` branch would still require it. This model's schema was flattened (inherited properties inlined, with the \`never\`-typed property omitted) instead.`,
       },
     },
+    "duplicate-schema-key": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate schema name: '${"name"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema,
