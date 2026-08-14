@@ -215,7 +215,143 @@ export class SchemaBuilder {
     if (!model.name) {
       return this.buildAnonymousGuarded(model, build);
     }
-    return this.registerNamed(model, build);
+    return this.buildNamedDeclaration(model, build);
+  }
+
+  /**
+   * Tracks a named declaration that re-entered itself while being inlined.
+   * `buildNamedDeclaration` reads it to decide that the inline attempt must
+   * be redone as a registered declaration.
+   */
+  private readonly selfReferencingInlines = new Set<Type>();
+
+  /**
+   * Caches the built shape of an unspeakable declaration that inlines.
+   * A registered declaration is cached by `declaredTypes` instead, and
+   * resolves to a `$ref`. An inlined one has no key to resolve to, so its
+   * whole shape is kept here and returned to every later reference site.
+   * This keeps the body built exactly once, however many sites reference it.
+   */
+  private readonly inlinedShapes = new Map<Type, SchemaObject>();
+
+  /**
+   * Builds the schema for a *named* `Model` or `Union`, choosing between a
+   * registered `components.schemas` entry and an inline shape.
+   *
+   * A declaration with a compact composed name, such as `Order` or
+   * `Envelope<Order>`, always registers. This is the common case.
+   *
+   * A declaration with no compact composed name is "unspeakable": a
+   * template instantiation with a type argument that has no fixed identity
+   * of its own to name it after (an anonymous `Model`/`Union`, a literal, a
+   * `Tuple`, a value, ... see `templateArgDisplayName`). Such a declaration
+   * inlines by preference. `SchemaKeyRegistry` can still key it, through
+   * `fallbackDeclarationName`, but that key is long and unreadable, so
+   * inlining gives the better document.
+   *
+   * Inlining cannot express a self-reference. `Node<{x: string}>` with a
+   * `children: Node<T>[]` property re-enters itself, and expanding one more
+   * level always leaves another self-reference behind. So a re-entry while
+   * inlining marks the type and returns a `$ref` to its fallback key. The
+   * outer frame sees the mark, discards the inline shape, and registers the
+   * declaration instead. Every reference then resolves to one real
+   * component.
+   * The discarded inline shape is not rebuilt. Its nested self-references
+   * already resolved to a `$ref` at this type's fallback key, the same key
+   * the registration claims. So that shape is registered directly as the
+   * component body.
+   * Building it a second time would repeat every diagnostic the first
+   * attempt reported. Codes such as `unsupported-payload-type` are
+   * deliberately not deduped, so the user would see one mistake reported
+   * twice.
+   * A later reference to the same promoted declaration returns the cached
+   * `$ref` through the `declaredTypes` check below. So the body is built
+   * exactly once however many sites reference it.
+   */
+  private buildNamedDeclaration(
+    type: Model | Union,
+    build: () => SchemaObject,
+  ): SchemaObject | ReferenceObject {
+    // An already-declared type resolves straight to its `$ref`. This
+    // mirrors `registerNamed`'s own `declaredTypes` guard, and it is what
+    // makes a promoted, unspeakable declaration build exactly once no matter
+    // how many sites reference it. Without it, a second reference finds
+    // `nameFor` still `undefined` and `building` no longer holding the type,
+    // so it would re-enter the inline path and rebuild the whole body.
+    const declared = this.declaredTypes.get(type);
+    if (declared !== undefined) {
+      return refFor(declared);
+    }
+    // A second reference to an unspeakable declaration that already inlined
+    // promotes it to a registered component, and every reference from here
+    // on resolves to a `$ref` through the `declaredTypes` check above.
+    //
+    // Inlining is preferred for a single use: the shape reads better in
+    // place than behind a long, generated fallback key. But inlining copies
+    // the whole shape into every site that uses it. Nested unspeakable
+    // declarations then duplicate multiplicatively. A chain where each level
+    // references the level below twice emits 2^depth copies of the innermost
+    // shape: measured at 1.1 MB for a 12-level chain, and 17 MB at 16
+    // levels, from about 20 lines of TypeSpec. Promoting on the second use
+    // keeps that growth linear.
+    //
+    // The already-built shape is registered as the component body rather
+    // than rebuilt. Rebuilding would report every diagnostic of the first
+    // build a second time; codes such as `unsupported-payload-type` are
+    // deliberately not deduped.
+    //
+    // The site that took the first reference keeps its inline copy. Only
+    // that site holds it, and the emitted schema is the same shape either
+    // way, so the document stays correct. Converting it after the fact is
+    // not possible: a property that adds its own documentation or validation
+    // spreads the shape into a fresh object (see `withPropertyDocs`), so
+    // that site holds a copy rather than the cached object.
+    const inlinedShape = this.inlinedShapes.get(type);
+    if (inlinedShape !== undefined) {
+      this.inlinedShapes.delete(type);
+      const promotedKey = this.keyRegistry.keyFor(type);
+      this.declaredTypes.set(type, promotedKey);
+      this.declaredSchemas.set(promotedKey, inlinedShape);
+      return refFor(promotedKey);
+    }
+    // The name is asked of `SchemaKeyRegistry`, which memoizes it, so the
+    // registration that follows reuses this same computation instead of
+    // walking the template argument chain a second time.
+    if (this.keyRegistry.nameFor(type) !== undefined) {
+      return this.registerNamed(type, build);
+    }
+    if (this.building.has(type)) {
+      this.selfReferencingInlines.add(type);
+      return refFor(this.keyRegistry.keyFor(type));
+    }
+    this.building.add(type);
+    let inlined: SchemaObject;
+    try {
+      inlined = build();
+    } catch (error) {
+      // A self-reference reached while `build` was running claimed this
+      // type's fallback key from `keyRegistry` (see the branch above). The
+      // build then failed, so nothing will ever be registered under that
+      // key. Release it, exactly as `registerNamed` does in its own `catch`,
+      // so a retry or another reference does not resolve to a `$ref`
+      // pointing at a component that never exists.
+      this.keyRegistry.release(type);
+      this.selfReferencingInlines.delete(type);
+      throw error;
+    } finally {
+      this.building.delete(type);
+    }
+    if (!this.selfReferencingInlines.has(type)) {
+      this.inlinedShapes.set(type, inlined);
+      return inlined;
+    }
+    // Register the shape already in hand instead of rebuilding it. See this
+    // method's doc comment: a second `build` would report every diagnostic
+    // of the first one again.
+    const key = this.keyRegistry.keyFor(type);
+    this.declaredTypes.set(type, key);
+    this.declaredSchemas.set(key, inlined);
+    return refFor(key);
   }
 
   /**
@@ -304,7 +440,7 @@ export class SchemaBuilder {
     if (type.name === undefined) {
       return this.buildAnonymousGuarded(type, build);
     }
-    return this.registerNamed(type, build);
+    return this.buildNamedDeclaration(type, build);
   }
 
   /**

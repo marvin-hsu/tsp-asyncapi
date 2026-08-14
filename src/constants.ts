@@ -34,9 +34,3 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
 export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {
   return ns?.name === TYPESPEC_NAMESPACE_NAME && !ns.namespace?.name;
 }
-
-/** Fallback base name for an anonymous `Model` template argument with no properties to derive one from. */
-export const ANONYMOUS_MODEL_NAME_TOKEN = "Anonymous";
-
-/** Fallback base name for an anonymous `Union` template argument with no variants to derive one from. */
-export const ANONYMOUS_UNION_NAME_TOKEN = "Union";

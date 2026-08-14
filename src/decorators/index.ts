@@ -7,6 +7,7 @@ import {
   Model,
   ModelProperty,
 } from "@typespec/compiler";
+import { useStateMap, useStateSet } from "@typespec/compiler/utils";
 
 /** @public */
 export const namespace = "AsyncAPI";
@@ -24,6 +25,8 @@ export interface AsyncAPIInfoState {
   contact?: { name?: string; url?: string; email?: string };
   license?: { name: string; url?: string };
 }
+
+const [getInfoInternal, setInfo] = useStateMap<Namespace, AsyncAPIInfoState>(infoStateKey);
 
 /**
  * Sets the AsyncAPI `info` metadata for the service.
@@ -43,18 +46,26 @@ export interface AsyncAPIInfoState {
  * namespace Orders;
  * ```
  *
- * @category Decorators
  * @public
  */
 export function $info(context: DecoratorContext, target: Namespace, info: AsyncAPIInfoState) {
   const infoData: AsyncAPIInfoState = { ...info };
   if (!infoData.version) infoData.version = "0.0.0";
-  context.program.stateMap(infoStateKey).set(target, infoData);
+  setInfo(context.program, target, infoData);
 }
 
-/** @public */
+/**
+ * Reads back the AsyncAPI `info` metadata set by `@info`.
+ *
+ * @param program - The program to read the state from
+ * @param target - The namespace the decorator was applied to
+ * @returns The recorded info state, or `undefined` when the decorator was
+ * never applied
+ *
+ * @public
+ */
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined {
-  return program.stateMap(infoStateKey).get(target) as AsyncAPIInfoState | undefined;
+  return getInfoInternal(program, target);
 }
 
 const externalDocsKey = Symbol.for("typespec-asyncapi.externalDocs");
@@ -67,6 +78,10 @@ export interface ExternalDocsState {
   url: string;
   description?: string;
 }
+
+const [getExternalDocsInternal, setExternalDocs] = useStateMap<Type, ExternalDocsState>(
+  externalDocsKey,
+);
 
 /**
  * Attaches external documentation to a component or namespace.
@@ -82,7 +97,6 @@ export interface ExternalDocsState {
  * namespace Orders;
  * ```
  *
- * @category Decorators
  * @public
  */
 export function $externalDocs(
@@ -91,15 +105,26 @@ export function $externalDocs(
   url: string,
   description?: string,
 ) {
-  context.program.stateMap(externalDocsKey).set(target, { url, description });
+  setExternalDocs(context.program, target, { url, description });
 }
 
-/** @public */
+/**
+ * Reads back the external documentation set by `@externalDocs`.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ * @returns The recorded external-docs state, or `undefined` when the
+ * decorator was never applied
+ *
+ * @public
+ */
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined {
-  return program.stateMap(externalDocsKey).get(target) as ExternalDocsState | undefined;
+  return getExternalDocsInternal(program, target);
 }
 
 const oneOfStateKey = Symbol.for("typespec-asyncapi.oneOf");
+
+const [isOneOfInternal, markOneOf] = useStateSet<Union>(oneOfStateKey);
 
 /**
  * Marks a union to emit `oneOf` instead of the default `anyOf` for its
@@ -117,16 +142,23 @@ const oneOfStateKey = Symbol.for("typespec-asyncapi.oneOf");
  * union Shape { Circle, Square }
  * ```
  *
- * @category Decorators
  * @public
  */
 export function $oneOf(context: DecoratorContext, target: Union) {
-  context.program.stateSet(oneOfStateKey).add(target);
+  markOneOf(context.program, target);
 }
 
-/** @public */
+/**
+ * Tells whether `@oneOf` marks this union.
+ *
+ * @param program - The program to read the state from
+ * @param target - The union to test
+ * @returns True when the decorator was applied to `target`
+ *
+ * @public
+ */
 export function isOneOf(program: Program, target: Union): boolean {
-  return program.stateSet(oneOfStateKey).has(target);
+  return isOneOfInternal(program, target);
 }
 
 const jsonSchemaExtensionStateKey = Symbol.for("typespec-asyncapi.jsonSchemaExtension");
@@ -139,6 +171,11 @@ export interface JsonSchemaExtensionRecord {
   key: string;
   value: unknown;
 }
+
+const [getJsonSchemaExtensionsInternal, setJsonSchemaExtensions] = useStateMap<
+  Model | ModelProperty,
+  JsonSchemaExtensionRecord[]
+>(jsonSchemaExtensionStateKey);
 
 /**
  * Adds one raw key/value pair to a model's or property's own emitted schema.
@@ -159,7 +196,6 @@ export interface JsonSchemaExtensionRecord {
  * model Order { id: string; }
  * ```
  *
- * @category Decorators
  * @public
  */
 export function $jsonSchemaExtension(
@@ -168,10 +204,9 @@ export function $jsonSchemaExtension(
   key: string,
   value: unknown,
 ) {
-  const stateMap = context.program.stateMap(jsonSchemaExtensionStateKey);
-  const existing = (stateMap.get(target) as JsonSchemaExtensionRecord[] | undefined) ?? [];
+  const existing = getJsonSchemaExtensionsInternal(context.program, target) ?? [];
   existing.push({ key, value });
-  stateMap.set(target, existing);
+  setJsonSchemaExtensions(context.program, target, existing);
 }
 
 /** @public */
@@ -179,8 +214,5 @@ export function getJsonSchemaExtensions(
   program: Program,
   target: Model | ModelProperty,
 ): JsonSchemaExtensionRecord[] {
-  return (
-    (program.stateMap(jsonSchemaExtensionStateKey).get(target) as
-      JsonSchemaExtensionRecord[] | undefined) ?? []
-  );
+  return getJsonSchemaExtensionsInternal(program, target) ?? [];
 }

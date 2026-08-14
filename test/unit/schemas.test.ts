@@ -361,14 +361,14 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.r.$ref).toBe("#/components/schemas/ASep126B");
     });
 
-    it("reports a diagnostic error for two same-named models even when one sits in a `/`-containing namespace", async () => {
-      // This formerly exercised the qualified-name fallback's `/` -> `~1`
-      // JSON-Pointer escaping. A `/`-containing namespace's qualified name,
-      // e.g. `a/b.Foo`, needed escaping before use as a `$ref`. That
-      // fallback no longer exists under the hard-error policy. A
-      // namespace's name never enters the candidate key at all, so there
-      // is nothing here left to escape. Both models compute the same bare
-      // "Foo" name and collide.
+    it("Sep-encodes a `/`-containing namespace's name into the key, instead of colliding with a same-named global model", async () => {
+      // A plain (non-template) declaration's key is namespace-qualified by
+      // default (see `declarationNameFor`). `NsFoo` and `GlobalFoo` no
+      // longer compute the same bare "Foo" candidate, so they no longer
+      // collide. Each namespace segment goes through the same sanitizer a
+      // declaration's own name does, so a backtick-quoted namespace such as
+      // `` `a/b` `` cannot leak a charset-illegal character into the key.
+      // The emitted $ref then needs no JSON-Pointer escaping either.
       const runner = await AsyncAPITester.createInstance();
       const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace \`a/b\` {
@@ -380,15 +380,50 @@ describe("Unit: Schemas (Phase 2)", () => {
       `);
 
       const builder = new SchemaBuilder(runner.program);
-      builder.buildSchema(GlobalFoo as Model);
+      const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
-      expect(ref2.$ref).toBe("#/components/schemas/Foo");
+      expect(ref1.$ref).toBe("#/components/schemas/Foo");
+      expect(ref2.$ref).toBe("#/components/schemas/ASep47B.Foo");
+      expect(Object.hasOwn(builder.getSchemas(), "ASep47B.Foo")).toBe(true);
+      expect(Object.hasOwn(builder.getSchemas(), "a/b.Foo")).toBe(false);
+
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
+    });
+
+    it("Sep-encodes a `#`-containing or space-containing namespace's name, keeping the key in the AsyncAPI charset and the $ref resolvable", async () => {
+      // A raw `#` in a key would put a second `#` in the $ref URI, which is
+      // not a resolvable fragment, and a raw space is not a legal key
+      // character either. Neither survives sanitization.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        namespace \`a#b\` { model F { x: string; } }
+        namespace \`has space\` { model G { y: string; } }
+        @test("M")
+        model M {
+          f: \`a#b\`.F;
+          g: \`has space\`.G;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+
+      const components = builder.getSchemas() as Record<string, any>;
+      const props = components.M.properties as Record<string, any>;
+      for (const ref of [props.f.$ref, props.g.$ref] as string[]) {
+        expect(ref.split("#")).toHaveLength(2);
+        expect(ref).not.toContain(" ");
+        const key = ref.replace("#/components/schemas/", "");
+        expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+        expect(Object.hasOwn(components, key)).toBe(true);
+      }
+      // '#' (35) and ' ' (32) are each Sep-encoded distinctly.
+      expect(props.f.$ref).toBe("#/components/schemas/ASep35B.F");
+      expect(props.g.$ref).toBe("#/components/schemas/HasSep32Space.G");
     });
 
     it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {
@@ -1083,7 +1118,13 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.flag).toEqual({ type: "boolean", enum: [true] });
     });
 
-    it("reports a diagnostic error for colliding model names from different namespaces", async () => {
+    it("gives same-named models in different namespaces distinct, namespace-qualified keys instead of colliding", async () => {
+      // `declarationNameFor` now prefixes a plain (non-template)
+      // declaration's own name with its namespace chain by default (see
+      // `namespacePrefix`), matching the official
+      // `getTypeName`/`getNamespacePrefix` behavior. `NS1.Duplicate1` and
+      // `NS2.Duplicate1` compute different candidates, so they no longer
+      // collide and no diagnostic is reported.
       const runner = await AsyncAPITester.createInstance();
       const { Type1, Type2 } = await runner.compile(t.code`
         namespace NS1 {
@@ -1104,23 +1145,20 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(Type1 as Model) as any;
       const ref2 = builder.buildSchema(Type2 as Model) as any;
 
-      // First model keeps the bare name; the later collider hits the
-      // hard-error policy (matching `@typespec/openapi3`'s own
-      // `duplicate-type-name` diagnostic) instead of being silently
-      // renamed. It still degrades to a usable (if colliding) $ref/key
-      // rather than crashing.
-      expect(ref1.$ref).toBe("#/components/schemas/Duplicate1");
-      expect(ref2.$ref).toBe("#/components/schemas/Duplicate1");
+      expect(ref1.$ref).toBe("#/components/schemas/NS1.Duplicate1");
+      expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
-      expect(String(diagnostic?.message)).toMatch(/Duplicate schema name: 'Duplicate1'/);
+      expect(diagnostic).toBeUndefined();
     });
 
-    it("reports a diagnostic error disambiguating a global-namespace model colliding with a namespaced one (namespaced first)", async () => {
+    it("gives a global-namespace model and a namespaced same-named model distinct keys (namespaced built first)", async () => {
+      // The global namespace's own prefix is the empty string (see
+      // `namespacePrefix`), so `GlobalFoo` keeps the bare "Foo" key while
+      // `NsFoo` gets the namespace-qualified "NS2.Foo" key. The two no
+      // longer compute the same candidate, regardless of build order.
       const runner = await AsyncAPITester.createInstance();
       const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace NS2 {
@@ -1139,20 +1177,16 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(NsFoo as Model) as any;
       const ref2 = builder.buildSchema(GlobalFoo as Model) as any;
 
-      // Both models compute the same bare candidate name ("Foo"); the
-      // second one to be built collides and gets a hard-error diagnostic
-      // instead of a numeric-suffix rename.
-      expect(ref1.$ref).toBe("#/components/schemas/Foo");
+      expect(ref1.$ref).toBe("#/components/schemas/NS2.Foo");
       expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
     });
 
-    it("reports a diagnostic error disambiguating a global-namespace model colliding with a namespaced one (global first)", async () => {
+    it("gives a global-namespace model and a namespaced same-named model distinct keys (global built first)", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { NsFoo, GlobalFoo } = await runner.compile(t.code`
         namespace NS2 {
@@ -1172,13 +1206,74 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
       expect(ref1.$ref).toBe("#/components/schemas/Foo");
-      expect(ref2.$ref).toBe("#/components/schemas/Foo");
+      expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
+    });
+
+    it("leaves the service namespace out of a schema key, while still qualifying a namespace nested under it", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { Order, SubOrder } = await runner.compile(t.code`
+        @service(#{ title: "Order Events" })
+        namespace MyService;
+        @test("Order")
+        model Order {
+          id: string;
+        }
+        namespace Sub {
+          @test("SubOrder")
+          model Order {
+            id: int32;
+          }
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      const ref1 = builder.buildSchema(Order as Model) as any;
+      const ref2 = builder.buildSchema(SubOrder as Model) as any;
+
+      // Nearly every declaration in a single-service spec lives under the
+      // service namespace, so it carries no distinguishing information. The
+      // official emitters drop it through their own `namespaceFilter`. A
+      // namespace nested under it still qualifies the key.
+      expect(ref1.$ref).toBe("#/components/schemas/Order");
+      expect(ref2.$ref).toBe("#/components/schemas/Sub.Order");
+    });
+
+    it("gives two same-named templates in sibling namespaces distinct keys for the same type argument", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Order { id: string; }
+        namespace A {
+          model Env<T> { a: T; }
+        }
+        namespace B {
+          model Env<T> { b: T; }
+        }
+        @test("M")
+        model M {
+          x: A.Env<Order>;
+          y: B.Env<Order>;
+        }
+      `);
+
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+
+      // A template instantiation is qualified by its own declaring
+      // namespace, exactly like a plain declaration. Only the arguments'
+      // namespaces would not tell these two apart.
+      expect(props.x).toEqual({ $ref: "#/components/schemas/A.EnvOrder" });
+      expect(props.y).toEqual({ $ref: "#/components/schemas/B.EnvOrder" });
+
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(diagnostic).toBeUndefined();
     });
 
     it("should give each template instantiation its own schema key", async () => {
@@ -1201,17 +1296,21 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(W as Model);
 
       const components = builder.getSchemas();
-      const props = components.W.properties as Record<string, any>;
+      // `W` is itself a plain (non-template) declaration inside `NS`, so its
+      // own key is namespace-qualified: "NS.W", not the bare "W".
+      const props = components["NS.W"].properties as Record<string, any>;
       const refs = [props.a.$ref, props.b.$ref, props.c.$ref] as string[];
       // Every instantiation of Page<T> is named from the template's own
-      // name plus its type argument's display name. Each instantiation gets
-      // its own distinguishable key up front. It does not fall through the
-      // qualified-name/numeric-suffix ladder, which only a *further*
-      // collision would still need.
+      // name plus its type argument's display name, and is qualified by its
+      // own declaring namespace exactly like a plain declaration. So each
+      // instantiation gets its own distinguishable key up front. Two
+      // instantiations of one template never compete for a key, and a
+      // genuine collision with an unrelated declaration is a hard
+      // `duplicate-schema-key` error rather than a silent rename.
       expect(refs).toEqual([
-        "#/components/schemas/PageString",
-        "#/components/schemas/PageInt32",
-        "#/components/schemas/PageBoolean",
+        "#/components/schemas/NS.PageString",
+        "#/components/schemas/NS.PageInt32",
+        "#/components/schemas/NS.PageBoolean",
       ]);
 
       const itemTypes = refs.map((ref) => {
@@ -1222,7 +1321,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(itemTypes).toEqual(["string", "integer", "boolean"]);
     });
 
-    it("reports a diagnostic error for two same-named models under different multi-level namespace chains", async () => {
+    it("gives two same-named models under different multi-level namespace chains distinct, namespace-qualified keys", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { GlobalModel, NestedModel } = await runner.compile(t.code`
         @test("GlobalModel")
@@ -1243,20 +1342,20 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(GlobalModel as Model) as any;
       const ref2 = builder.buildSchema(NestedModel as Model) as any;
 
-      // Namespace nesting is no longer consulted as a fallback candidate:
-      // both models compute the same bare "Widget" name, so the second one
-      // built hits the hard-error policy.
+      // The global namespace contributes no prefix; the nested chain is
+      // joined with '.' and separated from the declaration's own name by a
+      // further '.' (see `namespacePrefix`), so the two no longer compute
+      // the same candidate.
       expect(ref1.$ref).toBe("#/components/schemas/Widget");
-      expect(ref2.$ref).toBe("#/components/schemas/Widget");
+      expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
     });
 
-    it("keeps a stable (colliding) $ref, and does not re-report the diagnostic, when a collided model is referenced again", async () => {
+    it("keeps a stable $ref, with no diagnostic, when a namespace-qualified model is referenced again from a sibling namespace", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { Type1, Type2, Wrapper } = await runner.compile(t.code`
         namespace NS1 {
@@ -1283,28 +1382,29 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(Wrapper as Model);
 
       const components = builder.getSchemas();
-      // `Wrapper.inner` references `Type2` (NS2.Duplicate1), which collided
-      // with `Type1` and was cached under the same bare key. The $ref
-      // reflects that cached key, not a fresh lookup.
-      expect(components.Wrapper.properties?.inner).toEqual({
-        $ref: "#/components/schemas/Duplicate1",
+      // `NS1.Duplicate1` and `NS2.Duplicate1` are namespace-qualified by
+      // default, so they no longer collide into one shared key.
+      expect(Object.hasOwn(components, "NS1.Duplicate1")).toBe(true);
+      expect(Object.hasOwn(components, "NS2.Duplicate1")).toBe(true);
+      // `Wrapper` (in `NS2`) is itself namespace-qualified too. Its `inner`
+      // property references `NS2.Duplicate1`, its own namespace's type, by
+      // its own stable key.
+      expect(components["NS2.Wrapper"].properties?.inner).toEqual({
+        $ref: "#/components/schemas/NS2.Duplicate1",
       });
 
-      // The collision was already reported once when Type2 itself was
-      // built; referencing it again from Wrapper must not re-report it.
       const diagnostics = runner.program.diagnostics.filter(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics).toHaveLength(0);
     });
 
-    it("reports a diagnostic error for colliding models regardless of referencing-property order", async () => {
-      // Under the auto-suffix policy this used to be observable as
-      // *which* colliding model kept the bare name depending on
-      // referencing-property visitation order rather than source order.
-      // Under the hard-error policy there is no alternate key to race for:
-      // both properties resolve to the same bare "Foo" key either way, and
-      // exactly one collision diagnostic is reported regardless of order.
+    it("resolves same-named models from different namespaces to distinct keys regardless of referencing-property order", async () => {
+      // Under the old first-come-first-served/hard-error policies, the
+      // *order* two colliding properties were visited in used to matter.
+      // Under default namespace-qualified naming there is no collision at
+      // all to race over: each property's namespace-qualified key is fixed
+      // by its own declaring namespace, independent of visitation order.
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         namespace NS1 { model Foo { a: string; } }
@@ -1319,23 +1419,23 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(W);
 
       const props = builder.getSchemas().W.properties as Record<string, any>;
-      expect(props.x).toEqual({ $ref: "#/components/schemas/Foo" });
-      expect(props.y).toEqual({ $ref: "#/components/schemas/Foo" });
+      expect(props.x).toEqual({ $ref: "#/components/schemas/NS2.Foo" });
+      expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
 
       const diagnostics = runner.program.diagnostics.filter(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostics).toHaveLength(1);
+      expect(diagnostics).toHaveLength(0);
     });
 
-    it("resolves a same-named-model collision the same way when one namespace is declared blockless", async () => {
+    it("resolves a namespace-qualified name the same way when one namespace is declared blockless", async () => {
       const runner = await AsyncAPITester.createInstance();
       // `namespace Foo;` (no braces) must be the file's first statement. It
       // puts every following top-level declaration into `Foo`, the same way
       // `namespace Foo { ... }` would. `Bar` is then a nested block
-      // namespace inside `Foo`. This must collide with `Foo.Widget` exactly
-      // like the block-form multi-level case above, since symbol resolution
-      // must not depend on which namespace syntax produced the name.
+      // namespace inside `Foo`. Symbol resolution, and so the namespace
+      // chain `namespacePrefix` walks, must not depend on which namespace
+      // syntax produced it.
       const { FooWidget, BarWidget } = await runner.compile(t.code`
         namespace Foo;
         @test("FooWidget")
@@ -1354,14 +1454,13 @@ describe("Unit: Schemas (Phase 2)", () => {
       const ref1 = builder.buildSchema(FooWidget as Model) as any;
       const ref2 = builder.buildSchema(BarWidget as Model) as any;
 
-      expect(ref1.$ref).toBe("#/components/schemas/Widget");
-      expect(ref2.$ref).toBe("#/components/schemas/Widget");
+      expect(ref1.$ref).toBe("#/components/schemas/Foo.Widget");
+      expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
     });
   });
 
@@ -1654,28 +1753,29 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(builder.getSchemas().U).toEqual({ type: "string", enum: ["x"] });
     });
 
-    it("reports a diagnostic error when a model and an enum of a different kind share a bare name (registry is not scoped per-kind)", async () => {
+    it("reports a diagnostic error when a model and an enum of a different kind share a bare name in the same namespace (registry is not scoped per-kind)", async () => {
       const runner = await AsyncAPITester.createInstance();
-      // Both the model and the enum are named `Color`, one in `NS` and one
-      // in the global namespace. This test reaches them only through `M`'s
-      // properties, rather than marking each with its own
-      // `t.model`/`t.enum`. That avoids a duplicate marker key while still
-      // exercising the real name collision. `SchemaKeyRegistry` shares one
-      // key namespace across every declared kind (model/enum/union). So
-      // this is a genuine collision, not two "separate registry slots". It
-      // used to be resolved by falling through to the enum's qualified name
-      // (`NS.Color`). Under the hard-error policy it is now a reported
-      // diagnostic instead.
+      // Default namespace-qualified naming (see `declarationNameFor`) means
+      // two same-named declarations only collide when they resolve to the
+      // *same* candidate. Two distinctly-named declarations, one a model
+      // and one an enum, are forced to the same candidate here via
+      // `@friendlyName`. An explicit friendly name is taken verbatim, with
+      // no namespace qualification, so both resolve to the bare "Color".
+      // `SchemaKeyRegistry` shares one key namespace across every declared
+      // kind (model/enum/union), so this is a genuine collision, not two
+      // "separate registry slots" for the two kinds.
       const { M } = await runner.compile(t.code`
         namespace NS {
-          enum Color { Red }
-        }
-        model Color {
-          x: string;
+          @friendlyName("Color")
+          enum ColorEnum { Red }
+          @friendlyName("Color")
+          model ColorModel {
+            x: string;
+          }
         }
         model ${t.model("M")} {
-          a: Color;
-          b: NS.Color;
+          a: NS.ColorModel;
+          b: NS.ColorEnum;
         }
       `);
 
@@ -2965,7 +3065,12 @@ describe("Unit: Schemas (Phase 2)", () => {
       ).toHaveLength(1);
     });
 
-    it('should name a template instantiation from a string literal template argument (P<"created"> -> PCreated) stably regardless of field order', async () => {
+    it('inlines a template instantiation with a string-literal template argument (P<"created">) instead of registering a synthesized name', async () => {
+      // A literal has no fixed identity of its own to name the
+      // instantiation after. It is unspeakable, matching the official
+      // `TypeEmitter.declarationName`'s own behavior: the whole
+      // instantiation inlines instead of registering under a synthesized
+      // `components.schemas` key.
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -2977,19 +3082,21 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.W.properties as Record<string, any>;
 
-      expect(props.a.$ref).toBe("#/components/schemas/PCreated");
-      expect(props.b.$ref).toBe("#/components/schemas/PDeleted");
-      expect((components.PCreated as any).properties.v).toEqual({
-        type: "string",
-        enum: ["created"],
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["created"] } },
+        required: ["v"],
       });
-      expect((components.PDeleted as any).properties.v).toEqual({
-        type: "string",
-        enum: ["deleted"],
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["deleted"] } },
+        required: ["v"],
       });
+      expect(Object.hasOwn(components, "PCreated")).toBe(false);
+      expect(Object.hasOwn(components, "PDeleted")).toBe(false);
 
-      // Swapping the field declaration order must not change which key gets
-      // which schema (the instability 2.10 was written to remove).
+      // Swapping the field declaration order must not change the inlined
+      // shape; there is no shared key left to race over.
       const { W2 } = await runner.compile(t.code`
         model P<T> { v: T; }
         @test("W2")
@@ -2999,11 +3106,50 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(W2 as Model);
       const components2 = builder2.getSchemas();
       const props2 = components2.W2.properties as Record<string, any>;
-      expect(props2.a.$ref).toBe("#/components/schemas/PCreated");
-      expect(props2.b.$ref).toBe("#/components/schemas/PDeleted");
+      expect(props2.a).toEqual(props.a);
+      expect(props2.b).toEqual(props.b);
     });
 
-    it("should name a template instantiation from a numeric/boolean literal argument (P<42> -> P42, P<true> -> PTrue)", async () => {
+    it("promotes an unspeakable instantiation to a registered component once a second site references it", async () => {
+      // Inlining is preferred for a single use. But inlining copies the
+      // whole shape into every site that uses it, so nested unspeakable
+      // declarations duplicate multiplicatively: a chain where each level
+      // references the level below twice grows as 2^depth. Promoting on the
+      // second use keeps that growth linear.
+      // The first site keeps its inline copy; only later sites resolve to
+      // the `$ref`. Both express the same schema.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Env<T> { v: T; }
+        alias Shared = Env<{ x: string }>;
+        @test("M")
+        model M { a: Shared; b: Shared; c: Shared; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      const inlineShape = {
+        type: "object",
+        properties: {
+          v: { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+        },
+        required: ["v"],
+      };
+      // First use inlines.
+      expect(props.a).toEqual(inlineShape);
+      // Every later use resolves to the one registered component.
+      expect(props.b).toEqual(props.c);
+      expect(props.b.$ref).toBeDefined();
+      const key = (props.b.$ref as string).replace("#/components/schemas/", "");
+      expect(components[key]).toEqual(inlineShape);
+      // The body is registered as already built, so a single mistake inside
+      // it is never reported twice.
+      expect(runner.program.diagnostics).toHaveLength(0);
+    });
+
+    it("inlines a template instantiation with a numeric/boolean literal template argument instead of registering a synthesized name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { W } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3015,8 +3161,18 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.W.properties as Record<string, any>;
 
-      expect(props.c.$ref).toBe("#/components/schemas/P42");
-      expect(props.d.$ref).toBe("#/components/schemas/PTrue");
+      expect(props.c).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [42] } },
+        required: ["v"],
+      });
+      expect(props.d).toEqual({
+        type: "object",
+        properties: { v: { type: "boolean", enum: [true] } },
+        required: ["v"],
+      });
+      expect(Object.hasOwn(components, "P42")).toBe(false);
+      expect(Object.hasOwn(components, "PTrue")).toBe(false);
     });
 
     it("should name a template instantiation from an enum member template argument (P<Color.Red> -> PColorRed)", async () => {
@@ -3113,8 +3269,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeAOrder");
-      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeBOrder");
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.Order");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeB.Order");
 
       // Order stability: swap field order, same keys must result.
       const { M2 } = await runner.compile(t.code`
@@ -3128,8 +3284,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const components2 = builder2.getSchemas();
       const props2 = components2.M2.properties as Record<string, any>;
-      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeAOrder");
-      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeBOrder");
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.Order");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeB.Order");
     });
 
     it("should join a multi-level namespace chain with '.' so it doesn't collide with a differently-nested sibling namespace of the concatenated name", async () => {
@@ -3146,8 +3302,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.BOrder");
-      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeABOrder");
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.B.Order");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeAB.Order");
 
       // Order stability: swap field order, same keys must result.
       const { M2 } = await runner.compile(t.code`
@@ -3161,11 +3317,11 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const components2 = builder2.getSchemas();
       const props2 = components2.M2.properties as Record<string, any>;
-      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.BOrder");
-      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeABOrder");
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.B.Order");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeAB.Order");
     });
 
-    it("should preserve separator characters in a string-literal template argument so distinct literals don't collide", async () => {
+    it("inlines distinct string-literal template arguments to their own literal shape instead of composing a synthesized name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3177,12 +3333,21 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      expect(props.a.$ref).not.toBe(props.b.$ref);
-      expect(props.a.$ref).toBe("#/components/schemas/PUser-Created");
-      expect(props.b.$ref).toBe("#/components/schemas/PUser_Created");
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["user-created"] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["user_created"] } },
+        required: ["v"],
+      });
+      expect(props.a).not.toEqual(props.b);
+      expect(Object.keys(components)).toEqual(["M"]);
 
-      // Degenerate case: empty literal and a lone separator must not both
-      // collapse to the bare template name `P`.
+      // Degenerate case: an empty literal and a lone separator still inline
+      // to their own distinct literal shape.
       const { M2 } = await runner.compile(t.code`
         model P<T> { v: T; }
         @test("M2")
@@ -3192,8 +3357,16 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const components2 = builder2.getSchemas();
       const props2 = components2.M2.properties as Record<string, any>;
-      expect(props2.a.$ref).not.toBe("#/components/schemas/P");
-      expect(props2.a.$ref).not.toBe(props2.b.$ref);
+      expect(props2.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: [""] } },
+        required: ["v"],
+      });
+      expect(props2.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["-"] } },
+        required: ["v"],
+      });
     });
 
     it("should include the argument's namespace for enum/scalar/union template arguments too, not just Model", async () => {
@@ -3210,8 +3383,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeAStatus");
-      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeBStatus");
+      expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.Status");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvelopeB.Status");
 
       // Order stability: swap field order, same keys must result.
       const { M2 } = await runner.compile(t.code`
@@ -3225,8 +3398,8 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const components2 = builder2.getSchemas();
       const props2 = components2.M2.properties as Record<string, any>;
-      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeAStatus");
-      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeBStatus");
+      expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.Status");
+      expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeB.Status");
 
       // Same instability for scalar arguments.
       const { M3 } = await runner.compile(t.code`
@@ -3240,11 +3413,39 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder3.buildSchema(M3 as Model);
       const components3 = builder3.getSchemas();
       const props3 = components3.M3.properties as Record<string, any>;
-      expect(props3.x.$ref).toBe("#/components/schemas/Envelope2AEmail");
-      expect(props3.y.$ref).toBe("#/components/schemas/Envelope2BEmail");
+      expect(props3.x.$ref).toBe("#/components/schemas/Envelope2A.Email");
+      expect(props3.y.$ref).toBe("#/components/schemas/Envelope2B.Email");
     });
 
-    it("should not let a string-literal template argument's separator characters produce an unsafe or malformed $ref", async () => {
+    it("Sep-encodes a backtick-declared scalar template argument's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        scalar \`a/b\` extends string;
+        scalar \`c#d\` extends string;
+        model Env<T> { d: T; }
+        @test("M")
+        model M { x: Env<\`a/b\`>; y: Env<\`c#d\`>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas() as Record<string, any>;
+      const props = components.M.properties as Record<string, any>;
+
+      for (const ref of [props.x.$ref, props.y.$ref] as string[]) {
+        expect(ref.split("#")).toHaveLength(2);
+        const key = ref.replace("#/components/schemas/", "");
+        expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+        expect(Object.hasOwn(components, key)).toBe(true);
+      }
+      expect(props.x.$ref).toBe("#/components/schemas/EnvASep47B");
+      expect(props.y.$ref).toBe("#/components/schemas/EnvCSep35D");
+    });
+
+    it("inlines a string-literal template argument with unsafe separator characters instead of needing an escaped $ref", async () => {
+      // A literal argument is unspeakable regardless of which characters it
+      // carries, so `#`, `/`, and a space here never need to reach a
+      // `components.schemas` key or an escaped $ref at all: the whole
+      // instantiation inlines with the literal's own raw text in `enum`.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3256,17 +3457,22 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      // A conforming $ref is a single URI fragment: exactly one '#', no raw
-      // spaces, and it must resolve to a key that actually exists.
-      for (const ref of [props.a.$ref, props.b.$ref, props.c.$ref] as string[]) {
-        expect((ref.match(/#/g) ?? []).length).toBe(1);
-        expect(ref).not.toMatch(/ /);
-        const key = decodeURIComponent(ref.replace("#/components/schemas/", "")).replaceAll(
-          "~1",
-          "/",
-        );
-        expect(Object.prototype.hasOwnProperty.call(components, key)).toBe(true);
-      }
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["user#created"] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["a/b"] } },
+        required: ["v"],
+      });
+      expect(props.c).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["has space"] } },
+        required: ["v"],
+      });
+      expect(Object.keys(components)).toEqual(["M"]);
     });
 
     it("should not leak the built-in TypeSpec namespace into a template instantiation name for Array/Record arguments", async () => {
@@ -3287,7 +3493,7 @@ describe("Unit: Schemas (Phase 2)", () => {
       expect(props.c.$ref).toBe("#/components/schemas/EnvelopeArrayString");
     });
 
-    it("should encode sign and decimal point in a numeric-literal template argument so different numbers don't collide", async () => {
+    it("inlines a numeric-literal template argument to its own literal shape instead of composing a synthesized name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3299,12 +3505,29 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      expect(props.a.$ref).toBe("#/components/schemas/P1");
-      expect(props.b.$ref).toBe("#/components/schemas/PNeg1");
-      expect(props.c.$ref).toBe("#/components/schemas/P1_5");
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [1] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [-1] } },
+        required: ["v"],
+      });
+      expect(props.c).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [1.5] } },
+        required: ["v"],
+      });
+      expect(Object.keys(components)).toEqual(["M"]);
     });
 
-    it('should distinguish a tuple template argument from the unknown intrinsic instead of both falling back to "Unknown"', async () => {
+    it("distinguishes a tuple template argument from the unknown intrinsic: unknown stays a named instantiation, a tuple argument inlines", async () => {
+      // `unknown` is an `Intrinsic` with a fixed name; it stays speakable.
+      // A `Tuple`, like `[string, int32]`, has no fixed identity of its own
+      // (matching the official `TypeEmitter.declarationName`'s own handling
+      // of a `Tuple` argument), so the whole instantiation inlines instead.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3317,10 +3540,21 @@ describe("Unit: Schemas (Phase 2)", () => {
       const props = components.M.properties as Record<string, any>;
 
       expect(props.a.$ref).toBe("#/components/schemas/PUnknown");
-      expect(props.b.$ref).toBe("#/components/schemas/PTupleStringInt32");
+      expect(props.b.$ref).toBeUndefined();
+      expect(props.b.type).toBe("object");
+      // The compiler substitutes the bare Tuple type directly for `T`.
+      // `buildSchema` has no representation for a bare Tuple value; it
+      // degrades to `{}` and reports the pre-existing
+      // `unsupported-payload-type` diagnostic, the same as any other
+      // unsupported payload type.
+      expect(props.b.properties.v).toEqual({});
+      const diagnostic = runner.program.diagnostics.find(
+        (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
+      );
+      expect(diagnostic).toBeDefined();
     });
 
-    it("should distinguish a tuple template argument from its bare element type, and keep composed names stable regardless of field order", async () => {
+    it("distinguishes a tuple template argument from its bare element type: the bare type stays a named instantiation, the tuple argument inlines", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3333,7 +3567,9 @@ describe("Unit: Schemas (Phase 2)", () => {
       const props = components.M.properties as Record<string, any>;
 
       expect(props.a.$ref).toBe("#/components/schemas/PString");
-      expect(props.b.$ref).toBe("#/components/schemas/PTupleString");
+      expect(props.b.$ref).toBeUndefined();
+      expect(props.b.type).toBe("object");
+      expect(props.b.properties.v).toEqual({});
 
       const runnerReversed = await AsyncAPITester.createInstance();
       const { M: M2 } = await runnerReversed.compile(t.code`
@@ -3346,10 +3582,13 @@ describe("Unit: Schemas (Phase 2)", () => {
       const props2 = builder2.getSchemas().M.properties as Record<string, any>;
 
       expect(props2.a.$ref).toBe("#/components/schemas/PString");
-      expect(props2.b.$ref).toBe("#/components/schemas/PTupleString");
+      expect(props2.b).toEqual(props.b);
     });
 
-    it("should derive a structural display name for anonymous model/union template arguments instead of a fixed token, stably regardless of field order", async () => {
+    it("inlines a template instantiation with an anonymous model/union template argument instead of registering a synthesized name, stably regardless of field order", async () => {
+      // An anonymous `Model`/`Union` has no fixed identity of its own to name
+      // the instantiation after. It is unspeakable, so the whole
+      // instantiation inlines with the argument's own shape substituted in.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3358,13 +3597,43 @@ describe("Unit: Schemas (Phase 2)", () => {
       `);
       const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M as Model);
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
 
-      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
-      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousYInt32");
-      expect(props.c.$ref).toBe("#/components/schemas/EnvelopeUnionStringInt32");
-      expect(props.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
+      expect(props.a).toEqual({
+        type: "object",
+        properties: {
+          data: { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+        },
+        required: ["data"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: {
+          data: {
+            type: "object",
+            properties: { y: { type: "integer", format: "int32" } },
+            required: ["y"],
+          },
+        },
+        required: ["data"],
+      });
+      expect(props.c).toEqual({
+        type: "object",
+        properties: {
+          data: { anyOf: [{ type: "string" }, { type: "integer", format: "int32" }] },
+        },
+        required: ["data"],
+      });
+      expect(props.d).toEqual({
+        type: "object",
+        properties: { data: { anyOf: [{ type: "boolean" }, { type: "null" }] } },
+        required: ["data"],
+      });
+      expect(Object.keys(components)).toEqual(["M"]);
 
+      // Order stability: swapping field order must not change the inlined
+      // shape; nothing here depends on visitation order any more.
       const runnerReversed = await AsyncAPITester.createInstance();
       const { M: M2 } = await runnerReversed.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3375,21 +3644,19 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const props2 = builder2.getSchemas().M.properties as Record<string, any>;
 
-      expect(props2.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
-      expect(props2.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousYInt32");
-      expect(props2.c.$ref).toBe("#/components/schemas/EnvelopeUnionStringInt32");
-      expect(props2.d.$ref).toBe("#/components/schemas/EnvelopeUnionBooleanNull");
+      expect(props2.a).toEqual(props.a);
+      expect(props2.b).toEqual(props.b);
+      expect(props2.c).toEqual(props.c);
+      expect(props2.d).toEqual(props.d);
     });
 
-    it("reports a diagnostic error when two structurally-identical anonymous model template arguments compute the same name", async () => {
+    it("inlines two structurally-identical anonymous-model template arguments independently instead of needing a collision diagnostic", async () => {
       // Two separate anonymous-model type arguments with the same shape
-      // (`{x: string}`) are distinct `Type` objects. But
-      // `templateInstanceName` derives the same structural display name for
-      // both. This is a genuine key collision between two different types,
-      // not just a cache hit on one. This used to be an accepted `_2`-suffix
-      // duplicate-registration limitation, with no regression test. Under
-      // the hard-error policy, this is now a `duplicate-schema-key`
-      // diagnostic like any other collision.
+      // (`{x: string}`) are distinct `Type` objects, but each is unspeakable
+      // on its own terms (see `templateArgDisplayName`). Each instantiation
+      // now inlines independently. There is no shared synthesized key left
+      // for the two to collide over, so no diagnostic is reported even
+      // though the two inlined shapes are structurally identical.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3400,17 +3667,24 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M as Model);
       const props = builder.getSchemas().M.properties as Record<string, any>;
 
-      expect(props.a.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
-      expect(props.b.$ref).toBe("#/components/schemas/EnvelopeAnonymousXString");
+      const expected = {
+        type: "object",
+        properties: {
+          data: { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+        },
+        required: ["data"],
+      };
+      expect(props.a).toEqual(expected);
+      expect(props.b).toEqual(expected);
+      expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
 
       const diagnostic = runner.program.diagnostics.find(
         (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
       );
-      expect(diagnostic).toBeDefined();
-      expect(diagnostic?.severity).toBe("error");
+      expect(diagnostic).toBeUndefined();
     });
 
-    it("should encode distinct separator characters differently instead of collapsing them all to the same 'Sep' token", async () => {
+    it("inlines a string-literal template argument's distinct separator characters to their own literal shape instead of composing a synthesized name", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3421,12 +3695,20 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M as Model);
       const props = builder.getSchemas().M.properties as Record<string, any>;
 
-      expect(props.a.$ref).not.toBe(props.b.$ref);
-      expect(props.a.$ref).toBe("#/components/schemas/PASep32B");
-      expect(props.b.$ref).toBe("#/components/schemas/PASep35B");
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["a b"] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["a#b"] } },
+        required: ["v"],
+      });
+      expect(props.a).not.toEqual(props.b);
     });
 
-    it("should not let a numeric template argument in exponent form emit an unsafe '+' into the schema key", async () => {
+    it("inlines a numeric template argument in exponent form to its own literal shape instead of needing a safe schema key", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3438,15 +3720,21 @@ describe("Unit: Schemas (Phase 2)", () => {
       const components = builder.getSchemas();
       const props = components.M.properties as Record<string, any>;
 
-      for (const ref of [props.a.$ref, props.b.$ref] as string[]) {
-        const key = ref.replace("#/components/schemas/", "");
-        expect(key).toMatch(/^[A-Za-z0-9._-]+$/);
-        expect(Object.prototype.hasOwnProperty.call(components, key)).toBe(true);
-      }
-      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [1e23] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "number", enum: [1e21] } },
+        required: ["v"],
+      });
+      expect(props.a).not.toEqual(props.b);
+      expect(Object.keys(components)).toEqual(["M"]);
     });
 
-    it("should include property types (not just property names) in an anonymous-model template argument's display name so same-named-different-typed instantiations stay distinct and order-stable", async () => {
+    it("inlines anonymous-model template arguments independently, keeping distinct property types, stably regardless of field order", async () => {
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model Envelope<T> { data: T; }
@@ -3457,7 +3745,12 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M as Model);
       const props = builder.getSchemas().M.properties as Record<string, any>;
 
-      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(props.a).not.toEqual(props.b);
+      expect(props.a.properties.data.properties.x).toEqual({ type: "string" });
+      expect(props.b.properties.data.properties.x).toEqual({
+        type: "integer",
+        format: "int32",
+      });
 
       const runnerReversed = await AsyncAPITester.createInstance();
       const { M: M2 } = await runnerReversed.compile(t.code`
@@ -3469,11 +3762,15 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const props2 = builder2.getSchemas().M.properties as Record<string, any>;
 
-      expect(props2.a.$ref).toBe(props.a.$ref);
-      expect(props2.b.$ref).toBe(props.b.$ref);
+      expect(props2.a).toEqual(props.a);
+      expect(props2.b).toEqual(props.b);
     });
 
-    it("should keep a literal that spells the Sep escape marker distinct from a literal using the real separator it encodes, stably regardless of field order", async () => {
+    it("inlines a literal that spells the Sep escape marker distinct from a literal using the real separator it once encoded, stably regardless of field order", async () => {
+      // Sep-encoding no longer applies here: a literal template argument is
+      // unspeakable and inlines with its own raw text in `enum`. `"a b"` and
+      // `"ASep32B"` are just two different literal values now, distinct
+      // because their raw text differs, not because of any escape scheme.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3484,7 +3781,17 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder.buildSchema(M as Model);
       const props = builder.getSchemas().M.properties as Record<string, any>;
 
-      expect(props.a.$ref).not.toBe(props.b.$ref);
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["a b"] } },
+        required: ["v"],
+      });
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["ASep32B"] } },
+        required: ["v"],
+      });
+      expect(props.a).not.toEqual(props.b);
 
       const runnerReversed = await AsyncAPITester.createInstance();
       const { M: M2 } = await runnerReversed.compile(t.code`
@@ -3496,40 +3803,336 @@ describe("Unit: Schemas (Phase 2)", () => {
       builder2.buildSchema(M2 as Model);
       const props2 = builder2.getSchemas().M.properties as Record<string, any>;
 
-      expect(props2.a.$ref).toBe(props.a.$ref);
-      expect(props2.b.$ref).toBe(props.b.$ref);
+      expect(props2.a).toEqual(props.a);
+      expect(props2.b).toEqual(props.b);
     });
 
-    it("should derive a distinct display name for an unreduced string-template literal template argument instead of colliding on a shared 'Unhandled' fallback", async () => {
+    it("inlines a string-template template argument whether or not the compiler reduced it, matching the plain string-literal argument next to it", async () => {
+      // A string template is a literal value, so it has no fixed identity to
+      // name an instantiation after. It inlines, exactly like the plain
+      // string literal `a` uses. A reduced template and a plain literal of
+      // the same text must not disagree: one cannot inline while the other
+      // registers a synthesized `components.schemas` key.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
         @test("M")
-        model M { a: P<"a-\${"x"}">; b: P<"b-\${"y"}">; }
+        model M { a: P<"abc">; b: P<"a\${"b"}c">; c: P<"x-\${"y"}">; }
       `);
       const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M as Model);
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
 
-      expect(props.a.$ref).not.toBe(props.b.$ref);
-      expect(String(props.a.$ref)).not.toContain("Unhandled");
-      expect(String(props.b.$ref)).not.toContain("Unhandled");
+      // Only `M` itself is registered. No `PAbc` or similar key exists.
+      expect(Object.keys(components)).toEqual(["M"]);
 
-      const runnerReversed = await AsyncAPITester.createInstance();
-      const { M: M2 } = await runnerReversed.compile(t.code`
-        model P<T> { v: T; }
-        @test("M")
-        model M { b: P<"b-\${"y"}">; a: P<"a-\${"x"}">; }
-      `);
-      const builder2 = new SchemaBuilder(runnerReversed.program);
-      builder2.buildSchema(M2 as Model);
-      const props2 = builder2.getSchemas().M.properties as Record<string, any>;
-
-      expect(props2.a.$ref).toBe(props.a.$ref);
-      expect(props2.b.$ref).toBe(props.b.$ref);
+      expect(props.a).toEqual({
+        type: "object",
+        properties: { v: { type: "string", enum: ["abc"] } },
+        required: ["v"],
+      });
+      // A string template carries no schema mapping of its own yet, so the
+      // inlined property degrades to the unconstrained schema. The key point
+      // here is that it inlines rather than claiming a named component.
+      expect(props.b).toEqual({
+        type: "object",
+        properties: { v: {} },
+        required: ["v"],
+      });
+      expect(props.c).toEqual(props.b);
     });
 
-    it("should Sep-encode an anonymous-model template argument's backtick-quoted property name so it can't leak a character outside the AsyncAPI key charset", async () => {
+    it("inlines a whole nested instantiation chain when only the innermost template argument is unspeakable", async () => {
+      // `Inner<{x: string}>` is unspeakable, so `Outer<Inner<{x: string}>>`
+      // is too: unspeakability propagates outward through every level. The
+      // speakable `Outer<Inner<string>>` next to it still registers both of
+      // its levels, so the propagation is not over-eager.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Inner<T> { i: T; }
+        model Outer<T> { o: T; }
+        @test("M")
+        model M { a: Outer<Inner<{x: string}>>; b: Outer<Inner<string>>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(Object.keys(components).sort()).toEqual(["InnerString", "M", "OuterInnerString"]);
+      expect(props.a).toEqual({
+        type: "object",
+        properties: {
+          o: {
+            type: "object",
+            properties: {
+              i: { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+            },
+            required: ["i"],
+          },
+        },
+        required: ["o"],
+      });
+      expect(props.b).toEqual({ $ref: "#/components/schemas/OuterInnerString" });
+    });
+
+    it("inlines instantiations taking a const value argument instead of making two distinct consts claim one key", async () => {
+      // A value has no nameable identity of its own. Naming both
+      // instantiations after a fixed placeholder would turn valid TypeSpec
+      // into a `duplicate-schema-key` error.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model P<T extends valueof string> { v: string; }
+        const c1: string = "one";
+        const c2: string = "two";
+        @test("M")
+        model M { a: P<c1>; b: P<c2>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(Object.keys(components)).toEqual(["M"]);
+      const inlined = {
+        type: "object",
+        properties: { v: { type: "string" } },
+        required: ["v"],
+      };
+      expect(props.a).toEqual(inlined);
+      expect(props.b).toEqual(inlined);
+    });
+
+    it("registers a self-recursive instantiation with an anonymous-model argument instead of inlining it into a circular-reference error", async () => {
+      // `Node<{x: string}>` has no composable structural name, so the
+      // default is to inline it. A self-recursive instantiation cannot be
+      // expressed inline: expanding it always leaves another self-reference
+      // behind. So it is promoted to a real `components.schemas` entry under
+      // the `getTypeName`-derived fallback name, and `children.items`
+      // resolves to a genuine self-`$ref`.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Node<T> { v: T; children: Node<T>[]; }
+        @test("M")
+        model M { a: Node<{x: string}>; b: Node<string>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      // The speakable neighbour keeps its compact composed name.
+      expect(props.b.$ref).toBe("#/components/schemas/NodeString");
+
+      // The fallback key is the compact shape with each template argument
+      // replaced by the Sep-encoded official `getEntityName` text of that
+      // argument, here `{ x: string }`.
+      const key = "NodeSep123Sep32XSep58Sep32StringSep32Sep125";
+      const selfRef = `#/components/schemas/${key}`;
+      expect(props.a.$ref).toBe(selfRef);
+      const promoted = components[key] as any;
+      expect(promoted).toBeDefined();
+      expect(promoted.properties.v).toEqual({
+        type: "object",
+        properties: { x: { type: "string" } },
+        required: ["x"],
+      });
+      expect(promoted.properties.children).toEqual({
+        type: "array",
+        items: { $ref: selfRef },
+      });
+
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
+        ),
+      ).toEqual([]);
+    });
+
+    it("reports a duplicate-schema-key error when two self-recursive instantiations with structurally identical anonymous-model arguments resolve to one fallback key", async () => {
+      // Two separately written `{x: string}` arguments are two distinct
+      // anonymous models, so `a` and `b` are two distinct instantiations.
+      // The fallback name is built from each argument's official
+      // `getEntityName` text, which is identical for both. So they land on
+      // one key. That is a hard error, the same collision policy every other
+      // candidate-name clash gets, rather than a silent rename.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        model Node<T> { v: T; children: Node<T>[]; }
+        @test("M")
+        model M { a: Node<{x: string}>; b: Node<{x: string}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      const key = "NodeSep123Sep32XSep58Sep32StringSep32Sep125";
+      expect(props.a.$ref).toBe(`#/components/schemas/${key}`);
+      expect(props.b.$ref).toBe(`#/components/schemas/${key}`);
+      expect(components[key]).toBeDefined();
+
+      const duplicates = runner.program.diagnostics.filter(
+        (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      );
+      expect(duplicates).toHaveLength(1);
+      expect(duplicates[0].severity).toBe("error");
+    });
+
+    it("reports a diagnostic once, not twice, when a self-recursive instantiation is promoted after an inline attempt", async () => {
+      // `Node<{x: string}>` is first attempted inline, then promoted to a
+      // registered component once it re-enters itself. The shape built by
+      // that attempt is registered as-is, so the body is built exactly once
+      // and the unsupported `Iface` property is reported once. The speakable
+      // neighbour `Node<string>` never inlines and gives the baseline count.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        interface Iface { doThing(): void; }
+        model Node<T> { v: T; bad: Iface; children: Node<T>[]; }
+        @test("M")
+        model M { a: Node<{x: string}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("reports a diagnostic once when two properties reference the same promoted self-recursive instantiation", async () => {
+      // The `alias` makes both properties resolve to one `Node<{x: string}>`
+      // Type instance. The first reference promotes it to a component. The
+      // second must reuse that cached declaration instead of rebuilding the
+      // body and re-reporting every diagnostic of the first attempt.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        interface Iface { doThing(): void; }
+        model Node<T> { v: T; bad: Iface; children: Node<T>[]; }
+        alias N = Node<{x: string}>;
+        @test("M")
+        model M { a: N; b: N; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
+        ),
+      ).toHaveLength(1);
+
+      // Both properties resolve to the one registered component.
+      const components = builder.getSchemas() as Record<string, any>;
+      const props = components.M.properties as Record<string, any>;
+      expect(props.a.$ref).toBe(props.b.$ref);
+      const key = String(props.a.$ref).replace("#/components/schemas/", "");
+      expect(Object.hasOwn(components, key)).toBe(true);
+    });
+
+    it("reports a missing-discriminator-property diagnostic once for a promoted self-recursive instantiation", async () => {
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        @discriminator("kind")
+        model Node<T> { v: T; children: Node<T>[]; }
+        @test("M")
+        model M { a: Node<{x: string}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("inlines instantiations taking an operation type argument instead of making two distinct operations claim one key", async () => {
+      // An `Operation` argument is not one of the handled, nameable kinds.
+      // It has no fixed identity to compose a key from, so the instantiation
+      // is unspeakable and inlines, exactly like a value or a literal
+      // argument. Naming both instantiations after one fixed placeholder
+      // would turn valid TypeSpec into a `duplicate-schema-key` error.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        op opA(): void;
+        op opB(): void;
+        model P<T extends TypeSpec.Reflection.Operation> { v: string; }
+        @test("M")
+        model M { a: P<opA>; b: P<opB>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      expect(Object.keys(components)).toEqual(["M"]);
+      const inlined = {
+        type: "object",
+        properties: { v: { type: "string" } },
+        required: ["v"],
+      };
+      expect(props.a).toEqual(inlined);
+      expect(props.b).toEqual(inlined);
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+        ),
+      ).toEqual([]);
+    });
+
+    it("keeps two self-recursive union instantiations with anonymous-model arguments under separate keys", async () => {
+      // The official `getTypeName` drops a union's template arguments, so
+      // the fallback name is composed per argument instead. Two recursive
+      // instantiations of one template union therefore stay apart rather
+      // than colliding on the bare template name.
+      const runner = await AsyncAPITester.createInstance();
+      const { M } = await runner.compile(t.code`
+        union Chain<T> { head: T, next: Chain<T> }
+        @test("M")
+        model M { a: Chain<{x: string}>; b: Chain<{y: int32}>; }
+      `);
+      const builder = new SchemaBuilder(runner.program);
+      builder.buildSchema(M as Model);
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
+
+      const keyA = "ChainSep123Sep32XSep58Sep32StringSep32Sep125";
+      const keyB = "ChainSep123Sep32YSep58Sep32Int32Sep32Sep125";
+      expect(props.a.$ref).toBe(`#/components/schemas/${keyA}`);
+      expect(props.b.$ref).toBe(`#/components/schemas/${keyB}`);
+      expect((components[keyA] as any).anyOf).toEqual([
+        { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
+        { $ref: `#/components/schemas/${keyA}` },
+      ]);
+      expect((components[keyB] as any).anyOf).toEqual([
+        {
+          type: "object",
+          properties: { y: { type: "integer", format: "int32" } },
+          required: ["y"],
+        },
+        { $ref: `#/components/schemas/${keyB}` },
+      ]);
+
+      expect(
+        runner.program.diagnostics.filter(
+          (d) =>
+            d.code === "typespec-asyncapi/unrepresentable-circular-reference" ||
+            d.code === "typespec-asyncapi/duplicate-schema-key",
+        ),
+      ).toEqual([]);
+    });
+
+    it("inlines an anonymous-model template argument with a backtick-quoted property name, using its raw property name as the schema property key", async () => {
+      // The anonymous-model argument has no fixed identity of its own to
+      // name the instantiation after, so it inlines instead of registering
+      // a synthesized `components.schemas` key. A schema property key can be
+      // any string, unlike a `components.schemas` key, so the
+      // backtick-quoted name passes through unsanitized.
       const runner = await AsyncAPITester.createInstance();
       const { M } = await runner.compile(t.code`
         model P<T> { v: T; }
@@ -3538,11 +4141,17 @@ describe("Unit: Schemas (Phase 2)", () => {
       `);
       const builder = new SchemaBuilder(runner.program);
       builder.buildSchema(M as Model);
-      const props = builder.getSchemas().M.properties as Record<string, any>;
-      const key = String(props.a.$ref).replace("#/components/schemas/", "");
+      const components = builder.getSchemas();
+      const props = components.M.properties as Record<string, any>;
 
-      expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
-      expect(Object.hasOwn(builder.getSchemas(), key)).toBe(true);
+      expect(props.a).toEqual({
+        type: "object",
+        properties: {
+          v: { type: "object", properties: { "x/y": { type: "string" } }, required: ["x/y"] },
+        },
+        required: ["v"],
+      });
+      expect(Object.keys(components)).toEqual(["M"]);
     });
 
     it("should use the @encodedName('application/json', ...) name as the schema property key", async () => {
