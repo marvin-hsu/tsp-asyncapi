@@ -4,6 +4,7 @@ import { AsyncAPIEmitterOptions } from "../lib.js";
 import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages.js";
 import { SchemaBuilder } from "./schemas/builder.js";
+import { buildServers, reportServersOutsideService } from "./servers.js";
 
 /**
  * Builds the `components` section.
@@ -34,6 +35,11 @@ export function buildAsyncAPIDocument(
 ): AsyncAPIDocument {
   const components = buildComponents(program);
 
+  // Servers come from the service namespace, the same source as `info`. A
+  // server on any other namespace is reported, then left out.
+  reportServersOutsideService(program, service?.type);
+  const servers = service ? buildServers(program, service.type) : undefined;
+
   // Base AsyncAPI 3.1.0 Document Skeleton
   return {
     asyncapi: "3.1.0",
@@ -42,6 +48,7 @@ export function buildAsyncAPIDocument(
     ...(options["default-content-type"]
       ? { defaultContentType: options["default-content-type"] }
       : {}),
+    ...(servers ? { servers } : {}),
     channels: {},
     operations: {},
     ...(components ? { components } : {}),

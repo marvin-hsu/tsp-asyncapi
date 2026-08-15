@@ -157,6 +157,30 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Message name '${"requested"}' is not a legal components.messages key, so it was emitted as '${"emitted"}'. A key may only use the characters a-z, A-Z, 0-9, '.', '-', and '_'.`,
       },
     },
+    "duplicate-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate server name: '${"name"}'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.`,
+      },
+    },
+    "empty-server-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Empty server field: '${"field"}'. AsyncAPI requires a value for this field on every server. This @server was dropped.`,
+      },
+    },
+    "server-outside-service": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Server '${"name"}' on namespace '${"namespace"}' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.`,
+      },
+    },
+    "invalid-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Invalid server name: '${"name"}'. AsyncAPI only allows letters, digits, '_', and '-' in a server name. This @server was dropped.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

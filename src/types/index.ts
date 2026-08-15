@@ -15,6 +15,8 @@ export interface AsyncAPIDocument {
   info: InfoObject;
   /** Default content type used across the API. */
   defaultContentType?: string;
+  /** The servers the application connects to, keyed by server name. */
+  servers?: Record<string, ServerObject>;
   /** The available channels and messages for the API. */
   channels?: Record<string, ChannelObject>;
   /** The operations that can be performed via the API. */
@@ -44,6 +46,27 @@ export interface InfoObject {
   tags?: TagObject[];
   /** Additional external documentation. */
   externalDocs?: ExternalDocumentationObject;
+}
+
+/**
+ * One server the application connects to.
+ * @public
+ */
+export interface ServerObject {
+  /** The host name this server runs on. It may carry a port. */
+  host: string;
+  /** The protocol this server supports for connection, e.g. `kafka`. */
+  protocol: string;
+  /** The version of the protocol, e.g. `1.0.0` for Kafka. */
+  protocolVersion?: string;
+  /** The path to a resource on the host. */
+  pathname?: string;
+  /** A human readable title for the server. */
+  title?: string;
+  /** A short summary of the server. */
+  summary?: string;
+  /** A description of the server. CommonMark is allowed. */
+  description?: string;
 }
 
 /**
