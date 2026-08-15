@@ -60,6 +60,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@asyncapi/parser": "^3.6.3",
     "@eslint/js": "^10.0.1",
     "@microsoft/api-extractor": "^7.58.12",
     "@types/node": "^26.2.0",

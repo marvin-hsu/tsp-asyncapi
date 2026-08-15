@@ -1,2 +1,4 @@
 allowBuilds:
+  # Telemetry postinstall script pulled in by @asyncapi/parser. It is not needed to build or test.
+  "@scarf/scarf": false
   esbuild: true
