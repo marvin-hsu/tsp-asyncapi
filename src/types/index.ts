@@ -3,7 +3,7 @@
  */
 
 /**
- * Represents the root of the AsyncAPI 3.1.0 document.
+ * Represents the root of the AsyncAPI 3.1 document.
  * @public
  */
 export interface AsyncAPIDocument {

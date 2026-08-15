@@ -3,6 +3,7 @@ import { InfoObject } from "../types/index.js";
 import { getInfo } from "../decorators/index.js";
 import { buildTags } from "./tags.js";
 import { buildExternalDocs } from "./external-docs.js";
+import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
 /**
  * Builds the AsyncAPI Info object from the TypeSpec service.
@@ -11,8 +12,8 @@ export function buildInfo(program: Program, service: Service): InfoObject {
   const serviceType = service.type;
 
   const info: InfoObject = {
-    title: service.title ?? "AsyncAPI Document",
-    version: "0.0.0",
+    title: service.title ?? DEFAULT_DOCUMENT_TITLE,
+    version: DEFAULT_INFO_VERSION,
   };
 
   // Handle @info decorator

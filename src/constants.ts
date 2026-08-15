@@ -34,3 +34,31 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
 export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {
   return ns?.name === TYPESPEC_NAMESPACE_NAME && !ns.namespace?.name;
 }
+
+/**
+ * The AsyncAPI specification version every emitted document declares.
+ *
+ * The emitter targets 3.1 throughout: the shape of the document, the
+ * Schema Object dialect, and the key charsets all follow that release.
+ * Naming it here means the version and the reason for it sit together,
+ * rather than appearing as a bare string in the document builder.
+ */
+export const ASYNCAPI_VERSION = "3.1.0";
+
+/**
+ * The `info.title` used when nothing supplies one.
+ *
+ * This applies when the program declares no `@service` at all, and when a
+ * service declares no title. Both cases mean the same thing, so they use
+ * the same value.
+ */
+export const DEFAULT_DOCUMENT_TITLE = "AsyncAPI Document";
+
+/**
+ * The `info.version` used when nothing supplies one.
+ *
+ * AsyncAPI requires `info.version`, so the emitter cannot leave it out.
+ * This applies when the program declares no `@service`, when `@info` is
+ * absent, and when `@info` carries no version.
+ */
+export const DEFAULT_INFO_VERSION = "0.0.0";

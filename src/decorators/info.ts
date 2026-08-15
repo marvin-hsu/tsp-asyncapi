@@ -1,5 +1,6 @@
 import { DecoratorContext, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
+import { DEFAULT_INFO_VERSION } from "../constants.js";
 
 const infoStateKey = Symbol.for("tsp-asyncapi.info");
 
@@ -39,7 +40,7 @@ const [getInfoInternal, setInfo] = useStateMap<Namespace, AsyncAPIInfoState>(inf
  */
 export function $info(context: DecoratorContext, target: Namespace, info: AsyncAPIInfoState) {
   const infoData: AsyncAPIInfoState = { ...info };
-  if (!infoData.version) infoData.version = "0.0.0";
+  if (!infoData.version) infoData.version = DEFAULT_INFO_VERSION;
   setInfo(context.program, target, infoData);
 }
 

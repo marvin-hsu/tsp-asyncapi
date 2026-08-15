@@ -5,6 +5,7 @@ import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import { buildServers, reportServersOutsideService } from "./servers.js";
+import { ASYNCAPI_VERSION, DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
 /**
  * Builds the `components` section.
@@ -40,11 +41,13 @@ export function buildAsyncAPIDocument(
   reportServersOutsideService(program, service?.type);
   const servers = service ? buildServers(program, service.type) : undefined;
 
-  // Base AsyncAPI 3.1.0 Document Skeleton
+  // The root document. Its version comes from `ASYNCAPI_VERSION`.
   return {
-    asyncapi: "3.1.0",
+    asyncapi: ASYNCAPI_VERSION,
     ...(options["asyncapi-id"] ? { id: options["asyncapi-id"] } : {}),
-    info: service ? buildInfo(program, service) : { title: "AsyncAPI Document", version: "0.0.0" },
+    info: service
+      ? buildInfo(program, service)
+      : { title: DEFAULT_DOCUMENT_TITLE, version: DEFAULT_INFO_VERSION },
     ...(options["default-content-type"]
       ? { defaultContentType: options["default-content-type"] }
       : {}),
