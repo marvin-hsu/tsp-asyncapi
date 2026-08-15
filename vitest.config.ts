@@ -13,23 +13,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],
-      include: ["src/**/*.ts"],
-      // `src/decorators` is left out because it cannot be measured here.
-      // `lib/main.tsp` imports `../dist/src/tsp-index.js`, so the compiler
-      // runs the decorators from the build output while v8 instruments the
-      // sources. The sources then read as unrun even though the tests drive
-      // them hard: `content-type.ts` reports its duplicate and empty-value
-      // branches as uncovered, and three tests in `test/unit/messages.test.ts`
-      // assert the diagnostics those very branches report. Counting them
-      // would hold the threshold against a number that measures the wrong
-      // copy.
-      exclude: [
-        "src/index.ts",
-        "src/types/**",
-        "test/**",
-        "src/testing/**/*.ts",
-        "src/decorators/**",
-      ],
+      include: ["src/**/*.ts", "dist/src/**/*.js"],
+      // Both the sources and the build output are collected, and the
+      // report maps back to the sources through the source maps that
+      // `tsconfig.build.json` now emits. That is the only way the decorators
+      // are counted at all: `lib/main.tsp` imports `../dist/src/tsp-index.js`,
+      // so the compiler runs them from the build output while the tests drive
+      // them. Collecting the sources alone reported `server.ts` at 10%, with
+      // twenty tests exercising it.
+      exclude: ["src/index.ts", "src/types/**", "test/**", "src/testing/**/*.ts"],
       // A floor, not a target. Each number sits several points under what
       // the suite reaches, because a refactor moves coverage in both
       // directions at once: deleting well-tested code takes away covered
@@ -37,12 +29,12 @@ export default defineConfig({
       // the current value turn every such change into a failure that says
       // nothing about quality. New code is held to a higher bar by the
       // SonarCloud gate, which is where growth belongs.
-      // Measured at the time of writing: statements 97.31, branches 91.65,
-      // functions 100, lines 97.88.
+      // Measured once the decorators became visible: statements 96.55,
+      // branches 89.11, functions 88.42, lines 97.38.
       thresholds: {
         statements: 92,
-        branches: 86,
-        functions: 95,
+        branches: 84,
+        functions: 83,
         lines: 92,
       },
     },
