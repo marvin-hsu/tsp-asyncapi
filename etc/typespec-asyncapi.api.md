@@ -57,6 +57,18 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"duplicate-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-server-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"server-outside-service": {
+readonly default: CallableMessage<["name", "namespace"]>;
+};
+"invalid-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -71,6 +83,11 @@ export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<v
 // @public
 export function $oneOf(context: DecoratorContext_2, target: Union): void;
 
+// Warning: (ae-incompatible-release-tags) The symbol "$server" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
+//
+// @public
+export function $server(context: DecoratorContext_2, target: Namespace, name: string, config: Omit<AsyncAPIServerState, "name">): void;
+
 // @public
 export interface AsyncAPIDocument {
     asyncapi: string;
@@ -80,6 +97,7 @@ export interface AsyncAPIDocument {
     id?: string;
     info: InfoObject;
     operations?: Record<string, OperationObject>;
+    servers?: Record<string, ServerObject>;
 }
 
 // @public
@@ -113,6 +131,27 @@ export interface AsyncAPIInfoState {
     version: string;
 }
 
+// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerState" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface AsyncAPIServerState {
+    // (undocumented)
+    description?: string;
+    // (undocumented)
+    host: string;
+    name: string;
+    // (undocumented)
+    pathname?: string;
+    // (undocumented)
+    protocol: string;
+    // (undocumented)
+    protocolVersion?: string;
+    // (undocumented)
+    summary?: string;
+    // (undocumented)
+    title?: string;
+}
+
 // @public
 export type ChannelObject = Record<string, never>;
 
@@ -133,7 +172,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -159,6 +198,18 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["property"]>;
     };
     "duplicate-schema-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-server-field": {
+        readonly default: CallableMessage<["field"]>;
+    };
+    "server-outside-service": {
+        readonly default: CallableMessage<["name", "namespace"]>;
+    };
+    "invalid-server-name": {
         readonly default: CallableMessage<["name"]>;
     };
     "unsupported-payload-type": {
@@ -193,6 +244,18 @@ readonly default: CallableMessage<["property", "reason"]>;
 readonly default: CallableMessage<["property"]>;
 };
 "duplicate-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-server-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"server-outside-service": {
+readonly default: CallableMessage<["name", "namespace"]>;
+};
+"invalid-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
 "unsupported-payload-type": {
@@ -233,6 +296,11 @@ export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState 
 //
 // @public (undocumented)
 export function getJsonSchemaExtensions(program: Program, target: Model | ModelProperty): JsonSchemaExtensionRecord[];
+
+// Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
+//
+// @public
+export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
 
 // @public
 export interface InfoObject {
@@ -281,7 +349,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -307,6 +375,18 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["property"]>;
     };
     "duplicate-schema-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-server-field": {
+        readonly default: CallableMessage<["field"]>;
+    };
+    "server-outside-service": {
+        readonly default: CallableMessage<["name", "namespace"]>;
+    };
+    "invalid-server-name": {
         readonly default: CallableMessage<["name"]>;
     };
     "unsupported-payload-type": {
@@ -341,6 +421,18 @@ readonly default: CallableMessage<["property", "reason"]>;
 readonly default: CallableMessage<["property"]>;
 };
 "duplicate-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-server-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"server-outside-service": {
+readonly default: CallableMessage<["name", "namespace"]>;
+};
+"invalid-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
 "unsupported-payload-type": {
@@ -395,6 +487,17 @@ export interface SchemaObject {
     title?: string;
     // (undocumented)
     type?: string | string[];
+}
+
+// @public
+export interface ServerObject {
+    description?: string;
+    host: string;
+    pathname?: string;
+    protocol: string;
+    protocolVersion?: string;
+    summary?: string;
+    title?: string;
 }
 
 // @public

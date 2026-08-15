@@ -4,13 +4,25 @@ import { AsyncAPITester } from "../../src/testing/index.js";
 import { LIBRARY_NAME } from "../../src/lib.js";
 import yaml from "yaml";
 
+/**
+ * Source for a test compilation. A string is the whole of `main.tsp`. A
+ * record is a set of files, keyed by name, for a case that needs more than
+ * one file. Behavior that depends on a declaration being spread across
+ * files, such as a namespace opened in several of them, needs the record
+ * form.
+ */
+export type TestSource = string | Record<string, string>;
+
 export async function emitAsyncAPIWithDiagnostics(
-  code: string,
+  code: TestSource,
   options: Record<string, unknown> = {},
   includeService = true,
 ) {
+  // The service wrapper is only added to the single-file form. A multi-file
+  // case declares its own service, since only its author knows which file
+  // should hold it.
   const fullCode =
-    includeService && !code.includes("@service")
+    typeof code === "string" && includeService && !code.includes("@service")
       ? `@service(#{ title: "TestService" }) namespace Test;\n${code}`
       : code;
 
@@ -33,7 +45,7 @@ export async function emitAsyncAPIWithDiagnostics(
   };
 }
 
-export async function emitAsyncAPI(code: string, options: Record<string, unknown> = {}) {
+export async function emitAsyncAPI(code: TestSource, options: Record<string, unknown> = {}) {
   const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(code, options);
   expectDiagnosticEmpty(diagnostics);
   return doc;

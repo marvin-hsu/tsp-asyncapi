@@ -132,6 +132,30 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Duplicate schema name: '${"name"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
       },
     },
+    "duplicate-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate server name: '${"name"}'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.`,
+      },
+    },
+    "empty-server-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Empty server field: '${"field"}'. AsyncAPI requires a value for this field on every server. This @server was dropped.`,
+      },
+    },
+    "server-outside-service": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Server '${"name"}' on namespace '${"namespace"}' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.`,
+      },
+    },
+    "invalid-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Invalid server name: '${"name"}'. AsyncAPI only allows letters, digits, '_', and '-' in a server name. This @server was dropped.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {
