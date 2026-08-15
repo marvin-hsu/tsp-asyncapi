@@ -45,6 +45,7 @@
     "check:package": "pnpm build && pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-*.tgz",
     "mutation": "stryker run",
     "knip": "knip",
+    "check": "pnpm format:check && pnpm lint && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod",
     "prepare": "husky"
   },
   "keywords": [
