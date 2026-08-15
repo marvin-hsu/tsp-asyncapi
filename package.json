@@ -18,6 +18,13 @@
   },
   "types": "./dist/src/index.d.ts",
   "type": "module",
+  "files": [
+    "dist",
+    "lib",
+    "README.md",
+    "README.zh-TW.md",
+    "LICENSE"
+  ],
   "scripts": {
     "clean": "rimraf ./dist",
     "build": "tsc -p tsconfig.build.json",
