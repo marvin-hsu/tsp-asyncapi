@@ -56,6 +56,7 @@ export class SchemaBuilder {
   }
 
   public getSchemas(): Record<string, SchemaObject> {
+    this.flushPendingSubtypes();
     const schemas: Record<string, SchemaObject> = Object.create(null) as Record<
       string,
       SchemaObject
@@ -64,6 +65,46 @@ export class SchemaBuilder {
       schemas[key] = value;
     }
     return schemas;
+  }
+
+  /**
+   * Returns the type that owns the `components.schemas` key `key`, or
+   * `undefined` when no type claimed it.
+   * The message builder uses this to detect a `components.messages` key that
+   * names another type's schema.
+   */
+  public schemaKeyOwner(key: string): Type | undefined {
+    return this.keyRegistry.ownerOf(key);
+  }
+
+  /**
+   * Returns the `components.schemas` key `model` would claim, without
+   * registering it and without building anything.
+   * The message builder uses this to tell two models apart. Two models that
+   * share this key emit one component, so they are the same declaration as
+   * far as the document is concerned.
+   */
+  public schemaKeyCandidate(model: Model): string {
+    return this.keyRegistry.candidateFor(model);
+  }
+
+  /**
+   * Builds `model` as a `components.schemas` declaration and returns a `$ref`
+   * to it.
+   * `buildSchema` prefers to inline a named declaration that has no compact
+   * composed name. That preference is right for a property use site. It is
+   * wrong for a top-level declaration such as a `@message` payload. Inlining
+   * there copies the whole body into the message, and a second reference to
+   * the same declaration registers it as a component too. The same type then
+   * appears in two places that can silently diverge.
+   * This entry point turns the preference off for `model`, so the declaration
+   * always registers, under its fallback key when it has no compact one.
+   * A declaration that already inlined at an earlier use site is promoted to a
+   * component here, the same way a second reference promotes it.
+   */
+  public buildDeclarationRef(model: Model): SchemaObject | ReferenceObject {
+    this.forcedDeclarations.add(model);
+    return this.buildSchema(model);
   }
 
   public buildSchema(type: Type): SchemaObject | ReferenceObject {
@@ -235,6 +276,64 @@ export class SchemaBuilder {
   private readonly inlinedShapes = new Map<Type, SchemaObject>();
 
   /**
+   * Holds every declaration that `buildDeclarationRef` marked. Such a
+   * declaration always registers as a component. It never inlines.
+   */
+  private readonly forcedDeclarations = new Set<Type>();
+
+  /**
+   * Queues the subtypes of a model whose schema carries `discriminator`.
+   * `getSchemas` drains the queue. Draining it there, rather than during the
+   * base model's own build, keeps the base's entry ahead of its subtypes' in
+   * `declaredSchemas`, and keeps the queue out of the recursive build.
+   */
+  private readonly pendingSubtypes: Model[] = [];
+
+  /**
+   * Builds every queued discriminated subtype, and claims their schema keys.
+   * `getSchemas` runs it, so a caller that only wants the schemas never has
+   * to. A caller that inspects the claimed keys before the document is
+   * assembled runs it itself, so it sees the final key set. Running it twice
+   * is harmless; the queue is drained each time.
+   *
+   * A subtype is not reachable by walking properties. Only the `extends`
+   * link points at it, and that link points the other way. So a
+   * `@discriminator` base would otherwise emit a schema that advertises a
+   * polymorphic payload while describing none of its variants.
+   * Each subtype registers as a component rather than inlining. A subtype
+   * that inlined would land nowhere, because no property references it.
+   * Building a subtype can queue more subtypes, so the loop runs until the
+   * queue is empty. An uninstantiated template declaration is skipped: its
+   * properties are bare template parameters with no real shape.
+   */
+  public flushPendingSubtypes(): void {
+    for (
+      let subtype = this.pendingSubtypes.shift();
+      subtype !== undefined;
+      subtype = this.pendingSubtypes.shift()
+    ) {
+      if (isUninstantiatedTemplateDeclaration(subtype)) {
+        continue;
+      }
+      this.buildDeclarationRef(subtype);
+    }
+  }
+
+  /**
+   * Queues every subtype of `model`, direct and indirect.
+   * The walk is transitive because only the model that carries
+   * `@discriminator` queues anything. In a three-level hierarchy the middle
+   * level usually carries no decorator of its own, so it would never queue
+   * the bottom level.
+   */
+  private enqueueSubtypes(model: Model): void {
+    for (const derived of model.derivedModels) {
+      this.pendingSubtypes.push(derived);
+      this.enqueueSubtypes(derived);
+    }
+  }
+
+  /**
    * Builds the schema for a *named* `Model` or `Union`, choosing between a
    * registered `components.schemas` entry and an inline shape.
    *
@@ -317,7 +416,7 @@ export class SchemaBuilder {
     // The name is asked of `SchemaKeyRegistry`, which memoizes it, so the
     // registration that follows reuses this same computation instead of
     // walking the template argument chain a second time.
-    if (this.keyRegistry.nameFor(type) !== undefined) {
+    if (this.forcedDeclarations.has(type) || this.keyRegistry.nameFor(type) !== undefined) {
       return this.registerNamed(type, build);
     }
     if (this.building.has(type)) {
@@ -411,7 +510,16 @@ export class SchemaBuilder {
     try {
       const value = build();
       this.declaredTypes.set(type, key);
-      this.declaredSchemas.set(key, value);
+      // Only the type that actually owns the key writes the body. `keyFor`
+      // reports `duplicate-schema-key` when a different type already owns
+      // it, and both types keep returning a `$ref` to that one key. Writing
+      // here regardless would let whichever type is built last overwrite the
+      // owner's body, so every `$ref` to the key would then resolve to a
+      // schema describing the wrong type. Keeping the owner's body means the
+      // reported error is the only damage.
+      if (this.keyRegistry.ownerOf(key) === type) {
+        this.declaredSchemas.set(key, value);
+      }
     } catch (error) {
       // `build()` failed. Release the key this type claimed. Otherwise, a
       // retry, or another reference to the same type, would see
@@ -724,6 +832,14 @@ export class SchemaBuilder {
       });
       return schema;
     }
+    // The emitted schema now advertises a polymorphic payload. Its variants
+    // must be present in `components.schemas` for that to mean anything. The
+    // subtypes are queued rather than built here, so this model's own entry
+    // lands first. See `flushPendingSubtypes`.
+    // Nothing is queued when the checks above dropped `discriminator`. The
+    // emitted schema then advertises no polymorphism, so a subtype that no
+    // message reaches stays out of the document.
+    this.enqueueSubtypes(model);
     const wireName = resolveEncodedName(this.program, prop, SCHEMA_ENCODING_MIME_TYPE);
     return { ...schema, discriminator: wireName };
   }

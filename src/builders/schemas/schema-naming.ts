@@ -171,8 +171,20 @@ function sanitizeNameSegment(raw: string): string {
 const SAFE_KEY_CHARSET = /^[a-zA-Z0-9.\-_]+$/;
 
 /**
+ * Tells whether `name` can be used as a Components Object key verbatim.
+ * A caller that takes a key straight from the user, such as the `@message`
+ * argument, uses this to warn before `sanitizeDeclarationName` rewrites the
+ * text into something the user never asked for.
+ */
+export function isSafeComponentsKey(name: string): boolean {
+  return SAFE_KEY_CHARSET.test(name);
+}
+
+/**
  * Sanitizes a named declaration's own name, e.g. `Model.name`, for use as a
- * `components.schemas` key candidate.
+ * Components Object key candidate. `components.schemas` and
+ * `components.messages` share the same key charset, so both use this
+ * sanitizer.
  * A plain TypeSpec identifier already lies entirely inside
  * `SAFE_KEY_CHARSET`; it is returned unchanged, case included. This keeps
  * every existing key stable.
@@ -184,7 +196,7 @@ const SAFE_KEY_CHARSET = /^[a-zA-Z0-9.\-_]+$/;
  * anonymous type; callers already special-case that before a name is ever
  * needed.
  */
-function sanitizeDeclarationName(name: string): string {
+export function sanitizeDeclarationName(name: string): string {
   if (name.length === 0 || SAFE_KEY_CHARSET.test(name)) {
     return name;
   }
@@ -425,15 +437,45 @@ function typeNameOptions(program: Program): TypeNameOptions {
  * in every other case.
  */
 export function fallbackDeclarationName(program: Program, type: Model | Union): string {
+  return namespacePrefix(program, type.namespace) + fallbackInstanceName(program, type);
+}
+
+/**
+ * The unqualified half of `fallbackDeclarationName`: own name plus one
+ * segment per template argument, with no namespace prefix.
+ * `unqualifiedDeclarationName` shares it, so a message key and a schema key
+ * describe the same instantiation with the same text.
+ */
+function fallbackInstanceName(program: Program, type: Model | Union): string {
   const options = typeNameOptions(program);
   const argNames = (type.templateMapper?.args ?? []).map((arg) =>
     sanitizeNameSegment(getEntityName(arg, options)),
   );
-  return (
-    namespacePrefix(program, type.namespace) +
-    sanitizeDeclarationName(type.name ?? "") +
-    argNames.join("")
-  );
+  return sanitizeDeclarationName(type.name ?? "") + argNames.join("");
+}
+
+/**
+ * Builds a declaration's name without any namespace qualification.
+ * `components.messages` keys use it. They are deliberately not qualified by
+ * namespace, unlike `components.schemas` keys, so two same-named message
+ * models in different namespaces collide and the caller reports that.
+ * Everything else matches how a schema key is built, and on purpose: a
+ * `@friendlyName` wins outright, a template instantiation composes its
+ * argument names, and an instantiation with no compact composed name falls
+ * back to the same per-argument text `fallbackDeclarationName` uses.
+ * Two instantiations of one template therefore get two distinct keys, the
+ * same way their schemas do. Taking the raw `Model.name` instead would give
+ * every instantiation the bare template name and turn valid TypeSpec into a
+ * duplicate-key error.
+ * The result always lies inside the Components Object key charset, and it
+ * is never empty for a named declaration.
+ */
+export function unqualifiedDeclarationName(program: Program, type: Model | Union): string {
+  const friendlyName = getFriendlyName(program, type);
+  if (friendlyName !== undefined) {
+    return sanitizeDeclarationName(friendlyName);
+  }
+  return templateInstanceName(program, type) ?? fallbackInstanceName(program, type);
 }
 
 /**

@@ -30,7 +30,41 @@
 
 **修法：** 把匿名型別改成具名 `model`。具名型別之間以 `$ref` 互相引用，循環沒有問題。
 
+### `duplicate-message-key`
+
+> Duplicate message name: '\<name\>'. Two @message models resolve to the same components.messages key. Pass an explicit name to @message on one of them.
+
+兩個 `@message` model 解析到同一個 `components.messages` key。常見原因：不同 namespace 下的同名 model（message key 不帶 namespace 前綴，schema key 會帶）；或兩個 `@friendlyName` 解析成同一字串。
+
+同一個 template 的兩個具現化算出同一個 key 不會回報——原始碼裡只有一個 `@message`，兩者也指向同一份輸出的 component。
+
+**修法：** 對其中一個的 `@message` 傳入明確名稱。
+
+### `duplicate-message-decorator`
+
+> @message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.
+
+`@message` 不可重複標記。疊加時只會保留其中一次，其餘名稱不會進到文件裡。
+
+**修法：** 移除多餘的 `@message`。
+
 ## 警告
+
+### `message-key-shadows-schema-key`
+
+> Message name '\<name\>' is also the components.schemas key of a different type, so a reader can misread this message as describing that type. A message key drops the namespace prefix that a schema key keeps, which makes the two overlap. Pass a different name to @message.
+
+文件本身仍然合法——`components.messages` 與 `components.schemas` 是兩個獨立的 map，實際上沒有撞到。風險在讀的人：`components.messages.Sales.Ev` 與 `components.schemas["Sales.Ev"]` 看起來像同一個東西，描述的卻是不同型別。
+
+**修法：** 對 `@message` 傳入不同的名稱。
+
+### `sanitized-message-key`
+
+> Message name '\<requested\>' is not a legal components.messages key, so it was emitted as '\<emitted\>'. A key may only use the characters a-z, A-Z, 0-9, '.', '-', and '_'.
+
+傳給 `@message` 的名稱超出 Components Object 的合法字元集，emitter 已把違規字元編碼。因此實際輸出的 key 並不是當初要求的字串。
+
+**修法：** 改用只含 `a-z`、`A-Z`、`0-9`、`.`、`-`、`_` 的名稱。
 
 ### `multiple-services`
 

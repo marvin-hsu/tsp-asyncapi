@@ -39,6 +39,18 @@ export class SchemaKeyRegistry {
   }
 
   /**
+   * Returns the key `type` would claim, without registering anything and
+   * without reporting a collision.
+   * This is `nameFor`'s compact name when there is one, and the long fallback
+   * name otherwise. So it is exactly the name `keyFor` settles on.
+   * A caller uses it to compare two types by the component they would share,
+   * before deciding whether their collision on some other key is real.
+   */
+  public candidateFor(type: Model | Union): string {
+    return this.nameFor(type) ?? fallbackDeclarationName(this.program, type);
+  }
+
+  /**
    * Returns the `components.schemas` key for `type`. Registers the key on
    * first use. Reports `duplicate-schema-key` if a different type already
    * claimed this name. See the `schemaKeys`/`claimedBy` fields above for the
@@ -62,7 +74,7 @@ export class SchemaKeyRegistry {
         "Unspeakable declaration name for an 'Enum' reached key registration.",
         type,
       );
-      name = fallbackDeclarationName(this.program, type);
+      name = this.candidateFor(type);
     }
     this.schemaKeys.set(type, name);
     const owner = this.claimedBy.get(name);
@@ -76,6 +88,17 @@ export class SchemaKeyRegistry {
       });
     }
     return name;
+  }
+
+  /**
+   * Returns the type that currently owns `key`, or `undefined` when no type
+   * claimed it.
+   * A caller uses this to tell whether a key it built for another Components
+   * Object section, such as `components.messages`, already names a different
+   * type's schema.
+   */
+  public ownerOf(key: string): Type | undefined {
+    return this.claimedBy.get(key);
   }
 
   /**

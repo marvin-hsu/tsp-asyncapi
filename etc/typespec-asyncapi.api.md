@@ -57,6 +57,18 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"duplicate-message-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-message-decorator": {
+readonly default: "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.";
+};
+"message-key-shadows-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"sanitized-message-key": {
+readonly default: CallableMessage<["requested", "emitted"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -64,6 +76,9 @@ readonly default: CallableMessage<["kind"]>;
 readonly default: "This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.";
 };
 }, AsyncAPIEmitterOptions, never>;
+
+// @public
+export function $message(context: DecoratorContext_2, target: Model, name?: string): void;
 
 // @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;
@@ -120,8 +135,7 @@ export type ChannelObject = Record<string, never>;
 export interface ComponentsObject {
     // (undocumented)
     channels?: Record<string, never>;
-    // (undocumented)
-    messages?: Record<string, never>;
+    messages?: Record<string, MessageObject>;
     schemas?: Record<string, SchemaObject>;
 }
 
@@ -133,7 +147,7 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -160,6 +174,18 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-message-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-message-decorator": {
+        readonly default: "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.";
+    };
+    "message-key-shadows-schema-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "sanitized-message-key": {
+        readonly default: CallableMessage<["requested", "emitted"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -194,6 +220,18 @@ readonly default: CallableMessage<["property"]>;
 };
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
+};
+"duplicate-message-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-message-decorator": {
+readonly default: "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.";
+};
+"message-key-shadows-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"sanitized-message-key": {
+readonly default: CallableMessage<["requested", "emitted"]>;
 };
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
@@ -268,6 +306,19 @@ export interface LicenseObject {
     url?: string;
 }
 
+// @public
+export function listMessages(program: Program): Map<Model, MessageState>;
+
+// @public
+export interface MessageObject {
+    payload?: SchemaObject | ReferenceObject;
+}
+
+// @public
+export interface MessageState {
+    name?: string;
+}
+
 // @public (undocumented)
 export const namespace = "AsyncAPI";
 
@@ -281,7 +332,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -308,6 +359,18 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-message-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-message-decorator": {
+        readonly default: "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.";
+    };
+    "message-key-shadows-schema-key": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "sanitized-message-key": {
+        readonly default: CallableMessage<["requested", "emitted"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -342,6 +405,18 @@ readonly default: CallableMessage<["property"]>;
 };
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
+};
+"duplicate-message-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-message-decorator": {
+readonly default: "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.";
+};
+"message-key-shadows-schema-key": {
+readonly default: CallableMessage<["name"]>;
+};
+"sanitized-message-key": {
+readonly default: CallableMessage<["requested", "emitted"]>;
 };
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;

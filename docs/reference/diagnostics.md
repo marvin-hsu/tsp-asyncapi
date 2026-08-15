@@ -30,7 +30,41 @@ An anonymous type cycles back to itself, e.g. `alias Foo = { a: Foo };`. Anonymo
 
 **Fix:** turn the anonymous type into a named `model`. Named types reference each other through `$ref`, which handles cycles fine.
 
+### `duplicate-message-key`
+
+> Duplicate message name: '\<name\>'. Two @message models resolve to the same components.messages key. Pass an explicit name to @message on one of them.
+
+Two `@message` models resolved to the same `components.messages` key. Typical causes: two same-named models in different namespaces (a message key drops the namespace prefix a schema key keeps), or two `@friendlyName`s resolving to the same string.
+
+Two instantiations of one template that produce the same key are not reported — there is only one `@message` in the source, and both refer to the same emitted component.
+
+**Fix:** pass an explicit name to `@message` on one of them.
+
+### `duplicate-message-decorator`
+
+> @message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.
+
+`@message` is not repeatable. Stacking it silently keeps just one application, so the extra names never reach the document.
+
+**Fix:** remove the extra `@message`.
+
 ## Warnings
+
+### `message-key-shadows-schema-key`
+
+> Message name '\<name\>' is also the components.schemas key of a different type, so a reader can misread this message as describing that type. A message key drops the namespace prefix that a schema key keeps, which makes the two overlap. Pass a different name to @message.
+
+The document stays valid — `components.messages` and `components.schemas` are separate maps, so nothing actually collides. The risk is to the reader: `components.messages.Sales.Ev` and `components.schemas["Sales.Ev"]` look like the same thing while describing different types.
+
+**Fix:** pass a different name to `@message`.
+
+### `sanitized-message-key`
+
+> Message name '\<requested\>' is not a legal components.messages key, so it was emitted as '\<emitted\>'. A key may only use the characters a-z, A-Z, 0-9, '.', '-', and '_'.
+
+The name given to `@message` falls outside the Components Object key charset, so the emitter encoded the offending characters. The emitted key is therefore not the string that was asked for.
+
+**Fix:** pass a name that only uses `a-z`, `A-Z`, `0-9`, `.`, `-`, and `_`.
 
 ### `multiple-services`
 

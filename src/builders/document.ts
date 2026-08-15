@@ -1,7 +1,28 @@
 import { Program, Service } from "@typespec/compiler";
-import { AsyncAPIDocument } from "../types/index.js";
+import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import { buildInfo } from "./info.js";
+import { buildMessages } from "./messages.js";
+import { SchemaBuilder } from "./schemas/builder.js";
+
+/**
+ * Builds the `components` section.
+ * The messages are built first, and they drive the schema collection. Only
+ * a model that a message payload reaches gets a `components.schemas` entry.
+ * A model that no message reaches is not emitted at all.
+ * An empty section, or an empty entry inside it, is omitted.
+ */
+function buildComponents(program: Program): ComponentsObject | undefined {
+  const schemaBuilder = new SchemaBuilder(program);
+  const messages = buildMessages(program, schemaBuilder);
+  const schemas = schemaBuilder.getSchemas();
+
+  const components: ComponentsObject = {
+    ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
+    ...(messages ? { messages } : {}),
+  };
+  return Object.keys(components).length > 0 ? components : undefined;
+}
 
 /**
  * Builds the AsyncAPI root document skeleton.
@@ -11,6 +32,8 @@ export function buildAsyncAPIDocument(
   service: Service | undefined,
   options: AsyncAPIEmitterOptions,
 ): AsyncAPIDocument {
+  const components = buildComponents(program);
+
   // Base AsyncAPI 3.1.0 Document Skeleton
   return {
     asyncapi: "3.1.0",
@@ -21,6 +44,6 @@ export function buildAsyncAPIDocument(
       : {}),
     channels: {},
     operations: {},
-    components: {},
+    ...(components ? { components } : {}),
   };
 }

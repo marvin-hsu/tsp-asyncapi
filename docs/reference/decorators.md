@@ -87,6 +87,58 @@ Shape:
     - $ref: "#/components/schemas/Square"
 ```
 
+## `@message`
+
+```typespec
+extern dec message(target: Model, name?: valueof string);
+```
+
+Marks a model as an AsyncAPI message. Each marked model becomes an entry in `components.messages`, with its `payload` referencing the model's schema.
+
+The target must be a `Model`. A message whose payload is a single scalar has to wrap that scalar in a model.
+
+```typespec
+@message
+model OrderCreated {
+  orderId: string;
+  amount: float64;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+```
+
+The optional argument overrides the key:
+
+```typespec
+@message("order.created.v1")
+model OrderCreated {
+  orderId: string;
+}
+```
+
+Two points worth knowing:
+
+- **Only reachable models are emitted.** `components.schemas` holds the models a message reaches, directly or through its properties. A model no message references is left out.
+- **A message key drops the namespace prefix that a schema key keeps.** A `@message model Ev` inside `namespace Sales` produces the message key `Ev` and the schema key `Sales.Ev`. When a message key happens to match a different type's schema key, the emitter reports [`message-key-shadows-schema-key`](./diagnostics#message-key-shadows-schema-key).
+
 ## `@jsonSchemaExtension`
 
 ```typespec

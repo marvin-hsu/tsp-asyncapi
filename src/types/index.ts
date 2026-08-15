@@ -113,8 +113,18 @@ export type OperationObject = Record<string, never>;
 export interface ComponentsObject {
   /** Reusable schemas. */
   schemas?: Record<string, SchemaObject>;
-  messages?: Record<string, never>;
+  /** Reusable messages, keyed by the message name. */
+  messages?: Record<string, MessageObject>;
   channels?: Record<string, never>;
+}
+
+/**
+ * Describes one message an application sends or receives.
+ * @public
+ */
+export interface MessageObject {
+  /** The definition of the message payload. */
+  payload?: SchemaObject | ReferenceObject;
 }
 
 /**

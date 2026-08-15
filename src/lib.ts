@@ -132,6 +132,31 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Duplicate schema name: '${"name"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
       },
     },
+    "duplicate-message-key": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate message name: '${"name"}'. Two @message models resolve to the same components.messages key. Pass an explicit name to @message on one of them.`,
+      },
+    },
+    "duplicate-message-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.",
+      },
+    },
+    "message-key-shadows-schema-key": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Message name '${"name"}' is also the components.schemas key of a different type, so a reader can misread this message as describing that type. A message key drops the namespace prefix that a schema key keeps, which makes the two overlap. Pass a different name to @message.`,
+      },
+    },
+    "sanitized-message-key": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Message name '${"requested"}' is not a legal components.messages key, so it was emitted as '${"emitted"}'. A key may only use the characters a-z, A-Z, 0-9, '.', '-', and '_'.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

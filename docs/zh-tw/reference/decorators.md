@@ -87,6 +87,58 @@ Shape:
     - $ref: "#/components/schemas/Square"
 ```
 
+## `@message`
+
+```typespec
+extern dec message(target: Model, name?: valueof string);
+```
+
+把一個 model 標記為 AsyncAPI message。每個被標記的 model 會成為 `components.messages` 的一筆，其 `payload` 指向該 model 的 schema。
+
+target 必須是 `Model`。payload 只是單一 scalar 的訊息，必須把該 scalar 包進一個 model 裡。
+
+```typespec
+@message
+model OrderCreated {
+  orderId: string;
+  amount: float64;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+```
+
+選填參數可覆寫 key：
+
+```typespec
+@message("order.created.v1")
+model OrderCreated {
+  orderId: string;
+}
+```
+
+兩點要注意：
+
+- **只有被觸及的 model 會輸出**。`components.schemas` 只收 message 能觸及的 model（直接引用或透過屬性間接引用）。沒有任何 message 引用到的 model 不會出現。
+- **message key 不帶 namespace 前綴，schema key 會帶**。`namespace Sales` 裡的 `@message model Ev` 會產出 message key `Ev` 與 schema key `Sales.Ev`。當某個 message key 剛好等於另一個型別的 schema key 時，emitter 會回報 [`message-key-shadows-schema-key`](./diagnostics#message-key-shadows-schema-key)。
+
 ## `@jsonSchemaExtension`
 
 ```typespec
