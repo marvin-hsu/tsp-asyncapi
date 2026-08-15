@@ -11,11 +11,7 @@ import {
   getSummary,
   getExamples,
   serializeValueAsJson,
-  UnserializableValueError,
   $example,
-  Example,
-  getSourceLocation,
-  EncodeData,
   getPattern,
   getFormat,
   getMinValueAsNumeric,
@@ -34,6 +30,8 @@ import {
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
+import { makeSerializeHandlers } from "../example-serialization.js";
+import { orderBySourceNodes } from "../source-order.js";
 
 /**
  * The mime type a schema's own property keys are resolved against through
@@ -53,133 +51,13 @@ import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decora
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
 
 /**
- * Builds a defined, non-`undefined` `encodeAs` whose `encoding` matches none
- * of the compiler's known encodings.
- * The known encodings are `unixTimestamp`/`rfc7231` for date-times and
- * `seconds` for durations. See `ScalarSerializers` in
- * `@typespec/compiler`'s `lib/examples.js`.
- * Because the encoding never matches, every serializer falls through to its
- * un-encoded, "no `@encode` applied" representation.
- * `type` is only read back out of this value on the `duration` + `seconds`
- * branch. This `encoding` never reaches that branch, so any scalar can
- * stand in for `type` here.
- */
-function neutralEncodeAs(type: Scalar): EncodeData {
-  return { encoding: "rfc3339", type };
-}
-
-/**
- * Builds `serializeValueAsJson`'s handlers hook. It serves two purposes.
- *
- * First, it turns a scalar the serializer cannot represent into a thrown
- * `UnserializableValueError`, instead of a silent `undefined` return.
- * `resolveKnownScalar` returns `undefined` for an unsupported or custom
- * scalar constructor. Without this handler, an unrepresentable scalar
- * nested inside an array or object value would leave a stray `undefined`
- * buried in the result. A top-level `undefined` check would never see it.
- *
- * Second, it makes sure no `@encode` is ever applied while serializing an
- * example. This covers `@encode` declared on the scalar itself, on a
- * property of the immediate type, or on a property nested arbitrarily deep
- * inside a model or array value.
- * `buildScalarSchema` (2.7) does not map `@encode` into a schema's
- * `type`/`format`. That is out of scope for this phase (2.8 adds it). So
- * an example that *did* apply `@encode` would encode a value the schema
- * itself does not declare. It would then fail validation against its own
- * schema.
- *
- * The compiler binds `originalFn` to the exact `encodeAs` this call
- * received. Re-invoking it with a different `encodeAs` argument has no
- * effect; the extra argument is silently ignored. `resolveKnownScalar` also
- * unconditionally re-reads the scalar's own `@encode` internally, no matter
- * what is passed in.
- * So, to skip `@encode`, this handler instead re-enters the compiler's
- * *exported* `serializeValueAsJson`, not the bound `originalFn`. It passes
- * a defined, neutral `encodeAs` (see `neutralEncodeAs`). Because
- * `encodeAs ?? result.encodeAs` favors an already-defined `encodeAs`, this
- * neutral value wins over any `@encode` that `resolveKnownScalar` would
- * otherwise pick up. This works without needing to know all the ways
- * `@encode` could reach this value.
- */
-function makeSerializeHandlers(program: Program): Parameters<typeof serializeValueAsJson>[4] {
-  return {
-    serializeScalarValue: (value, type) => {
-      const result = serializeValueAsJson(program, value, type, neutralEncodeAs(value.scalar));
-      if (result === undefined) {
-        throw new UnserializableValueError(
-          `Cannot serialize scalar '${value.scalar.name}' as JSON.`,
-        );
-      }
-      return result;
-    },
-  };
-}
-
-/**
- * Recovers source order for `getExamples`' result.
- * `getExamples` returns decorators in the order they were *applied*, which
- * is not necessarily the order they appear in source.
- * Inline `@example` decorators execute bottom-up: the last-listed one
- * executes first. `@@example` augment decorators are spliced in *before*
- * the inline ones by the checker (see `checkDecorators` in
- * `@typespec/compiler`'s `checker.js`).
- * So a blanket reverse would be correct for inline-only decorators, but it
- * inverts the relative order of augment decorators instead.
- * `target.decorators` is public. It is in the same execution order as
- * `getExamples`' raw result, and it pairs up 1:1 with it. So filtering it
- * down to the `@example` applications, and sorting by each one's source
- * position, recovers true source order. This works for inline decorators,
- * augment decorators, and any mix of the two.
- *
- * A decorator's `node.pos` is only a byte offset *within its own source
- * file*. Comparing `pos` across two different `.tsp` files compares
- * unrelated numbers. So when a type's `@example`s are spread across files,
- * the sort key must rank by file first.
- * `program.sourceFiles` is a `Map` whose insertion order matches the order
- * files were reached while compiling: `main.tsp` first, then each `import`
- * the first time it is reached. Indexing into it gives a stable,
- * execution-order-consistent file ranking. `pos` remains the tie-break for
- * two examples in the same file.
- */
-function orderExamplesBySource(
-  program: Program,
-  target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
-  rawExamples: readonly Example[],
-): Example[] {
-  const exampleNodes = target.decorators.filter((d) => d.decorator === $example).map((d) => d.node);
-  if (exampleNodes.length !== rawExamples.length) {
-    // This should not happen. Every applied `@example` has a source node.
-    // Fall back to the previous best-effort behavior instead of throwing.
-    return [...rawExamples].reverse();
-  }
-  const fileOrder = new Map<string, number>();
-  for (const path of program.sourceFiles.keys()) {
-    fileOrder.set(path, fileOrder.size);
-  }
-  const keys: { fileIndex: number; pos: number }[] = [];
-  for (const node of exampleNodes) {
-    if (node === undefined) {
-      // Should not happen (every applied `@example` has a source node), but
-      // fall back to the previous best-effort behavior rather than throw.
-      return [...rawExamples].reverse();
-    }
-    const location = getSourceLocation(node);
-    keys.push({ fileIndex: fileOrder.get(location.file.path) ?? -1, pos: node.pos });
-  }
-  return rawExamples
-    .map((example, i) => ({ example, ...keys[i] }))
-    .sort((a, b) => a.fileIndex - b.fileIndex || a.pos - b.pos)
-    .map((entry) => entry.example);
-}
-
-/**
  * Builds `title`/`description`/`examples` from a declaration's own
  * documentation decorators.
  * `@summary` maps to `title`. `@doc`, or a plain doc comment that `getDoc`
  * already resolves to the same thing, maps to `description`. TypeSpec's
  * built-in `@example` maps to `examples`.
  * Each example value is serialized to plain JSON against `exampleValueType`,
- * in source order (see `orderExamplesBySource`).
+ * in source order (see `orderBySourceNodes`).
  * A value `serializeValueAsJson` cannot represent causes that whole example
  * to be dropped. This covers an unsupported scalar constructor anywhere in
  * the value, including nested inside an array or object, and a function
@@ -215,7 +93,8 @@ function buildDocFields(
   // The cast below only widens the static type to match what the decorator
   // already allows.
   const rawExamples = getExamples(program, target as Model | Scalar | Enum | Union | ModelProperty);
-  const examples = orderExamplesBySource(program, target, rawExamples)
+  const exampleNodes = target.decorators.filter((d) => d.decorator === $example).map((d) => d.node);
+  const examples = orderBySourceNodes(program, exampleNodes, rawExamples)
     .map((example) => {
       try {
         return serializeValueAsJson(program, example.value, exampleValueType, undefined, handlers);

@@ -21,6 +21,11 @@ export default tseslint.config(
   },
   {
     ignores: [
+      // `.claude/` is untracked, and it holds nested git worktrees of this
+      // same repository. Those files belong to another checkout and another
+      // branch, and linting them here type-checks them against this
+      // checkout's tsconfig.
+      ".claude/**",
       "dist/**",
       "node_modules/**",
       "coverage/**",

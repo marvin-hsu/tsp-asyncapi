@@ -168,4 +168,191 @@ describe("Phase 1: Document Skeleton & Info", () => {
 
     await expect(doc).toBeValidAsyncAPI();
   });
+
+  it("should emit message headers that the parser accepts", async () => {
+    // Both header mechanisms in one document. `OrderPlaced` lifts two flat
+    // fields out of its payload. `OrderShipped` names a nested headers model
+    // of its own. The parser checks that both land in a `headers` schema it
+    // accepts, and the assertions check that the payload no longer describes
+    // the lifted fields.
+    const code = `
+      @service(#{ title: "Order Events" })
+      namespace Orders;
+
+      model MqmdFields {
+        CorrelId: string;
+      }
+
+      model ShippingHeaders {
+        MQMD: MqmdFields;
+      }
+
+      @AsyncAPI.message
+      model OrderPlaced {
+        @AsyncAPI.header
+        correlationId: string;
+
+        @AsyncAPI.header
+        @encodedName("application/json", "x-retry-count")
+        retryCount?: int32;
+
+        id: string;
+        amount: float64;
+      }
+
+      @AsyncAPI.message
+      @AsyncAPI.headers(ShippingHeaders)
+      model OrderShipped {
+        id: string;
+      }
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(doc.components.messages.OrderPlaced.headers).toEqual({
+      type: "object",
+      properties: {
+        correlationId: { type: "string" },
+        "x-retry-count": { type: "integer", format: "int32" },
+      },
+      required: ["correlationId"],
+    });
+    expect(Object.keys(doc.components.schemas.OrderPlaced.properties).sort(byCodePoint)).toEqual([
+      "amount",
+      "id",
+    ]);
+    expect(doc.components.messages.OrderShipped.headers).toEqual({
+      $ref: "#/components/schemas/ShippingHeaders",
+    });
+
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should emit a correlationId and message examples that the parser accepts", async () => {
+    // A real-shaped Kafka message: lifted headers, a payload, a correlation
+    // id that points into those headers, and two named examples. The parser
+    // checks the Correlation ID Object and the Message Example Objects, the
+    // two shapes the assertions below cannot validate on their own.
+    const code = `
+      @service(#{ title: "Order Events" })
+      namespace Orders;
+
+      @AsyncAPI.message
+      @AsyncAPI.contentType("application/json")
+      @AsyncAPI.correlationId("$message.header#/correlationId", "Ties a reply to its request.")
+      @AsyncAPI.messageExample(
+        #{
+          headers: #{ correlationId: "abc-123" },
+          payload: #{ id: "o-1", amount: 12.5 }
+        },
+        #{ name: "smallOrder", summary: "One line, already paid." }
+      )
+      @AsyncAPI.messageExample(
+        #{ payload: #{ id: "o-2", amount: 999.0 } },
+        #{ name: "largeOrder" }
+      )
+      model OrderPlaced {
+        @AsyncAPI.header
+        correlationId: string;
+
+        id: string;
+        amount: float64;
+      }
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(doc.components.messages.OrderPlaced.correlationId).toEqual({
+      location: "$message.header#/correlationId",
+      description: "Ties a reply to its request.",
+    });
+    expect(doc.components.messages.OrderPlaced.examples).toEqual([
+      {
+        name: "smallOrder",
+        summary: "One line, already paid.",
+        headers: { correlationId: "abc-123" },
+        payload: { id: "o-1", amount: 12.5 },
+      },
+      { name: "largeOrder", payload: { id: "o-2", amount: 999 } },
+    ]);
+
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should emit every accepted correlationId fragment shape", async () => {
+    // The normative AsyncAPI JSON Schema requires the `#`, and it accepts an
+    // empty pointer after it as well as a multi-level one. Both extremes go
+    // through the parser here, because the emitter's own regex is the only
+    // other place that decides which shapes reach the document.
+    const code = `
+      @service(#{ title: "Order Events" })
+      namespace Orders;
+
+      @AsyncAPI.message
+      @AsyncAPI.correlationId("$message.header#")
+      model WholeHeader {
+        id: string;
+      }
+
+      @AsyncAPI.message
+      @AsyncAPI.correlationId("$message.header#/MQMD/CorrelId")
+      model NestedPointer {
+        id: string;
+      }
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(doc.components.messages.WholeHeader.correlationId).toEqual({
+      location: "$message.header#",
+    });
+    expect(doc.components.messages.NestedPointer.correlationId).toEqual({
+      location: "$message.header#/MQMD/CorrelId",
+    });
+
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should emit message tags and externalDocs that the parser accepts", async () => {
+    // The parser checks the Tag Object and the External Documentation Object
+    // on a message, the two shapes 3.6 adds. `info.tags` carries a tag of the
+    // same name with its own metadata, which the spec allows: each object
+    // holds its own independent `tags` array.
+    const code = `
+      @service(#{ title: "Order Events" })
+      @tag("orders")
+      @AsyncAPI.asyncTag("orders", #{ description: "The order domain as a whole." })
+      namespace Orders;
+
+      @AsyncAPI.message
+      @AsyncAPI.asyncTag("orders", #{
+        description: "Emitted by the order service.",
+        externalDocs: #{ url: "https://example.com/orders", description: "The order guide." }
+      })
+      @AsyncAPI.asyncTag("public")
+      @AsyncAPI.externalDocs("https://example.com/order-placed", "How to consume this message.")
+      model OrderPlaced {
+        id: string;
+      }
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(doc.info.tags).toEqual([
+      { name: "orders", description: "The order domain as a whole." },
+    ]);
+    expect(doc.components.messages.OrderPlaced.tags).toEqual([
+      {
+        name: "orders",
+        description: "Emitted by the order service.",
+        externalDocs: {
+          url: "https://example.com/orders",
+          description: "The order guide.",
+        },
+      },
+      { name: "public" },
+    ]);
+    expect(doc.components.messages.OrderPlaced.externalDocs).toEqual({
+      url: "https://example.com/order-placed",
+      description: "How to consume this message.",
+    });
+
+    await expect(doc).toBeValidAsyncAPI();
+  });
 });

@@ -157,6 +157,105 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Message name '${"requested"}' is not a legal components.messages key, so it was emitted as '${"emitted"}'. A key may only use the characters a-z, A-Z, 0-9, '.', '-', and '_'.`,
       },
     },
+    "duplicate-content-type-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.",
+      },
+    },
+    "empty-content-type": {
+      severity: "error",
+      messages: {
+        default:
+          "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.",
+      },
+    },
+    "duplicate-headers-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.",
+      },
+    },
+    "duplicate-message-headers": {
+      severity: "error",
+      messages: {
+        default:
+          "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.",
+      },
+    },
+    "headers-not-object": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The model '${"name"}' given to @headers is backed by an array. AsyncAPI requires the headers schema to be a key/value map, so no \`headers\` were emitted. Pass a model with properties instead.`,
+      },
+    },
+    "nested-header-ignored": {
+      severity: "warning",
+      messages: {
+        default:
+          "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.",
+      },
+    },
+    "inherited-header-ignored": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`This @header marks a property that '${"message"}' inherits through 'extends', so it stays in the payload schema. Only a property the message model declares itself is lifted into \`headers\`. Spread the base model with '...' instead of extending it, or describe the whole headers object with @headers.`,
+      },
+    },
+    "shared-lifted-header": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`The message model '${"name"}' has @header fields lifted into its \`headers\`, and it is also used as a field type inside another message's payload. Both uses share one components.schemas entry, so the lifted fields are missing from the nested use as well. Give the nested use a model of its own, or move the headers of '${"name"}' into a separate model passed to @headers.`,
+      },
+    },
+    "content-type-header-conflict": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The header '${"name"}' names the message content type, and this message also carries @contentType. AsyncAPI has one field for the content type, so two sources for it are ambiguous. Remove the @header field and keep @contentType.`,
+      },
+    },
+    "duplicate-correlation-id-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.",
+      },
+    },
+    "invalid-correlation-id-location": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"location"}' is not a legal correlation id location, so no \`correlationId\` was emitted. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.header#/MQMD/CorrelId'.`,
+      },
+    },
+    "empty-message-example": {
+      severity: "error",
+      messages: {
+        default:
+          "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.",
+      },
+    },
+    "unserializable-message-example": {
+      severity: "warning",
+      messages: {
+        default:
+          "This @messageExample could not be serialized to JSON and was dropped from the emitted message.",
+      },
+    },
+    "empty-tag-name": {
+      severity: "error",
+      messages: {
+        default:
+          "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.",
+      },
+    },
+    "conflicting-tag-metadata": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Tag '${"name"}' is declared more than once here, with a different '${"field"}'. AsyncAPI emits one Tag Object per name on an object, so only one of the two values can be kept. The first one in source order was kept. Merge the @asyncTag applications into one, or give them different names.`,
+      },
+    },
     "duplicate-server-name": {
       severity: "error",
       messages: {

@@ -107,6 +107,39 @@ export class SchemaBuilder {
     return this.buildSchema(model);
   }
 
+  /**
+   * Keeps `properties` out of every object schema this builder emits.
+   * The message builder passes the fields it lifts out of a payload into the
+   * message's `headers`. A lifted field belongs to the headers alone, so the
+   * payload schema must not describe it too.
+   * The set is keyed by the property itself rather than by its owning model.
+   * So the omission holds however the model is reached: as a message payload,
+   * or through a property of another model that refers to the same
+   * declaration. Both routes emit one shared `components.schemas` entry, so
+   * they cannot disagree about which fields it has.
+   * Call this before building anything. A schema is built once and cached, so
+   * a later call cannot change a schema that already exists.
+   */
+  public omitProperties(properties: Iterable<ModelProperty>): void {
+    for (const property of properties) {
+      this.omittedProperties.add(property);
+    }
+  }
+
+  /**
+   * Builds one `object` schema out of `properties`, with no declaration and
+   * no `$ref`.
+   * The message builder uses it for a `headers` schema assembled from the
+   * fields `@header` marks. Those fields have no model of their own to build
+   * from; they are a hand-picked subset of the message model's fields.
+   * The omission set above is deliberately not applied here. The caller hands
+   * in exactly the properties it wants described, and for the headers schema
+   * those are the very properties the payload omits.
+   */
+  public buildPropertiesSchema(properties: Iterable<ModelProperty>): SchemaObject {
+    return this.buildObjectSchemaFromProperties(properties);
+  }
+
   public buildSchema(type: Type): SchemaObject | ReferenceObject {
     switch (type.kind) {
       case "Model":
@@ -844,9 +877,29 @@ export class SchemaBuilder {
     return { ...schema, discriminator: wireName };
   }
 
+  /**
+   * Holds every property another builder asked to keep out of the emitted
+   * object schemas. See `omitProperties`.
+   */
+  private readonly omittedProperties = new Set<ModelProperty>();
+
+  /**
+   * Yields the properties of `properties` that stay in the emitted schema.
+   * Only a lifted header field is dropped, and only the two whole-model
+   * entry points below filter. A caller that hands in its own property list,
+   * `buildPropertiesSchema`, gets the list it asked for.
+   */
+  private *retained(properties: Iterable<ModelProperty>): Generator<ModelProperty> {
+    for (const property of properties) {
+      if (!this.omittedProperties.has(property)) {
+        yield property;
+      }
+    }
+  }
+
   /** Builds the `object` shape for a plain (non-collection) model. */
   private buildObjectSchema(model: Model): SchemaObject {
-    return this.buildObjectSchemaFromProperties(model.properties.values());
+    return this.buildObjectSchemaFromProperties(this.retained(model.properties.values()));
   }
 
   /**
@@ -864,7 +917,9 @@ export class SchemaBuilder {
    * payload.
    */
   private buildFlattenedObjectSchema(model: Model): SchemaObject {
-    const schema = this.buildObjectSchemaFromProperties(walkPropertiesInherited(model));
+    const schema = this.buildObjectSchemaFromProperties(
+      this.retained(walkPropertiesInherited(model)),
+    );
     // The flattened shape has no `$ref`/`allOf` back to any ancestor.
     // So an indexer constraint, `additionalProperties`, declared on
     // `model` itself or inherited from a `baseModel`, would otherwise be

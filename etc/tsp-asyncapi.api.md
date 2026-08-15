@@ -4,7 +4,9 @@
 
 ```ts
 
+import { AugmentDecoratorStatementNode } from '@typespec/compiler/ast';
 import { CallableMessage } from '@typespec/compiler';
+import { DecoratorExpressionNode } from '@typespec/compiler/ast';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
@@ -15,6 +17,7 @@ import { Program } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 import { Union } from '@typespec/compiler';
+import { Value } from '@typespec/compiler';
 
 // @public
 export const $lib: TypeSpecLibrary<    {
@@ -56,6 +59,51 @@ readonly default: CallableMessage<["name"]>;
 };
 "sanitized-message-key": {
 readonly default: CallableMessage<["requested", "emitted"]>;
+};
+"duplicate-content-type-decorator": {
+readonly default: "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.";
+};
+"empty-content-type": {
+readonly default: "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.";
+};
+"duplicate-headers-decorator": {
+readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
+};
+"duplicate-message-headers": {
+readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+};
+"headers-not-object": {
+readonly default: CallableMessage<["name"]>;
+};
+"nested-header-ignored": {
+readonly default: "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.";
+};
+"inherited-header-ignored": {
+readonly default: CallableMessage<["message"]>;
+};
+"shared-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"content-type-header-conflict": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-correlation-id-decorator": {
+readonly default: "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.";
+};
+"invalid-correlation-id-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"empty-message-example": {
+readonly default: "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.";
+};
+"unserializable-message-example": {
+readonly default: "This @messageExample could not be serialized to JSON and was dropped from the emitted message.";
+};
+"empty-tag-name": {
+readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.";
+};
+"conflicting-tag-metadata": {
+readonly default: CallableMessage<["name", "field"]>;
 };
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;
@@ -145,6 +193,24 @@ export interface AsyncAPIServerState {
 }
 
 // @public
+export interface AsyncTagExternalDocs {
+    description?: string;
+    url: string;
+}
+
+// @public
+export interface AsyncTagMetadata {
+    description?: string;
+    externalDocs?: AsyncTagExternalDocs;
+}
+
+// @public
+export interface AsyncTagState extends AsyncTagMetadata {
+    name: string;
+    node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
+}
+
+// @public
 export type ChannelObject = Record<string, never>;
 
 // @public
@@ -163,7 +229,19 @@ export interface ContactObject {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export interface CorrelationIdObject {
+    description?: string;
+    location: string;
+}
+
+// @public
+export interface CorrelationIdState {
+    description?: string;
+    location: string;
+}
+
+// @public
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "shared-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -202,6 +280,51 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "sanitized-message-key": {
         readonly default: CallableMessage<["requested", "emitted"]>;
+    };
+    "duplicate-content-type-decorator": {
+        readonly default: "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.";
+    };
+    "empty-content-type": {
+        readonly default: "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.";
+    };
+    "duplicate-headers-decorator": {
+        readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
+    };
+    "duplicate-message-headers": {
+        readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+    };
+    "headers-not-object": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "nested-header-ignored": {
+        readonly default: "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.";
+    };
+    "inherited-header-ignored": {
+        readonly default: CallableMessage<["message"]>;
+    };
+    "shared-lifted-header": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "content-type-header-conflict": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-correlation-id-decorator": {
+        readonly default: "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.";
+    };
+    "invalid-correlation-id-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "empty-message-example": {
+        readonly default: "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.";
+    };
+    "unserializable-message-example": {
+        readonly default: "This @messageExample could not be serialized to JSON and was dropped from the emitted message.";
+    };
+    "empty-tag-name": {
+        readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.";
+    };
+    "conflicting-tag-metadata": {
+        readonly default: CallableMessage<["name", "field"]>;
     };
     "duplicate-server-name": {
         readonly default: CallableMessage<["name"]>;
@@ -261,6 +384,51 @@ readonly default: CallableMessage<["name"]>;
 "sanitized-message-key": {
 readonly default: CallableMessage<["requested", "emitted"]>;
 };
+"duplicate-content-type-decorator": {
+readonly default: "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.";
+};
+"empty-content-type": {
+readonly default: "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.";
+};
+"duplicate-headers-decorator": {
+readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
+};
+"duplicate-message-headers": {
+readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+};
+"headers-not-object": {
+readonly default: CallableMessage<["name"]>;
+};
+"nested-header-ignored": {
+readonly default: "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.";
+};
+"inherited-header-ignored": {
+readonly default: CallableMessage<["message"]>;
+};
+"shared-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"content-type-header-conflict": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-correlation-id-decorator": {
+readonly default: "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.";
+};
+"invalid-correlation-id-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"empty-message-example": {
+readonly default: "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.";
+};
+"unserializable-message-example": {
+readonly default: "This @messageExample could not be serialized to JSON and was dropped from the emitted message.";
+};
+"empty-tag-name": {
+readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.";
+};
+"conflicting-tag-metadata": {
+readonly default: CallableMessage<["name", "field"]>;
+};
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -297,10 +465,22 @@ export interface ExternalDocumentationObject {
     url: string;
 }
 
+// @public
+export function getAsyncTags(program: Program, target: Type): AsyncTagState[];
+
+// @public
+export function getContentType(program: Program, target: Model): string | undefined;
+
+// @public
+export function getCorrelationId(program: Program, target: Model): CorrelationIdState | undefined;
+
 // Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
 //
 // @public
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined;
+
+// @public
+export function getHeadersModel(program: Program, target: Model): Model | undefined;
 
 // Warning: (ae-incompatible-release-tags) The symbol "getInfo" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
 //
@@ -311,6 +491,9 @@ export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState 
 //
 // @public (undocumented)
 export function getJsonSchemaExtensions(program: Program, target: Model | ModelProperty): JsonSchemaExtensionRecord[];
+
+// @public
+export function getMessageExamples(program: Program, target: Model): MessageExampleState[];
 
 // Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
 //
@@ -328,6 +511,9 @@ export interface InfoObject {
     title: string;
     version: string;
 }
+
+// @public
+export function isHeader(program: Program, target: ModelProperty): boolean;
 
 // @public
 export function isOneOf(program: Program, target: Union): boolean;
@@ -355,8 +541,38 @@ export interface LicenseObject {
 export function listMessages(program: Program): Map<Model, MessageState>;
 
 // @public
+export interface MessageExampleObject {
+    headers?: unknown;
+    name?: string;
+    payload?: unknown;
+    summary?: string;
+}
+
+// @public
+export interface MessageExampleOptions {
+    name?: string;
+    summary?: string;
+}
+
+// @public
+export interface MessageExampleState extends MessageExampleOptions {
+    headers?: Value;
+    node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
+    payload?: Value;
+}
+
+// @public
 export interface MessageObject {
+    contentType?: string;
+    correlationId?: CorrelationIdObject;
+    description?: string;
+    examples?: MessageExampleObject[];
+    externalDocs?: ExternalDocumentationObject;
+    headers?: SchemaObject | ReferenceObject;
+    name?: string;
     payload?: SchemaObject | ReferenceObject;
+    tags?: TagObject[];
+    title?: string;
 }
 
 // @public
@@ -374,7 +590,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "shared-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -413,6 +629,51 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "sanitized-message-key": {
         readonly default: CallableMessage<["requested", "emitted"]>;
+    };
+    "duplicate-content-type-decorator": {
+        readonly default: "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.";
+    };
+    "empty-content-type": {
+        readonly default: "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.";
+    };
+    "duplicate-headers-decorator": {
+        readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
+    };
+    "duplicate-message-headers": {
+        readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+    };
+    "headers-not-object": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "nested-header-ignored": {
+        readonly default: "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.";
+    };
+    "inherited-header-ignored": {
+        readonly default: CallableMessage<["message"]>;
+    };
+    "shared-lifted-header": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "content-type-header-conflict": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-correlation-id-decorator": {
+        readonly default: "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.";
+    };
+    "invalid-correlation-id-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "empty-message-example": {
+        readonly default: "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.";
+    };
+    "unserializable-message-example": {
+        readonly default: "This @messageExample could not be serialized to JSON and was dropped from the emitted message.";
+    };
+    "empty-tag-name": {
+        readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.";
+    };
+    "conflicting-tag-metadata": {
+        readonly default: CallableMessage<["name", "field"]>;
     };
     "duplicate-server-name": {
         readonly default: CallableMessage<["name"]>;
@@ -471,6 +732,51 @@ readonly default: CallableMessage<["name"]>;
 };
 "sanitized-message-key": {
 readonly default: CallableMessage<["requested", "emitted"]>;
+};
+"duplicate-content-type-decorator": {
+readonly default: "@contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.";
+};
+"empty-content-type": {
+readonly default: "@contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.";
+};
+"duplicate-headers-decorator": {
+readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
+};
+"duplicate-message-headers": {
+readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+};
+"headers-not-object": {
+readonly default: CallableMessage<["name"]>;
+};
+"nested-header-ignored": {
+readonly default: "This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.";
+};
+"inherited-header-ignored": {
+readonly default: CallableMessage<["message"]>;
+};
+"shared-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"content-type-header-conflict": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-correlation-id-decorator": {
+readonly default: "@correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.";
+};
+"invalid-correlation-id-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"empty-message-example": {
+readonly default: "This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.";
+};
+"unserializable-message-example": {
+readonly default: "This @messageExample could not be serialized to JSON and was dropped from the emitted message.";
+};
+"empty-tag-name": {
+readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.";
+};
+"conflicting-tag-metadata": {
+readonly default: CallableMessage<["name", "field"]>;
 };
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;

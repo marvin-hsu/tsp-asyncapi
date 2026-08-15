@@ -1,8 +1,11 @@
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
+import { singleApplication } from "./single-application.js";
 
 const messageStateKey = Symbol.for("tsp-asyncapi.message");
+
+const messageAppliedKey = Symbol.for("tsp-asyncapi.message.applied");
+const claim = singleApplication(messageAppliedKey, "duplicate-message-decorator");
 
 /**
  * State recorded by `@message` for one model.
@@ -18,9 +21,7 @@ export interface MessageState {
   name?: string;
 }
 
-const [getMessageState, setMessage, getMessageStateMap] = useStateMap<Model, MessageState>(
-  messageStateKey,
-);
+const [, setMessage, getMessageStateMap] = useStateMap<Model, MessageState>(messageStateKey);
 
 /**
  * Marks a model as an AsyncAPI message.
@@ -58,17 +59,11 @@ const [getMessageState, setMessage, getMessageStateMap] = useStateMap<Model, Mes
  * @public
  */
 export function $message(context: DecoratorContext, target: Model, name?: string) {
-  // The decorators on one declaration run bottom-up. So the first
-  // application to reach this function is the one written last in the
-  // source. It keeps the model, and every later application is rejected.
-  // This gives one deterministic winner instead of a silent overwrite.
-  if (getMessageState(context.program, target) !== undefined) {
-    reportDiagnostic(context.program, {
-      code: "duplicate-message-decorator",
-      target,
-    });
-    return;
-  }
+  // Decorators on one declaration run bottom-up, so the application
+  // written last in the source runs first and wins. The guard records
+  // that this decorator ran, before any value is validated, so a value
+  // that fails validation still blocks a later application.
+  if (!claim(context, target)) return;
   setMessage(context.program, target, { name });
 }
 

@@ -92,7 +92,7 @@ server 名稱只能使用英文字母、數字、`_` 與 `-`。其他名稱會�
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 ```
 
-附加外部文件連結。target 宣告為 `unknown`，因為 external docs 之後也會能標在 operation 與 message 上。**目前 emitter 只讀取 service namespace 上的**，輸出到 `info.externalDocs`：
+附加外部文件連結。target 宣告為 `unknown`，因為 external docs 可以標在多種位置上。**目前 emitter 讀取兩處：service namespace 上的輸出到 `info.externalDocs`，`@message` model 上的輸出到該 message 的 `externalDocs`。** 標在其他位置會記錄下來，但還不會輸出。
 
 ```typespec
 @externalDocs("https://example.com/docs", "Service Documentation")
@@ -105,6 +105,97 @@ info:
     url: https://example.com/docs
     description: Service Documentation
 ```
+
+```typespec
+@message
+@externalDocs("https://example.com/order-created", "How to consume this message.")
+model OrderCreated {
+  id: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      externalDocs:
+        url: https://example.com/order-created
+        description: How to consume this message.
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+## `@asyncTag`
+
+```typespec
+extern dec asyncTag(target: unknown, name: valueof string, metadata?: valueof AsyncAPITag);
+
+model AsyncAPITag {
+  description?: string;
+  externalDocs?: ExternalDocs;
+}
+
+model ExternalDocs {
+  url: string;
+  description?: string;
+}
+```
+
+在輸出的物件上加一個 tag 與它的 metadata。可重複套用：每次套用加一個 tag，輸出的陣列依原始碼順序排列。
+
+名字刻意取為 `asyncTag` 而非 `tag`。內建的 `@tag` 位於全域的 `TypeSpec` namespace，永遠在可見範圍內。若在 `AsyncAPI` namespace 再放一個 `tag`，使用者寫 `using AsyncAPI;` 之後的 `@tag(...)` 就會變成有歧義的識別字，既有的 `@tag` 全部得改寫成 `@TypeSpec.tag(...)`。
+
+它與內建 `@tag` 有兩點不同：
+
+|        | 內建 `@tag`                           | `@asyncTag`                              |
+| ------ | ------------------------------------- | ---------------------------------------- |
+| 參數   | 只有名字                              | 名字加上 `description` 與 `externalDocs` |
+| target | `Namespace \| Interface \| Operation` | 任何型別，包含 `Model`                   |
+
+AsyncAPI 的每個項目放的是完整的 Tag Object，OpenAPI 放的是單純的字串。message 是 model，所以**內建 `@tag` 根本標不到 message 上**，編譯器會直接拒絕該次套用。
+
+```typespec
+@message
+@asyncTag("orders", #{
+  description: "Everything about orders.",
+  externalDocs: #{ url: "https://example.com/orders", description: "The order guide." }
+})
+@asyncTag("public")
+model OrderCreated {
+  id: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      tags:
+        - name: orders
+          description: Everything about orders.
+          externalDocs:
+            url: https://example.com/orders
+            description: The order guide.
+        - name: public
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+emitter 目前會在 service namespace（輸出到 `info.tags`）與 message 上讀取它。標在其他位置會記錄下來，但還不會輸出。
+
+名稱不可為空字串。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。所以 `@asyncTag("")` 回報 [`empty-tag-name`](./diagnostics#empty-tag-name)，該 tag 被丟棄。
+
+### 合併規則
+
+同一個物件上，一個名字只會輸出一個 Tag Object。同一個 target 上兩次套用指到同一個名字時，逐欄位合併：
+
+- **內建 `@tag` 與 `@asyncTag` 同名。** 合併，以 metadata 為準。內建 decorator 只帶名字，沒有任何可以互相牴觸的內容。
+- **兩個 `@asyncTag` 同名、各自設定不同欄位。** 合併。一邊的 `description` 與另一邊的 `externalDocs` 組成同一個 Tag Object。
+- **兩個 `@asyncTag` 同名、同一個欄位給了兩個不同的值。** 這是 [`conflicting-tag-metadata`](./diagnostics#conflicting-tag-metadata) error。該欄位保留原始碼順序中第一次套用的值。
+
+同一個名字出現在**兩個不同的 target** 上、帶不同的 metadata，不算錯誤。AsyncAPI 讓每個物件各自持有獨立的 `tags` 陣列。
 
 ## `@oneOf`
 
@@ -181,6 +272,253 @@ model OrderCreated {
 - **只有被觸及的 model 會輸出**。`components.schemas` 只收 message 能觸及的 model（直接引用或透過屬性間接引用）。沒有任何 message 引用到的 model 不會出現。
 - **message key 不帶 namespace 前綴，schema key 會帶**。`namespace Sales` 裡的 `@message model Ev` 會產出 message key `Ev` 與 schema key `Sales.Ev`。當某個 message key 剛好等於另一個型別的 schema key 時，emitter 會回報 [`message-key-shadows-schema-key`](./diagnostics#message-key-shadows-schema-key)。
 
+## `@contentType`
+
+```typespec
+extern dec contentType(target: Model, contentType: valueof string);
+```
+
+設定 message payload 的媒體型態（media type）。沒有標記時不輸出這個欄位，改由文件層級的 `defaultContentType` 生效。
+
+```typespec
+@message
+@contentType("application/avro")
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      contentType: application/avro
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+emitter 原樣輸出這個字串。它不解析媒體型態，也不會因此改變 payload schema。
+
+每個 model 只套用一次。一個 message 只有一個 content type，所以第二次套用回報 [`duplicate-content-type-decorator`](./diagnostics#duplicate-content-type-decorator)。
+
+媒體型態不可以是空字串。空白的媒體型態沒有指出任何格式。emitter 回報 [`empty-content-type`](./diagnostics#empty-content-type) 並丟棄這次套用。這個 message 接著退回文件層級的 `defaultContentType`。
+
+## `@header`
+
+```typespec
+extern dec header(target: ModelProperty);
+```
+
+把 message model 的一個欄位標記為 message header。emitter 會把每個被標記的欄位從 payload schema 抽出來，集中放進該 message 的 `headers` schema。payload 只留沒有被標記的欄位。
+
+```typespec
+@message
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  @header
+  retryCount?: int32;
+
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+          retryCount:
+            type: integer
+            format: int32
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required:
+        - orderId
+```
+
+五點要注意：
+
+- **這個 decorator 不收名稱參數**。`@typespec/http` 的 `@header` 有名稱參數，是因為 HTTP 會把欄位名改寫成 kebab-case。AsyncAPI 的 application headers 沒有這個慣例。若 header 的 key 不是合法的 TypeSpec 識別字，用 [`@encodedName`](#emitter-會讀的內建-decorator) 指定，寫法與改 payload 欄位名相同。
+- **只有 `@message` model 的頂層欄位會被抽出**。payload 更深層的標記會回報 [`nested-header-ignored`](./diagnostics#nested-header-ignored)，該欄位留在 payload。headers 本身要有巢狀結構時，改用 `@headers`。
+- **`extends` 與 `...` 在這裡行為不同**。展開語法 `...Base` 把屬性複製進 message model，被標記的屬性成為 message 自己的欄位，會被抽出。`extends Base` 則讓屬性留在 base model 上，payload 用 `allOf` 引用它。抽走它會影響所有繼承同一個 base 的 model，所以 emitter 保留該欄位並回報 [`inherited-header-ignored`](./diagnostics#inherited-header-ignored)。
+- **有抽出 headers 的 message model 不能同時當成別處的 payload 欄位型別**。兩種用法共用同一份 `components.schemas` 項目，被抽走的欄位在巢狀用法裡也會消失。emitter 回報 [`shared-lifted-header`](./diagnostics#shared-lifted-header)。
+- **名為 `content-type` 的 header 欄位會與 `@contentType` 衝突**。AsyncAPI 只有一個欄位表示 content type，所以 emitter 回報 [`content-type-header-conflict`](./diagnostics#content-type-header-conflict)，不自行挑一個來源。
+
+## `@headers`
+
+```typespec
+extern dec headers(target: Model, headers: Model);
+```
+
+用一個獨立的 model 設定整個 message 的 `headers` schema。headers 自成一個 model、或 headers 需要巢狀結構時用它。emitter 會把該 model 輸出到 `components.schemas` 並以 `$ref` 引用，所以多個 message 可以共用同一份 headers 定義。
+
+```typespec
+model MqmdFields {
+  CorrelId: string;
+}
+
+model ShippingHeaders {
+  MQMD: MqmdFields;
+}
+
+@message
+@headers(ShippingHeaders)
+model OrderShipped {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderShipped:
+      name: OrderShipped
+      headers:
+        $ref: "#/components/schemas/ShippingHeaders"
+      payload:
+        $ref: "#/components/schemas/OrderShipped"
+```
+
+這個 model 必須是 object 型態。AsyncAPI 要求 headers schema 描述一組 key/value map，所以 array 為底的 model 會回報 [`headers-not-object`](./diagnostics#headers-not-object)。
+
+同一個 message 不要同時用欄位層級的 `@header`。兩個來源沒有明確的優先序，所以 emitter 回報 [`duplicate-message-headers`](./diagnostics#duplicate-message-headers)，且兩邊都不輸出。
+
+headers model 上名為 `content-type` 的屬性，與 message 上的 `@contentType` 衝突，情形和欄位層級的同名 `@header` 相同。emitter 回報 [`content-type-header-conflict`](./diagnostics#content-type-header-conflict)。headers model 繼承來的屬性也會檢查。
+
+## `@correlationId`
+
+```typespec
+extern dec correlationId(target: Model, location: valueof string, description?: valueof string);
+```
+
+設定 message 的 `correlationId`。`location` 是 runtime expression，指出關聯值在執行期的位置。
+
+```typespec
+@message
+@correlationId("$message.header#/correlationId", "把回覆與原請求關聯起來。")
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      correlationId:
+        location: "$message.header#/correlationId"
+        description: 把回覆與原請求關聯起來。
+```
+
+合法的 `location` 是 `$message.header#` 或 `$message.payload#`，後面可再接一段 JSON Pointer。下列都合法：
+
+| Location                         | 意義                 |
+| -------------------------------- | -------------------- |
+| `$message.header#`               | headers 物件本身     |
+| `$message.header#/correlationId` | 單一 header          |
+| `$message.header#/MQMD/CorrelId` | 巢狀兩層的 header    |
+| `$message.payload#/order/id`     | payload 內巢狀的欄位 |
+
+`#` 是必要的。規格的 ABNF 條文看起來像是可以省略，但規格的正規 JSON Schema 要求它，官方 AsyncAPI parser 也會拒絕帶有 `$message.header`（不含 `#`）的文件。
+
+其他寫法回報 [`invalid-correlation-id-location`](./diagnostics#invalid-correlation-id-location)，且不輸出 `correlationId`。
+
+emitter 只檢查格式。它不檢查該 pointer 是否指向 headers 或 payload schema 已宣告的欄位。規格沒有這項要求，官方範例本身也指向 schema 未定義的路徑。
+
+每個 model 只套用一次。第二次套用回報 [`duplicate-correlation-id-decorator`](./diagnostics#duplicate-correlation-id-decorator)。
+
+## `@messageExample`
+
+```typespec
+extern dec messageExample(
+  target: Model,
+  example: valueof MessageExampleValue,
+  options?: valueof MessageExampleOptions
+);
+```
+
+為 message 加上一筆範例。參數形狀：
+
+| 欄位              | 型別              | 必填 |
+| ----------------- | ----------------- | ---- |
+| `example.headers` | `Record<unknown>` | 否   |
+| `example.payload` | `unknown`         | 否   |
+| `options.name`    | `string`          | 否   |
+| `options.summary` | `string`          | 否   |
+
+`headers` 是一組 key/value map，因為 AsyncAPI Message Example Object 把它定義為 `Map[string, any]`。`payload` 則是自由格式，規格把它定義為 `any`，所以純量 payload 也合法。
+
+可重複套用：每次套用在 `examples` 陣列加一筆，順序照原始碼順序。AsyncAPI 的 `examples` 是陣列，所以一個 message 可以列出多種情境，每筆各有自己的 `name`。
+
+```typespec
+@message
+@messageExample(
+  #{ headers: #{ correlationId: "abc-123" }, payload: #{ orderId: "o-1", total: 12.5 } },
+  #{ name: "smallOrder", summary: "單一品項，已付款。" }
+)
+@messageExample(#{ payload: #{ orderId: "o-2", total: 999.0 } }, #{ name: "largeOrder" })
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
+  total: float64;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      examples:
+        - name: smallOrder
+          summary: 單一品項，已付款。
+          headers:
+            correlationId: abc-123
+          payload:
+            orderId: o-1
+            total: 12.5
+        - name: largeOrder
+          payload:
+            orderId: o-2
+            total: 999
+```
+
+兩點要知道：
+
+- **每筆範例至少要有 `headers` 或 `payload` 其中之一。** 兩者皆無的範例說明不了任何事，會回報 [`empty-message-example`](./diagnostics#empty-message-example) 並捨棄該筆。
+- **範例內容不會與 message schema 對照檢查。** 值照寫的原樣輸出。若某個值無法序列化為 JSON（例如自訂 scalar 的建構式），該筆整筆捨棄，並回報 [`unserializable-message-example`](./diagnostics#unserializable-message-example)。
+
 ## `@jsonSchemaExtension`
 
 ```typespec
@@ -214,7 +552,7 @@ Strict:
 | Decorator                                                                                                                                         | 在本 emitter 的效果                                                                                                                                  |
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@service(#{ title })`                                                                                                                            | 標記 service namespace。`title` → `info.title`。一份文件一個 service。第二個會警告（[`multiple-services`](./diagnostics#multiple-services)）並忽略。 |
-| `@tag("name")`                                                                                                                                    | 每次套用產生一筆 `info.tags`。                                                                                                                       |
+| `@tag("name")`                                                                                                                                    | 每次套用產生一筆 `info.tags`。它標不到 `Model`，message 的 tag 改用 [`@asyncTag`](#asynctag)。兩者指到同一個名字時會合併。                           |
 | `@doc` / 文件註解                                                                                                                                 | `description`。在 namespace 上是 `info.description` 的後備。在 schema 層的宣告與屬性上也生效。                                                       |
 | `@summary`                                                                                                                                        | schema 的 `title`。                                                                                                                                  |
 | `@example(#{...})`                                                                                                                                | schema `examples` 的一個項目，序列化為 JSON。                                                                                                        |

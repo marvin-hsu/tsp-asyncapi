@@ -146,8 +146,69 @@ export interface ComponentsObject {
  * @public
  */
 export interface MessageObject {
+  /** A machine-friendly name. Defaults to the `components.messages` key. */
+  name?: string;
+  /** A human-friendly title. */
+  title?: string;
+  // AsyncAPI also defines `summary`. It is left out of this interface on
+  // purpose. `@summary` already fills `title` and `@doc` already fills
+  // `description`, and TypeSpec has no third source of prose. So no input
+  // could ever fill it. Every other Message Object field the emitter cannot
+  // fill, such as `traits` and `schemaFormat`, is left out for the same
+  // reason.
+  /** A longer description. CommonMark is allowed. */
+  description?: string;
+  /**
+   * The media type of the payload. When absent, the document's
+   * `defaultContentType` applies.
+   */
+  contentType?: string;
+  /**
+   * The schema of the message headers. AsyncAPI requires it to describe a
+   * key/value map, so it is always an object type.
+   */
+  headers?: SchemaObject | ReferenceObject;
   /** The definition of the message payload. */
   payload?: SchemaObject | ReferenceObject;
+  /** How the message relates to the one it answers or continues. */
+  correlationId?: CorrelationIdObject;
+  /** The tags of this message, each a full Tag Object. */
+  tags?: TagObject[];
+  /** Additional external documentation for this message. */
+  externalDocs?: ExternalDocumentationObject;
+  /** Worked examples of this message, in source order. */
+  examples?: MessageExampleObject[];
+}
+
+/**
+ * Locates the correlation value inside a message.
+ * @public
+ */
+export interface CorrelationIdObject {
+  /**
+   * A runtime expression that names where the value sits, such as
+   * `$message.header#/correlationId`.
+   */
+  location: string;
+  /** A description of the correlation id. CommonMark is allowed. */
+  description?: string;
+}
+
+/**
+ * One worked example of a message.
+ * `headers` and `payload` hold example content, not a schema of it. Every
+ * example carries at least one of the two.
+ * @public
+ */
+export interface MessageExampleObject {
+  /** A machine-friendly name for this example. */
+  name?: string;
+  /** A short summary of what this example shows. */
+  summary?: string;
+  /** Example values for the message headers. */
+  headers?: unknown;
+  /** An example payload. */
+  payload?: unknown;
 }
 
 /**

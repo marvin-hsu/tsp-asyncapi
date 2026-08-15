@@ -1,8 +1,23 @@
-import { getFriendlyName, Model, Program } from "@typespec/compiler";
+import { getDoc, getFriendlyName, getSummary, Model, Program } from "@typespec/compiler";
 import { MessageObject } from "../types/index.js";
 import { reportDiagnostic } from "../lib.js";
-import { listMessages, MessageState } from "../decorators/index.js";
+import {
+  getContentType,
+  getCorrelationId,
+  listMessages,
+  MessageState,
+} from "../decorators/index.js";
 import { SchemaBuilder } from "./schemas/builder.js";
+import {
+  buildMessageHeaders,
+  MessageHeaderPlan,
+  planMessageHeaders,
+  reportIgnoredNestedHeaders,
+  reportSharedLiftedHeaders,
+} from "./message-headers.js";
+import { buildMessageExamples } from "./message-examples.js";
+import { buildTags } from "./tags.js";
+import { buildExternalDocs } from "./external-docs.js";
 import {
   isSafeComponentsKey,
   sanitizeDeclarationName,
@@ -84,6 +99,7 @@ function derivedMessageKey(program: Program, model: Model): string {
 
 /**
  * Builds one Message Object.
+ *
  * The payload is always a `$ref` to the model's `components.schemas` entry.
  * A `@message` target is a top-level declaration, so it is never inlined.
  * `buildDeclarationRef` is what enforces that; plain `buildSchema` would
@@ -92,10 +108,61 @@ function derivedMessageKey(program: Program, model: Model): string {
  * The key is taken from the builder rather than recomputed here, so
  * namespace qualification, `@friendlyName`, and sanitization stay in one
  * place.
- * Later steps add `headers`, `correlationId`, `examples`, and `tags` here.
+ *
+ * The descriptive fields follow the mapping the schema layer already uses:
+ * `@summary` becomes `title` and `@doc` becomes `description`. AsyncAPI
+ * also defines `summary`, but TypeSpec has no third source to fill it from,
+ * so it is left out rather than filled with a copy of another field.
+ *
+ * `name` carries the `components.messages` key. The key is already the
+ * property name in the map, so this repeats it; the field exists because a
+ * reader that follows a `$ref` to a message sees the object alone, without
+ * the key it was stored under.
+ *
+ * A field with nothing to say is left out. An empty string would claim the
+ * message has a blank title rather than none.
+ *
+ * `headers` comes from the plan the caller resolved before any schema was
+ * built. See `planMessageHeaders`. The payload is built after it, so the
+ * payload schema no longer describes the fields the headers took.
+ *
+ * `correlationId` and `examples` are emitted as the user wrote them. Neither
+ * is checked against the payload or the headers schema. AsyncAPI states no
+ * such requirement, and its own examples point a correlation id at a path no
+ * schema declares.
+ *
+ * `tags` comes from `@asyncTag`. The built-in `@tag` cannot reach a message,
+ * because its target does not include `Model`. `externalDocs` comes from this
+ * library's `@externalDocs`, the same decorator that fills `info.externalDocs`.
  */
-function buildMessage(schemas: SchemaBuilder, model: Model): MessageObject {
-  return { payload: schemas.buildDeclarationRef(model) };
+function buildMessage(
+  program: Program,
+  schemas: SchemaBuilder,
+  headerPlan: MessageHeaderPlan,
+  model: Model,
+  key: string,
+): MessageObject {
+  const title = getSummary(program, model);
+  const description = getDoc(program, model);
+  const contentType = getContentType(program, model);
+  const headers = buildMessageHeaders(schemas, headerPlan, model);
+  const correlationId = getCorrelationId(program, model);
+  const examples = buildMessageExamples(program, model);
+  const tags = buildTags(program, model);
+  const externalDocs = buildExternalDocs(program, model);
+
+  return {
+    name: key,
+    ...(title ? { title } : {}),
+    ...(description ? { description } : {}),
+    ...(contentType ? { contentType } : {}),
+    ...(headers ? { headers } : {}),
+    payload: schemas.buildDeclarationRef(model),
+    ...(correlationId ? { correlationId } : {}),
+    ...(tags ? { tags } : {}),
+    ...(externalDocs ? { externalDocs } : {}),
+    ...(examples ? { examples } : {}),
+  };
 }
 
 /**
@@ -133,6 +200,17 @@ export function buildMessages(
   const messages = Object.create(null) as Record<string, MessageObject>;
   const claimedBy = new Map<string, Model>();
 
+  // The headers are resolved before the loop, and before any schema exists.
+  // A payload schema is built once and then cached, and a message model can
+  // be reached through another message's payload. So the fields that leave
+  // the payload have to be known before the first build, not when the
+  // message that owns them comes up in the loop.
+  const messageModels = [...listMessages(program).keys()];
+  const headerPlan = planMessageHeaders(program, messageModels);
+  schemas.omitProperties(headerPlan.lifted);
+  reportIgnoredNestedHeaders(program, messageModels, headerPlan.topLevel);
+  reportSharedLiftedHeaders(program, messageModels, headerPlan);
+
   for (const [model, state] of listMessages(program)) {
     const key = messageKeyFor(program, model, state);
     const owner = claimedBy.get(key);
@@ -143,11 +221,12 @@ export function buildMessages(
           target: model,
           format: { name: key },
         });
+        reportDroppedMessage(program, model);
       }
       continue;
     }
     claimedBy.set(key, model);
-    messages[key] = buildMessage(schemas, model);
+    messages[key] = buildMessage(program, schemas, headerPlan, model, key);
   }
 
   // The schema keys must all be claimed before the shadow check reads them.
@@ -157,6 +236,27 @@ export function buildMessages(
   schemas.flushPendingSubtypes();
   reportShadowedSchemaKeys(program, schemas, claimedBy);
   return Object.keys(messages).length > 0 ? messages : undefined;
+}
+
+/**
+ * Reports the diagnostics of a message that a key collision drops.
+ *
+ * The Message Object of such a model is never built, so the builders that
+ * report while they build never run on it. Their diagnostics describe
+ * mistakes inside that model, and those mistakes stay after the collision is
+ * fixed. Reporting them now hands the user every error at once, the same way
+ * `planMessageHeaders` reports the header diagnostics of every message before
+ * any key is claimed.
+ *
+ * The results are discarded. Only the reporting matters here.
+ *
+ * Two instantiations of one template that share a key are not dropped this
+ * way. The surviving instantiation reports the same decorator applications,
+ * so this function would report each of them twice.
+ */
+function reportDroppedMessage(program: Program, model: Model): void {
+  buildTags(program, model);
+  buildMessageExamples(program, model);
 }
 
 /**

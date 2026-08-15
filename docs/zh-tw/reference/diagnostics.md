@@ -48,6 +48,104 @@
 
 **修法：** 移除多餘的 `@message`。
 
+### `duplicate-content-type-decorator`
+
+> @contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.
+
+`@contentType` 不可重複標記。一個 message 只有一個 `contentType` 欄位。疊加時只會保留其中一次，其餘的值會被靜默丟棄。
+
+**修法：** 移除多餘的 `@contentType`。
+
+### `empty-content-type`
+
+> @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
+
+[`@contentType`](./decorators#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
+
+這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報出來，不會靜默發生。
+
+**修法：** 給這個 decorator 一個媒體型態，例如 `application/json`，或是移除它。
+
+### `duplicate-headers-decorator`
+
+> @headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.
+
+`@headers` 不可重複標記。疊加時只會保留其中一次，其餘 headers model 不會進到文件裡。
+
+**修法：** 移除多餘的 `@headers`。
+
+### `duplicate-message-headers`
+
+> This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.
+
+同一個 message 宣告了兩次 headers：至少一個欄位標了 `@header`，該 model 又標了 `@headers`。emitter 不定義兩者的優先序，所以兩邊都不輸出。被標記的欄位留在 payload，錯誤修好之前不會有任何你寫的東西消失。
+
+**修法：** 只留一個來源。把被標記的欄位搬進 `@headers` 的 model，或移除 `@headers`。
+
+### `headers-not-object`
+
+> The model '\<name\>' given to @headers is backed by an array. AsyncAPI requires the headers schema to be a key/value map, so no `headers` were emitted. Pass a model with properties instead.
+
+傳給 `@headers` 的 model 會輸出 `type: "array"`。它以 array 為底（`is` 一個 array，或繼承自 array）。AsyncAPI 要求 `headers` schema 描述一組 key/value map。
+
+**修法：** 改傳一個有屬性的 model，或以 `Record<T>` 為底的 model。兩者都輸出 object schema。
+
+### `content-type-header-conflict`
+
+> The header '\<name\>' names the message content type, and this message also carries @contentType. AsyncAPI has one field for the content type, so two sources for it are ambiguous. Remove the @header field and keep @contentType.
+
+某個 header 欄位名為 `content-type`（比對用輸出的欄位名，且不分大小寫），而同一個 message 又標了 `@contentType`。AsyncAPI 的 content type 有專屬欄位，兩個來源無法同時成立。`@typespec/http` 會把這種 header 重新分類，因為 HTTP 沒有別的管道可以表達；本 emitter 有 `@contentType`，所以直接回報而不自行挑選。
+
+兩種 headers 機制都會檢查。該欄位可以是 message model 上標了 `@header` 的欄位，也可以是傳給 `@headers` 的 model 的屬性，包含該 model 繼承來的屬性。
+
+**修法：** 移除該 header 欄位，保留 `@contentType`。
+
+### `duplicate-correlation-id-decorator`
+
+> @correlationId is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @correlationId.
+
+`@correlationId` 不可重複套用。疊加後只有一次生效，其他的 location 不會進入文件。
+
+**修法：** 移除多餘的 `@correlationId`。
+
+### `invalid-correlation-id-location`
+
+> '\<location\>' is not a legal correlation id location, so no `correlationId` was emitted. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.header#/MQMD/CorrelId'.
+
+這個 location 不符合 AsyncAPI runtime expression 的文法。運算式以 `$message.header` 或 `$message.payload` 開頭，後面接一個 `#`。`#` 之後是一段 JSON Pointer，所以必須是空字串或以 `/` 開頭。
+
+`#` 是必要的。規格的 ABNF 條文看起來像是 fragment 可省略，但規格的正規 JSON Schema 要求 `#`。官方 AsyncAPI parser 依 JSON Schema 判定，會拒絕帶有 `$message.header`（不含 `#`）的文件。
+
+emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路徑，官方範例本身就這樣寫。
+
+**修法：** 改寫成文法接受的 location，例如 `$message.header#/correlationId`。
+
+### `empty-message-example`
+
+> This @messageExample carries neither `headers` nor `payload`, so it shows nothing about the message. This example was dropped. Give it at least one of the two.
+
+某次 `@messageExample` 套用給了空值，或只給了 `name` 與 `summary`。沒有內容的 Message Example Object 說明不了這個 message。
+
+**修法：** 為該筆範例補上 `headers`、`payload`，或兩者都補。
+
+### `empty-tag-name`
+
+> @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
+
+某次 [`@asyncTag`](./decorators#asynctag) 套用把空字串當成 tag 名稱。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
+
+**修法：** 為該 tag 補上名稱。
+
+### `conflicting-tag-metadata`
+
+> Tag '\<name\>' is declared more than once here, with a different '\<field\>'. AsyncAPI emits one Tag Object per name on an object, so only one of the two values can be kept. The first one in source order was kept. Merge the @asyncTag applications into one, or give them different names.
+
+同一個 target 上兩次套用 [`@asyncTag`](./decorators#asynctag) 指到同一個 tag 名稱，而且同一個欄位給了兩個不同的值。AsyncAPI 在一個物件上，同一個名字只輸出一個 Tag Object，兩個值必定有一個要被丟掉。emitter 回報這個歧義，不自行挑選。
+
+若兩次套用設定的是*不同*欄位，則會合併；內建 `@tag` 與同名的 `@asyncTag` 也會合併。同一個名字出現在兩個*不同*的 target 上永遠不算衝突：AsyncAPI 讓每個物件各自持有獨立的 `tags` 陣列。
+
+**修法：** 把兩次套用合併成一次，或改用不同的名字。
+
 ### `duplicate-server-name`
 
 > Duplicate server name: '\<name\>'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.
@@ -90,6 +188,34 @@
 
 **修法：** 改用只含 `a-z`、`A-Z`、`0-9`、`.`、`-`、`_` 的名稱。
 
+### `nested-header-ignored`
+
+> This @header marks a property that is not a top-level field of a @message model, so it stays in the payload schema. Only a top-level field is lifted into `headers`. Move the property to the message model, or describe the whole headers object with @headers.
+
+`@header` 標到了 emitter 無法抽出的屬性：它在 payload 引用到的某個 model 裡面，而不在 message model 本身。一個 message 的 payload 是一個 object，headers 是它的同層物件。深一層的欄位沒有這種同層位置可以搬，硬抽會連帶改寫 payload 的結構。`@typespec/http` 也基於同樣理由只讀頂層的 metadata。
+
+**修法：** 把該屬性搬到 message model 上，或用 `@headers` 描述整個 headers 物件。
+
+### `inherited-header-ignored`
+
+> This @header marks a property that '\<message\>' inherits through 'extends', so it stays in the payload schema. Only a property the message model declares itself is lifted into `headers`. Spread the base model with '...' instead of extending it, or describe the whole headers object with @headers.
+
+`@header` 標到的屬性是 message 透過 `extends` 繼承來的。這種屬性在輸出的 payload 裡是頂層欄位，所以它有自己的訊息，不共用上一條。
+
+base model 本身是獨立的宣告，每個繼承它的 model 都共用它，payload 也是用 `allOf` 引用它。從它裡面抽走一個欄位，會連帶改到其他所有使用者。展開語法 `...Base` 則是把屬性複製進 message model，那些欄位就成為 message 自己的欄位，會被抽取到 `headers`。
+
+**修法：** 改用 `...` 展開 base model，或用 `@headers` 描述整個 headers 物件。
+
+### `shared-lifted-header`
+
+> The message model '\<name\>' has @header fields lifted into its `headers`, and it is also used as a field type inside another message's payload. Both uses share one components.schemas entry, so the lifted fields are missing from the nested use as well. Give the nested use a model of its own, or move the headers of '\<name\>' into a separate model passed to @headers.
+
+被抽出的 header 欄位不會出現在該 model 輸出的那一份 `components.schemas` 項目裡。這份項目是共用的。當同一個 message model 又出現在另一個 message payload 的欄位型別上時，該欄位在那個位置是一般的 payload 資料，巢狀的用法就少了這個欄位。
+
+emitter 不會把一個宣告拆成兩份 schema。一個 TypeSpec 宣告輸出一份 component，另外用自創的 key 多輸出一份，會留下沒有人要求過的第二份 schema。所以 emitter 回報這組情形，由你決定哪一種用法要換成自己的 model。
+
+**修法：** 為巢狀的用法另外建一個 model，或把 headers 搬到獨立的 model 再傳給 `@headers`。
+
 ### `server-outside-service`
 
 > Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.
@@ -113,6 +239,14 @@
 `@example` 的值含有 compiler 無法序列化成純 JSON 的內容（不支援的 scalar constructor、格式錯誤的 `duration.fromISO(...)` 等）。該 example 被丟棄，schema 本身不受影響。
 
 **修法：** 把 example 值簡化成 JSON 可表示的內容。
+
+### `unserializable-message-example`
+
+> This @messageExample could not be serialized to JSON and was dropped from the emitted message.
+
+`@messageExample` 的值含有 compiler 無法序列化為純 JSON 的內容（不支援的 scalar 建構式、格式錯誤的 `duration.fromISO(...)` 值等）。該筆整筆捨棄，連同其中本來可以序列化的欄位。只保留一半 payload 的範例會描述出應用程式從不發送的 message。
+
+**修法：** 把範例值改寫成可用 JSON 表示的部分。
 
 ### `unrepresentable-numeric-constraint`
 

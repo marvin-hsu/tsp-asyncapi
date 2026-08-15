@@ -92,7 +92,7 @@ A server name may only use letters, digits, `_`, and `-`. Any other name is reje
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 ```
 
-Attaches an external documentation link. The target is declared `unknown` because external docs can eventually attach to operations and messages too; **today the emitter only reads it from the service namespace**, emitting `info.externalDocs`:
+Attaches an external documentation link. The target is declared `unknown` because external docs attach in several places. **Today the emitter reads it from the service namespace, emitting `info.externalDocs`, and from a `@message` model, emitting that message's `externalDocs`.** Applying it elsewhere records the link but emits nothing yet.
 
 ```typespec
 @externalDocs("https://example.com/docs", "Service Documentation")
@@ -105,6 +105,97 @@ info:
     url: https://example.com/docs
     description: Service Documentation
 ```
+
+```typespec
+@message
+@externalDocs("https://example.com/order-created", "How to consume this message.")
+model OrderCreated {
+  id: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      externalDocs:
+        url: https://example.com/order-created
+        description: How to consume this message.
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+## `@asyncTag`
+
+```typespec
+extern dec asyncTag(target: unknown, name: valueof string, metadata?: valueof AsyncAPITag);
+
+model AsyncAPITag {
+  description?: string;
+  externalDocs?: ExternalDocs;
+}
+
+model ExternalDocs {
+  url: string;
+  description?: string;
+}
+```
+
+Adds one tag, with its metadata, to the emitted object. Repeatable: each application adds one tag, and the emitted array follows source order.
+
+It is named `asyncTag` and not `tag` on purpose. The built-in `@tag` lives in the global `TypeSpec` namespace, which is always in scope. A second `tag` in the `AsyncAPI` namespace would make a plain `@tag(...)` ambiguous for anyone who writes `using AsyncAPI;`, and every existing `@tag` would have to be rewritten as `@TypeSpec.tag(...)`.
+
+Two things separate it from the built-in `@tag`:
+
+|          | Built-in `@tag`                       | `@asyncTag`                                  |
+| -------- | ------------------------------------- | -------------------------------------------- |
+| Argument | A name, and nothing else              | A name plus `description` and `externalDocs` |
+| Target   | `Namespace \| Interface \| Operation` | Anything, `Model` included                   |
+
+AsyncAPI puts a full Tag Object on each item, where OpenAPI puts a bare string. And a message is a model, so **the built-in `@tag` cannot tag a message at all** — the compiler rejects the application.
+
+```typespec
+@message
+@asyncTag("orders", #{
+  description: "Everything about orders.",
+  externalDocs: #{ url: "https://example.com/orders", description: "The order guide." }
+})
+@asyncTag("public")
+model OrderCreated {
+  id: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      tags:
+        - name: orders
+          description: Everything about orders.
+          externalDocs:
+            url: https://example.com/orders
+            description: The order guide.
+        - name: public
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+The emitter reads it on the service namespace (`info.tags`) and on a message. Applying it elsewhere records the tag but emits nothing yet.
+
+The name must not be empty. `name` is required on an AsyncAPI Tag Object, and a blank one names nothing a consumer can match, so `@asyncTag("")` is reported as [`empty-tag-name`](./diagnostics#empty-tag-name) and the tag is dropped.
+
+### Merging
+
+One name means one Tag Object per object. Two applications that name one tag on one target merge field by field:
+
+- **Built-in `@tag` plus `@asyncTag`, same name.** They merge, and the metadata wins. The built-in decorator carries a name and nothing that could disagree with it.
+- **Two `@asyncTag`, same name, different fields.** They merge. One `description` and one `externalDocs` together make one Tag Object.
+- **Two `@asyncTag`, same name, one field with two different values.** This is [`conflicting-tag-metadata`](./diagnostics#conflicting-tag-metadata), an error. The first application in source order keeps the field.
+
+One name on **two different targets** may carry different metadata, and that is not an error. AsyncAPI gives every object its own `tags` array, and those arrays are independent.
 
 ## `@oneOf`
 
@@ -181,6 +272,253 @@ Two points worth knowing:
 - **Only reachable models are emitted.** `components.schemas` holds the models a message reaches, directly or through its properties. A model no message references is left out.
 - **A message key drops the namespace prefix that a schema key keeps.** A `@message model Ev` inside `namespace Sales` produces the message key `Ev` and the schema key `Sales.Ev`. When a message key happens to match a different type's schema key, the emitter reports [`message-key-shadows-schema-key`](./diagnostics#message-key-shadows-schema-key).
 
+## `@contentType`
+
+```typespec
+extern dec contentType(target: Model, contentType: valueof string);
+```
+
+Sets the media type of a message payload. Without it the field is left out, and the document-level `defaultContentType` applies.
+
+```typespec
+@message
+@contentType("application/avro")
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      contentType: application/avro
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+The emitter passes the string through untouched. It never parses the media type or changes the payload schema because of it.
+
+Apply the decorator once per model. A message carries one content type, so a second application is reported as [`duplicate-content-type-decorator`](./diagnostics#duplicate-content-type-decorator).
+
+The media type must not be empty. A blank one names no format, so it is reported as [`empty-content-type`](./diagnostics#empty-content-type) and dropped. The message then falls back to the document-level `defaultContentType`.
+
+## `@header`
+
+```typespec
+extern dec header(target: ModelProperty);
+```
+
+Marks one field of a message model as a message header. The emitter lifts every marked field out of the payload schema and collects them into the message's `headers` schema. The payload keeps the fields that carry no mark.
+
+```typespec
+@message
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  @header
+  retryCount?: int32;
+
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+          retryCount:
+            type: integer
+            format: int32
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required:
+        - orderId
+```
+
+Five points worth knowing:
+
+- **It takes no name argument.** `@typespec/http`'s `@header` has one because HTTP renames a field to kebab-case. AsyncAPI application headers have no such convention. Use [`@encodedName`](#built-in-decorators-the-emitter-reads) to give a header a key that is not a TypeSpec identifier, the same way you rename a payload field.
+- **Only a top-level field of a `@message` model is lifted.** A mark further down the payload is reported as [`nested-header-ignored`](./diagnostics#nested-header-ignored), and the field stays in the payload. Use `@headers` for a headers object with nesting of its own.
+- **`extends` and `...` differ here.** A spread, `...Base`, copies the properties into the message model, so a marked property is the message's own field and it is lifted. An `extends Base` keeps the property on the base model, which the payload refers to through `allOf`. Lifting it would change every other model that extends the same base, so the emitter leaves it in place and reports [`inherited-header-ignored`](./diagnostics#inherited-header-ignored).
+- **A message model with lifted headers cannot also be a payload field elsewhere.** Both uses share one `components.schemas` entry, so the lifted fields go missing from the nested use too. The emitter reports [`shared-lifted-header`](./diagnostics#shared-lifted-header).
+- **A header field named `content-type` conflicts with `@contentType`.** AsyncAPI has one field for the content type, so the emitter reports [`content-type-header-conflict`](./diagnostics#content-type-header-conflict) rather than picking a source.
+
+## `@headers`
+
+```typespec
+extern dec headers(target: Model, headers: Model);
+```
+
+Sets the whole `headers` schema of a message from a separate model. Use it when the headers are a model of their own, and when they nest. The emitter emits that model into `components.schemas` and references it, so several messages can share one headers definition.
+
+```typespec
+model MqmdFields {
+  CorrelId: string;
+}
+
+model ShippingHeaders {
+  MQMD: MqmdFields;
+}
+
+@message
+@headers(ShippingHeaders)
+model OrderShipped {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderShipped:
+      name: OrderShipped
+      headers:
+        $ref: "#/components/schemas/ShippingHeaders"
+      payload:
+        $ref: "#/components/schemas/OrderShipped"
+```
+
+The model must be an object type. AsyncAPI requires the headers schema to describe a key/value map, so an array-backed model is reported as [`headers-not-object`](./diagnostics#headers-not-object).
+
+Do not mix this with a field-level `@header` on the same message. Two sources for one field have no obvious winner, so the emitter reports [`duplicate-message-headers`](./diagnostics#duplicate-message-headers) and emits neither.
+
+A `content-type` property of the headers model conflicts with `@contentType` on the message, exactly as a field-level `@header` of that name does. The emitter reports [`content-type-header-conflict`](./diagnostics#content-type-header-conflict). Inherited properties of the headers model are checked too.
+
+## `@correlationId`
+
+```typespec
+extern dec correlationId(target: Model, location: valueof string, description?: valueof string);
+```
+
+Sets the message's `correlationId`. `location` is a runtime expression that names where the correlation value sits at runtime.
+
+```typespec
+@message
+@correlationId("$message.header#/correlationId", "Ties a reply to its request.")
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      correlationId:
+        location: "$message.header#/correlationId"
+        description: Ties a reply to its request.
+```
+
+A legal `location` is `$message.header#` or `$message.payload#`, each optionally followed by a JSON Pointer. Everything below is legal:
+
+| Location                         | Meaning                           |
+| -------------------------------- | --------------------------------- |
+| `$message.header#`               | The headers object itself         |
+| `$message.header#/correlationId` | One header                        |
+| `$message.header#/MQMD/CorrelId` | A header nested two levels down   |
+| `$message.payload#/order/id`     | A field nested inside the payload |
+
+The `#` is required. The prose ABNF of the specification reads as if it were optional, but the normative JSON Schema of the specification requires it, and the official AsyncAPI parser rejects a document that carries the bare `$message.header`.
+
+Anything else is reported as [`invalid-correlation-id-location`](./diagnostics#invalid-correlation-id-location), and no `correlationId` is emitted.
+
+The emitter checks the format and nothing else. It does not check that the pointer names a field the headers or payload schema declares. AsyncAPI states no such requirement, and its own examples point at paths their schemas never define.
+
+Apply the decorator once per model. A second application is reported as [`duplicate-correlation-id-decorator`](./diagnostics#duplicate-correlation-id-decorator).
+
+## `@messageExample`
+
+```typespec
+extern dec messageExample(
+  target: Model,
+  example: valueof MessageExampleValue,
+  options?: valueof MessageExampleOptions
+);
+```
+
+Adds one worked example to a message. The argument's shape:
+
+| Field             | Type              | Required |
+| ----------------- | ----------------- | -------- |
+| `example.headers` | `Record<unknown>` | no       |
+| `example.payload` | `unknown`         | no       |
+| `options.name`    | `string`          | no       |
+| `options.summary` | `string`          | no       |
+
+`headers` is a key/value map, because the AsyncAPI Message Example Object types it as `Map[string, any]`. `payload` is free-form, because the specification types it as `any`, so a scalar payload is legal.
+
+Repeatable: each application adds one entry to the `examples` array, and the entries keep their source order. AsyncAPI's `examples` is an array, so one message can show several situations, each with its own `name`.
+
+```typespec
+@message
+@messageExample(
+  #{ headers: #{ correlationId: "abc-123" }, payload: #{ orderId: "o-1", total: 12.5 } },
+  #{ name: "smallOrder", summary: "One line, already paid." }
+)
+@messageExample(#{ payload: #{ orderId: "o-2", total: 999.0 } }, #{ name: "largeOrder" })
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
+  total: float64;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      examples:
+        - name: smallOrder
+          summary: One line, already paid.
+          headers:
+            correlationId: abc-123
+          payload:
+            orderId: o-1
+            total: 12.5
+        - name: largeOrder
+          payload:
+            orderId: o-2
+            total: 999
+```
+
+Two points worth knowing:
+
+- **Every example carries at least one of `headers` and `payload`.** An example with neither shows nothing about the message, so it is reported as [`empty-message-example`](./diagnostics#empty-message-example) and dropped.
+- **The content is not checked against the message schema.** The value is emitted as written. A value the emitter cannot serialize to JSON, such as a custom scalar constructor, drops that whole entry and reports [`unserializable-message-example`](./diagnostics#unserializable-message-example).
+
 ## `@jsonSchemaExtension`
 
 ```typespec
@@ -214,7 +552,7 @@ These come from `@typespec/compiler` — no import needed:
 | Decorator                                                                                                                                         | Effect in this emitter                                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@service(#{ title })`                                                                                                                            | Marks the service namespace; `title` → `info.title`. One service per document — a second one warns ([`multiple-services`](./diagnostics#multiple-services)) and is ignored. |
-| `@tag("name")`                                                                                                                                    | One `info.tags` entry per application.                                                                                                                                      |
+| `@tag("name")`                                                                                                                                    | One `info.tags` entry per application. It cannot target a `Model`, so a message is tagged with [`@asyncTag`](#asynctag) instead. The two merge when they name one tag.      |
 | `@doc` / doc comments                                                                                                                             | `description` — on the namespace (fallback for `info.description`) and on every schema-layer declaration or property.                                                       |
 | `@summary`                                                                                                                                        | `title` on a schema.                                                                                                                                                        |
 | `@example(#{...})`                                                                                                                                | An entry in a schema's `examples`, serialized to JSON.                                                                                                                      |
