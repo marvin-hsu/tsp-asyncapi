@@ -2,3 +2,15 @@ allowBuilds:
   # Telemetry postinstall script pulled in by @asyncapi/parser. It is not needed to build or test.
   "@scarf/scarf": false
   esbuild: true
+
+overrides:
+  # DoS in qs.stringify, reached through @stryker-mutator/core. A patch
+  # release inside the range its parent already asks for.
+  qs: ">=6.15.2"
+  # The three vite advisories are fixed from 6.4.3, and `vitepress@1.6.4`
+  # asks for `vite ^5.4.14`. Forcing 6.4.3 does clear the audit, and it
+  # breaks `pnpm docs:build`: vitepress 1.x builds on Rollup, and vite from
+  # 6 uses Rolldown, which rejects the plugin it relies on. They stay
+  # reported rather than fixed until vitepress ships a release that takes a
+  # patched vite. All three are development-only and none reaches a
+  # consumer of the published package.
