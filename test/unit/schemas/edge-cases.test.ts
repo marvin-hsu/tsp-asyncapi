@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../src/testing/index.js";
+import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../src/builders/schemas/builder.js";
+import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
 describe("Unit: Schemas edge cases (regression)", () => {
   it("self-referential model does not blow the stack", async () => {
