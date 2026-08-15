@@ -6,29 +6,29 @@ import {
   ModelProperty,
   Program,
 } from "@typespec/compiler";
-import { MessageObject } from "../types/index.js";
-import { reportDiagnostic } from "../lib.js";
+import { MessageObject } from "../../types/index.js";
+import { reportDiagnostic } from "../../lib.js";
 import {
   getContentType,
   getCorrelationId,
   listMessages,
   MessageState,
-} from "../decorators/index.js";
-import { SchemaBuilder } from "./schemas/builder.js";
+} from "../../decorators/index.js";
+import { SchemaBuilder } from "../schemas/builder.js";
 import {
   buildMessageHeaders,
   MessageHeaderPlan,
   planMessageHeaders,
   reportIgnoredNestedHeaders,
-} from "./message-headers.js";
-import { buildMessageExamples } from "./message-examples.js";
-import { buildTags } from "./tags.js";
-import { buildExternalDocs } from "./external-docs.js";
+} from "./headers.js";
+import { buildMessageExamples } from "./examples.js";
+import { buildTags } from "../tags.js";
+import { buildExternalDocs } from "../external-docs.js";
 import {
   isSafeComponentsKey,
   sanitizeDeclarationName,
   unqualifiedDeclarationName,
-} from "./schemas/schema-naming.js";
+} from "../schemas/schema-naming.js";
 
 /**
  * Returns the `components.messages` key for one `@message` model.

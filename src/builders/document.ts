@@ -2,7 +2,7 @@ import { Program, Service } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import { buildInfo } from "./info.js";
-import { buildMessages } from "./messages.js";
+import { buildMessages } from "./messages/builder.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import { buildServers, reportServersOutsideService } from "./servers.js";
 import { ASYNCAPI_VERSION, DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";

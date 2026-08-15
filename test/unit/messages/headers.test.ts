@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { AsyncAPITester } from "../../src/testing/index.js";
+import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../src/builders/document.js";
-import { byCodePoint } from "../utils/sort.js";
+import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
+import { byCodePoint } from "../../utils/sort.js";
 
 describe("Unit: Message headers (Phase 3.3)", () => {
   let runner: TesterInstance;
