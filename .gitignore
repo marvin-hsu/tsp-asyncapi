@@ -103,7 +103,9 @@ plan/
 .aider*
 .cline/
 .clinerules
-.gemini/
+# 不加尾斜線。`.gemini` 是指向 `.claude` 的 symlink，git 把 symlink 當
+# 檔案看，尾斜線的樣式只匹配目錄，會漏掉它。
+.gemini
 .antigravity/
 .chat/
 .copilotignore
