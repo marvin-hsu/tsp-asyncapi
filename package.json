@@ -1,5 +1,5 @@
 {
-  "name": "typespec-asyncapi",
+  "name": "tsp-asyncapi",
   "version": "1.0.0",
   "description": "AsyncAPI emitter for TypeSpec",
   "main": "dist/src/index.js",

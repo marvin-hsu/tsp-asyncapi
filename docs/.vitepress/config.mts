@@ -3,7 +3,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "TypeSpec AsyncAPI",
   description: "An AsyncAPI 3.1 emitter for TypeSpec",
-  base: "/typespec-asyncapi/",
+  base: "/tsp-asyncapi/",
   lastUpdated: true,
 
   locales: {
@@ -33,7 +33,7 @@ export default defineConfig({
           },
         ],
         editLink: {
-          pattern: "https://github.com/marvin-hsu/typespec-asyncapi/edit/main/docs/:path",
+          pattern: "https://github.com/marvin-hsu/tsp-asyncapi/edit/main/docs/:path",
           text: "Edit this page on GitHub",
         },
         outline: { label: "On this page" },
@@ -70,7 +70,7 @@ export default defineConfig({
           },
         ],
         editLink: {
-          pattern: "https://github.com/marvin-hsu/typespec-asyncapi/edit/main/docs/:path",
+          pattern: "https://github.com/marvin-hsu/tsp-asyncapi/edit/main/docs/:path",
           text: "在 GitHub 上編輯此頁",
         },
         outline: { label: "本頁目錄" },
@@ -88,7 +88,7 @@ export default defineConfig({
     socialLinks: [
       {
         icon: "github",
-        link: "https://github.com/marvin-hsu/typespec-asyncapi",
+        link: "https://github.com/marvin-hsu/tsp-asyncapi",
       },
     ],
     search: { provider: "local" },

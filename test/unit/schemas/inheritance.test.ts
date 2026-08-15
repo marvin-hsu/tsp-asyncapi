@@ -130,9 +130,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toBe(true);
   });
 
@@ -146,9 +144,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/optional-discriminator-property",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/optional-discriminator-property"),
     ).toBe(true);
   });
 
@@ -174,9 +170,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       discriminator: "petType",
     });
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toBe(false);
   });
 
@@ -212,9 +206,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toBe(true);
   });
 
@@ -424,7 +416,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["k"],
     });
     const overrideDiagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/encoded-name-override-conflict",
+      (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
     );
     expect(overrideDiagnostic).toBeDefined();
     // The message must describe *this* case (an override diverging from
@@ -453,7 +445,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["a"],
     });
     const collisionDiagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/encoded-name-override-conflict",
+      (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
     );
     expect(collisionDiagnostic).toBeDefined();
     // The message must describe *this* case (an unrelated wire-name
@@ -506,7 +498,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["b"],
     });
     expect(
-      program.diagnostics.some((d) => d.code === "typespec-asyncapi/never-typed-property-override"),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/never-typed-property-override"),
     ).toBe(true);
   });
 
@@ -520,9 +512,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Names as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toBe(true);
   });
 

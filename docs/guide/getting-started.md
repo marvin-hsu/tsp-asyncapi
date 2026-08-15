@@ -1,6 +1,6 @@
 # Getting Started
 
-`typespec-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document from that one source of truth.
+`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document from that one source of truth.
 
 ## What the emitter produces today
 
@@ -26,8 +26,8 @@ In short: today you can model your event contracts in TypeSpec, get a valid Asyn
 This package is not yet published to npm. To try it locally:
 
 ```bash
-git clone https://github.com/marvin-hsu/typespec-asyncapi.git
-cd typespec-asyncapi
+git clone https://github.com/marvin-hsu/tsp-asyncapi.git
+cd tsp-asyncapi
 pnpm install
 pnpm build
 ```
@@ -38,7 +38,7 @@ Then reference it from your own TypeSpec project as a local dependency:
 // package.json of your TypeSpec project
 {
   "dependencies": {
-    "typespec-asyncapi": "file:../typespec-asyncapi"
+    "tsp-asyncapi": "file:../tsp-asyncapi"
   }
 }
 ```
@@ -50,7 +50,7 @@ Then reference it from your own TypeSpec project as a local dependency:
 Create a `main.tsp`:
 
 ```typespec
-import "typespec-asyncapi";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 
@@ -71,9 +71,9 @@ Configure the emitter in `tspconfig.yaml`:
 
 ```yaml
 emit:
-  - "typespec-asyncapi"
+  - "tsp-asyncapi"
 options:
-  "typespec-asyncapi":
+  "tsp-asyncapi":
     asyncapi-id: "urn:com:example:orders"
     default-content-type: "application/json"
 ```
@@ -84,7 +84,7 @@ Compile:
 tsp compile .
 ```
 
-The output lands in `tsp-output/typespec-asyncapi/asyncapi.yaml`. This is the **actual, complete output** of the example above:
+The output lands in `tsp-output/tsp-asyncapi/asyncapi.yaml`. This is the **actual, complete output** of the example above:
 
 ```yaml
 asyncapi: 3.1.0

@@ -210,7 +210,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     // was itself perfectly serializable) -- that must not happen in total
     // silence.
     expect(program.diagnostics).toHaveLength(1);
-    expect(program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
+    expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");
     expect(program.diagnostics[0].severity).toBe("warning");
   });
 
@@ -516,7 +516,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     const props = builder.getSchemas().M.properties as Record<string, any>;
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
     expect(program.diagnostics).toHaveLength(1);
-    expect(program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
+    expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");
     expect(program.diagnostics[0].severity).toBe("warning");
   });
 

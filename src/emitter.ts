@@ -5,7 +5,7 @@ import yaml from "yaml";
 
 /**
  * The main entry point for the AsyncAPI emitter.
- * The TypeSpec compiler calls this function automatically when `--emit typespec-asyncapi` is specified.
+ * The TypeSpec compiler calls this function automatically when `--emit tsp-asyncapi` is specified.
  *
  * It performs the following steps:
  * 1. Generates the AsyncAPI 3.1.0 document object tree.

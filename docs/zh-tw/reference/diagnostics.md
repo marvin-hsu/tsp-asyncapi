@@ -1,6 +1,6 @@
 # 診斷訊息
 
-本頁列出 emitter 會回報的所有警告與錯誤，附原因與修法。診斷代碼在 compiler 輸出中顯示為 `typespec-asyncapi/<code>`。
+本頁列出 emitter 會回報的所有警告與錯誤，附原因與修法。診斷代碼在 compiler 輸出中顯示為 `tsp-asyncapi/<code>`。
 
 所有診斷共用一條設計原則：**emitter 絕不靜默丟棄或靜默改寫你的意圖。** 無法表達的內容，一律以警告省略，或回報錯誤。
 

@@ -1,4 +1,4 @@
-# typespec-asyncapi
+# tsp-asyncapi
 
 [English](./README.md) | 繁體中文
 
@@ -6,7 +6,7 @@
 
 > **狀態：開發中。** 目前 emitter 產出文件骨架與 `info` 中繼資料（title、version、contact、license、tags、external docs）。TypeSpec → AsyncAPI schema 轉換層（model、scalar、array、record、enum、union、繼承、discriminator、驗證關鍵字）已實作並有單元測試，但尚未接進輸出檔，會與 message payload 一起接上。Channel、operation、message、server、security、protocol binding 仍在開發中。
 
-📖 **文件請看 [docs 網站](https://marvin-hsu.github.io/typespec-asyncapi/)**：快速開始、經過驗證的 schema 轉換範例、完整的 decorator / 選項 / 診斷參考。提供英文與臺灣正體中文。
+📖 **文件請看 [docs 網站](https://marvin-hsu.github.io/tsp-asyncapi/)**：快速開始、經過驗證的 schema 轉換範例、完整的 decorator / 選項 / 診斷參考。提供英文與臺灣正體中文。
 
 ## 為什麼做這個
 
@@ -23,7 +23,7 @@ TypeSpec 對 OpenAPI 已有成熟的一級支援。事件驅動契約（message 
 
 ```bash
 git clone <this repo>
-cd typespec-asyncapi
+cd tsp-asyncapi
 pnpm install
 pnpm build
 ```
@@ -35,7 +35,7 @@ pnpm build
 在 `main.tsp` 匯入這個 library，用提供的 decorator 標註你的 service：
 
 ```typespec
-import "typespec-asyncapi";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 
@@ -71,9 +71,9 @@ model OrderItem {
 
 ```yaml
 emit:
-  - "typespec-asyncapi"
+  - "tsp-asyncapi"
 options:
-  "typespec-asyncapi":
+  "tsp-asyncapi":
     output-file: "asyncapi.yaml"
     file-type: "yaml"
     asyncapi-id: "urn:com:example:orders"
@@ -83,7 +83,7 @@ options:
 或直接編譯：
 
 ```bash
-tsp compile . --emit typespec-asyncapi
+tsp compile . --emit tsp-asyncapi
 ```
 
 這會產生一份完整合規的 AsyncAPI 3.1.0 文件。

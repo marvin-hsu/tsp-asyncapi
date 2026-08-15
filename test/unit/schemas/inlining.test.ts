@@ -245,7 +245,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // unsupported payload type.
     expect(props.b.properties.v).toEqual({});
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
+      (d) => d.code === "tsp-asyncapi/unsupported-payload-type",
     );
     expect(diagnostic).toBeDefined();
   });
@@ -373,7 +373,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -627,7 +627,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
 
     expect(
       program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
+        (d) => d.code === "tsp-asyncapi/unrepresentable-circular-reference",
       ),
     ).toEqual([]);
   });
@@ -654,7 +654,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(components[key]).toBeDefined();
 
     const duplicates = program.diagnostics.filter(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(duplicates).toHaveLength(1);
     expect(duplicates[0].severity).toBe("error");
@@ -675,7 +675,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     builder.buildSchema(M as Model);
 
     expect(
-      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/unsupported-payload-type"),
+      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/unsupported-payload-type"),
     ).toHaveLength(1);
   });
 
@@ -694,7 +694,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     builder.buildSchema(M as Model);
 
     expect(
-      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/unsupported-payload-type"),
+      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/unsupported-payload-type"),
     ).toHaveLength(1);
 
     // Both properties resolve to the one registered component.
@@ -715,9 +715,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     builder.buildSchema(M as Model);
 
     expect(
-      program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
-      ),
+      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toHaveLength(1);
   });
 
@@ -747,7 +745,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.a).toEqual(inlined);
     expect(props.b).toEqual(inlined);
     expect(
-      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/duplicate-schema-key"),
+      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-schema-key"),
     ).toEqual([]);
   });
 
@@ -785,8 +783,8 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(
       program.diagnostics.filter(
         (d) =>
-          d.code === "typespec-asyncapi/unrepresentable-circular-reference" ||
-          d.code === "typespec-asyncapi/duplicate-schema-key",
+          d.code === "tsp-asyncapi/unrepresentable-circular-reference" ||
+          d.code === "tsp-asyncapi/duplicate-schema-key",
       ),
     ).toEqual([]);
   });

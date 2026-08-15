@@ -17,7 +17,7 @@ function findPackageRoot(fromUrl: string): string {
 }
 
 /**
- * Tester pre-configured with the typespec-asyncapi library imported and the
+ * Tester pre-configured with the tsp-asyncapi library imported and the
  * `AsyncAPI` namespace in scope.
  *
  * @public

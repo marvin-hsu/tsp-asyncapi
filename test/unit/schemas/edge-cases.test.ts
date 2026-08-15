@@ -66,7 +66,7 @@ describe("Unit: Schemas edge cases (regression)", () => {
 
     expect(fieldSchema).toEqual({});
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
+      (d) => d.code === "tsp-asyncapi/unsupported-payload-type",
     );
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.severity).toBe("error");
@@ -92,7 +92,7 @@ describe("Unit: Schemas edge cases (regression)", () => {
     expect(fieldSchema.type).toBe("object");
     expect(fieldSchema.properties.a).toEqual({});
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
+      (d) => d.code === "tsp-asyncapi/unrepresentable-circular-reference",
     );
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.severity).toBe("error");

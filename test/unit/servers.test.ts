@@ -152,7 +152,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/duplicate-server-name",
+        code: "tsp-asyncapi/duplicate-server-name",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
@@ -173,7 +173,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/duplicate-server-name",
+        code: "tsp-asyncapi/duplicate-server-name",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
@@ -195,11 +195,11 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/duplicate-server-name",
+        code: "tsp-asyncapi/duplicate-server-name",
         message: /Duplicate server name: 'dup'/,
       },
       {
-        code: "typespec-asyncapi/duplicate-server-name",
+        code: "tsp-asyncapi/duplicate-server-name",
         message: /Duplicate server name: 'dup'/,
       },
     ]);
@@ -220,7 +220,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/duplicate-server-name",
+        code: "tsp-asyncapi/duplicate-server-name",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
@@ -240,7 +240,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/empty-server-field",
+        code: "tsp-asyncapi/empty-server-field",
         message: /Empty server field: 'host'/,
       },
     ]);
@@ -257,7 +257,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/empty-server-field",
+        code: "tsp-asyncapi/empty-server-field",
         message: /Empty server field: 'protocol'/,
       },
     ]);
@@ -329,7 +329,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/server-outside-service",
+        code: "tsp-asyncapi/server-outside-service",
         message: /Server 'nested' on namespace '[\w.]*Test\.Sub' was dropped/,
       },
     ]);
@@ -348,7 +348,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/server-outside-service",
+        code: "tsp-asyncapi/server-outside-service",
         message: /Server 'lonely' on namespace 'Test' was dropped/,
       },
     ]);
@@ -366,7 +366,7 @@ describe("Unit: servers", () => {
 
     expectDiagnostics(diagnostics, [
       {
-        code: "typespec-asyncapi/invalid-server-name",
+        code: "tsp-asyncapi/invalid-server-name",
         message: /Invalid server name: 'prod.kafka'/,
       },
     ]);

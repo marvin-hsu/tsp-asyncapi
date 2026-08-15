@@ -416,9 +416,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     expect(props.v.minimum).toBeUndefined();
     expect(props.v.maximum).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint"),
     ).toBe(true);
   });
 
@@ -434,7 +432,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     expect(props.at).toEqual({ type: "string", format: "date-time" });
     expect(
       program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/unsupported-temporal-range-constraint",
+        (d) => d.code === "tsp-asyncapi/unsupported-temporal-range-constraint",
       ),
     ).toBe(true);
   });
@@ -462,9 +460,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     const props = builder.getSchemas().M.properties as Record<string, any>;
     expect(props.name.maxLength).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint"),
     ).toBe(true);
   });
 
@@ -479,9 +475,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     const props = builder.getSchemas().M.properties as Record<string, any>;
     expect(props.tags.minItems).toBeUndefined();
     expect(
-      program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
-      ),
+      program.diagnostics.some((d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint"),
     ).toBe(true);
   });
 
@@ -497,7 +491,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     `);
 
     const occurrences = program.diagnostics.filter(
-      (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
+      (d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint",
     );
     expect(occurrences).toHaveLength(1);
   });
@@ -510,7 +504,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
     const lengthMessage = lengthProgram.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
+      (d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint",
     )?.message;
     expect(lengthMessage).toContain("maxLength");
 
@@ -521,7 +515,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
     const itemsMessage = itemsProgram.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
+      (d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint",
     )?.message;
     expect(itemsMessage).toContain("maxItems");
   });
@@ -536,7 +530,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     `);
 
     const occurrences = program.diagnostics.filter(
-      (d) => d.code === "typespec-asyncapi/unrepresentable-numeric-constraint",
+      (d) => d.code === "tsp-asyncapi/unrepresentable-numeric-constraint",
     );
     expect(occurrences).toHaveLength(2);
   });

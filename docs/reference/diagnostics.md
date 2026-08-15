@@ -1,6 +1,6 @@
 # Diagnostics
 
-Every warning and error this emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `typespec-asyncapi/<code>`.
+Every warning and error this emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `tsp-asyncapi/<code>`.
 
 A common design principle across all of them: **the emitter never silently drops or silently rewrites your intent.** Anything it cannot represent is either omitted with a warning, or reported as an error.
 

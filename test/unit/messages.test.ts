@@ -142,7 +142,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     buildAsyncAPIDocument(runner.program, undefined, {});
 
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/sanitized-message-key",
+      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
     );
     expect(diagnostic?.severity).toBe("warning");
     expect(String(diagnostic?.message)).toMatch(/'order\/created'/);
@@ -164,9 +164,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["order.created-v1"]);
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/sanitized-message-key",
-      ),
+      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/sanitized-message-key"),
     ).toHaveLength(0);
   });
 
@@ -200,9 +198,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
       payload: { $ref: "#/components/schemas/EnvelopeString" },
     });
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/duplicate-message-key",
-      ),
+      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
     ).toHaveLength(0);
   });
 
@@ -232,7 +228,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-message-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-message-key",
     );
     expect(diagnostic).toBeDefined();
     expect(String(diagnostic?.message)).toMatch(/Duplicate message name: 'Shared'/);
@@ -269,7 +265,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-message-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-message-key",
     );
     expect(diagnostic).toBeDefined();
     expect(String(diagnostic?.message)).toMatch(/Duplicate message name: 'OrderCreated'/);
@@ -328,9 +324,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     // schema key, so they are one declaration in the document. No explicit
     // @message name could separate them.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/duplicate-message-key",
-      ),
+      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
     ).toHaveLength(0);
     const messageKeys = Object.keys(doc.components?.messages ?? {}).filter((k) => k !== "Holder");
     expect(messageKeys).toHaveLength(1);
@@ -364,7 +358,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     buildAsyncAPIDocument(runner.program, undefined, {});
 
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/message-key-shadows-schema-key",
+      (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
     );
     expect(diagnostic?.severity).toBe("warning");
     expect(String(diagnostic?.message)).toMatch(/'Cat'/);
@@ -499,7 +493,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderCreated"]);
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/sanitized-message-key",
+      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
     );
     expect(diagnostic?.severity).toBe("warning");
     expect(String(diagnostic?.message)).toMatch(/'OrderCreated'/);
@@ -520,7 +514,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderSep47Created"]);
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/sanitized-message-key",
+      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
     );
     expect(diagnostic?.severity).toBe("warning");
     expect(String(diagnostic?.message)).toMatch(/'order\/created'/);
@@ -550,9 +544,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/sanitized-message-key",
-      ),
+      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/sanitized-message-key"),
     ).toHaveLength(0);
   });
 
@@ -569,7 +561,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     `);
 
     const diagnostic = diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-message-decorator",
+      (d) => d.code === "tsp-asyncapi/duplicate-message-decorator",
     );
     expect(diagnostic?.severity).toBe("error");
 
@@ -603,7 +595,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
       payload: { $ref: "#/components/schemas/Other" },
     });
     const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/message-key-shadows-schema-key",
+      (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
     );
     expect(diagnostic?.severity).toBe("warning");
     expect(String(diagnostic?.message)).toMatch(/'Sales\.Ev'/);
@@ -624,7 +616,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     expect(
       runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/message-key-shadows-schema-key",
+        (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
       ),
     ).toHaveLength(0);
   });

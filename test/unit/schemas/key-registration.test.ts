@@ -63,7 +63,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(Object.hasOwn(builder.getSchemas(), "a/b.Foo")).toBe(false);
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -125,7 +125,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -154,7 +154,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -179,7 +179,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -235,7 +235,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.y).toEqual({ $ref: "#/components/schemas/B.EnvOrder" });
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -308,7 +308,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -349,7 +349,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     });
 
     const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostics).toHaveLength(0);
   });
@@ -375,7 +375,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
 
     const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostics).toHaveLength(0);
   });
@@ -407,7 +407,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
@@ -485,7 +485,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(W as Model);
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.severity).toBe("error");

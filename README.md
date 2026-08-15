@@ -1,4 +1,4 @@
-# typespec-asyncapi
+# tsp-asyncapi
 
 [English](./README.md) | [繁體中文](./README.zh-TW.md)
 
@@ -6,7 +6,7 @@ An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://type
 
 > **Status: work in progress.** The emitter generates the document skeleton and `info` metadata (title, version, contact, license, tags, external docs). The TypeSpec-to-AsyncAPI-schema conversion layer (models, scalars, arrays, records, enums, unions, inheritance, discriminators, and validation keywords) is implemented and unit-tested, but is not yet wired into the emitted file — it lands together with message payloads. Channels, operations, messages, servers, security, and protocol bindings are still in development.
 
-📖 **Documentation: see the [docs site](https://marvin-hsu.github.io/typespec-asyncapi/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
+📖 **Documentation: see the [docs site](https://marvin-hsu.github.io/tsp-asyncapi/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
 
 ## Why
 
@@ -23,7 +23,7 @@ This package is not yet published to npm. To try it locally:
 
 ```bash
 git clone <this repo>
-cd typespec-asyncapi
+cd tsp-asyncapi
 pnpm install
 pnpm build
 ```
@@ -35,7 +35,7 @@ Then reference it from your TypeSpec project, either as a local `file:` dependen
 Add the library to your `main.tsp` and annotate your service with the provided decorators:
 
 ```typespec
-import "typespec-asyncapi";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 
@@ -72,9 +72,9 @@ Configure the emitter in `tspconfig.yaml`:
 
 ```yaml
 emit:
-  - "typespec-asyncapi"
+  - "tsp-asyncapi"
 options:
-  "typespec-asyncapi":
+  "tsp-asyncapi":
     output-file: "asyncapi.yaml"
     file-type: "yaml"
     asyncapi-id: "urn:com:example:orders"
@@ -84,7 +84,7 @@ options:
 Then compile:
 
 ```bash
-tsp compile . --emit typespec-asyncapi
+tsp compile . --emit tsp-asyncapi
 ```
 
 This produces a fully compliant AsyncAPI 3.1.0 document.

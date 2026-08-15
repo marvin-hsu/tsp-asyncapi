@@ -6,7 +6,7 @@ import { expectValidAsyncAPI } from "../utils/spec-validation.js";
 
 describe("AsyncAPI Emitter", () => {
   it("should have correct library name", () => {
-    expect($lib.name).toBe("typespec-asyncapi");
+    expect($lib.name).toBe("tsp-asyncapi");
   });
 
   it("should output basic asyncapi 3.1.0 document (YAML by default)", async () => {
@@ -38,7 +38,7 @@ describe("AsyncAPI Emitter", () => {
     `;
     const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(code, {}, false);
     expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0].code).toBe("typespec-asyncapi/multiple-services");
+    expect(diagnostics[0].code).toBe("tsp-asyncapi/multiple-services");
     expect(doc.info.title).toBe("Service 1");
     await expectValidAsyncAPI(doc);
   });

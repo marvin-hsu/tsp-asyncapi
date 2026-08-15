@@ -1,6 +1,6 @@
 # 快速開始
 
-`typespec-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 從這份單一事實來源產出 AsyncAPI 文件。
+`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 從這份單一事實來源產出 AsyncAPI 文件。
 
 ## emitter 現在產出什麼
 
@@ -26,8 +26,8 @@
 這個套件尚未發佈到 npm。若要在本機試用：
 
 ```bash
-git clone https://github.com/marvin-hsu/typespec-asyncapi.git
-cd typespec-asyncapi
+git clone https://github.com/marvin-hsu/tsp-asyncapi.git
+cd tsp-asyncapi
 pnpm install
 pnpm build
 ```
@@ -38,7 +38,7 @@ pnpm build
 // 你的 TypeSpec 專案的 package.json
 {
   "dependencies": {
-    "typespec-asyncapi": "file:../typespec-asyncapi"
+    "tsp-asyncapi": "file:../tsp-asyncapi"
   }
 }
 ```
@@ -50,7 +50,7 @@ pnpm build
 建立 `main.tsp`：
 
 ```typespec
-import "typespec-asyncapi";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 
@@ -71,9 +71,9 @@ namespace Orders;
 
 ```yaml
 emit:
-  - "typespec-asyncapi"
+  - "tsp-asyncapi"
 options:
-  "typespec-asyncapi":
+  "tsp-asyncapi":
     asyncapi-id: "urn:com:example:orders"
     default-content-type: "application/json"
 ```
@@ -84,7 +84,7 @@ options:
 tsp compile .
 ```
 
-輸出檔在 `tsp-output/typespec-asyncapi/asyncapi.yaml`。以下是上面範例**實際的完整輸出**：
+輸出檔在 `tsp-output/tsp-asyncapi/asyncapi.yaml`。以下是上面範例**實際的完整輸出**：
 
 ```yaml
 asyncapi: 3.1.0

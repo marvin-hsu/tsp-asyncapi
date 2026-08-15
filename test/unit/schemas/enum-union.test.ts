@@ -269,7 +269,7 @@ describe("Unit: Schemas — enums and unions", () => {
     expect(props.b).toEqual({ $ref: "#/components/schemas/Color" });
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.severity).toBe("error");

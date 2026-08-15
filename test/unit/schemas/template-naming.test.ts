@@ -126,7 +126,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder");
 
     const diagnostic = program.diagnostics.find(
-      (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
+      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeDefined();
     expect(diagnostic?.severity).toBe("error");

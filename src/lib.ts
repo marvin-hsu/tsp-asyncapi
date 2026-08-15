@@ -7,7 +7,7 @@ import { createTypeSpecLibrary, JSONSchemaType, paramMessage } from "@typespec/c
  *
  * @public
  */
-export const LIBRARY_NAME = "typespec-asyncapi";
+export const LIBRARY_NAME = "tsp-asyncapi";
 
 /**
  * Configuration options for the AsyncAPI emitter.
@@ -16,9 +16,9 @@ export const LIBRARY_NAME = "typespec-asyncapi";
  * ```yaml
  * # tspconfig.yaml
  * emit:
- *   - "typespec-asyncapi"
+ *   - "tsp-asyncapi"
  * options:
- *   "typespec-asyncapi":
+ *   "tsp-asyncapi":
  *     output-file: "asyncapi.yaml"
  *     file-type: "yaml"
  *     asyncapi-id: "urn:com:example:orders"

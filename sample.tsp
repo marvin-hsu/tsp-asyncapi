@@ -1,4 +1,4 @@
-import "typespec-asyncapi";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

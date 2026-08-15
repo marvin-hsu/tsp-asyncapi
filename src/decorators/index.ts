@@ -24,7 +24,7 @@ export type { AsyncAPIServerState } from "./server-state.js";
 /** @public */
 export const namespace = "AsyncAPI";
 
-const infoStateKey = Symbol.for("typespec-asyncapi.info");
+const infoStateKey = Symbol.for("tsp-asyncapi.info");
 
 /**
  * State interface representing the extracted info data.
@@ -251,7 +251,7 @@ export function getServers(program: Program, target: Namespace): AsyncAPIServerS
   return [...records].sort(compareServerRecords).map((record) => ({ ...record.server }));
 }
 
-const externalDocsKey = Symbol.for("typespec-asyncapi.externalDocs");
+const externalDocsKey = Symbol.for("tsp-asyncapi.externalDocs");
 
 /**
  * State interface representing external documentation.
@@ -305,7 +305,7 @@ export function getExternalDocs(program: Program, target: Type): ExternalDocsSta
   return getExternalDocsInternal(program, target);
 }
 
-const oneOfStateKey = Symbol.for("typespec-asyncapi.oneOf");
+const oneOfStateKey = Symbol.for("tsp-asyncapi.oneOf");
 
 const [isOneOfInternal, markOneOf] = useStateSet<Union>(oneOfStateKey);
 
@@ -344,7 +344,7 @@ export function isOneOf(program: Program, target: Union): boolean {
   return isOneOfInternal(program, target);
 }
 
-const jsonSchemaExtensionStateKey = Symbol.for("typespec-asyncapi.jsonSchemaExtension");
+const jsonSchemaExtensionStateKey = Symbol.for("tsp-asyncapi.jsonSchemaExtension");
 
 /**
  * One raw key/value pair recorded by `@jsonSchemaExtension`.
@@ -400,7 +400,7 @@ export function getJsonSchemaExtensions(
   return getJsonSchemaExtensionsInternal(program, target) ?? [];
 }
 
-const messageStateKey = Symbol.for("typespec-asyncapi.message");
+const messageStateKey = Symbol.for("tsp-asyncapi.message");
 
 /**
  * State recorded by `@message` for one model.

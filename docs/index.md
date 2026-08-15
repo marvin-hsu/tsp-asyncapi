@@ -14,7 +14,7 @@ hero:
       link: /guide/schema-conversion
     - theme: alt
       text: GitHub
-      link: https://github.com/marvin-hsu/typespec-asyncapi
+      link: https://github.com/marvin-hsu/tsp-asyncapi
 
 features:
   - title: One source of truth

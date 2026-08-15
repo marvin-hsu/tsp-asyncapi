@@ -14,7 +14,7 @@ hero:
       link: /zh-tw/guide/schema-conversion
     - theme: alt
       text: GitHub
-      link: https://github.com/marvin-hsu/typespec-asyncapi
+      link: https://github.com/marvin-hsu/tsp-asyncapi
 
 features:
   - title: 單一事實來源

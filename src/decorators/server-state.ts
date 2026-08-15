@@ -1,7 +1,7 @@
 import { DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 
-const serverStateKey = Symbol.for("typespec-asyncapi.server");
+const serverStateKey = Symbol.for("tsp-asyncapi.server");
 
 /**
  * State interface representing one server declared by `@server`.
