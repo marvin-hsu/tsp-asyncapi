@@ -28,7 +28,7 @@ import {
   getMaxItemsAsNumeric,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
-import { reportDiagnostic } from "../../lib.js";
+import { SchemaDiagnostics } from "./schema-diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { makeSerializeHandlers } from "../example-serialization.js";
 import { orderBySourceNodes } from "../source-order.js";
@@ -68,7 +68,7 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * diagnostic. It targets the declaration or property the `@example` was
  * applied to. So the drop is not completely silent, even though the
  * emitted schema itself has no field to say so.
- * Each dropped example reports once per target, thanks to `reported`. One
+ * Each dropped example reports once per target, thanks to `diagnostics`. One
  * model can be built twice: a message that lifts `@header` fields emits a
  * payload declaration next to the model's own. One unserializable value is
  * one mistake, so the user hears about it once. The dedup key holds the
@@ -88,7 +88,7 @@ function buildDocFields(
   program: Program,
   target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
   exampleValueType: Type,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
 ): Pick<SchemaObject, "title" | "description" | "examples"> {
   const title = getSummary(program, target);
   const description = getDoc(program, target);
@@ -114,16 +114,9 @@ function buildDocFields(
         // `duration.fromISO(...)` value that the compiler never validates.
         // Still surface the drop as a diagnostic, rather than dropping it
         // in total silence.
-        let keys = reported.get(target);
-        if (keys === undefined) {
-          keys = new Set();
-          reported.set(target, keys);
-        }
-        const key = `unserializable-example:${String(index)}`;
-        if (!keys.has(key)) {
-          keys.add(key);
-          reportDiagnostic(program, { code: "unserializable-example", target });
-        }
+        // Each example is its own drop, so the index separates them. Two
+        // bad examples on one target are two mistakes and get two reports.
+        diagnostics.reportOnce({ code: "unserializable-example", target }, String(index));
         return undefined;
       }
     })
@@ -166,7 +159,7 @@ function buildDocFields(
 function resolveRangeBound(
   program: Program,
   target: Type,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
   decorator: string,
   numeric: ReturnType<typeof getMinValueAsNumeric>,
   scalarValue: ReturnType<typeof getMinValueForScalar>,
@@ -175,8 +168,7 @@ function resolveRangeBound(
     const asNumber = numeric.asNumber();
     if (asNumber === null) {
       reportRangeDiagnosticOnce(
-        program,
-        reported,
+        diagnostics,
         "unrepresentable-numeric-constraint",
         target,
         decorator,
@@ -187,8 +179,7 @@ function resolveRangeBound(
   }
   if (scalarValue !== undefined) {
     reportRangeDiagnosticOnce(
-      program,
-      reported,
+      diagnostics,
       "unsupported-temporal-range-constraint",
       target,
       decorator,
@@ -217,7 +208,7 @@ function resolveRangeBound(
 function resolveLengthBound(
   program: Program,
   target: Type,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
   decorator: string,
   numeric: ReturnType<typeof getMinLengthAsNumeric>,
 ): number | undefined {
@@ -226,13 +217,7 @@ function resolveLengthBound(
   }
   const asNumber = numeric.asNumber();
   if (asNumber === null) {
-    reportRangeDiagnosticOnce(
-      program,
-      reported,
-      "unrepresentable-numeric-constraint",
-      target,
-      decorator,
-    );
+    reportRangeDiagnosticOnce(diagnostics, "unrepresentable-numeric-constraint", target, decorator);
     return undefined;
   }
   return asNumber;
@@ -248,34 +233,20 @@ function resolveLengthBound(
  * whole `baseScalar` chain at every use site. Without this guard, the same
  * offending decorator would be re-reported once per property that uses the
  * scalar.
- * `reported` is threaded down from a `SchemaBuilder` instance's own `Map`
- * (see `SchemaBuilder.diagnosedTargets`). This scopes the dedup to one
- * builder and one emit, rather than sharing it globally.
- * Keying on `decorator`, not just on `target`/`code`, matters too. One
- * diagnostic code covers several distinct decorators. Both `@minLength` and
- * `@maxLength`, for example, map to `unrepresentable-numeric-constraint`. A
- * target with two independently overflowing constraints must still get one
- * diagnostic per constraint. The second must not be silently swallowed by
- * the first's dedup entry.
+ * The decorator name is passed as the dedup discriminator, so it is keyed on
+ * more than `target` and `code`. One diagnostic code covers several distinct
+ * decorators. Both `@minLength` and `@maxLength`, for example, map to
+ * `unrepresentable-numeric-constraint`. A target with two independently
+ * overflowing constraints must still get one diagnostic per constraint. The
+ * second must not be silently swallowed by the first's dedup entry.
  */
 function reportRangeDiagnosticOnce(
-  program: Program,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
   code: "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint",
   target: Type,
   decorator: string,
 ): void {
-  let keys = reported.get(target);
-  if (keys === undefined) {
-    keys = new Set();
-    reported.set(target, keys);
-  }
-  const key = `${code}:${decorator}`;
-  if (keys.has(key)) {
-    return;
-  }
-  keys.add(key);
-  reportDiagnostic(program, { code, target, format: { decorator } });
+  diagnostics.reportOnce({ code, target, format: { decorator } }, decorator);
 }
 
 /**
@@ -310,19 +281,19 @@ function reportRangeDiagnosticOnce(
 export function buildValidationKeywords(
   program: Program,
   target: Type,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
 ): Partial<SchemaObject> {
   const minLength = resolveLengthBound(
     program,
     target,
-    reported,
+    diagnostics,
     "minLength",
     getMinLengthAsNumeric(program, target),
   );
   const maxLength = resolveLengthBound(
     program,
     target,
-    reported,
+    diagnostics,
     "maxLength",
     getMaxLengthAsNumeric(program, target),
   );
@@ -331,7 +302,7 @@ export function buildValidationKeywords(
   const minimum = resolveRangeBound(
     program,
     target,
-    reported,
+    diagnostics,
     "minValue",
     getMinValueAsNumeric(program, target),
     getMinValueForScalar(program, target),
@@ -339,7 +310,7 @@ export function buildValidationKeywords(
   const maximum = resolveRangeBound(
     program,
     target,
-    reported,
+    diagnostics,
     "maxValue",
     getMaxValueAsNumeric(program, target),
     getMaxValueForScalar(program, target),
@@ -347,7 +318,7 @@ export function buildValidationKeywords(
   const exclusiveMinimum = resolveRangeBound(
     program,
     target,
-    reported,
+    diagnostics,
     "minValueExclusive",
     getMinValueExclusiveAsNumeric(program, target),
     getMinValueExclusiveForScalar(program, target),
@@ -355,7 +326,7 @@ export function buildValidationKeywords(
   const exclusiveMaximum = resolveRangeBound(
     program,
     target,
-    reported,
+    diagnostics,
     "maxValueExclusive",
     getMaxValueExclusiveAsNumeric(program, target),
     getMaxValueExclusiveForScalar(program, target),
@@ -363,14 +334,14 @@ export function buildValidationKeywords(
   const minItems = resolveLengthBound(
     program,
     target,
-    reported,
+    diagnostics,
     "minItems",
     getMinItemsAsNumeric(program, target),
   );
   const maxItems = resolveLengthBound(
     program,
     target,
-    reported,
+    diagnostics,
     "maxItems",
     getMaxItemsAsNumeric(program, target),
   );
@@ -453,10 +424,10 @@ export function withDocs(
   program: Program,
   target: Model | Scalar | Enum | Union,
   schema: SchemaObject,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
 ): SchemaObject {
-  const docs = buildDocFields(program, target, target, reported);
-  const validation = buildValidationKeywords(program, target, reported);
+  const docs = buildDocFields(program, target, target, diagnostics);
+  const validation = buildValidationKeywords(program, target, diagnostics);
   // `format` is a draft-07 *annotation*, and an assertion under a
   // format-assertion vocabulary. It is not a keyword that can be
   // intersected, unlike `minLength`/`pattern`/`minimum`. Two different
@@ -561,10 +532,10 @@ export function withPropertyDocs(
   program: Program,
   prop: ModelProperty | UnionVariant,
   schema: SchemaObject | ReferenceObject,
-  reported: Map<Type, Set<string>>,
+  diagnostics: SchemaDiagnostics,
 ): SchemaObject | ReferenceObject {
-  const docs = buildDocFields(program, prop, prop.type, reported);
-  const validation = buildValidationKeywords(program, prop, reported);
+  const docs = buildDocFields(program, prop, prop.type, diagnostics);
+  const validation = buildValidationKeywords(program, prop, diagnostics);
   // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
   // `lib/main.tsp`); a `UnionVariant` never carries one, so this is always
   // `{}` in that case. These fields are merged in last, after everything

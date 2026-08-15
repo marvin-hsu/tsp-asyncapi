@@ -18,6 +18,7 @@ import { reportDiagnostic } from "../../lib.js";
 import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";
 import { refFor, isUninstantiatedTemplateDeclaration } from "./schema-naming.js";
+import { SchemaDiagnostics } from "./schema-diagnostics.js";
 import { SchemaKeyRegistry } from "./schema-key-registration.js";
 import {
   findDiscriminatingProperty,
@@ -53,6 +54,7 @@ export class SchemaBuilder {
 
   public constructor(private readonly program: Program) {
     this.keyRegistry = new SchemaKeyRegistry(program);
+    this.diagnostics = new SchemaDiagnostics(program);
   }
 
   public getSchemas(): Record<string, SchemaObject> {
@@ -160,7 +162,7 @@ export class SchemaBuilder {
     this.reportInheritanceConflicts(model);
     this.declareDiscriminatedHierarchy(model);
     const shape = this.buildFlattenedObjectSchema(model, omitted);
-    return withDocs(this.program, model, shape, this.diagnosedTargets);
+    return withDocs(this.program, model, shape, this.diagnostics);
   }
 
   /**
@@ -275,7 +277,7 @@ export class SchemaBuilder {
         // expected. The compiler itself does not reject that; only this
         // emitter does. So report it here rather than silently emitting an
         // unconstrained `{}` schema with no indication anything is wrong.
-        // This is deliberately not deduped through `diagnosedTargets`, unlike
+        // This is deliberately not deduped through `diagnostics`, unlike
         // the range/temporal-constraint diagnostics elsewhere in this class.
         // Those dedupe because a single *scalar* is re-walked at every use
         // site, so the same root cause would otherwise fire once per
@@ -302,13 +304,10 @@ export class SchemaBuilder {
   // `schemaKeys`/`claimedBy` below.
   private readonly declaredTypes = new Map<Type, string>();
 
-  // Dedupes range/length-constraint diagnostics per target and diagnostic
-  // code.
-  // A scalar is re-walked at every use site (see
-  // `buildScalarSchemaShapeWithDocs`). It has no per-type cache the way
-  // `registerNamed` gives models, enums, and unions. This map keeps it from
-  // being re-diagnosed once per property that uses it.
-  private readonly diagnosedTargets = new Map<Type, Set<string>>();
+  // Dedupes diagnostics that this builder would otherwise report more than
+  // once for one mistake. See `SchemaDiagnostics` for the two ways a repeat
+  // arises. The ledger belongs to this instance, so it covers one emit.
+  private readonly diagnostics: SchemaDiagnostics;
 
   private buildModelSchema(model: Model): SchemaObject | ReferenceObject {
     if (isUninstantiatedTemplateDeclaration(model)) {
@@ -367,12 +366,7 @@ export class SchemaBuilder {
       // reports `missing-discriminator-property` and omits
       // `discriminator`, rather than silently dropping the decorator with
       // no diagnostic at all.
-      return withDocs(
-        this.program,
-        model,
-        this.applyDiscriminator(model, shape),
-        this.diagnosedTargets,
-      );
+      return withDocs(this.program, model, this.applyDiscriminator(model, shape), this.diagnostics);
     };
 
     // The anonymous use site, such as `string[]` or `Record<int32>`, has no
@@ -688,7 +682,7 @@ export class SchemaBuilder {
 
   private buildEnumSchema(type: Enum): ReferenceObject {
     return this.registerNamed(type, () =>
-      withDocs(this.program, type, buildEnumSchemaBody(type), this.diagnosedTargets),
+      withDocs(this.program, type, buildEnumSchemaBody(type), this.diagnostics),
     );
   }
 
@@ -697,7 +691,7 @@ export class SchemaBuilder {
       return {};
     }
     const build = () =>
-      withDocs(this.program, type, this.buildUnionSchemaBody(type), this.diagnosedTargets);
+      withDocs(this.program, type, this.buildUnionSchemaBody(type), this.diagnostics);
     if (type.name === undefined) {
       return this.buildAnonymousGuarded(type, build);
     }
@@ -745,12 +739,7 @@ export class SchemaBuilder {
       };
     }
     const variantSchemas = variants.map((variant) =>
-      withPropertyDocs(
-        this.program,
-        variant,
-        this.buildSchema(variant.type),
-        this.diagnosedTargets,
-      ),
+      withPropertyDocs(this.program, variant, this.buildSchema(variant.type), this.diagnostics),
     );
     return isOneOf(this.program, type) ? { oneOf: variantSchemas } : { anyOf: variantSchemas };
   }
@@ -933,8 +922,8 @@ export class SchemaBuilder {
    * the message names no component, so a second report would put the same
    * text on the same squiggle.
    *
-   * The record lives in `diagnosedTargets`, so it is scoped to one builder
-   * and one emit.
+   * The record lives in `diagnostics`, so it is scoped to one builder and
+   * one emit.
    */
   private reportModelDiagnosticOnce(
     model: Model,
@@ -945,16 +934,7 @@ export class SchemaBuilder {
       | "optional-discriminator-property",
     format: Record<string, string>,
   ): void {
-    let codes = this.diagnosedTargets.get(model);
-    if (codes === undefined) {
-      codes = new Set();
-      this.diagnosedTargets.set(model, codes);
-    }
-    if (codes.has(code)) {
-      return;
-    }
-    codes.add(code);
-    reportDiagnostic(this.program, { code, target: model, format });
+    this.diagnostics.reportOnce({ code, target: model, format });
   }
 
   /**
@@ -1150,7 +1130,7 @@ export class SchemaBuilder {
         this.program,
         prop,
         this.buildSchema(prop.type),
-        this.diagnosedTargets,
+        this.diagnostics,
       );
       if (!prop.optional) {
         required.push(wireName);
@@ -1209,7 +1189,7 @@ export class SchemaBuilder {
       // a 2.8 validation decorator to a built-in scalar. It is real user
       // intent, not library noise. So it must still be read back here,
       // rather than silently discarded.
-      return { ...shape, ...buildValidationKeywords(this.program, scalar, this.diagnosedTargets) };
+      return { ...shape, ...buildValidationKeywords(this.program, scalar, this.diagnostics) };
     }
     // This is a derived, user-declared scalar. Start from its base
     // scalar's shape, recursing all the way to a built-in ancestor, or to
@@ -1229,6 +1209,6 @@ export class SchemaBuilder {
     // `withPropertyDocs` uses, so both levels' keywords hold
     // simultaneously. Otherwise, keywords are merged in directly as before.
     const base = scalar.baseScalar ? this.buildScalarSchemaShapeWithDocs(scalar.baseScalar) : {};
-    return withDocs(this.program, scalar, base, this.diagnosedTargets);
+    return withDocs(this.program, scalar, base, this.diagnostics);
   }
 }
