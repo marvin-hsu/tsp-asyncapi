@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+  # Two direct runtime dependencies, and 800 or so transitive ones. Nothing
+  # updated them until now, so a known vulnerability could sit in the tree
+  # indefinitely. `pnpm audit` in CI reports those; this raises the pull
+  # requests that fix them.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # Dependabot writes "Bump x from 1 to 2" by default, which is not a
+    # Conventional Commits subject. This repository checks commit messages
+    # with commitlint, so the prefix is set to keep the history uniform.
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+    groups:
+      # One pull request for the routine development updates. Without this
+      # a quiet week still produces a handful of separate ones.
+      dev-minor-and-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # `@typespec/compiler` decides what the emitter can do, and a major
+      # bump can change the type API it builds on. It gets read and taken
+      # deliberately, not merged as routine maintenance.
+      - dependency-name: "@typespec/compiler"
+        update-types:
+          - version-update:semver-major
+
+  # The workflow pins `actions/checkout`, `pnpm/action-setup` and the rest.
+  # Those pins go stale the same way package versions do.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

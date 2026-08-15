@@ -6,13 +6,19 @@ on:
   pull_request:
     branches: [main]
 
+# A second push to the same branch makes the first run pointless. Without
+# this, both run to completion and compete for runners.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  # Format, lint and knip need no build output, so they run beside the main
+  # job rather than in front of it. A shallow checkout is enough here.
+  static:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -30,30 +36,77 @@ jobs:
         run: pnpm run lint
       - name: Knip
         run: pnpm run knip
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # SonarCloud reads the history to attribute code to commits.
+          fetch-depth: 0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build
         run: pnpm run build
+
       - name: API Extractor Check
         run: pnpm run api-extractor:ci
-      - name: Test and Coverage
-        run: pnpm run test:cov
 
+      # `pnpm test` would rebuild through its `pretest` hook. The build above
+      # already produced `dist`, so vitest runs directly instead.
+      - name: Test and Coverage
+        run: pnpm exec vitest run --coverage
+
+      # `pnpm check:package` rebuilds for the same reason, so the steps it
+      # wraps run here directly against the existing `dist`.
+      - name: Package Check
+        run: |
+          pnpm pack --pack-destination temp
+          pnpm exec publint
+          pnpm exec attw --profile esm-only temp/tsp-asyncapi-*.tgz
+
+      # Blocking. A vulnerability in a production dependency reaches every
+      # consumer of the published package, so it fails the build.
+      - name: Audit production dependencies
+        run: pnpm audit --prod
+
+      # Reporting only. Development vulnerabilities do not reach consumers,
+      # and some have no fixed version to move to, so a failure here would
+      # block work that cannot fix it. Dependabot raises the pull requests.
+      - name: Audit all dependencies (report only)
+        run: pnpm audit || true
+
+      # Only on a push to the main branch. This organisation is on the free
+      # SonarCloud plan, which cannot read data from any branch other than
+      # the main one, so a scan of a pull request uploads a report that
+      # nobody can open. It costs about a minute per run.
       - name: SonarCloud Scan
+        if: github.event_name == 'push'
         uses: SonarSource/sonarqube-scan-action@v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  deploy-docs:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  # Deciding this in its own job lets `deploy-docs` be skipped as a whole,
+  # rather than every one of its steps repeating the same condition.
+  changes:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v7
-
-      - name: Check for documentation changes
-        uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -62,29 +115,33 @@ jobs:
               - 'package.json'
               - 'pnpm-lock.yaml'
 
+  deploy-docs:
+    needs: [build, changes]
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Install pnpm
-        if: steps.filter.outputs.docs == 'true'
         uses: pnpm/action-setup@v6
         with:
           version: 11
 
       - name: Setup Node
-        if: steps.filter.outputs.docs == 'true'
         uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: "pnpm"
 
       - name: Install dependencies
-        if: steps.filter.outputs.docs == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Build Docs
-        if: steps.filter.outputs.docs == 'true'
         run: pnpm run docs:build
 
       - name: Deploy to gh-pages branch
-        if: steps.filter.outputs.docs == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
