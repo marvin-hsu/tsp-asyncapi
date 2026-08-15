@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
-import { $info, $externalDocs, getInfo, getExternalDocs } from "../../src/index.js";
+import { $info, $externalDocs, getInfo, getExternalDocs } from "../../src/decorators/index.js";
 import { DecoratorContext } from "@typespec/compiler";
 
 describe("Unit: Decorators", () => {

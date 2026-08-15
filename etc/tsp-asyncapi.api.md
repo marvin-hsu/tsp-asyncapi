@@ -5,7 +5,6 @@
 ```ts
 
 import { CallableMessage } from '@typespec/compiler';
-import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
@@ -16,17 +15,6 @@ import { Program } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 import { Union } from '@typespec/compiler';
-
-// @public
-export function $externalDocs(context: DecoratorContext_2, target: Type, url: string, description?: string): void;
-
-// Warning: (ae-incompatible-release-tags) The symbol "$info" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
-//
-// @public
-export function $info(context: DecoratorContext_2, target: Namespace, info: AsyncAPIInfoState): void;
-
-// @public
-export function $jsonSchemaExtension(context: DecoratorContext_2, target: Model | ModelProperty, key: string, value: unknown): void;
 
 // @public
 export const $lib: TypeSpecLibrary<    {
@@ -90,18 +78,7 @@ readonly default: "This anonymous type refers back to itself with no named type 
 }, AsyncAPIEmitterOptions, never>;
 
 // @public
-export function $message(context: DecoratorContext_2, target: Model, name?: string): void;
-
-// @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;
-
-// @public
-export function $oneOf(context: DecoratorContext_2, target: Union): void;
-
-// Warning: (ae-incompatible-release-tags) The symbol "$server" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
-//
-// @public
-export function $server(context: DecoratorContext_2, target: Namespace, name: string, config: Omit<AsyncAPIServerState, "name">): void;
 
 // @public
 export interface AsyncAPIDocument {
@@ -386,9 +363,6 @@ export interface MessageObject {
 export interface MessageState {
     name?: string;
 }
-
-// @public (undocumented)
-export const namespace = "AsyncAPI";
 
 // @public
 export type OperationObject = Record<string, never>;
