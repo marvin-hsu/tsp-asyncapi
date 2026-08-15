@@ -35,6 +35,10 @@ export default tseslint.config(
       "eslint.config.mjs",
       "commitlint.config.mjs",
       "stryker.config.mjs",
+      // `plan/` is git-ignored and holds reference copies of other people's
+      // emitters. They are not this project's code, they have their own
+      // tsconfig, and linting them produced most of the errors in a run.
+      "plan/**",
     ],
   },
 );

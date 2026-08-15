@@ -341,9 +341,9 @@ components:
         required:
           - correlationId
       payload:
-        $ref: "#/components/schemas/OrderCreated"
+        $ref: "#/components/schemas/OrderCreatedPayload"
   schemas:
-    OrderCreated:
+    OrderCreatedPayload:
       type: object
       properties:
         orderId:
@@ -357,7 +357,7 @@ components:
 - **這個 decorator 不收名稱參數**。`@typespec/http` 的 `@header` 有名稱參數，是因為 HTTP 會把欄位名改寫成 kebab-case。AsyncAPI 的 application headers 沒有這個慣例。若 header 的 key 不是合法的 TypeSpec 識別字，用 [`@encodedName`](#emitter-會讀的內建-decorator) 指定，寫法與改 payload 欄位名相同。
 - **只有 `@message` model 的頂層欄位會被抽出**。payload 更深層的標記會回報 [`nested-header-ignored`](./diagnostics#nested-header-ignored)，該欄位留在 payload。headers 本身要有巢狀結構時，改用 `@headers`。
 - **`extends` 與 `...` 在這裡行為不同**。展開語法 `...Base` 把屬性複製進 message model，被標記的屬性成為 message 自己的欄位，會被抽出。`extends Base` 則讓屬性留在 base model 上，payload 用 `allOf` 引用它。抽走它會影響所有繼承同一個 base 的 model，所以 emitter 保留該欄位並回報 [`inherited-header-ignored`](./diagnostics#inherited-header-ignored)。
-- **有抽出 headers 的 message model 不能同時當成別處的 payload 欄位型別**。兩種用法共用同一份 `components.schemas` 項目，被抽走的欄位在巢狀用法裡也會消失。emitter 回報 [`shared-lifted-header`](./diagnostics#shared-lifted-header)。
+- **payload 會拿到自己的一份 component**。抽出只影響宣告 header 的那個 message。model 自己的 `components.schemas` 項目保留全部欄位，所以 subtype、其他 message 的欄位型別，以及任何其他讀取者，看到的都是完整結構。message 指向第二份 component，key 是 `<Model>Payload`，裡面只有留下來的欄位。若你自己已經宣告了名為 `<Model>Payload` 的 model，emitter 回報 [`duplicate-schema-key`](./diagnostics#duplicate-schema-key)，該 message 退回指向 model 自己的 component。
 - **名為 `content-type` 的 header 欄位會與 `@contentType` 衝突**。AsyncAPI 只有一個欄位表示 content type，所以 emitter 回報 [`content-type-header-conflict`](./diagnostics#content-type-header-conflict)，不自行挑一個來源。
 
 ## `@headers`
@@ -433,7 +433,7 @@ components:
         required:
           - correlationId
       payload:
-        $ref: "#/components/schemas/OrderCreated"
+        $ref: "#/components/schemas/OrderCreatedPayload"
       correlationId:
         location: "$message.header#/correlationId"
         description: 把回覆與原請求關聯起來。

@@ -206,16 +206,6 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 
 **修法：** 改用 `...` 展開 base model，或用 `@headers` 描述整個 headers 物件。
 
-### `shared-lifted-header`
-
-> The message model '\<name\>' has @header fields lifted into its `headers`, and it is also used as a field type inside another message's payload. Both uses share one components.schemas entry, so the lifted fields are missing from the nested use as well. Give the nested use a model of its own, or move the headers of '\<name\>' into a separate model passed to @headers.
-
-被抽出的 header 欄位不會出現在該 model 輸出的那一份 `components.schemas` 項目裡。這份項目是共用的。當同一個 message model 又出現在另一個 message payload 的欄位型別上時，該欄位在那個位置是一般的 payload 資料，巢狀的用法就少了這個欄位。
-
-emitter 不會把一個宣告拆成兩份 schema。一個 TypeSpec 宣告輸出一份 component，另外用自創的 key 多輸出一份，會留下沒有人要求過的第二份 schema。所以 emitter 回報這組情形，由你決定哪一種用法要換成自己的 model。
-
-**修法：** 為巢狀的用法另外建一個 model，或把 headers 搬到獨立的 model 再傳給 `@headers`。
-
 ### `server-outside-service`
 
 > Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.

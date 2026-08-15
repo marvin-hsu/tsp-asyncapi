@@ -341,9 +341,9 @@ components:
         required:
           - correlationId
       payload:
-        $ref: "#/components/schemas/OrderCreated"
+        $ref: "#/components/schemas/OrderCreatedPayload"
   schemas:
-    OrderCreated:
+    OrderCreatedPayload:
       type: object
       properties:
         orderId:
@@ -357,7 +357,7 @@ Five points worth knowing:
 - **It takes no name argument.** `@typespec/http`'s `@header` has one because HTTP renames a field to kebab-case. AsyncAPI application headers have no such convention. Use [`@encodedName`](#built-in-decorators-the-emitter-reads) to give a header a key that is not a TypeSpec identifier, the same way you rename a payload field.
 - **Only a top-level field of a `@message` model is lifted.** A mark further down the payload is reported as [`nested-header-ignored`](./diagnostics#nested-header-ignored), and the field stays in the payload. Use `@headers` for a headers object with nesting of its own.
 - **`extends` and `...` differ here.** A spread, `...Base`, copies the properties into the message model, so a marked property is the message's own field and it is lifted. An `extends Base` keeps the property on the base model, which the payload refers to through `allOf`. Lifting it would change every other model that extends the same base, so the emitter leaves it in place and reports [`inherited-header-ignored`](./diagnostics#inherited-header-ignored).
-- **A message model with lifted headers cannot also be a payload field elsewhere.** Both uses share one `components.schemas` entry, so the lifted fields go missing from the nested use too. The emitter reports [`shared-lifted-header`](./diagnostics#shared-lifted-header).
+- **The payload gets a component of its own.** Lifting is local to the message. The model's own `components.schemas` entry keeps every field, so a subtype, another message's field, and any other reader still see the whole shape. The message points at a second component keyed `<Model>Payload`, which holds the fields that stayed. A model you already named `<Model>Payload` yourself is reported as [`duplicate-schema-key`](./diagnostics#duplicate-schema-key), and the message falls back to the model's own component.
 - **A header field named `content-type` conflicts with `@contentType`.** AsyncAPI has one field for the content type, so the emitter reports [`content-type-header-conflict`](./diagnostics#content-type-header-conflict) rather than picking a source.
 
 ## `@headers`
@@ -433,7 +433,7 @@ components:
         required:
           - correlationId
       payload:
-        $ref: "#/components/schemas/OrderCreated"
+        $ref: "#/components/schemas/OrderCreatedPayload"
       correlationId:
         location: "$message.header#/correlationId"
         description: Ties a reply to its request.

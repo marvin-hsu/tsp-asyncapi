@@ -206,16 +206,6 @@ A base model is a declaration of its own, shared by every model that extends it,
 
 **Fix:** spread the base model with `...`, or describe the whole headers object with `@headers`.
 
-### `shared-lifted-header`
-
-> The message model '\<name\>' has @header fields lifted into its `headers`, and it is also used as a field type inside another message's payload. Both uses share one components.schemas entry, so the lifted fields are missing from the nested use as well. Give the nested use a model of its own, or move the headers of '\<name\>' into a separate model passed to @headers.
-
-A lifted header field is kept out of the one `components.schemas` entry its model emits. That entry is shared. When the same message model also appears as a field type inside another message's payload, the field is ordinary payload data at that position, and the nested use loses it.
-
-The emitter does not split the declaration into two schemas. One TypeSpec declaration emits one component, and a second one under an invented key would leave two schemas nobody asked for. So the pair is reported and you decide which use gets its own model.
-
-**Fix:** give the nested use a model of its own, or move the headers into a separate model passed to `@headers`.
-
 ### `server-outside-service`
 
 > Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.

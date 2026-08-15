@@ -68,6 +68,12 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * diagnostic. It targets the declaration or property the `@example` was
  * applied to. So the drop is not completely silent, even though the
  * emitted schema itself has no field to say so.
+ * Each dropped example reports once per target, thanks to `reported`. One
+ * model can be built twice: a message that lifts `@header` fields emits a
+ * payload declaration next to the model's own. One unserializable value is
+ * one mistake, so the user hears about it once. The dedup key holds the
+ * position of the example, so a target with two bad examples still gets two
+ * diagnostics.
  * This function omits any field whose decorator was not applied, per the
  * emitter's omit-empty convention.
  *
@@ -82,6 +88,7 @@ function buildDocFields(
   program: Program,
   target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
   exampleValueType: Type,
+  reported: Map<Type, Set<string>>,
 ): Pick<SchemaObject, "title" | "description" | "examples"> {
   const title = getSummary(program, target);
   const description = getDoc(program, target);
@@ -95,7 +102,7 @@ function buildDocFields(
   const rawExamples = getExamples(program, target as Model | Scalar | Enum | Union | ModelProperty);
   const exampleNodes = target.decorators.filter((d) => d.decorator === $example).map((d) => d.node);
   const examples = orderBySourceNodes(program, exampleNodes, rawExamples)
-    .map((example) => {
+    .map((example, index) => {
       try {
         return serializeValueAsJson(program, example.value, exampleValueType, undefined, handlers);
       } catch {
@@ -107,7 +114,16 @@ function buildDocFields(
         // `duration.fromISO(...)` value that the compiler never validates.
         // Still surface the drop as a diagnostic, rather than dropping it
         // in total silence.
-        reportDiagnostic(program, { code: "unserializable-example", target });
+        let keys = reported.get(target);
+        if (keys === undefined) {
+          keys = new Set();
+          reported.set(target, keys);
+        }
+        const key = `unserializable-example:${String(index)}`;
+        if (!keys.has(key)) {
+          keys.add(key);
+          reportDiagnostic(program, { code: "unserializable-example", target });
+        }
         return undefined;
       }
     })
@@ -439,7 +455,7 @@ export function withDocs(
   schema: SchemaObject,
   reported: Map<Type, Set<string>>,
 ): SchemaObject {
-  const docs = buildDocFields(program, target, target);
+  const docs = buildDocFields(program, target, target, reported);
   const validation = buildValidationKeywords(program, target, reported);
   // `format` is a draft-07 *annotation*, and an assertion under a
   // format-assertion vocabulary. It is not a keyword that can be
@@ -547,7 +563,7 @@ export function withPropertyDocs(
   schema: SchemaObject | ReferenceObject,
   reported: Map<Type, Set<string>>,
 ): SchemaObject | ReferenceObject {
-  const docs = buildDocFields(program, prop, prop.type);
+  const docs = buildDocFields(program, prop, prop.type, reported);
   const validation = buildValidationKeywords(program, prop, reported);
   // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
   // `lib/main.tsp`); a `UnionVariant` never carries one, so this is always

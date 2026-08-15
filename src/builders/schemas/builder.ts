@@ -89,6 +89,127 @@ export class SchemaBuilder {
   }
 
   /**
+   * Builds the payload schema of a message that lifts `@header` fields.
+   *
+   * The lifted fields belong to the message's `headers`, so its payload
+   * must not describe them. Removing them from the model's own component
+   * would be wrong: that component is shared, and every other reader of the
+   * model still expects the whole shape. A subtype, another message's
+   * field, and a cycle back into the same graph all read it.
+   *
+   * So the payload gets a component of its own, keyed after the model's,
+   * and the model's component keeps every field. The key goes through
+   * `claimDerived`, so a model the author named after the derived key is
+   * reported rather than silently replaced.
+   *
+   * The body is flattened rather than composed with `allOf`. A lifted field
+   * can be inherited, and an `allOf` branch pointing at the base would
+   * bring it straight back.
+   *
+   * The payload component is a declaration of the model, so it gets most of
+   * what a declaration of the model gets. It carries the model's
+   * documentation, and it runs the model's own inheritance checks. Nothing
+   * else need read the model, in which case the model's own component is
+   * never built and this is the only place those things can happen. The one
+   * thing the payload never carries is `@discriminator`. See
+   * `buildPayloadShape` and `declareDiscriminatedHierarchy`.
+   *
+   * @param model - The message model
+   * @param omitted - The fields that moved to `headers`
+   * @returns A reference to the payload component
+   */
+  public buildPayloadDeclaration(
+    model: Model,
+    omitted: ReadonlySet<ModelProperty>,
+  ): SchemaObject | ReferenceObject {
+    if (omitted.size === 0) {
+      return this.buildDeclarationRef(model);
+    }
+
+    const baseKey = this.keyRegistry.keyFor(model);
+    const payloadKey = `${baseKey}Payload`;
+    if (!this.keyRegistry.claimDerived(payloadKey, model)) {
+      // The clash is reported. The payload shape is emitted in place instead.
+      // A reference to the model's own component would describe the lifted
+      // fields as payload data, so the message would contradict its own
+      // `headers` on top of the reported clash.
+      return this.buildPayloadShape(model, omitted);
+    }
+
+    this.declaredSchemas.set(payloadKey, this.buildPayloadShape(model, omitted));
+    return refFor(payloadKey);
+  }
+
+  /**
+   * Builds the body of a payload component.
+   *
+   * This runs the same tail `buildModelSchema` runs for a declaration of
+   * `model`, and it applies the model's documentation. It runs the
+   * inheritance checks of `applyExtends` too, because the flattening below
+   * silently repairs the shapes those checks are about.
+   *
+   * The model's own component may never be built. That happens when no
+   * other reader of the model exists. So none of this can be left to it.
+   * Both components can also be built for one model. Every diagnostic here
+   * reports once per model, so the user sees one mistake once.
+   *
+   * The payload never carries `discriminator`. See
+   * `declareDiscriminatedHierarchy`.
+   */
+  private buildPayloadShape(model: Model, omitted: ReadonlySet<ModelProperty>): SchemaObject {
+    this.reportInheritanceConflicts(model);
+    this.declareDiscriminatedHierarchy(model);
+    const shape = this.buildFlattenedObjectSchema(model, omitted);
+    return withDocs(this.program, model, shape, this.diagnosedTargets);
+  }
+
+  /**
+   * Declares every level of `model`'s hierarchy that carries
+   * `@discriminator`, and reports the one case a payload cannot express.
+   *
+   * A discriminator names its variants by their `components.schemas` key. A
+   * variant is a subtype of the model that carries the decorator, and every
+   * subtype describes the lifted fields as payload data. So a payload that
+   * carried the keyword would send a reader to a schema no payload of this
+   * message can satisfy. The keyword is left off, and the pair is reported.
+   *
+   * The polymorphism still reaches the document. The model's own component
+   * carries the keyword, and it describes every field. `buildDeclarationRef`
+   * builds it, which also queues the subtypes.
+   *
+   * An ancestor that carries the decorator is declared for a second reason.
+   * The payload is flattened, so it inlines the ancestors rather than
+   * referring to them, and nothing else would build them. A subtype is
+   * reachable through the `extends` link alone (see `flushPendingSubtypes`),
+   * so the sibling subtypes of that ancestor would be missing from the
+   * document altogether.
+   */
+  private declareDiscriminatedHierarchy(model: Model): void {
+    for (
+      let ancestor: Model | undefined = model.baseModel;
+      ancestor !== undefined;
+      ancestor = ancestor.baseModel
+    ) {
+      if (getDiscriminator(this.program, ancestor) !== undefined) {
+        this.buildDeclarationRef(ancestor);
+      }
+    }
+    // `applyDiscriminator` decides whether the keyword applies at all. It
+    // reports a missing or optional discriminating property and drops the
+    // keyword, and that is not this conflict. So its answer is what tells
+    // the two apart, and the result it built is discarded.
+    if (this.applyDiscriminator(model, {}).discriminator === undefined) {
+      return;
+    }
+    reportDiagnostic(this.program, {
+      code: "discriminated-lifted-header",
+      target: model,
+      format: { name: model.name },
+    });
+    this.buildDeclarationRef(model);
+  }
+
+  /**
    * Builds `model` as a `components.schemas` declaration and returns a `$ref`
    * to it.
    * `buildSchema` prefers to inline a named declaration that has no compact
@@ -108,33 +229,14 @@ export class SchemaBuilder {
   }
 
   /**
-   * Keeps `properties` out of every object schema this builder emits.
-   * The message builder passes the fields it lifts out of a payload into the
-   * message's `headers`. A lifted field belongs to the headers alone, so the
-   * payload schema must not describe it too.
-   * The set is keyed by the property itself rather than by its owning model.
-   * So the omission holds however the model is reached: as a message payload,
-   * or through a property of another model that refers to the same
-   * declaration. Both routes emit one shared `components.schemas` entry, so
-   * they cannot disagree about which fields it has.
-   * Call this before building anything. A schema is built once and cached, so
-   * a later call cannot change a schema that already exists.
-   */
-  public omitProperties(properties: Iterable<ModelProperty>): void {
-    for (const property of properties) {
-      this.omittedProperties.add(property);
-    }
-  }
-
-  /**
    * Builds one `object` schema out of `properties`, with no declaration and
    * no `$ref`.
    * The message builder uses it for a `headers` schema assembled from the
    * fields `@header` marks. Those fields have no model of their own to build
    * from; they are a hand-picked subset of the message model's fields.
-   * The omission set above is deliberately not applied here. The caller hands
-   * in exactly the properties it wants described, and for the headers schema
-   * those are the very properties the payload omits.
+   * The caller hands in exactly the properties it wants described. For the
+   * headers schema those are the very properties the payload component of
+   * that message leaves out.
    */
   public buildPropertiesSchema(properties: Iterable<ModelProperty>): SchemaObject {
     return this.buildObjectSchemaFromProperties(properties);
@@ -721,44 +823,7 @@ export class SchemaBuilder {
     if (model.baseModel === undefined) {
       return own;
     }
-    // An overriding property whose `@encodedName` differs from the
-    // same-named ancestor property's makes the usual
-    // `{ allOf: [{ $ref: Base }, own] }` shape unsatisfiable. See
-    // `findEncodedNameOverrideConflict`'s doc comment. The base branch
-    // would still require the ancestor's wire name, while `own` requires
-    // the override's. A real payload can only ever carry one of the two.
-    // This is detected here, before any of the collection/named-base
-    // branching below. It can only arise from a named, property-bearing,
-    // ancestor. An array base can never have a conflicting property;
-    // TypeSpec's own `no-array-properties` rule forbids declaring
-    // properties on top of one. So this check never affects the
-    // array-base branches.
-    const conflict = findEncodedNameOverrideConflict(this.program, model);
-    if (conflict !== undefined) {
-      reportDiagnostic(this.program, {
-        code: "encoded-name-override-conflict",
-        target: model,
-        format: { property: conflict.property.name, reason: conflict.reason },
-      });
-      return this.buildFlattenedObjectSchema(model);
-    }
-    // A `never`-typed override of an inherited property means that
-    // property does not exist on `model` (see `isNeverTypedProperty`). But
-    // `own` never consults the base's properties. So the usual
-    // `{ allOf: [{ $ref: Base }, own] }` shape would still require it via
-    // the `$ref` branch.
-    // Flatten instead, the same fallback and reasoning as the encoded-name
-    // conflict above. `buildFlattenedObjectSchema` walks
-    // `walkPropertiesInherited`. That walk both gives the `never` override
-    // precedence over the ancestor's definition, and already skips
-    // `never`-typed properties entirely.
-    const neverOverride = findNeverOverrideOfInheritedProperty(model);
-    if (neverOverride !== undefined) {
-      reportDiagnostic(this.program, {
-        code: "never-typed-property-override",
-        target: model,
-        format: { property: neverOverride.name },
-      });
+    if (this.reportInheritanceConflicts(model)) {
       return this.buildFlattenedObjectSchema(model);
     }
     const ownKeys = Object.keys(own);
@@ -785,6 +850,93 @@ export class SchemaBuilder {
       return { allOf: [base] };
     }
     return { allOf: [base, own] };
+  }
+
+  /**
+   * Reports the conflicts an `extends` chain can hold, and says whether the
+   * flattened shape must be used in place of `allOf`.
+   *
+   * An overriding property whose `@encodedName` differs from the same-named
+   * ancestor property's makes the usual `{ allOf: [{ $ref: Base }, own] }`
+   * shape unsatisfiable. See `findEncodedNameOverrideConflict`'s doc
+   * comment. The base branch would still require the ancestor's wire name,
+   * while `own` requires the override's. A real payload can only ever carry
+   * one of the two.
+   *
+   * A `never`-typed override of an inherited property means that property
+   * does not exist on `model` (see `isNeverTypedProperty`). But `own` never
+   * consults the base's properties. So the usual shape would still require
+   * it through the `$ref` branch.
+   *
+   * The flattened shape repairs both. `buildFlattenedObjectSchema` walks
+   * `walkPropertiesInherited`. That walk gives an override precedence over
+   * the ancestor's definition, and it skips `never`-typed properties.
+   *
+   * A model can reach this from two builds: its own component, and the
+   * payload component of a message that lifts `@header` fields. The
+   * conflict belongs to the model rather than to either component, so it is
+   * reported once per model.
+   *
+   * The checks can only arise from a named, property-bearing ancestor. An
+   * array base can never have a conflicting property. TypeSpec's own
+   * `no-array-properties` rule forbids declaring properties on top of one.
+   *
+   * @param model - The model to check
+   * @returns True when the caller must flatten instead of composing
+   */
+  private reportInheritanceConflicts(model: Model): boolean {
+    if (model.baseModel === undefined) {
+      return false;
+    }
+    const conflict = findEncodedNameOverrideConflict(this.program, model);
+    if (conflict !== undefined) {
+      this.reportModelDiagnosticOnce(model, "encoded-name-override-conflict", {
+        property: conflict.property.name,
+        reason: conflict.reason,
+      });
+      return true;
+    }
+    const neverOverride = findNeverOverrideOfInheritedProperty(model);
+    if (neverOverride !== undefined) {
+      this.reportModelDiagnosticOnce(model, "never-typed-property-override", {
+        property: neverOverride.name,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Reports a diagnostic about `model` at most once per code.
+   *
+   * A model with lifted `@header` fields is built twice. Its payload
+   * component and its own component both resolve the same decorators on the
+   * same model. A diagnostic about the model is one mistake either way, and
+   * the message names no component, so a second report would put the same
+   * text on the same squiggle.
+   *
+   * The record lives in `diagnosedTargets`, so it is scoped to one builder
+   * and one emit.
+   */
+  private reportModelDiagnosticOnce(
+    model: Model,
+    code:
+      | "encoded-name-override-conflict"
+      | "never-typed-property-override"
+      | "missing-discriminator-property"
+      | "optional-discriminator-property",
+    format: Record<string, string>,
+  ): void {
+    let codes = this.diagnosedTargets.get(model);
+    if (codes === undefined) {
+      codes = new Set();
+      this.diagnosedTargets.set(model, codes);
+    }
+    if (codes.has(code)) {
+      return;
+    }
+    codes.add(code);
+    reportDiagnostic(this.program, { code, target: model, format });
   }
 
   /**
@@ -850,18 +1002,14 @@ export class SchemaBuilder {
     }
     const prop = findDiscriminatingProperty(model, discriminator.propertyName);
     if (prop === undefined) {
-      reportDiagnostic(this.program, {
-        code: "missing-discriminator-property",
-        target: model,
-        format: { property: discriminator.propertyName },
+      this.reportModelDiagnosticOnce(model, "missing-discriminator-property", {
+        property: discriminator.propertyName,
       });
       return schema;
     }
     if (prop.optional) {
-      reportDiagnostic(this.program, {
-        code: "optional-discriminator-property",
-        target: model,
-        format: { property: discriminator.propertyName },
+      this.reportModelDiagnosticOnce(model, "optional-discriminator-property", {
+        property: discriminator.propertyName,
       });
       return schema;
     }
@@ -877,29 +1025,9 @@ export class SchemaBuilder {
     return { ...schema, discriminator: wireName };
   }
 
-  /**
-   * Holds every property another builder asked to keep out of the emitted
-   * object schemas. See `omitProperties`.
-   */
-  private readonly omittedProperties = new Set<ModelProperty>();
-
-  /**
-   * Yields the properties of `properties` that stay in the emitted schema.
-   * Only a lifted header field is dropped, and only the two whole-model
-   * entry points below filter. A caller that hands in its own property list,
-   * `buildPropertiesSchema`, gets the list it asked for.
-   */
-  private *retained(properties: Iterable<ModelProperty>): Generator<ModelProperty> {
-    for (const property of properties) {
-      if (!this.omittedProperties.has(property)) {
-        yield property;
-      }
-    }
-  }
-
   /** Builds the `object` shape for a plain (non-collection) model. */
   private buildObjectSchema(model: Model): SchemaObject {
-    return this.buildObjectSchemaFromProperties(this.retained(model.properties.values()));
+    return this.buildObjectSchemaFromProperties(model.properties.values());
   }
 
   /**
@@ -915,11 +1043,20 @@ export class SchemaBuilder {
    * and the own branch by two different wire names for the same conceptual
    * property. That would make the assembled schema reject every valid
    * payload.
+   * `buildPayloadShape` uses it for the payload component of a message that
+   * lifts `@header` fields, and hands in those fields as `omitted`. That
+   * payload must flatten for a reason of its own. A lifted field can be
+   * inherited, and an `allOf` branch to the base would bring it back.
+   *
+   * @param model - The model to flatten
+   * @param omitted - Properties to leave out of the result
    */
-  private buildFlattenedObjectSchema(model: Model): SchemaObject {
-    const schema = this.buildObjectSchemaFromProperties(
-      this.retained(walkPropertiesInherited(model)),
-    );
+  private buildFlattenedObjectSchema(
+    model: Model,
+    omitted: ReadonlySet<ModelProperty> = new Set(),
+  ): SchemaObject {
+    const kept = [...walkPropertiesInherited(model)].filter((property) => !omitted.has(property));
+    const schema = this.buildObjectSchemaFromProperties(kept);
     // The flattened shape has no `$ref`/`allOf` back to any ancestor.
     // So an indexer constraint, `additionalProperties`, declared on
     // `model` itself or inherited from a `baseModel`, would otherwise be

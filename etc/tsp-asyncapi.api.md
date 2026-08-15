@@ -48,6 +48,9 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"payload-schema-key-taken": {
+readonly default: CallableMessage<["name", "message", "name", "message"]>;
+};
 "duplicate-message-key": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -81,7 +84,10 @@ readonly default: "This @header marks a property that is not a top-level field o
 "inherited-header-ignored": {
 readonly default: CallableMessage<["message"]>;
 };
-"shared-lifted-header": {
+"inherited-header-overridden": {
+readonly default: CallableMessage<["field", "base", "message", "base", "message", "base", "message", "message", "message"]>;
+};
+"discriminated-lifted-header": {
 readonly default: CallableMessage<["name", "name"]>;
 };
 "content-type-header-conflict": {
@@ -241,7 +247,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "shared-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -268,6 +274,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "payload-schema-key-taken": {
+        readonly default: CallableMessage<["name", "message", "name", "message"]>;
     };
     "duplicate-message-key": {
         readonly default: CallableMessage<["name"]>;
@@ -302,7 +311,10 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     "inherited-header-ignored": {
         readonly default: CallableMessage<["message"]>;
     };
-    "shared-lifted-header": {
+    "inherited-header-overridden": {
+        readonly default: CallableMessage<["field", "base", "message", "base", "message", "base", "message", "message", "message"]>;
+    };
+    "discriminated-lifted-header": {
         readonly default: CallableMessage<["name", "name"]>;
     };
     "content-type-header-conflict": {
@@ -372,6 +384,9 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"payload-schema-key-taken": {
+readonly default: CallableMessage<["name", "message", "name", "message"]>;
+};
 "duplicate-message-key": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -405,7 +420,10 @@ readonly default: "This @header marks a property that is not a top-level field o
 "inherited-header-ignored": {
 readonly default: CallableMessage<["message"]>;
 };
-"shared-lifted-header": {
+"inherited-header-overridden": {
+readonly default: CallableMessage<["field", "base", "message", "base", "message", "base", "message", "message", "message"]>;
+};
+"discriminated-lifted-header": {
 readonly default: CallableMessage<["name", "name"]>;
 };
 "content-type-header-conflict": {
@@ -590,7 +608,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "shared-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -617,6 +635,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "duplicate-schema-key": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "payload-schema-key-taken": {
+        readonly default: CallableMessage<["name", "message", "name", "message"]>;
     };
     "duplicate-message-key": {
         readonly default: CallableMessage<["name"]>;
@@ -651,7 +672,10 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     "inherited-header-ignored": {
         readonly default: CallableMessage<["message"]>;
     };
-    "shared-lifted-header": {
+    "inherited-header-overridden": {
+        readonly default: CallableMessage<["field", "base", "message", "base", "message", "base", "message", "message", "message"]>;
+    };
+    "discriminated-lifted-header": {
         readonly default: CallableMessage<["name", "name"]>;
     };
     "content-type-header-conflict": {
@@ -721,6 +745,9 @@ readonly default: CallableMessage<["property"]>;
 "duplicate-schema-key": {
 readonly default: CallableMessage<["name"]>;
 };
+"payload-schema-key-taken": {
+readonly default: CallableMessage<["name", "message", "name", "message"]>;
+};
 "duplicate-message-key": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -754,7 +781,10 @@ readonly default: "This @header marks a property that is not a top-level field o
 "inherited-header-ignored": {
 readonly default: CallableMessage<["message"]>;
 };
-"shared-lifted-header": {
+"inherited-header-overridden": {
+readonly default: CallableMessage<["field", "base", "message", "base", "message", "base", "message", "message", "message"]>;
+};
+"discriminated-lifted-header": {
 readonly default: CallableMessage<["name", "name"]>;
 };
 "content-type-header-conflict": {

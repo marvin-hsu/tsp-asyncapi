@@ -1,4 +1,11 @@
-import { getDoc, getFriendlyName, getSummary, Model, Program } from "@typespec/compiler";
+import {
+  getDoc,
+  getFriendlyName,
+  getSummary,
+  Model,
+  ModelProperty,
+  Program,
+} from "@typespec/compiler";
 import { MessageObject } from "../types/index.js";
 import { reportDiagnostic } from "../lib.js";
 import {
@@ -13,7 +20,6 @@ import {
   MessageHeaderPlan,
   planMessageHeaders,
   reportIgnoredNestedHeaders,
-  reportSharedLiftedHeaders,
 } from "./message-headers.js";
 import { buildMessageExamples } from "./message-examples.js";
 import { buildTags } from "./tags.js";
@@ -98,6 +104,20 @@ function derivedMessageKey(program: Program, model: Model): string {
 }
 
 /**
+ * The fields this message lifted out of its own payload.
+ *
+ * The plan records a header source per message, so the answer is local to
+ * one message rather than shared across every message that reaches the same
+ * model. A message that lifts nothing gets an empty set, and its payload
+ * stays a reference to the model's own component.
+ */
+function liftedOf(plan: MessageHeaderPlan, model: Model): ReadonlySet<ModelProperty> {
+  const source = plan.sources.get(model);
+  if (source === undefined || source.model !== undefined) return new Set();
+  return new Set(source.fields);
+}
+
+/**
  * Builds one Message Object.
  *
  * The payload is always a `$ref` to the model's `components.schemas` entry.
@@ -157,7 +177,7 @@ function buildMessage(
     ...(description ? { description } : {}),
     ...(contentType ? { contentType } : {}),
     ...(headers ? { headers } : {}),
-    payload: schemas.buildDeclarationRef(model),
+    payload: schemas.buildPayloadDeclaration(model, liftedOf(headerPlan, model)),
     ...(correlationId ? { correlationId } : {}),
     ...(tags ? { tags } : {}),
     ...(externalDocs ? { externalDocs } : {}),
@@ -207,9 +227,7 @@ export function buildMessages(
   // message that owns them comes up in the loop.
   const messageModels = [...listMessages(program).keys()];
   const headerPlan = planMessageHeaders(program, messageModels);
-  schemas.omitProperties(headerPlan.lifted);
   reportIgnoredNestedHeaders(program, messageModels, headerPlan.topLevel);
-  reportSharedLiftedHeaders(program, messageModels, headerPlan);
 
   for (const [model, state] of listMessages(program)) {
     const key = messageKeyFor(program, model, state);

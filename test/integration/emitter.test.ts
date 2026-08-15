@@ -173,8 +173,8 @@ describe("Phase 1: Document Skeleton & Info", () => {
     // Both header mechanisms in one document. `OrderPlaced` lifts two flat
     // fields out of its payload. `OrderShipped` names a nested headers model
     // of its own. The parser checks that both land in a `headers` schema it
-    // accepts, and the assertions check that the payload no longer describes
-    // the lifted fields.
+    // accepts, and the assertions check that the payload component of
+    // `OrderPlaced` no longer describes the lifted fields.
     const code = `
       @service(#{ title: "Order Events" })
       namespace Orders;
@@ -216,13 +216,27 @@ describe("Phase 1: Document Skeleton & Info", () => {
       },
       required: ["correlationId"],
     });
-    expect(Object.keys(doc.components.schemas.OrderPlaced.properties).sort(byCodePoint)).toEqual([
-      "amount",
-      "id",
-    ]);
+    // The lifting message points at a payload component of its own, and that
+    // component holds the fields that stayed behind.
+    expect(doc.components.messages.OrderPlaced.payload).toEqual({
+      $ref: "#/components/schemas/OrderPlacedPayload",
+    });
+    expect(
+      Object.keys(doc.components.schemas.OrderPlacedPayload.properties).sort(byCodePoint),
+    ).toEqual(["amount", "id"]);
     expect(doc.components.messages.OrderShipped.headers).toEqual({
       $ref: "#/components/schemas/ShippingHeaders",
     });
+    // `OrderShipped` lifts nothing, so its payload stays its own model.
+    expect(doc.components.messages.OrderShipped.payload).toEqual({
+      $ref: "#/components/schemas/OrderShipped",
+    });
+    expect(Object.keys(doc.components.schemas).sort(byCodePoint)).toEqual([
+      "MqmdFields",
+      "OrderPlacedPayload",
+      "OrderShipped",
+      "ShippingHeaders",
+    ]);
 
     await expect(doc).toBeValidAsyncAPI();
   });

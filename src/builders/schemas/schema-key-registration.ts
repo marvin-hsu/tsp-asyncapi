@@ -12,6 +12,11 @@ import { declarationNameFor, fallbackDeclarationName } from "./schema-naming.js"
 export class SchemaKeyRegistry {
   private readonly schemaKeys = new Map<Type, string>();
   private readonly claimedBy = new Map<string, Type>();
+  // Keys claimed through `claimDerived` rather than by a type of their own,
+  // mapped to the message model they were derived from. A collision on such
+  // a key has a cause the generic message cannot name: the author wrote no
+  // second type with that name. So the report needs the message.
+  private readonly derivedFrom = new Map<string, Model>();
   // Memoizes each type's computed name, including the `undefined` an
   // unspeakable template instantiation resolves to. `declarationNameFor`
   // walks a template argument chain recursively, and every caller asks for
@@ -81,13 +86,69 @@ export class SchemaKeyRegistry {
     if (owner === undefined) {
       this.claimedBy.set(name, type);
     } else if (owner !== type) {
-      reportDiagnostic(this.program, {
-        code: "duplicate-schema-key",
-        target: type,
-        format: { name },
-      });
+      this.reportCollision(name, type);
     }
     return name;
+  }
+
+  /**
+   * Claims a key that no type owns, on behalf of `target`.
+   *
+   * A message that lifts `@header` fields needs a payload schema that its
+   * own model does not describe, so that schema is registered under a key
+   * derived from the model's. No type owns the derived key, and the author
+   * may still have declared a model whose own name lands on it. Routing the
+   * claim through here puts the derived key under the same collision rule
+   * as every other one, so the clash is reported instead of one schema
+   * quietly replacing the other.
+   *
+   * A key `target` already owns is claimed again without a report. This
+   * mirrors `keyFor`, where a type asking twice for its own key is not a
+   * collision. So a second caller for the same message gets the same answer
+   * instead of a diagnostic about a clash with itself.
+   *
+   * @param key - The derived key
+   * @param target - The message model the key is derived from
+   * @returns True when the key was free
+   */
+  public claimDerived(key: string, target: Model): boolean {
+    const owner = this.claimedBy.get(key);
+    if (owner !== undefined && owner !== target) {
+      reportDiagnostic(this.program, {
+        code: "payload-schema-key-taken",
+        target,
+        format: { name: key, message: target.name },
+      });
+      return false;
+    }
+    this.claimedBy.set(key, target);
+    this.derivedFrom.set(key, target);
+    return true;
+  }
+
+  /**
+   * Reports one key collision, naming the cause the user can act on.
+   *
+   * A key that `claimDerived` produced belongs to no type the author wrote.
+   * A generic "duplicate schema name" would send the author looking for a
+   * second declaration that does not exist. So such a collision names the
+   * message whose payload needs the key instead.
+   */
+  private reportCollision(key: string, target: Type): void {
+    const derived = this.derivedFrom.get(key);
+    if (derived !== undefined) {
+      reportDiagnostic(this.program, {
+        code: "payload-schema-key-taken",
+        target,
+        format: { name: key, message: derived.name },
+      });
+      return;
+    }
+    reportDiagnostic(this.program, {
+      code: "duplicate-schema-key",
+      target,
+      format: { name: key },
+    });
   }
 
   /**

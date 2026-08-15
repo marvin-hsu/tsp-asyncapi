@@ -132,6 +132,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Duplicate schema name: '${"name"}'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.`,
       },
     },
+    "payload-schema-key-taken": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Schema key '${"name"}' is claimed twice. Message '${"message"}' lifts @header fields into its \`headers\`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '${"name"}', or describe the headers of '${"message"}' with @headers so its payload keeps every field.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {
@@ -204,10 +210,16 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`This @header marks a property that '${"message"}' inherits through 'extends', so it stays in the payload schema. Only a property the message model declares itself is lifted into \`headers\`. Spread the base model with '...' instead of extending it, or describe the whole headers object with @headers.`,
       },
     },
-    "shared-lifted-header": {
+    "inherited-header-overridden": {
       severity: "warning",
       messages: {
-        default: paramMessage`The message model '${"name"}' has @header fields lifted into its \`headers\`, and it is also used as a field type inside another message's payload. Both uses share one components.schemas entry, so the lifted fields are missing from the nested use as well. Give the nested use a model of its own, or move the headers of '${"name"}' into a separate model passed to @headers.`,
+        default: paramMessage`The field '${"field"}' is lifted into the \`headers\` of message '${"base"}'. Message '${"message"}' extends '${"base"}' and describes its own headers with @headers, so the lift is cancelled and the field stays in the payload of '${"message"}'. The same field is then a header of '${"base"}' and payload data of '${"message"}'. Add the field to the @headers model of '${"message"}', or drop that @headers so '${"message"}' inherits the header.`,
+      },
+    },
+    "discriminated-lifted-header": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The message model '${"name"}' lifts @header fields into its \`headers\` and also carries @discriminator. The discriminator names the subtype schemas, and those describe the lifted fields as payload data, so no payload could satisfy the message. The emitter leaves the discriminator off the payload schema. Describe the headers of '${"name"}' with @headers instead, so its payload keeps every field.`,
       },
     },
     "content-type-header-conflict": {
