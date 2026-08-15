@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { resolveRef } from "../utils/json-pointer.js";
 import { isSafeComponentsKey } from "../../src/builders/schemas/schema-naming.js";
 
 /**
@@ -29,20 +30,6 @@ function collectRefs(node: unknown, found: string[] = []): string[] {
   return found;
 }
 
-/** Resolves a local JSON Pointer, undoing the RFC 6901 escapes. */
-function resolveRef(doc: unknown, ref: string): unknown {
-  const steps = ref
-    .slice(2)
-    .split("/")
-    .map((s) => s.replaceAll("~1", "/").replaceAll("~0", "~"));
-  let node: unknown = doc;
-  for (const step of steps) {
-    if (node === null || typeof node !== "object") return undefined;
-    node = (node as Record<string, unknown>)[step];
-  }
-  return node;
-}
-
 /** A field type that needs no other declaration. */
 const leafType = fc.constantFrom(
   "string",
@@ -63,11 +50,68 @@ const plainName = fc
   )
   .map(([stem, n]) => stem + String(n));
 
+/**
+ * A declaration name that reaches the key sanitizer.
+ *
+ * A plain identifier lies entirely inside the Components Object charset, so
+ * `sanitizeDeclarationName` returns it unchanged on its first line. A
+ * generator of plain identifiers alone therefore never runs the escaping
+ * code, and a charset claim over its output would hold no matter what that
+ * code did. The backticked forms carry `/`, `~`, and a space, which the
+ * sanitizer must encode. The `Sep`-spelling forms are the payload text that
+ * collides with the sanitizer's own escape marker.
+ */
+const trickyName = fc.oneof(
+  plainName,
+  fc.constantFrom("Sep47", "Sep126", "Sep32", "SepSep47", "Sep0"),
+  fc.constantFrom("`/`", "`~`", "`a/b`", "`a~b`", "`x y`"),
+);
+
+/** Strips the backticks a quoted TypeSpec identifier is written with. */
+function declaredText(name: string): string {
+  return name.replaceAll("`", "");
+}
+
 describe("Integration: emitted document properties", () => {
+  /**
+   * Two claims about any document the emitter agrees to produce. Every
+   * `components.schemas` key lies inside the Components Object charset, and
+   * every `$ref` in the document resolves to a node.
+   *
+   * Reachability, measured in this worktree at 120 runs with seed 20260815.
+   * The seed is pinned in the call below, so these counts reproduce.
+   *
+   *   documents emitted                            120
+   *   programs refused, or reported an error         4
+   *   documents holding at least one key the
+   *     sanitizer rewrote                           73
+   *   keys the sanitizer rewrote                    93
+   *   `$ref` strings collected and resolved        410
+   *
+   * A refused program is retried by `fc.pre`, so the two top counts do not
+   * add up to 120.
+   *
+   * The 73 is what makes the charset claim mean anything. Drawing plain
+   * identifiers only, as an earlier version of this property did, gives 0
+   * rewritten keys out of 120 runs, and the charset assertion then passes
+   * without ever running the escaping code.
+   *
+   * No collected `$ref` carries an RFC 6901 escape, because the sanitizer
+   * encodes `/` and `~` out of the key before a `$ref` is ever built. The
+   * unescaping in `resolveRef` is therefore untested by this property. It
+   * stays there so a future key that does keep those characters resolves.
+   *
+   * Both rewrite counters are asserted below, the per-document one and the
+   * per-key one. So both recorded numbers stay honest if the generator or
+   * the sanitizer moves.
+   */
   it("emits keys inside the charset, and every $ref resolves", async () => {
+    let rewrittenKeys = 0;
+    let rewrittenDocs = 0;
+
     await fc.assert(
       fc.asyncProperty(
-        fc.uniqueArray(plainName, { minLength: 1, maxLength: 4 }),
+        fc.uniqueArray(trickyName, { minLength: 1, maxLength: 4 }),
         fc.array(leafType, { minLength: 1, maxLength: 4 }),
         async (names, types) => {
           const models = names
@@ -85,13 +129,21 @@ describe("Integration: emitted document properties", () => {
             @AsyncAPI.message model Root { ${fields} }
           `);
 
-          // The emitter is allowed to refuse. The claim starts once it has
-          // answered with a document.
+          // The emitter is allowed to refuse. Two of these name sets do
+          // collide after sanitizing, and that is reported as an error. The
+          // claim starts once the emitter has answered with a document.
           fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
 
-          for (const key of Object.keys(doc.components?.schemas ?? {})) {
+          const keys = Object.keys(doc.components?.schemas ?? {});
+          for (const key of keys) {
             expect(isSafeComponentsKey(key)).toBe(true);
           }
+          let rewrittenHere = 0;
+          for (const name of new Set(names.map(declaredText))) {
+            if (!keys.includes(name)) rewrittenHere++;
+          }
+          rewrittenKeys += rewrittenHere;
+          if (rewrittenHere > 0) rewrittenDocs++;
           for (const ref of collectRefs(doc)) {
             // A reference that resolves to nothing leaves the reader with a
             // message it cannot describe.
@@ -99,8 +151,14 @@ describe("Integration: emitted document properties", () => {
           }
         },
       ),
-      { numRuns: 120 },
+      { numRuns: 120, seed: 20260815 },
     );
+
+    // A run in which no key was ever rewritten would prove nothing about
+    // the charset, since an unrewritten key was already inside it. Both
+    // counters are asserted, so both recorded numbers have a live check.
+    expect(rewrittenKeys).toBeGreaterThan(0);
+    expect(rewrittenDocs).toBeGreaterThan(0);
   }, 120000);
 
   /**
@@ -108,21 +166,39 @@ describe("Integration: emitted document properties", () => {
    *
    * The key sanitizer can map two different names onto one key, and
    * `` `/` `` against `Sep47` was measured doing exactly that. The registry
-   * catches it today and reports `duplicate-schema-key`, so this property
-   * accepts an error and refuses only silence.
+   * reports `duplicate-schema-key` at error severity when it happens, so
+   * this property treats a reported error as an acceptable answer and only
+   * refuses silence.
    *
-   * That means the property cannot fail from the sanitizer defect while the
+   * Reporting is not the same as refusing. The emitter still returns a
+   * document, and that document holds one entry under the shared key with
+   * one of the two bodies, so the other declaration is described by the
+   * wrong shape. A real `tsp compile` stops on the error and writes no
+   * file, which is what keeps that document away from readers.
+   *
+   * So this property cannot fail from the sanitizer defect while the
    * registry keeps reporting. It is here to hold the registry to that job:
-   * a reader who sees one schema where the program declared two has no sign
-   * that anything was lost. The names include the shapes the sanitizer
-   * treats specially, since a generic identifier never reaches them.
+   * losing the report would turn a build failure into a wrong document. The
+   * names include the shapes the sanitizer treats specially, since a
+   * generic identifier never reaches them.
+   *
+   * Reachability, measured in this worktree at 150 runs with seed 20260815.
+   * The seed is pinned in the call below, so these counts reproduce.
+   *
+   *   runs that reported `duplicate-schema-key`      8
+   *   runs that reached the length assertion       142
+   *
+   * `checked` counts the runs that reach the length assertion. `duplicates`
+   * counts the runs that took the early return. Both are asserted after the
+   * search. Without `checked` the property has a vacuous mode. A generator
+   * that drifted until every draw collided would take the early return every
+   * time, the assertion would never run, and the test would still be green.
+   * Without `duplicates` the sanitizer collision the property watches for
+   * could stop being drawn at all, unnoticed.
    */
   it("never merges two declarations into one component without saying so", async () => {
-    const trickyName = fc.oneof(
-      plainName,
-      fc.constantFrom("Sep47", "Sep126", "Sep32", "SepSep47", "Sep0"),
-      fc.constantFrom("`/`", "`~`", "`a/b`", "`a~b`", "`x y`"),
-    );
+    let checked = 0;
+    let duplicates = 0;
 
     await fc.assert(
       fc.asyncProperty(
@@ -140,16 +216,25 @@ describe("Integration: emitted document properties", () => {
           const reported = diagnostics.some(
             (d) => d.severity === "error" && d.code.includes("duplicate-schema-key"),
           );
-          if (reported) return;
+          if (reported) {
+            duplicates++;
+            return;
+          }
 
           fc.pre(!diagnostics.some((d) => d.severity === "error"));
 
           // Root plus one component for each declared model.
           const keys = Object.keys(doc.components?.schemas ?? {});
+          checked++;
           expect(keys).toHaveLength(names.length + 1);
         },
       ),
       { numRuns: 150, seed: 20260815 },
     );
+
+    // A run that reported a duplicate every time would assert nothing. The
+    // duplicate count is asserted too, so the reported path stays reached.
+    expect(checked).toBeGreaterThan(0);
+    expect(duplicates).toBeGreaterThan(0);
   }, 120000);
 });

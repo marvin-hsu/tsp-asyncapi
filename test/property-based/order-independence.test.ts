@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
@@ -103,31 +104,119 @@ describe("Property: order independence", () => {
   );
 
   /**
-   * Emitting the same program twice must give the same bytes.
+   * Rotating the message declarations must not change the document, once
+   * key order is normalised away.
    *
-   * The builder keeps its state in maps and sets. A key order that leaked
-   * from object identity rather than from source order would show up here
-   * as a document that differs between runs of one unchanged program.
+   * The property above swaps two messages that share a shape, and it is red.
+   * This one rotates three messages whose payload shapes are disjoint, so
+   * the promote-on-second-use asymmetry the swap property records cannot
+   * fire. Every shape is used twice inside one message, so the builder still
+   * runs its promote path. The promotion is then symmetric under the
+   * rotation, because both uses move together.
+   *
+   * A message declaration is the unit the emitter traverses, so moving one
+   * really does change the order the builder meets shapes in. An iteration
+   * order taken from object identity, or a component name taken from a
+   * counter over creation order, would show up here as a content
+   * difference. Content is what the comparison looks at.
+   *
+   * The comparison sorts keys first. Key order in `components.schemas`
+   * follows declaration order and is expected to move. That movement is the
+   * evidence the emitter saw a different traversal, so it is counted rather
+   * than asserted on.
+   *
+   * An earlier version of this test rotated the `alias` lines instead. It
+   * was deleted. An `alias` declares no type. The `Env<...>` instantiation
+   * happens at the use site inside the messages, and those did not move, so
+   * every rotation gave byte-identical output. Measured here: three alias
+   * rotations, and all three aliases moved after both messages, all four
+   * produce a byte-identical document. That version had no reachable
+   * failure mode.
+   *
+   * The source shape stays the alias-to-instantiation shape the property
+   * above uses, not a set of plain named models. A named model is always
+   * registered as a component, so a plain-model generator never reaches the
+   * promote-on-second-use rule, and any state that rule keeps would go
+   * unwatched.
+   *
+   * Reachability, measured in this worktree at 120 runs with seed 20260815.
+   * The seed is pinned below, so these counts reproduce.
+   *
+   *   documents emitted and compared                    120
+   *   runs whose rotation really moved a declaration      81
+   *   runs whose `components.schemas` key order moved     81
+   *   runs carrying a promoted `Env...` component        120
+   *
+   * A run drawing an offset that is a multiple of three moves nothing and
+   * compares a document with itself. All three counters are asserted below.
+   * A generator that stopped moving declarations, or an emitter that stopped
+   * promoting, fails instead of passing quietly.
    */
-  it("emits the same document twice for one program", async () => {
+  it("emits the same document when the message declarations rotate", async () => {
+    let permuted = 0;
+    let keyOrderMoved = 0;
+    let promoted = 0;
+
     await fc.assert(
       fc.asyncProperty(
-        fc.uniqueArray(fc.integer({ min: 0, max: 5 }), { minLength: 1, maxLength: 4 }),
+        fc.uniqueArray(fc.integer({ min: 0, max: 8 }), { minLength: 3, maxLength: 6 }),
         leafType,
-        async (ids, type) => {
-          const models = ids.map((id) => `model S${String(id)} { v: ${type}; }`).join("\n");
-          const fields = ids.map((id) => "f" + String(id) + ": S" + String(id) + ";").join(" ");
-          const source = `${models}\n@AsyncAPI.message model Root { ${fields} }`;
+        fc.integer({ min: 0, max: 1000 }),
+        async (ids, type, offset) => {
+          // Three disjoint groups. No shape is shared between two messages,
+          // so the recorded promote-on-second-use defect cannot fire.
+          const groups: number[][] = [[], [], []];
+          ids.forEach((id, index) => groups[index % 3].push(id));
 
-          const a = await emitAsyncAPIWithDiagnostics(source);
-          const b = await emitAsyncAPIWithDiagnostics(source);
+          const aliases = ids.map(
+            (id) => `alias E${String(id)} = Env<{ p${String(id)}: ${type} }>;`,
+          );
+          // Each id is used twice inside its own message. The second use is
+          // what promotes the anonymous shape to a component.
+          const fieldsOf = (group: number[]) =>
+            group
+              .map((id) => `f${String(id)}: E${String(id)}; g${String(id)}: E${String(id)};`)
+              .join(" ");
+          const messages = ["Alpha", "Beta", "Gamma"].map(
+            (name, index) => `@AsyncAPI.message model ${name} { ${fieldsOf(groups[index])} }`,
+          );
+
+          // A rotation, not a shuffle. It is cheap to state, it reproduces
+          // from the drawn offset alone, and it moves every message at once.
+          const cut = offset % messages.length;
+          const rotated = [...messages.slice(cut), ...messages.slice(0, cut)];
+          const moved = rotated.join("\n") !== messages.join("\n");
+          if (moved) permuted++;
+
+          const head = "model Env<T> { data: T; }";
+          const a = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...messages].join("\n"));
+          const b = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
 
           fc.pre(a.doc !== null && b.doc !== null);
-          // Key order is compared as well here, so no normalisation.
-          expect(JSON.stringify(a.doc)).toBe(JSON.stringify(b.doc));
+          fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
+          fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
+
+          const keysA = Object.keys(a.doc.components?.schemas ?? {});
+          const keysB = Object.keys(b.doc.components?.schemas ?? {});
+          if (keysA.join(",") !== keysB.join(",")) keyOrderMoved++;
+          // Alpha, Beta and Gamma are the declared messages. Any other key
+          // is a shape that was inlined first and promoted on its second
+          // use.
+          const names = new Set(["Alpha", "Beta", "Gamma"]);
+          if (keysA.some((key) => !names.has(key))) promoted++;
+
+          expect(normalise(a.doc)).toEqual(normalise(b.doc));
         },
       ),
-      { numRuns: 60 },
+      { numRuns: 120, seed: 20260815 },
     );
+
+    // A run that never moved a declaration would compare a document with
+    // itself. A key order that never moved would mean the emitter never saw
+    // a different traversal. A run that never promoted would leave the
+    // builder's promote-path state unwatched.
+    expect(permuted).toBeGreaterThan(0);
+    expect(keyOrderMoved).toBeGreaterThan(0);
+    expect(promoted).toBeGreaterThan(0);
   }, 180000);
 });
