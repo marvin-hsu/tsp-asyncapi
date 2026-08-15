@@ -5,6 +5,7 @@ import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
+import { byCodePoint } from "../../utils/sort.js";
 
 describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   it('inlines a template instantiation with a string-literal template argument (P<"created">) instead of registering a synthesized name', async () => {
@@ -546,7 +547,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
 
-    expect(Object.keys(components).sort()).toEqual(["InnerString", "M", "OuterInnerString"]);
+    expect(Object.keys(components).sort(byCodePoint)).toEqual([
+      "InnerString",
+      "M",
+      "OuterInnerString",
+    ]);
     expect(props.a).toEqual({
       type: "object",
       properties: {

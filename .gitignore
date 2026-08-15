@@ -114,3 +114,7 @@ CLAUDE.md
 AGENTS.md
 GEMINI.md
 .mcp.json
+
+# Stryker mutation testing output
+reports/
+.stryker-tmp/

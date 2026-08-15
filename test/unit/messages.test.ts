@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../src/builders/document.js";
+import { byCodePoint } from "../utils/sort.js";
 
 describe("Unit: Messages (Phase 3.1)", () => {
   let runner: TesterInstance;
@@ -96,7 +97,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.components?.schemas ?? {}).sort()).toEqual([
+    expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Address",
       "Customer",
       "OrderCreated",
@@ -189,7 +190,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
 
     // The message keys match the schema keys the SchemaBuilder assigned,
     // minus the namespace prefix that message keys deliberately omit.
-    expect(Object.keys(doc.components?.messages ?? {}).sort()).toEqual([
+    expect(Object.keys(doc.components?.messages ?? {}).sort(byCodePoint)).toEqual([
       "EnvelopeInt32",
       "EnvelopeString",
       "Holder",
@@ -292,7 +293,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     const messages = doc.components?.messages ?? {};
-    expect(Object.keys(messages).sort()).toEqual(["B", "__proto__"]);
+    expect(Object.keys(messages).sort(byCodePoint)).toEqual(["B", "__proto__"]);
     expect(Object.hasOwn(messages, "__proto__")).toBe(true);
     // Read through a descriptor. A plain property access would be ambiguous
     // here: the same syntax reaches the inherited prototype accessor.
@@ -437,7 +438,7 @@ describe("Unit: Messages (Phase 3.1)", () => {
     expect(doc.components?.schemas?.Pet.discriminator).toBe("kind");
     // An indirect subtype is collected too. Only the model carrying
     // @discriminator drives the walk, so the walk has to be transitive.
-    expect(Object.keys(doc.components?.schemas ?? {}).sort()).toEqual([
+    expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Cat",
       "Dog",
       "Pet",
@@ -475,7 +476,10 @@ describe("Unit: Messages (Phase 3.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.components?.schemas?.Pet.discriminator).toBeUndefined();
-    expect(Object.keys(doc.components?.schemas ?? {}).sort()).toEqual(["Pet", "PetEvent"]);
+    expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
+      "Pet",
+      "PetEvent",
+    ]);
   });
 
   it("warns when an explicitly empty message name falls back to the model name", async () => {

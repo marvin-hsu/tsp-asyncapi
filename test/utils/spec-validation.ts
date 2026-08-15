@@ -56,48 +56,57 @@ function renderDocument(doc: unknown): string {
 }
 
 /**
- * Asserts that the official AsyncAPI parser accepts the document as valid AsyncAPI 3.x.
+ * Checks the document against the official AsyncAPI parser.
  *
- * Severity policy: only diagnostics with severity `error` fail the assertion.
- * Warnings, information and hints are style recommendations from the parser rule set,
- * not spec violations. One example is `asyncapi-latest-version`, which only suggests a
- * newer minor version. Failing on those would tie the test suite to a rule set that
- * changes between parser releases. Non-error diagnostics are still printed on failure,
- * because they help explain the errors next to them.
+ * The function reports rather than throws. It returns `null` when the
+ * document is valid, and a full failure report when it is not. The matchers
+ * in `test/setup.ts` turn that report into the message vitest prints, which
+ * keeps the assertion itself visible at the call site.
  *
- * The major version is asserted separately. The parser reports a 2.x document with
- * warnings only. A 2.x shaped document is a regression for this emitter, so this
- * helper rejects any major version other than 3.
+ * Severity policy: only diagnostics with severity `error` count as invalid.
+ * Warnings, information and hints are style recommendations from the parser
+ * rule set, not spec violations. One example is `asyncapi-latest-version`,
+ * which only suggests a newer minor version. Failing on those would tie the
+ * test suite to a rule set that changes between parser releases. Non-error
+ * diagnostics are still printed on failure, because they help explain the
+ * errors next to them.
  *
- * @param doc - The emitted document, as an object or as a raw YAML or JSON string.
+ * The major version is checked separately. The parser reports a 2.x document
+ * with warnings only. A 2.x shaped document is a regression for this emitter,
+ * so any major version other than 3 counts as invalid.
+ *
+ * @param doc - The emitted document, as an object or as a raw YAML or JSON string
+ * @returns `null` when the document is valid, or the failure report
  */
-export async function expectValidAsyncAPI(doc: unknown): Promise<void> {
+export async function validateAsyncAPI(doc: unknown): Promise<string | null> {
   if (doc === null || doc === undefined) {
-    throw new Error("Expected an AsyncAPI document to validate, but got nothing.");
+    return "Expected an AsyncAPI document to validate, but got nothing.";
   }
 
   const { document, diagnostics } = await parser.parse(doc as Input);
   const errors = diagnostics.filter(isError);
   if (errors.length > 0) {
     const report = diagnostics.map(formatDiagnostic).join("\n");
-    throw new Error(
+    return (
       `The AsyncAPI parser rejected the document with ${String(errors.length)} error(s):\n` +
-        `${report}\n\nDocument under validation:\n${renderDocument(doc)}`,
+      `${report}\n\nDocument under validation:\n${renderDocument(doc)}`
     );
   }
 
   if (document === undefined) {
-    throw new Error(
+    return (
       `The AsyncAPI parser reported no errors but produced no document.\n\n` +
-        `Document under validation:\n${renderDocument(doc)}`,
+      `Document under validation:\n${renderDocument(doc)}`
     );
   }
 
   const version = document.version();
   if (!version.startsWith("3.")) {
-    throw new Error(
+    return (
       `Expected an AsyncAPI document of major version 3, but got version ${version}.\n\n` +
-        `Document under validation:\n${renderDocument(doc)}`,
+      `Document under validation:\n${renderDocument(doc)}`
     );
   }
+
+  return null;
 }

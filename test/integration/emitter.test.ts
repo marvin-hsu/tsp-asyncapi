@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { $lib } from "../../src/lib.js";
 import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
-import { expectValidAsyncAPI } from "../utils/spec-validation.js";
+import { byCodePoint } from "../utils/sort.js";
 
 describe("AsyncAPI Emitter", () => {
   it("should have correct library name", () => {
@@ -14,21 +14,21 @@ describe("AsyncAPI Emitter", () => {
     const doc = await emitAsyncAPI(code);
     expect(doc.asyncapi).toBe("3.1.0");
     expect(doc.info.title).toBe("TestService");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output JSON when file-type is json", async () => {
     const code = ``;
     const doc = await emitAsyncAPI(code, { "file-type": "json" });
     expect(doc.asyncapi).toBe("3.1.0");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output to custom file name", async () => {
     const code = ``;
     const doc = await emitAsyncAPI(code, { "output-file": "custom.yaml" });
     expect(doc.asyncapi).toBe("3.1.0");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output diagnostic on multiple services", async () => {
@@ -40,14 +40,14 @@ describe("AsyncAPI Emitter", () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].code).toBe("tsp-asyncapi/multiple-services");
     expect(doc.info.title).toBe("Service 1");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output fallback document when no service is provided", async () => {
     const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics("", {}, false);
     expect(diagnostics).toHaveLength(0);
     expect(doc.info.title).toBe("AsyncAPI Document");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 });
 
@@ -56,7 +56,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     const code = `@service(#{ title: "Order Events" }) namespace Orders;`;
     const doc = await emitAsyncAPI(code);
     expect(doc.info.title).toBe("Order Events");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should throw error when @info is applied to a model", async () => {
@@ -74,7 +74,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     const code = `@service(#{ title: "Order Events" }) namespace Orders;`;
     const doc = await emitAsyncAPI(code);
     expect(doc.info.version).toBe("0.0.0");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should extract full info from @info", async () => {
@@ -95,7 +95,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     expect(doc.info.termsOfService).toBe("https://example.com/terms");
     expect(doc.info.contact?.name).toBe("API Team");
     expect(doc.info.license?.name).toBe("MIT");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should extract tags and externalDocs", async () => {
@@ -111,7 +111,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     expect(doc.info.tags).toContainEqual({ name: "orders" });
     expect(doc.info.tags).toContainEqual({ name: "events" });
     expect(doc.info.externalDocs?.url).toBe("https://example.com/docs");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should set id and defaultContentType from options", async () => {
@@ -122,7 +122,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     expect(doc.id).toBe("urn:com:example:events");
     expect(doc.defaultContentType).toBe("application/json");
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should emit servers, messages, and schemas that the parser accepts", async () => {
@@ -161,8 +161,11 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     // `OrderItem` has no `@message` of its own. It reaches the document only
     // because the `OrderPlaced` payload refers to it.
-    expect(Object.keys(doc.components.schemas).sort()).toEqual(["OrderItem", "OrderPlaced"]);
+    expect(Object.keys(doc.components.schemas).sort(byCodePoint)).toEqual([
+      "OrderItem",
+      "OrderPlaced",
+    ]);
 
-    await expectValidAsyncAPI(doc);
+    await expect(doc).toBeValidAsyncAPI();
   });
 });

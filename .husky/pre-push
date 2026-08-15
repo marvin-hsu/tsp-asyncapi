@@ -17,9 +17,11 @@
 
 ZERO="0000000000000000000000000000000000000000"
 failed=0
+pushing=0
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$ZERO" ] && continue
+  pushing=1
 
   if [ "$remote_sha" = "$ZERO" ]; then
     merges=$(git rev-list --merges "$local_sha" --not --remotes=origin)
@@ -41,3 +43,18 @@ if [ "$failed" -ne 0 ]; then
   echo "Rebase the branch, then fast forward, so the history stays linear."
   exit 1
 fi
+
+# A push that only deletes a ref changes no code, so the checks are skipped.
+[ "$pushing" -eq 0 ] && exit 0
+
+# These two take about 13 seconds together. They belong here rather than in
+# `pre-commit`, which stays fast enough to run on every commit. CI runs them
+# again, but a CI round trip costs about 2.5 minutes.
+#
+# `tsc --noEmit` covers the tests as well as `src`. The build inside `test`
+# covers `src` alone, so neither one makes the other redundant.
+echo "pre-push: checking types..."
+pnpm exec tsc --noEmit || exit 1
+
+echo "pre-push: running tests..."
+pnpm test || exit 1

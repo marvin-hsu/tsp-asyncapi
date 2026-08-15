@@ -5,6 +5,7 @@ import { AsyncAPITester } from "../../src/testing/index.js";
 import { buildServers } from "../../src/builders/servers.js";
 import { getServers } from "../../src/decorators/index.js";
 import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { byCodePoint } from "../utils/sort.js";
 
 describe("Unit: servers", () => {
   it("emits one entry per declared server with its fields", async () => {
@@ -27,7 +28,7 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(Object.keys(doc.servers).sort()).toEqual(["production", "sit"]);
+    expect(Object.keys(doc.servers).sort(byCodePoint)).toEqual(["production", "sit"]);
     expect(doc.servers.production).toEqual({
       host: "kafka.example.com:9092",
       protocol: "kafka",
