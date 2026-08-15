@@ -44,6 +44,48 @@ info:
 
 Without `@info`, `info.version` falls back to `0.0.0`. If `@info` sets no `description`, a `@doc` (or `/** ... */` doc comment) on the namespace fills it instead.
 
+## `@server`
+
+```typespec
+extern dec server(target: Namespace, name: valueof string, config: valueof AsyncAPIServer);
+```
+
+Declares one server the application connects to. The `name` argument becomes the key of that server in the root `servers` map. `host` and `protocol` are required. `protocolVersion`, `pathname`, `title`, `summary`, and `description` are optional.
+
+The decorator is repeatable. Each application adds its own entry.
+
+```typespec
+@service(#{ title: "Orders" })
+@server("production", #{
+  host: "kafka.example.com:9092",
+  protocol: "kafka",
+  protocolVersion: "3.5.0",
+  title: "Production"
+})
+@server("sit", #{ host: "kafka.sit.example.com:9092", protocol: "kafka" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka
+    protocolVersion: 3.5.0
+    title: Production
+  sit:
+    host: kafka.sit.example.com:9092
+    protocol: kafka
+```
+
+The emitter reads the servers of the service namespace only. A `@server` on any other namespace is dropped with a [`server-outside-service`](./diagnostics#server-outside-service) warning.
+
+The servers keep the order they are written in. The order comes from the source position, not from the order the decorators run in. A stacked `@server` and an augment `@@server` therefore sort together.
+
+Every string field is trimmed. A required field that is blank after the trim drops the server with an [`empty-server-field`](./diagnostics#empty-server-field) error. An optional field that is blank after the trim is treated as absent and stays out of the document.
+
+A server name may only use letters, digits, `_`, and `-`. Any other name is rejected with an [`invalid-server-name`](./diagnostics#invalid-server-name) error. The name is never rewritten. Two servers that share a name raise a [`duplicate-server-name`](./diagnostics#duplicate-server-name) error, and the first one in source order is kept.
+
 ## `@externalDocs`
 
 ```typespec

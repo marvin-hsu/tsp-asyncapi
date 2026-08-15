@@ -49,6 +49,7 @@ using AsyncAPI;
 @tag("orders")
 @tag("payment")
 @externalDocs("https://example.com/docs", "Service Documentation")
+@server("production", #{ host: "kafka.example.com:9092", protocol: "kafka" })
 namespace Orders;
 
 // schema 轉換層會把這個 model 轉成 AsyncAPI Schema Object（見 docs 網站）。

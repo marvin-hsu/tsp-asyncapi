@@ -48,6 +48,30 @@ Two instantiations of one template that produce the same key are not reported â€
 
 **Fix:** remove the extra `@message`.
 
+### `duplicate-server-name`
+
+> Duplicate server name: '\<name\>'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.
+
+Two `@server` applications on the same namespace share a name. The name is the key of the `servers` map, so the two would collide. The emitter never picks one silently.
+
+**Fix:** Give one of them a different name.
+
+### `empty-server-field`
+
+> Empty server field: '\<field\>'. AsyncAPI requires a value for this field on every server. This @server was dropped.
+
+`host` or `protocol` is blank, or holds only spaces. Both are required by the Server Object. A blank value passes the type check but makes the document invalid, so the whole server is dropped.
+
+**Fix:** Give the field a real value.
+
+### `invalid-server-name`
+
+> Invalid server name: '\<name\>'. AsyncAPI only allows letters, digits, '_', and '-' in a server name. This @server was dropped.
+
+The name is outside the character set AsyncAPI allows for a key of the root `servers` map. This set is stricter than the one for the Components Object. A dot is not allowed here.
+
+**Fix:** Use a name that only holds letters, digits, `_`, and `-`. The emitter never rewrites the name, because that would silently change the key you asked for.
+
 ## Warnings
 
 ### `message-key-shadows-schema-key`
@@ -65,6 +89,14 @@ The document stays valid â€” `components.messages` and `components.schemas` are 
 The name given to `@message` falls outside the Components Object key charset, so the emitter encoded the offending characters. The emitted key is therefore not the string that was asked for.
 
 **Fix:** pass a name that only uses `a-z`, `A-Z`, `0-9`, `.`, `-`, and `_`.
+
+### `server-outside-service`
+
+> Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.
+
+`@server` is applied to a namespace that is not the service namespace this document comes from. The emitter reads servers from the service namespace only, the same source as `info`.
+
+**Fix:** Move the `@server` to the service namespace, or use `@@server` to augment it from where you are.
 
 ### `multiple-services`
 

@@ -48,6 +48,30 @@
 
 **修法：** 移除多餘的 `@message`。
 
+### `duplicate-server-name`
+
+> Duplicate server name: '\<name\>'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.
+
+同一個 namespace 上兩個 `@server` 用了同一個名稱。名稱就是 `servers` map 的 key，兩者會互相碰撞。emitter 絕不靜默挑一個。
+
+**修法：** 改掉其中一個的名稱。
+
+### `empty-server-field`
+
+> Empty server field: '\<field\>'. AsyncAPI requires a value for this field on every server. This @server was dropped.
+
+`host` 或 `protocol` 是空字串，或只有空白字元。兩者都是 Server Object 的必填欄位。空值可以通過型別檢查，卻會產出不合規的文件，因此整個 server 被丟棄。
+
+**修法：** 給該欄位實際的值。
+
+### `invalid-server-name`
+
+> Invalid server name: '\<name\>'. AsyncAPI only allows letters, digits, '_', and '-' in a server name. This @server was dropped.
+
+名稱超出 AsyncAPI 允許的根層 `servers` map key 字元集。此字元集比 Components Object 的更嚴格，不允許點號。
+
+**修法：** 改用只含英文字母、數字、`_`、`-` 的名稱。emitter 絕不自動改名，因為那會靜默換掉你要求的 key。
+
 ## 警告
 
 ### `message-key-shadows-schema-key`
@@ -65,6 +89,14 @@
 傳給 `@message` 的名稱超出 Components Object 的合法字元集，emitter 已把違規字元編碼。因此實際輸出的 key 並不是當初要求的字串。
 
 **修法：** 改用只含 `a-z`、`A-Z`、`0-9`、`.`、`-`、`_` 的名稱。
+
+### `server-outside-service`
+
+> Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.
+
+`@server` 標在非本文件 service namespace 的 namespace 上。emitter 只讀 service namespace 的 server，來源與 `info` 相同。
+
+**修法：** 把 `@server` 移到 service namespace，或用 `@@server` 從目前位置 augment 過去。
 
 ### `multiple-services`
 

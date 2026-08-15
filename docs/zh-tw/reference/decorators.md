@@ -44,6 +44,48 @@ info:
 
 沒有 `@info` 時，`info.version` 後備為 `0.0.0`。若 `@info` 沒給 `description`，改用 namespace 上的 `@doc`（或 `/** ... */` 文件註解）。
 
+## `@server`
+
+```typespec
+extern dec server(target: Namespace, name: valueof string, config: valueof AsyncAPIServer);
+```
+
+宣告一個應用程式連線的 server。`name` 引數就是該 server 在根層 `servers` map 中的 key。`host` 與 `protocol` 為必填。`protocolVersion`、`pathname`、`title`、`summary`、`description` 為選填。
+
+此 decorator 可重複標記。每次標記各自新增一筆項目。
+
+```typespec
+@service(#{ title: "Orders" })
+@server("production", #{
+  host: "kafka.example.com:9092",
+  protocol: "kafka",
+  protocolVersion: "3.5.0",
+  title: "Production"
+})
+@server("sit", #{ host: "kafka.sit.example.com:9092", protocol: "kafka" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka
+    protocolVersion: 3.5.0
+    title: Production
+  sit:
+    host: kafka.sit.example.com:9092
+    protocol: kafka
+```
+
+emitter 只讀 service namespace 上的 server。標在其他 namespace 的 `@server` 會被丟棄，並發出 [`server-outside-service`](./diagnostics#server-outside-service) 警告。
+
+server 的順序依原始碼撰寫順序。順序取自原始碼位置，不取自 decorator 的執行順序。因此疊加的 `@server` 與 augment 的 `@@server` 會一起排序。
+
+每個字串欄位都會 trim。必填欄位 trim 後為空，該 server 被丟棄並發出 [`empty-server-field`](./diagnostics#empty-server-field) 錯誤。選填欄位 trim 後為空，視同未給，不會輸出。
+
+server 名稱只能使用英文字母、數字、`_` 與 `-`。其他名稱會發出 [`invalid-server-name`](./diagnostics#invalid-server-name) 錯誤。emitter 絕不自動改名。兩個 server 同名會發出 [`duplicate-server-name`](./diagnostics#duplicate-server-name) 錯誤，保留原始碼中較前面的那個。
+
 ## `@externalDocs`
 
 ```typespec
