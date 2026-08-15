@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "../../../src/testing/index.js";
+import { Model } from "@typespec/compiler";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
@@ -56,14 +57,12 @@ describe("Unit: Schemas — template instantiation naming", () => {
   });
 
   it("should name a template instantiation from an enum member template argument (P<Color.Red> -> PColorRed)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       enum Color { Red, Green }
       model P<T> { v: T; }
       @test("W")
       model W { a: P<Color.Red>; b: P<Color.Green>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
     const props = components.W.properties as Record<string, any>;
@@ -112,15 +111,13 @@ describe("Unit: Schemas — template instantiation naming", () => {
     // Whichever of the two is built second now reports
     // `duplicate-schema-key` and degrades to the same colliding key,
     // instead of being silently renamed.
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, program, W } = await compileSchemas(t.code`
       model Order { id: string; }
       model Envelope<T> { data: T; }
       model EnvelopeOrder { x: string; }
       @test("W")
       model W { a: Envelope<Order>; b: EnvelopeOrder; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
     const props = components.W.properties as Record<string, any>;
@@ -128,7 +125,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     expect(props.a.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeDefined();
@@ -250,15 +247,13 @@ describe("Unit: Schemas — template instantiation naming", () => {
   });
 
   it("Sep-encodes a backtick-declared scalar template argument's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       scalar \`a/b\` extends string;
       scalar \`c#d\` extends string;
       model Env<T> { d: T; }
       @test("M")
       model M { x: Env<\`a/b\`>; y: Env<\`c#d\`>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas() as Record<string, any>;
     const props = components.M.properties as Record<string, any>;
@@ -274,14 +269,12 @@ describe("Unit: Schemas — template instantiation naming", () => {
   });
 
   it("should not leak the built-in TypeSpec namespace into a template instantiation name for Array/Record arguments", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model Order { id: string; }
       model Envelope<T> { data: T; }
       @test("M")
       model M { a: Envelope<Order[]>; b: Envelope<Record<string>>; c: Envelope<string[]>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;

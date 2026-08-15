@@ -4,7 +4,7 @@ import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
-import { buildDocSchema } from "../../utils/schema-host.js";
+import { buildDocSchema, compileSchemas } from "../../utils/schema-host.js";
 
 describe("Unit: Schemas — documentation and examples", () => {
   it("should map a model's doc comment to description and @summary to title", async () => {
@@ -148,8 +148,7 @@ describe("Unit: Schemas — documentation and examples", () => {
   });
 
   it("should not throw and should skip an example whose value cannot be serialized", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       scalar myDate extends utcDateTime {
         init fromEpoch(v: int64);
       }
@@ -158,8 +157,6 @@ describe("Unit: Schemas — documentation and examples", () => {
         d: myDate;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -508,33 +505,27 @@ describe("Unit: Schemas — documentation and examples", () => {
   });
 
   it("should not throw and should skip a malformed duration @example (compiler's Temporal.Duration.from throws a plain RangeError), reporting a diagnostic instead of dropping it silently", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         @example(duration.fromISO("not-a-duration"))
         d: duration;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
-    expect(runner.program.diagnostics).toHaveLength(1);
-    expect(runner.program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
-    expect(runner.program.diagnostics[0].severity).toBe("warning");
+    expect(program.diagnostics).toHaveLength(1);
+    expect(program.diagnostics[0].code).toBe("typespec-asyncapi/unserializable-example");
+    expect(program.diagnostics[0].severity).toBe("warning");
   });
 
   it("should keep the registry usable after a build() failure instead of leaving a dangling $ref (registerNamed try/finally)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         f: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const spy = vi
       .spyOn(
         builder as unknown as { buildObjectSchema: (m: unknown) => unknown },
@@ -573,12 +564,11 @@ describe("Unit: Schemas — documentation and examples", () => {
   });
 
   it("keeps a generic model's own @doc/@summary on every instantiation", async () => {
-    const runner = await AsyncAPITester.createInstance();
     // `Envelope`'s own doc/summary are declared once, on the
     // uninstantiated template. TypeSpec's instantiation semantics copy
     // the type definition, so each instantiation must carry them too,
     // not just the first one built.
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       /** A generic envelope. */
       @summary("Envelope")
       model Envelope<T> {
@@ -592,8 +582,6 @@ describe("Unit: Schemas — documentation and examples", () => {
         product: Envelope<Product>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
 

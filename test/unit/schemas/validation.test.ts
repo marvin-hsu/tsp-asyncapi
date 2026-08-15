@@ -1,23 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
-import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
-import { buildDocSchema } from "../../utils/schema-host.js";
+import { buildDocSchema, compileSchemas } from "../../utils/schema-host.js";
 
 describe("Unit: Schemas — validation keywords and extensions", () => {
   it("merges two separate applications' key/value pairs alongside a model's own properties", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       @AsyncAPI.jsonSchemaExtension("unevaluatedProperties", false)
       @AsyncAPI.jsonSchemaExtension("propertyNames", #{ pattern: "^[a-z]+$" })
       model ${t.model("M")} {
         id: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     expect(builder.getSchemas().M).toEqual({
@@ -30,15 +25,12 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
   });
 
   it("merges its key/value pair into a property's own schema entry", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         @AsyncAPI.jsonSchemaExtension("deprecated", true)
         name: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -46,14 +38,11 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
   });
 
   it("leaves a model or property with no application completely unaffected", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         name: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     expect(builder.getSchemas().M).toEqual({
@@ -64,15 +53,12 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
   });
 
   it("lets an extension key override a keyword this emitter already produces for that model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       @AsyncAPI.jsonSchemaExtension("type", "override")
       model ${t.model("M")} {
         name: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const schema = builder.getSchemas().M as Record<string, any>;
@@ -556,11 +542,10 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
   });
 
   it("keeps a generic model property's validation decorator on every instantiation", async () => {
-    const runner = await AsyncAPITester.createInstance();
     // `@minLength` is declared once, on `Wrapper<T>`'s own `label`
     // property. TypeSpec's instantiation semantics copy the type
     // definition, so each instantiation's built schema must keep it too.
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       model Wrapper<T> {
         @minLength(3)
         label: string;
@@ -574,8 +559,6 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
         product: Wrapper<Product>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
 

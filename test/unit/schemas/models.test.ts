@@ -1,19 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 import { Ajv } from "ajv";
 
 describe("Unit: Schemas — models, collections, and literals", () => {
   it("should omit `properties` for an empty model (omit-empty convention)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Empty } = await runner.compile(t.code`
+    const { builder, Empty } = await compileSchemas(t.code`
       model ${t.model("Empty")} {}
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Empty);
 
     // Mirrors the `required` handling: empty fields are not emitted.
@@ -21,14 +17,11 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should build schema for intrinsic types", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { TestIntrinsics } = await runner.compile(t.code`
+    const { builder, TestIntrinsics } = await compileSchemas(t.code`
       model ${t.model("TestIntrinsics")} {
         n: null;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(TestIntrinsics);
 
     const props = builder.getSchemas().TestIntrinsics.properties as Record<string, any>;
@@ -36,16 +29,13 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should skip never-typed properties instead of emitting an unsatisfiable schema", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         a: string;
         b: never;
         c?: never;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const schema = builder.getSchemas().M as any;
@@ -64,18 +54,14 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should build `{ not: {} }` for standalone `void`", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { doIt } = await runner.compile(t.code`
+    const { builder, doIt } = await compileSchemas(t.code`
       op ${t.op("doIt")}(): void;
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     expect(builder.buildSchema(doIt.returnType)).toEqual({ not: {} });
   });
 
   it("should skip a property whose type is `never` via a template default (real-world never source)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model Env<T = never> {
         data: T;
       }
@@ -83,8 +69,6 @@ describe("Unit: Schemas — models, collections, and literals", () => {
         e: Env;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     // `Env` instantiated (via `M.e`) with no explicit type argument still
@@ -101,14 +85,11 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should not register a bogus schema when handed an uninstantiated template declaration directly", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Env } = await runner.compile(t.code`
+    const { builder, Env } = await compileSchemas(t.code`
       model ${t.model("Env")}<T = never> {
         data: T;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     // `Env` here is the template *declaration* itself (no
     // `templateMapper`), not an instantiation. Its `data` property's type
     // is a bare `TemplateParameter`, which has no real shape to build.
@@ -121,16 +102,13 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should not silently drop a model or property named `__proto__`", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       model \`__proto__\` { a: string; }
       model ${t.model("W")} {
         p: \`__proto__\`;
         \`__proto__\`: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W);
 
     const schemas = builder.getSchemas() as Record<string, any>;
@@ -150,15 +128,12 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should build schema for arrays and records", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { TestCollections } = await runner.compile(t.code`
+    const { builder, TestCollections } = await compileSchemas(t.code`
       model ${t.model("TestCollections")} {
         arr: string[];
         rec: Record<int32>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(TestCollections);
 
     const props = builder.getSchemas().TestCollections.properties as Record<string, any>;
@@ -170,8 +145,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should register a named array/Record alias model in components.schemas instead of inlining it", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model Names is string[];
       model Bag is Record<int32>;
       model ${t.model("M")} {
@@ -180,8 +154,6 @@ describe("Unit: Schemas — models, collections, and literals", () => {
         c: Bag;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const components = builder.getSchemas();
@@ -201,16 +173,13 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should build schema for bare literal property types instead of the unconstrained {}", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         lit: "active";
         n: 42;
         flag: true;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -227,13 +196,11 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     // a synthesized `components.schemas` key. A schema property key can be
     // any string, unlike a `components.schemas` key, so the
     // backtick-quoted name passes through unsanitized.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<{ \`x/y\`: string }>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -249,16 +216,13 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should use the @encodedName('application/json', ...) name as the schema property key", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       @test("M")
       model M {
         @encodedName("application/json", "user_name")
         userName: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const schema = builder.getSchemas().M as any;
 
@@ -268,8 +232,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
   });
 
   it("should produce a valid schema for a complex model combining nesting, union, enum, and validation decorators", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Order } = await runner.compile(t.code`
+    const { builder, Order } = await compileSchemas(t.code`
       enum Status {
         Pending,
         Shipped,
@@ -299,8 +262,6 @@ describe("Unit: Schemas — models, collections, and literals", () => {
         note?: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Order as Model);
     const components = builder.getSchemas();
     const schema = components.Order as any;

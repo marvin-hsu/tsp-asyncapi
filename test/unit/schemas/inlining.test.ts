@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "../../../src/testing/index.js";
+import { Model } from "@typespec/compiler";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
@@ -59,14 +60,12 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // second use keeps that growth linear.
     // The first site keeps its inline copy; only later sites resolve to
     // the `$ref`. Both express the same schema.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model Env<T> { v: T; }
       alias Shared = Env<{ x: string }>;
       @test("M")
       model M { a: Shared; b: Shared; c: Shared; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -87,17 +86,15 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(components[key]).toEqual(inlineShape);
     // The body is registered as already built, so a single mistake inside
     // it is never reported twice.
-    expect(runner.program.diagnostics).toHaveLength(0);
+    expect(program.diagnostics).toHaveLength(0);
   });
 
   it("inlines a template instantiation with a numeric/boolean literal template argument instead of registering a synthesized name", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("W")
       model W { c: P<42>; d: P<true>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
     const props = components.W.properties as Record<string, any>;
@@ -169,13 +166,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // carries, so `#`, `/`, and a space here never need to reach a
     // `components.schemas` key or an escaped $ref at all: the whole
     // instantiation inlines with the literal's own raw text in `enum`.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<"user#created">; b: P<"a/b">; c: P<"has space">; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -199,13 +194,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   });
 
   it("inlines a numeric-literal template argument to its own literal shape instead of composing a synthesized name", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<1>; b: P<-1>; c: P<1.5>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -233,13 +226,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // A `Tuple`, like `[string, int32]`, has no fixed identity of its own
     // (matching the official `TypeEmitter.declarationName`'s own handling
     // of a `Tuple` argument), so the whole instantiation inlines instead.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<unknown>; b: P<[string, int32]>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -253,7 +244,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // `unsupported-payload-type` diagnostic, the same as any other
     // unsupported payload type.
     expect(props.b.properties.v).toEqual({});
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
     );
     expect(diagnostic).toBeDefined();
@@ -362,13 +353,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // now inlines independently. There is no shared synthesized key left
     // for the two to collide over, so no diagnostic is reported even
     // though the two inlined shapes are structurally identical.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model Envelope<T> { data: T; }
       @test("M")
       model M { a: Envelope<{x: string}>; b: Envelope<{x: string}>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const props = builder.getSchemas().M.properties as Record<string, any>;
 
@@ -383,20 +372,18 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.b).toEqual(expected);
     expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("inlines a string-literal template argument's distinct separator characters to their own literal shape instead of composing a synthesized name", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<"a b">; b: P<"a#b">; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const props = builder.getSchemas().M.properties as Record<string, any>;
 
@@ -414,13 +401,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   });
 
   it("inlines a numeric template argument in exponent form to its own literal shape instead of needing a safe schema key", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<100000000000000000000000>; b: P<1e21>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -518,13 +503,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // string literal `a` uses. A reduced template and a plain literal of
     // the same text must not disagree: one cannot inline while the other
     // registers a synthesized `components.schemas` key.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
       model M { a: P<"abc">; b: P<"a\${"b"}c">; c: P<"x-\${"y"}">; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -553,14 +536,12 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // is too: unspeakability propagates outward through every level. The
     // speakable `Outer<Inner<string>>` next to it still registers both of
     // its levels, so the propagation is not over-eager.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model Inner<T> { i: T; }
       model Outer<T> { o: T; }
       @test("M")
       model M { a: Outer<Inner<{x: string}>>; b: Outer<Inner<string>>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -586,15 +567,13 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // A value has no nameable identity of its own. Naming both
     // instantiations after a fixed placeholder would turn valid TypeSpec
     // into a `duplicate-schema-key` error.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model P<T extends valueof string> { v: string; }
       const c1: string = "one";
       const c2: string = "two";
       @test("M")
       model M { a: P<c1>; b: P<c2>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -616,13 +595,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // behind. So it is promoted to a real `components.schemas` entry under
     // the `getTypeName`-derived fallback name, and `children.items`
     // resolves to a genuine self-`$ref`.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model Node<T> { v: T; children: Node<T>[]; }
       @test("M")
       model M { a: Node<{x: string}>; b: Node<string>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -649,7 +626,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     });
 
     expect(
-      runner.program.diagnostics.filter(
+      program.diagnostics.filter(
         (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
       ),
     ).toEqual([]);
@@ -662,13 +639,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // `getEntityName` text, which is identical for both. So they land on
     // one key. That is a hard error, the same collision policy every other
     // candidate-name clash gets, rather than a silent rename.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model Node<T> { v: T; children: Node<T>[]; }
       @test("M")
       model M { a: Node<{x: string}>; b: Node<{x: string}>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -678,7 +653,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.b.$ref).toBe(`#/components/schemas/${key}`);
     expect(components[key]).toBeDefined();
 
-    const duplicates = runner.program.diagnostics.filter(
+    const duplicates = program.diagnostics.filter(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(duplicates).toHaveLength(1);
@@ -691,20 +666,16 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // that attempt is registered as-is, so the body is built exactly once
     // and the unsupported `Iface` property is reported once. The speakable
     // neighbour `Node<string>` never inlines and gives the baseline count.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       interface Iface { doThing(): void; }
       model Node<T> { v: T; bad: Iface; children: Node<T>[]; }
       @test("M")
       model M { a: Node<{x: string}>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
-      ),
+      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/unsupported-payload-type"),
     ).toHaveLength(1);
   });
 
@@ -713,21 +684,17 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // Type instance. The first reference promotes it to a component. The
     // second must reuse that cached declaration instead of rebuilding the
     // body and re-reporting every diagnostic of the first attempt.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       interface Iface { doThing(): void; }
       model Node<T> { v: T; bad: Iface; children: Node<T>[]; }
       alias N = Node<{x: string}>;
       @test("M")
       model M { a: N; b: N; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
-      ),
+      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/unsupported-payload-type"),
     ).toHaveLength(1);
 
     // Both properties resolve to the one registered component.
@@ -739,18 +706,16 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   });
 
   it("reports a missing-discriminator-property diagnostic once for a promoted self-recursive instantiation", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       @discriminator("kind")
       model Node<T> { v: T; children: Node<T>[]; }
       @test("M")
       model M { a: Node<{x: string}>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
 
     expect(
-      runner.program.diagnostics.filter(
+      program.diagnostics.filter(
         (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
       ),
     ).toHaveLength(1);
@@ -762,15 +727,13 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // is unspeakable and inlines, exactly like a value or a literal
     // argument. Naming both instantiations after one fixed placeholder
     // would turn valid TypeSpec into a `duplicate-schema-key` error.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       op opA(): void;
       op opB(): void;
       model P<T extends TypeSpec.Reflection.Operation> { v: string; }
       @test("M")
       model M { a: P<opA>; b: P<opB>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -784,7 +747,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.a).toEqual(inlined);
     expect(props.b).toEqual(inlined);
     expect(
-      runner.program.diagnostics.filter((d) => d.code === "typespec-asyncapi/duplicate-schema-key"),
+      program.diagnostics.filter((d) => d.code === "typespec-asyncapi/duplicate-schema-key"),
     ).toEqual([]);
   });
 
@@ -793,13 +756,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // the fallback name is composed per argument instead. Two recursive
     // instantiations of one template union therefore stay apart rather
     // than colliding on the bare template name.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       union Chain<T> { head: T, next: Chain<T> }
       @test("M")
       model M { a: Chain<{x: string}>; b: Chain<{y: int32}>; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;
@@ -822,7 +783,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     ]);
 
     expect(
-      runner.program.diagnostics.filter(
+      program.diagnostics.filter(
         (d) =>
           d.code === "typespec-asyncapi/unrepresentable-circular-reference" ||
           d.code === "typespec-asyncapi/duplicate-schema-key",

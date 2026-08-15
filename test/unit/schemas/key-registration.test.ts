@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
 describe("Unit: Schemas — schema keys and registration", () => {
   it("should Sep-encode `/` and `~` out of a backtick-declared model's own name, rather than leaking them into the schema key", async () => {
@@ -14,8 +13,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // `toJsonPointerToken`'s RFC 6901 escaping to do; it stays in place
     // as a defense-in-depth guard for a key from any other future
     // source.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model \`x/y\` { z: string; }
       model \`a~b\` { z: string; }
       model ${t.model("M")} {
@@ -23,8 +21,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         r: \`a~b\`;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const components = builder.getSchemas() as Record<string, any>;
@@ -50,8 +46,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // declaration's own name does, so a backtick-quoted namespace such as
     // `` `a/b` `` cannot leak a charset-illegal character into the key.
     // The emitted $ref then needs no JSON-Pointer escaping either.
-    const runner = await AsyncAPITester.createInstance();
-    const { NsFoo, GlobalFoo } = await runner.compile(t.code`
+    const { builder, program, NsFoo, GlobalFoo } = await compileSchemas(t.code`
       namespace \`a/b\` {
         @test("NsFoo")
         model Foo { x: string; }
@@ -59,8 +54,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
       @test("GlobalFoo")
       model Foo { z: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
     const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
@@ -69,7 +62,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(Object.hasOwn(builder.getSchemas(), "ASep47B.Foo")).toBe(true);
     expect(Object.hasOwn(builder.getSchemas(), "a/b.Foo")).toBe(false);
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
@@ -79,8 +72,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // A raw `#` in a key would put a second `#` in the $ref URI, which is
     // not a resolvable fragment, and a raw space is not a legal key
     // character either. Neither survives sanitization.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       namespace \`a#b\` { model F { x: string; } }
       namespace \`has space\` { model G { y: string; } }
       @test("M")
@@ -89,8 +81,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         g: \`has space\`.G;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
 
     const components = builder.getSchemas() as Record<string, any>;
@@ -114,8 +104,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // `getTypeName`/`getNamespacePrefix` behavior. `NS1.Duplicate1` and
     // `NS2.Duplicate1` compute different candidates, so they no longer
     // collide and no diagnostic is reported.
-    const runner = await AsyncAPITester.createInstance();
-    const { Type1, Type2 } = await runner.compile(t.code`
+    const { builder, program, Type1, Type2 } = await compileSchemas(t.code`
       namespace NS1 {
         @test("Type1")
         model Duplicate1 {
@@ -129,15 +118,13 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(Type1 as Model) as any;
     const ref2 = builder.buildSchema(Type2 as Model) as any;
 
     expect(ref1.$ref).toBe("#/components/schemas/NS1.Duplicate1");
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
@@ -148,8 +135,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // `namespacePrefix`), so `GlobalFoo` keeps the bare "Foo" key while
     // `NsFoo` gets the namespace-qualified "NS2.Foo" key. The two no
     // longer compute the same candidate, regardless of build order.
-    const runner = await AsyncAPITester.createInstance();
-    const { NsFoo, GlobalFoo } = await runner.compile(t.code`
+    const { builder, program, NsFoo, GlobalFoo } = await compileSchemas(t.code`
       namespace NS2 {
         @test("NsFoo")
         model Foo {
@@ -161,23 +147,20 @@ describe("Unit: Schemas — schema keys and registration", () => {
         b: int32;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(NsFoo as Model) as any;
     const ref2 = builder.buildSchema(GlobalFoo as Model) as any;
 
     expect(ref1.$ref).toBe("#/components/schemas/NS2.Foo");
     expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("gives a global-namespace model and a namespaced same-named model distinct keys (global built first)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { NsFoo, GlobalFoo } = await runner.compile(t.code`
+    const { builder, program, NsFoo, GlobalFoo } = await compileSchemas(t.code`
       namespace NS2 {
         @test("NsFoo")
         model Foo {
@@ -189,23 +172,20 @@ describe("Unit: Schemas — schema keys and registration", () => {
         b: int32;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
     const ref2 = builder.buildSchema(NsFoo as Model) as any;
 
     expect(ref1.$ref).toBe("#/components/schemas/Foo");
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("leaves the service namespace out of a schema key, while still qualifying a namespace nested under it", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Order, SubOrder } = await runner.compile(t.code`
+    const { builder, Order, SubOrder } = await compileSchemas(t.code`
       @service(#{ title: "Order Events" })
       namespace MyService;
       @test("Order")
@@ -219,8 +199,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(Order as Model) as any;
     const ref2 = builder.buildSchema(SubOrder as Model) as any;
 
@@ -233,8 +211,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("gives two same-named templates in sibling namespaces distinct keys for the same type argument", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       model Order { id: string; }
       namespace A {
         model Env<T> { a: T; }
@@ -248,8 +225,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         y: B.Env<Order>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const props = builder.getSchemas().M.properties as Record<string, any>;
 
@@ -259,15 +234,14 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.x).toEqual({ $ref: "#/components/schemas/A.EnvOrder" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/B.EnvOrder" });
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("should give each template instantiation its own schema key", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       namespace NS {
         model Page<T> {
           items: T[];
@@ -280,8 +254,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
 
     const components = builder.getSchemas();
@@ -311,8 +283,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("gives two same-named models under different multi-level namespace chains distinct, namespace-qualified keys", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { GlobalModel, NestedModel } = await runner.compile(t.code`
+    const { builder, program, GlobalModel, NestedModel } = await compileSchemas(t.code`
       @test("GlobalModel")
       model Widget {
         a: string;
@@ -326,8 +297,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(GlobalModel as Model) as any;
     const ref2 = builder.buildSchema(NestedModel as Model) as any;
 
@@ -338,15 +307,14 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/Widget");
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("keeps a stable $ref, with no diagnostic, when a namespace-qualified model is referenced again from a sibling namespace", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Type1, Type2, Wrapper } = await runner.compile(t.code`
+    const { builder, program, Type1, Type2, Wrapper } = await compileSchemas(t.code`
       namespace NS1 {
         @test("Type1")
         model Duplicate1 {
@@ -364,8 +332,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Type1 as Model);
     builder.buildSchema(Type2 as Model);
     builder.buildSchema(Wrapper as Model);
@@ -382,7 +348,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       $ref: "#/components/schemas/NS2.Duplicate1",
     });
 
-    const diagnostics = runner.program.diagnostics.filter(
+    const diagnostics = program.diagnostics.filter(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostics).toHaveLength(0);
@@ -394,8 +360,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     // Under default namespace-qualified naming there is no collision at
     // all to race over: each property's namespace-qualified key is fixed
     // by its own declaring namespace, independent of visitation order.
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, program, W } = await compileSchemas(t.code`
       namespace NS1 { model Foo { a: string; } }
       namespace NS2 { model Foo { b: int32; } }
       model ${t.model("W")} {
@@ -403,29 +368,26 @@ describe("Unit: Schemas — schema keys and registration", () => {
         y: NS1.Foo;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W);
 
     const props = builder.getSchemas().W.properties as Record<string, any>;
     expect(props.x).toEqual({ $ref: "#/components/schemas/NS2.Foo" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
 
-    const diagnostics = runner.program.diagnostics.filter(
+    const diagnostics = program.diagnostics.filter(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostics).toHaveLength(0);
   });
 
   it("resolves a namespace-qualified name the same way when one namespace is declared blockless", async () => {
-    const runner = await AsyncAPITester.createInstance();
     // `namespace Foo;` (no braces) must be the file's first statement. It
     // puts every following top-level declaration into `Foo`, the same way
     // `namespace Foo { ... }` would. `Bar` is then a nested block
     // namespace inside `Foo`. Symbol resolution, and so the namespace
     // chain `namespacePrefix` walks, must not depend on which namespace
     // syntax produced it.
-    const { FooWidget, BarWidget } = await runner.compile(t.code`
+    const { builder, program, FooWidget, BarWidget } = await compileSchemas(t.code`
       namespace Foo;
       @test("FooWidget")
       model Widget {
@@ -438,29 +400,24 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const ref1 = builder.buildSchema(FooWidget as Model) as any;
     const ref2 = builder.buildSchema(BarWidget as Model) as any;
 
     expect(ref1.$ref).toBe("#/components/schemas/Foo.Widget");
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeUndefined();
   });
 
   it("should Sep-encode a backtick-declared model's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model \`Foo/Bar\` { x: string; }
       @test("M")
       model M { field: \`Foo/Bar\`; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const props = builder.getSchemas().M.properties as Record<string, any>;
     const key = String(props.field.$ref).replace("#/components/schemas/", "");
@@ -473,14 +430,11 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("should Sep-encode a backtick-declared enum's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       enum \`Foo/Bar\` { A, B }
       @test("M")
       model M { field: \`Foo/Bar\`; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const props = builder.getSchemas().M.properties as Record<string, any>;
     const key = String(props.field.$ref).replace("#/components/schemas/", "");
@@ -490,8 +444,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("should use @friendlyName's resolved, interpolated name as the components.schemas key for a template instantiation", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       @friendlyName("{name}Envelope", T)
       model Envelope<T> {
         data: T;
@@ -504,8 +457,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         order: Envelope<Order>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
     const props = components.W.properties as Record<string, any>;
@@ -519,8 +470,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("should report duplicate-schema-key when two template instantiations resolve to the same @friendlyName", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, program, W } = await compileSchemas(t.code`
       @friendlyName("Wrapped")
       model Envelope<T> {
         data: T;
@@ -533,10 +483,8 @@ describe("Unit: Schemas — schema keys and registration", () => {
         invoice: Envelope<Invoice>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/duplicate-schema-key",
     );
     expect(diagnostic).toBeDefined();
@@ -544,8 +492,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("should still use the structural name for a template instantiation with no @friendlyName", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { W } = await runner.compile(t.code`
+    const { builder, W } = await compileSchemas(t.code`
       model Envelope<T> {
         data: T;
       }
@@ -557,8 +504,6 @@ describe("Unit: Schemas — schema keys and registration", () => {
         order: Envelope<Order>;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
     const props = components.W.properties as Record<string, any>;
@@ -568,15 +513,12 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("should use @friendlyName's resolved name as the components.schemas key for an enum", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       @friendlyName("Renamed")
       enum Color { Red, Green }
       @test("M")
       model M { color: Color; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
     const props = components.M.properties as Record<string, any>;

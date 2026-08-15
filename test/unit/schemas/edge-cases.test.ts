@@ -1,19 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
 describe("Unit: Schemas edge cases (regression)", () => {
   it("self-referential model does not blow the stack", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Node } = await runner.compile(t.code`
+    const { builder, Node } = await compileSchemas(t.code`
       model ${t.model("Node")} {
         value: string;
         next?: Node;
       }
     `);
-    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(Node)).not.toThrow();
     const schema = builder.getSchemas().Node as any;
     expect(schema.properties.next).toEqual({ $ref: "#/components/schemas/Node" });
@@ -21,20 +18,17 @@ describe("Unit: Schemas edge cases (regression)", () => {
   });
 
   it("mutually referential models terminate", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { A } = await runner.compile(t.code`
+    const { builder, A } = await compileSchemas(t.code`
       model ${t.model("A")} { b?: B; }
       model B { a?: A; }
     `);
-    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(A)).not.toThrow();
     expect(builder.getSchemas().A).toBeDefined();
     expect(builder.getSchemas().B).toBeDefined();
   });
 
   it("self-referential model via a union member does not blow the stack", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Node } = await runner.compile(t.code`
+    const { builder, Node } = await compileSchemas(t.code`
       model Leaf {
         value: string;
       }
@@ -42,7 +36,6 @@ describe("Unit: Schemas edge cases (regression)", () => {
         children: Node | Leaf;
       }
     `);
-    const builder = new SchemaBuilder(runner.program);
     // The same `building` guard that protects a direct self-reference
     // (`next?: Node` above) must also protect an indirect one reached
     // through a union variant, since a union variant is itself just
@@ -62,19 +55,17 @@ describe("Unit: Schemas edge cases (regression)", () => {
     // where a property's type is expected; only this emitter rejects it.
     // This exercises the real `default` branch of `buildSchema`'s switch,
     // rather than a synthetic `Type.kind`.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       interface Iface {}
       model ${t.model("M")} {
         field: Iface;
       }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
     const fieldSchema = (builder.getSchemas().M as any).properties.field;
 
     expect(fieldSchema).toEqual({});
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/unsupported-payload-type",
     );
     expect(diagnostic).toBeDefined();
@@ -90,19 +81,17 @@ describe("Unit: Schemas edge cases (regression)", () => {
     // guard entirely, so this used to throw
     // "RangeError: Maximum call stack size exceeded" instead of reporting a
     // diagnostic.
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, program, M } = await compileSchemas(t.code`
       alias Recursive = { a: Recursive };
       model ${t.model("M")} {
         field: Recursive;
       }
     `);
-    const builder = new SchemaBuilder(runner.program);
     expect(() => builder.buildSchema(M)).not.toThrow();
     const fieldSchema = (builder.getSchemas().M as any).properties.field;
     expect(fieldSchema.type).toBe("object");
     expect(fieldSchema.properties.a).toEqual({});
-    const diagnostic = runner.program.diagnostics.find(
+    const diagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/unrepresentable-circular-reference",
     );
     expect(diagnostic).toBeDefined();
@@ -110,13 +99,11 @@ describe("Unit: Schemas edge cases (regression)", () => {
   });
 
   it("anonymous model keeps its properties", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Outer } = await runner.compile(t.code`
+    const { builder, Outer } = await compileSchemas(t.code`
       model ${t.model("Outer")} {
         inline: { x: string; y?: int32 };
       }
     `);
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Outer);
     const props = builder.getSchemas().Outer.properties as Record<string, any>;
     expect(props.inline.type).toBe("object");

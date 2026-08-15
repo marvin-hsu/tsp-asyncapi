@@ -1,19 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
 describe("Unit: Schemas — scalars", () => {
   it("should build string scalar schema", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { TestModel } = await runner.compile(t.code`
+    const { builder, TestModel } = await compileSchemas(t.code`
       model ${t.model("TestModel")} {
         field: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     const schema = builder.buildSchema(TestModel) as any;
 
     expect(schema.$ref).toBe("#/components/schemas/TestModel");
@@ -26,8 +22,7 @@ describe("Unit: Schemas — scalars", () => {
   });
 
   it("should build schema for various scalars", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { TestScalars } = await runner.compile(t.code`
+    const { builder, TestScalars } = await compileSchemas(t.code`
       model ${t.model("TestScalars")} {
         str: string;
         bool: boolean;
@@ -57,8 +52,6 @@ describe("Unit: Schemas — scalars", () => {
         n: numeric;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(TestScalars);
 
     const props = builder.getSchemas().TestScalars.properties as Record<string, any>;
@@ -92,8 +85,7 @@ describe("Unit: Schemas — scalars", () => {
   });
 
   it("should resolve user-declared scalars via the baseScalar chain", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       scalar Email extends string;
       scalar Age extends int32;
       scalar Opaque;
@@ -103,8 +95,6 @@ describe("Unit: Schemas — scalars", () => {
         o: Opaque;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -117,8 +107,7 @@ describe("Unit: Schemas — scalars", () => {
   });
 
   it("should not let a user scalar shadowed by a built-in name hijack the built-in mapping", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       namespace MyLib {
         scalar duration extends int32;
         scalar url extends int64;
@@ -128,8 +117,6 @@ describe("Unit: Schemas — scalars", () => {
         u: MyLib.url;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
@@ -141,21 +128,18 @@ describe("Unit: Schemas — scalars", () => {
   });
 
   it("falls back to the unconstrained schema for a scalar derived from a built-in that has no dedicated table entry", async () => {
-    const runner = await AsyncAPITester.createInstance();
     // `unixTimestamp32` is a real TypeSpec standard-library scalar (it
     // extends `utcDateTime`), but `SCALAR_SCHEMAS` carries no entry for
     // it. A built-in scalar is always looked up by its own name; it never
     // falls through to its `baseScalar`'s mapping. So a user scalar
     // derived from it bottoms out at the unconstrained `{}` shape, the
     // same as a user scalar derived from no built-in at all.
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       scalar Foo extends unixTimestamp32;
       model ${t.model("M")} {
         a: Foo;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;

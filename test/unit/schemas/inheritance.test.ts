@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
+import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
   it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Derived } = await runner.compile(t.code`
+    const { builder, Derived } = await compileSchemas(t.code`
       model Base { a: string; }
       model ${t.model("Derived")} extends Base { b: int32; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Derived);
 
     const components = builder.getSchemas();
@@ -37,13 +35,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should flatten spread (`...A`) properties directly onto the spreading model, not via `allOf`", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { M } = await runner.compile(t.code`
+    const { builder, M } = await compileSchemas(t.code`
       model Base { a: string; }
       model ${t.model("M")} { ...Base; b: int32; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M);
 
     const components = builder.getSchemas();
@@ -61,15 +56,12 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should emit `discriminator` (a bare property-name string) on a `@discriminator`-annotated base model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet, Cat, Dog } = await runner.compile(t.code`
+    const { builder, Pet, Cat, Dog } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} { kind: string; }
       model ${t.model("Cat")} extends Pet { kind: "cat"; lives: int32; }
       model ${t.model("Dog")} extends Pet { kind: "dog"; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
     builder.buildSchema(Cat);
     builder.buildSchema(Dog);
@@ -107,16 +99,13 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should hoist discriminator to the schema root even when the @discriminator-annotated model itself has a baseModel", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet, Dog, Poodle } = await runner.compile(t.code`
+    const { builder, Pet, Dog, Poodle } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} { kind: string; }
       @discriminator("breed")
       model ${t.model("Dog")} extends Pet { kind: "dog"; breed: string; }
       model ${t.model("Poodle")} extends Dog { breed: "poodle"; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
     builder.buildSchema(Dog);
     builder.buildSchema(Poodle);
@@ -132,46 +121,39 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should report a diagnostic and omit discriminator when the discriminating property does not exist on the model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet } = await runner.compile(t.code`
+    const { builder, program, Pet } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} { name: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      runner.program.diagnostics.some(
+      program.diagnostics.some(
         (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
       ),
     ).toBe(true);
   });
 
   it("should report a diagnostic and omit discriminator when the discriminating property is optional", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet } = await runner.compile(t.code`
+    const { builder, program, Pet } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} { kind?: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      runner.program.diagnostics.some(
+      program.diagnostics.some(
         (d) => d.code === "typespec-asyncapi/optional-discriminator-property",
       ),
     ).toBe(true);
   });
 
   it("should match the discriminating property by its TypeSpec name and emit the wire name as discriminator", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet } = await runner.compile(t.code`
+    const { builder, program, Pet } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} {
         @encodedName("application/json", "petType")
@@ -179,8 +161,6 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
         name: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
@@ -194,21 +174,18 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       discriminator: "petType",
     });
     expect(
-      runner.program.diagnostics.some(
+      program.diagnostics.some(
         (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
       ),
     ).toBe(false);
   });
 
   it("should emit discriminator when the discriminating property is inherited from baseModel", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Mid } = await runner.compile(t.code`
+    const { builder, Mid } = await compileSchemas(t.code`
       model Base { kind: string; }
       @discriminator("kind")
       model ${t.model("Mid")} extends Base { name: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Mid);
 
     const components = builder.getSchemas();
@@ -226,34 +203,28 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should report a diagnostic and omit discriminator when the discriminating property is never-typed", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pet } = await runner.compile(t.code`
+    const { builder, program, Pet } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Pet")} { kind: never; name: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      runner.program.diagnostics.some(
+      program.diagnostics.some(
         (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
       ),
     ).toBe(true);
   });
 
   it("should preserve a named collection-backed base's validation keywords and docs when extended", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pets } = await runner.compile(t.code`
+    const { builder, Pets } = await compileSchemas(t.code`
       @doc("names doc")
       @minItems(1)
       model Names is string[];
       model ${t.model("Pets")} extends Names {}
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pets);
 
     const components = builder.getSchemas();
@@ -269,13 +240,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should return the base's collection shape (not an unsatisfiable allOf) when extends an array-backed model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Pets } = await runner.compile(t.code`
+    const { builder, Pets } = await compileSchemas(t.code`
       model Pet { name: string; }
       model ${t.model("Pets")} extends Array<Pet> { }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Pets);
 
     const components = builder.getSchemas();
@@ -286,12 +254,9 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should return the base's collection shape (not a noisy allOf) when extends a record-backed model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       model ${t.model("Bag")} extends Record<string> { }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -302,12 +267,9 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep own properties when extending an anonymous Record base", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       model ${t.model("Bag")} extends Record<unknown> { count: int32; name: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -323,13 +285,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep own properties when extending a named Record-backed alias", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       model Props is Record<unknown>;
       model ${t.model("Bag")} extends Props { count: int32; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -346,12 +305,9 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep own properties when extending a Record<string> base with a compatible property type", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       model ${t.model("Bag")} extends Record<string> { extra: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -364,12 +320,9 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep own properties when a model has its own declared property plus a spread Record indexer (no extends)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       model ${t.model("Bag")} { id: string; ...Record<string>; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -407,13 +360,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should emit properties/required/discriminator together when the discriminating property survives a Record base", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Bag } = await runner.compile(t.code`
+    const { builder, Bag } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Bag")} extends Record<string> { kind: string; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Bag);
 
     const components = builder.getSchemas();
@@ -427,14 +377,11 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep discriminator on the assembled schema when the discriminating property is inherited from an allOf branch (documented lenient interpretation)", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Mid } = await runner.compile(t.code`
+    const { builder, Mid } = await compileSchemas(t.code`
       model Base { kind: string; }
       @discriminator("kind")
       model ${t.model("Mid")} extends Base { }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Mid);
 
     const components = builder.getSchemas();
@@ -445,13 +392,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should omit the empty own-shape branch when a derived model adds no properties of its own", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Derived } = await runner.compile(t.code`
+    const { builder, Derived } = await compileSchemas(t.code`
       model Base { a: string; }
       model ${t.model("Derived")} extends Base { }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Derived);
 
     const components = builder.getSchemas();
@@ -461,16 +405,13 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should flatten (not allOf) a derived model whose override property has a different @encodedName than the inherited one", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Cat } = await runner.compile(t.code`
+    const { builder, program, Cat } = await compileSchemas(t.code`
       model Pet { kind: string; }
       model ${t.model("Cat")} extends Pet {
         @encodedName("application/json", "k")
         kind: "cat";
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Cat);
 
     const components = builder.getSchemas();
@@ -482,7 +423,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       properties: { k: { type: "string", enum: ["cat"] } },
       required: ["k"],
     });
-    const overrideDiagnostic = runner.program.diagnostics.find(
+    const overrideDiagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/encoded-name-override-conflict",
     );
     expect(overrideDiagnostic).toBeDefined();
@@ -494,16 +435,13 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should flatten (not allOf) a derived model whose new property's wire name collides with a different inherited property's wire name", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Derived } = await runner.compile(t.code`
+    const { builder, program, Derived } = await compileSchemas(t.code`
       model Base { a: string; }
       model ${t.model("Derived")} extends Base {
         @encodedName("application/json", "a")
         b: int32;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Derived);
 
     const components = builder.getSchemas();
@@ -514,7 +452,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       properties: { a: { type: "integer", format: "int32" } },
       required: ["a"],
     });
-    const collisionDiagnostic = runner.program.diagnostics.find(
+    const collisionDiagnostic = program.diagnostics.find(
       (d) => d.code === "typespec-asyncapi/encoded-name-override-conflict",
     );
     expect(collisionDiagnostic).toBeDefined();
@@ -526,8 +464,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should keep an inherited Record indexer's additionalProperties when the flatten fallback triggers", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Derived } = await runner.compile(t.code`
+    const { builder, Derived } = await compileSchemas(t.code`
       model Base extends Record<string> {
         @encodedName("application/json", "x")
         a: string;
@@ -537,8 +474,6 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
         a: string;
       }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Derived);
 
     const components = builder.getSchemas();
@@ -555,13 +490,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   });
 
   it("should drop a `never`-typed override of an inherited property under `extends`, matching the flatten fallback's behavior", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Derived } = await runner.compile(t.code`
+    const { builder, program, Derived } = await compileSchemas(t.code`
       model Base { a: string; b: string; }
       model ${t.model("Derived")} extends Base { a: never; }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Derived);
 
     const components = builder.getSchemas();
@@ -574,26 +506,21 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["b"],
     });
     expect(
-      runner.program.diagnostics.some(
-        (d) => d.code === "typespec-asyncapi/never-typed-property-override",
-      ),
+      program.diagnostics.some((d) => d.code === "typespec-asyncapi/never-typed-property-override"),
     ).toBe(true);
   });
 
   it("should report missing-discriminator-property when @discriminator is applied to a collection-backed model", async () => {
-    const runner = await AsyncAPITester.createInstance();
-    const { Names } = await runner.compile(t.code`
+    const { builder, program, Names } = await compileSchemas(t.code`
       @discriminator("kind")
       model ${t.model("Names")} is string[];
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(Names);
 
     const components = builder.getSchemas();
     expect((components.Names as any).discriminator).toBeUndefined();
     expect(
-      runner.program.diagnostics.some(
+      program.diagnostics.some(
         (d) => d.code === "typespec-asyncapi/missing-discriminator-property",
       ),
     ).toBe(true);
@@ -608,15 +535,12 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     // shape for `envelope: "object"` is `{ "kind": "a", "value": { ... } }`.
     // That shape does NOT validate against this schema. Full envelope
     // support is deferred to a future phase.
-    const runner = await AsyncAPITester.createInstance();
-    const { U } = await runner.compile(t.code`
+    const { builder, U } = await compileSchemas(t.code`
       model A { kind: "a"; }
       model B { kind: "b"; }
       @discriminated
       union ${t.union("U")} { a: A, b: B }
     `);
-
-    const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(U);
 
     const components = builder.getSchemas();
