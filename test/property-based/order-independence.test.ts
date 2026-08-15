@@ -34,74 +34,60 @@ const leafType = fc.constantFrom("string", "int32", "boolean", "float64");
 
 describe("Property: order independence", () => {
   /**
-   * A known defect, recorded rather than hidden.
+   * Swapping two messages leaves the document unchanged.
    *
    * A shape with no name of its own is inlined at the site that reaches it
    * first, and promoted to a component when a second site reaches it. The
-   * promotion adds the component and points the second site at it. It does
-   * not go back and replace the copy already written into the first site.
-   *
-   * Swapping two messages therefore moves which one holds the copy:
+   * promotion used to add the component and point the second site at it,
+   * while leaving the copy already written into the first site alone:
    *
    *   model Env<T> { data: T; }
    *   alias E2 = Env<{ p2: string }>;
    *   @AsyncAPI.message model Alpha { f2: E2; }
    *   @AsyncAPI.message model Beta  { f2: E2; }
    *
-   * Whichever message is declared first carries the whole shape inline, and
-   * the other carries `$ref` to `components.schemas`. Both documents also
-   * hold the component, so one body is emitted twice: once as a component
-   * and once expanded inside a message. The two copies can drift, and a
-   * reader has no sign they are the same shape. Reordering two declarations
-   * for tidiness also rewrites the output.
-   *
-   * `buildDeclarationRef` already prevents this for a message payload
-   * itself. The gap is a shape shared *inside* payloads.
+   * Whichever message came first carried the whole shape inline and the
+   * other carried a reference, so one body was emitted twice and reordering
+   * two declarations rewrote the output. Promotion now rewrites that first
+   * copy into a reference as well, which it can do because the copy and the
+   * component are one object.
    *
    * A plain named model is always registered, so it never meets the
    * promotion rule. The alias is what makes both messages reach one
    * instantiation, and writing the instantiation out twice would instead
    * create two separate types.
-   *
-   * `it.fails` records the defect without turning the suite red. The seed
-   * is fixed so the counter-example does not move. Fixing the builder makes
-   * this test fail, which is the signal to drop `.fails`.
    */
-  it.fails(
-    "does not yet emit the same document when the two messages swap places",
-    async () => {
-      await fc.assert(
-        fc.asyncProperty(
-          fc.uniqueArray(fc.integer({ min: 0, max: 4 }), { minLength: 1, maxLength: 3 }),
-          fc.uniqueArray(fc.integer({ min: 0, max: 4 }), { minLength: 1, maxLength: 3 }),
-          leafType,
-          async (leftIds, rightIds, type) => {
-            const shared = [...new Set([...leftIds, ...rightIds])].sort((x, y) => x - y);
-            const aliases = shared
-              .map((id) => `alias E${String(id)} = Env<{ p${String(id)}: ${type} }>;`)
-              .join("\n");
-            const fieldsOf = (ids: number[]) =>
-              ids.map((id) => "f" + String(id) + ": E" + String(id) + ";").join(" ");
+  it("emits the same document when the two messages swap places", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.uniqueArray(fc.integer({ min: 0, max: 4 }), { minLength: 1, maxLength: 3 }),
+        fc.uniqueArray(fc.integer({ min: 0, max: 4 }), { minLength: 1, maxLength: 3 }),
+        leafType,
+        async (leftIds, rightIds, type) => {
+          const shared = [...new Set([...leftIds, ...rightIds])].sort((x, y) => x - y);
+          const aliases = shared
+            .map((id) => `alias E${String(id)} = Env<{ p${String(id)}: ${type} }>;`)
+            .join("\n");
+          const fieldsOf = (ids: number[]) =>
+            ids.map((id) => "f" + String(id) + ": E" + String(id) + ";").join(" ");
 
-            const alpha = `@AsyncAPI.message model Alpha { ${fieldsOf(leftIds)} }`;
-            const beta = `@AsyncAPI.message model Beta { ${fieldsOf(rightIds)} }`;
-            const head = `model Env<T> { data: T; }\n${aliases}`;
+          const alpha = `@AsyncAPI.message model Alpha { ${fieldsOf(leftIds)} }`;
+          const beta = `@AsyncAPI.message model Beta { ${fieldsOf(rightIds)} }`;
+          const head = `model Env<T> { data: T; }\n${aliases}`;
 
-            const a = await emitAsyncAPIWithDiagnostics(`${head}\n${alpha}\n${beta}`);
-            const b = await emitAsyncAPIWithDiagnostics(`${head}\n${beta}\n${alpha}`);
+          const a = await emitAsyncAPIWithDiagnostics(`${head}\n${alpha}\n${beta}`);
+          const b = await emitAsyncAPIWithDiagnostics(`${head}\n${beta}\n${alpha}`);
 
-            fc.pre(a.doc !== null && b.doc !== null);
-            fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
-            fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
+          fc.pre(a.doc !== null && b.doc !== null);
+          fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
+          fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
 
-            expect(normalise(a.doc)).toEqual(normalise(b.doc));
-          },
-        ),
-        { numRuns: 80, seed: 20260815 },
-      );
-    },
-    180000,
-  );
+          expect(normalise(a.doc)).toEqual(normalise(b.doc));
+        },
+      ),
+      { numRuns: 80, seed: 20260815 },
+    );
+  }, 180000);
 
   /**
    * Rotating the message declarations must not change the document, once

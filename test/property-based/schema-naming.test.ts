@@ -105,41 +105,21 @@ describe("Unit: Schemas — key sanitizer properties", () => {
   });
 
   /**
-   * A known defect, recorded rather than hidden.
+   * Two different names never claim one key.
    *
-   * `sanitizeDeclarationName` returns a name unchanged as soon as it is
-   * already inside the key charset. The escape that turns `Sep` before a
-   * digit into `SepSep` lives further in, so a name that is already legal
-   * and happens to spell the marker never meets it:
+   * The encoding turns an unsafe character into the marker `Sep` followed
+   * by its code point, so a name that spells the marker itself has to be
+   * escaped or it reads back as an encoded character. That escape used to
+   * run only for names that needed encoding, and a name already inside the
+   * key charset skipped it. `` `/` `` encoded to `Sep47`, the declaration
+   * `Sep47` passed through untouched, and the two met on one key.
    *
-   *   "/"     -> "Sep47"
-   *   "Sep47" -> "Sep47"
-   *
-   * A model written as `` `/` `` and a model written as `Sep47` therefore
-   * claim one `components.schemas` key. Any character behaves the same way:
-   * `` `~` `` collides with `Sep126`.
-   *
-   * Emitting both was measured, and the result is worse than a refusal.
-   * `duplicate-schema-key` is reported at error severity, and the emitter
-   * still returns a document. `components.schemas` then holds one entry
-   * under the shared key, carrying the body of whichever model reached it
-   * first, and both references point at it. The second model's own shape is
-   * gone, and the reference that wanted it now describes the wrong one.
-   * A real `tsp compile` fails on the error and writes no file, so the
-   * merged document does not normally reach anyone. The merge is real all
-   * the same, and calling this a refused program overstates the guarantee.
-   *
-   * A generic string generator almost never reaches this region, so a
-   * broad injectivity property would pass and say nothing. `markedName`
-   * builds names out of the pieces that matter, so the search spends its
-   * runs where the collision lives. The seed is fixed so the result does
-   * not move between runs.
-   *
-   * `it.fails` records the defect without turning the suite red. Fixing the
-   * sanitizer makes this test fail. That is the signal to drop `.fails`,
-   * which turns this into the injectivity property the sanitizer claims.
+   * A generic string generator almost never reaches that region, so a broad
+   * property would pass and say nothing. This one builds names out of the
+   * pieces that matter, and asserts how many draws carried the marker so a
+   * later change to the generator cannot quietly stop reaching it.
    */
-  it.fails("does not yet keep names apart when one of them spells the marker", () => {
+  it("keeps two names apart when one of them spells the marker", () => {
     fc.assert(
       fc.property(markedName, markedName, (left, right) => {
         fc.pre(left !== right);

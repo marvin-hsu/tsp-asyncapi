@@ -545,7 +545,25 @@ export class SchemaBuilder {
       this.inlinedShapes.delete(type);
       const promotedKey = this.keyRegistry.keyFor(type);
       this.declaredTypes.set(type, promotedKey);
-      this.declaredSchemas.set(promotedKey, inlinedShape);
+
+      // The site that met this type first holds the body itself, and holds
+      // the very object below. The component takes a copy, and the original
+      // is rewritten in place into a reference, which turns that first site
+      // into a reference as well. Without the rewrite the body is emitted
+      // twice, once as a component and once expanded at the first site, and
+      // which site keeps the expansion depends on the order the sources are
+      // declared in. The two copies can then drift, and a reader has no sign
+      // they are the same shape.
+      const body: SchemaObject = { ...inlinedShape };
+      this.declaredSchemas.set(promotedKey, body);
+      // Emptying the object keeps the identity the first site holds, which
+      // is the whole point: assigning a new object would leave that site
+      // pointing at the old body.
+      for (const key of Object.keys(inlinedShape)) {
+        Reflect.deleteProperty(inlinedShape, key);
+      }
+      Object.assign(inlinedShape, refFor(promotedKey));
+
       return refFor(promotedKey);
     }
     // The name is asked of `SchemaKeyRegistry`, which memoizes it, so the

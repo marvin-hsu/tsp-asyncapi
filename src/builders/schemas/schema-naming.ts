@@ -99,6 +99,20 @@ function namespacePrefix(program: Program, namespace: Namespace | undefined): st
 }
 
 /**
+ * The marker the key encoding puts before a character's code point.
+ *
+ * A name that spells the marker itself has to be escaped, or it would read
+ * back as an encoded character. Both the encoder and the pass for names
+ * that need no encoding use these, so the two cannot drift apart. They did
+ * drift once: the encoder escaped the marker and the other pass did not, so
+ * `` `/` `` and `Sep47` claimed one key.
+ */
+const SEP = "Sep";
+
+/** The marker immediately before a digit, which is what makes it ambiguous. */
+const MARKER_BEFORE_DIGIT = /Sep(?=\d)/g;
+
+/**
  * Encodes one piece of free-form text as a `components.schemas` key
  * segment.
  * Two callers use it: `sanitizeDeclarationName`, for a backtick-quoted
@@ -151,13 +165,13 @@ function sanitizeNameSegment(raw: string): string {
   const out = parts
     .map((part, i) => {
       if (i % 2 === 0) {
-        return capitalizeFirst(part.replace(/Sep(?=\d)/g, "SepSep"));
+        return capitalizeFirst(part.replace(MARKER_BEFORE_DIGIT, SEP + SEP));
       }
       if (/^[-_.]+$/.test(part)) {
         return part;
       }
       return Array.from(part)
-        .map((ch) => `Sep${String(ch.codePointAt(0) ?? 0)}`)
+        .map((ch) => `${SEP}${String(ch.codePointAt(0) ?? 0)}`)
         .join("");
     })
     .join("");
@@ -197,8 +211,16 @@ export function isSafeComponentsKey(name: string): boolean {
  * needed.
  */
 export function sanitizeDeclarationName(name: string): string {
-  if (name.length === 0 || SAFE_KEY_CHARSET.test(name)) {
+  if (name.length === 0) {
     return name;
+  }
+  if (SAFE_KEY_CHARSET.test(name)) {
+    // The name needs no encoding, but it may still spell the marker the
+    // encoding uses. `Sep47` is a legal declaration name, and `` `/` ``
+    // encodes to exactly that, so the two would claim one key. Escaping the
+    // marker here keeps them apart. The rest of the name is untouched, case
+    // included, so an ordinary identifier keeps the key it already has.
+    return name.replace(MARKER_BEFORE_DIGIT, SEP + SEP);
   }
   return sanitizeNameSegment(name);
 }

@@ -59,8 +59,10 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // declarations duplicate multiplicatively: a chain where each level
     // references the level below twice grows as 2^depth. Promoting on the
     // second use keeps that growth linear.
-    // The first site keeps its inline copy; only later sites resolve to
-    // the `$ref`. Both express the same schema.
+    // Promotion rewrites the copy the first site already holds, so every
+    // site ends up referring to the one component. Leaving that first copy
+    // expanded would emit the body twice, and which site kept the expansion
+    // would depend on the order the sources were declared in.
     const { builder, program, M } = await compileSchemas(t.code`
       model Env<T> { v: T; }
       alias Shared = Env<{ x: string }>;
@@ -78,13 +80,15 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
       },
       required: ["v"],
     };
-    // First use inlines.
-    expect(props.a).toEqual(inlineShape);
-    // Every later use resolves to the one registered component.
+    // Every site refers to the one registered component, the first
+    // included.
+    expect(props.a).toEqual(props.b);
     expect(props.b).toEqual(props.c);
     expect(props.b.$ref).toBeDefined();
     const key = (props.b.$ref as string).replace("#/components/schemas/", "");
     expect(components[key]).toEqual(inlineShape);
+    // The body is emitted once, as that component.
+    expect(JSON.stringify(components.M)).not.toContain('"properties":{"x"');
     // The body is registered as already built, so a single mistake inside
     // it is never reported twice.
     expect(program.diagnostics).toHaveLength(0);

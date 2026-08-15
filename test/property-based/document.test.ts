@@ -203,8 +203,21 @@ describe("Integration: emitted document properties", () => {
     await fc.assert(
       fc.asyncProperty(
         fc.uniqueArray(trickyName, { minLength: 2, maxLength: 4 }),
-        async (names) => {
-          const models = names.map((n) => `model ${n} { v: string; }`).join("\n");
+        // Two declarations that resolve to one key are still possible, and
+        // no longer through the marker: the sanitizer keeps those apart now.
+        // A shared `@friendlyName` is the remaining way, so the generator
+        // makes one sometimes. Without it the reported branch below is never
+        // entered and its counter assertion fails, which is the counter
+        // doing its job.
+        fc.boolean(),
+        async (names, collide) => {
+          const models = names
+            .map((n, i) =>
+              collide && i < 2
+                ? `@friendlyName("Shared") model ${n} { v: string; }`
+                : `model ${n} { v: string; }`,
+            )
+            .join("\n");
           const fields = names.map((n, i) => "r" + String(i) + ": " + n + ";").join(" ");
           const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
             ${models}
