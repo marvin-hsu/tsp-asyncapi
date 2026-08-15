@@ -4,7 +4,7 @@ import {
   isSafeComponentsKey,
   refFor,
   sanitizeDeclarationName,
-} from "../../../src/builders/schemas/schema-naming.js";
+} from "../../src/builders/schemas/schema-naming.js";
 
 /**
  * Properties of the Components Object key sanitizer.
@@ -16,11 +16,12 @@ import {
  * a literal `Sep` before a digit to `SepSep` so that a name containing the
  * marker cannot be read back as an encoded character.
  *
- * That claim is what `duplicate-schema-key` rests on. Two declaration names
- * that produce one key put two types under a single component, and the
- * emitter reports nothing, because the collision it detects is a collision
- * of keys. Silence is the failure mode, which is why the input space is
- * worth searching rather than sampling.
+ * That claim is what keeps two different declarations apart. When it fails,
+ * `SchemaKeyRegistry` sees one key claimed twice and reports
+ * `duplicate-schema-key`, so nothing is emitted silently. The cost is a
+ * refusal: a legal program is rejected for a clash the escape was written
+ * to prevent. An example test cannot find such a pair, because the names
+ * that collide look ordinary.
  */
 describe("Unit: Schemas — key sanitizer properties", () => {
   it("produces a key inside the Components Object charset for any name", () => {
@@ -50,6 +51,9 @@ describe("Unit: Schemas — key sanitizer properties", () => {
    * A model written as `` `/` `` and a model written as `Sep47` therefore
    * claim one `components.schemas` key. Any character behaves the same way:
    * `` `~` `` collides with `Sep126`.
+   *
+   * Emitting both was measured: the registry reports `duplicate-schema-key`
+   * and refuses. So the damage is a refused program, not a silent merge.
    *
    * A generic string generator almost never reaches this region, so a
    * broad injectivity property would pass and say nothing. This generator
