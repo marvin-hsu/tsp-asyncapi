@@ -1,5 +1,6 @@
 import {
   DecoratorContext,
+  DiagnosticTarget,
   Namespace,
   Type,
   Program,
@@ -87,6 +88,55 @@ export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState 
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 /**
+ * Turns the `config` argument of `@server` into the state to store.
+ * Every string field is trimmed. A required field that is blank after the
+ * trim makes the whole server invalid. The function then reports the field
+ * and returns `undefined`, so the caller drops the server.
+ * An optional field that is blank after the trim carries no value. It is
+ * left absent, the same as a field the author left out.
+ *
+ * @param context - The decorator context
+ * @param name - The name argument of the decorator
+ * @param config - The config argument of the decorator
+ * @param configTarget - The node to report a field problem on
+ * @returns The state to store, or `undefined` when a required field is blank
+ */
+function normalizeServerConfig(
+  context: DecoratorContext,
+  name: string,
+  config: Omit<AsyncAPIServerState, "name">,
+  configTarget: DiagnosticTarget,
+): AsyncAPIServerState | undefined {
+  // `host` and `protocol` are required by AsyncAPI. A blank value passes the
+  // type check but makes the document invalid, so the server is dropped.
+  for (const field of ["host", "protocol"] as const) {
+    if (config[field].trim() === "") {
+      reportDiagnostic(context.program, {
+        code: "empty-server-field",
+        format: { field },
+        target: configTarget,
+      });
+      return undefined;
+    }
+  }
+
+  // The value that passed the check above is the value that is emitted, so
+  // the required fields are stored trimmed.
+  const server: AsyncAPIServerState = {
+    name,
+    host: config.host.trim(),
+    protocol: config.protocol.trim(),
+  };
+
+  for (const field of ["protocolVersion", "pathname", "title", "summary", "description"] as const) {
+    const value = config[field]?.trim();
+    if (value !== undefined && value !== "") server[field] = value;
+  }
+
+  return server;
+}
+
+/**
  * Declares one server the application connects to.
  * This decorator is repeatable. Each application appends its own server
  * record rather than replacing a prior one. The `name` argument becomes the
@@ -142,33 +192,8 @@ export function $server(
     return;
   }
 
-  // `host` and `protocol` are required by AsyncAPI. A blank value passes the
-  // type check but makes the document invalid, so the server is dropped.
-  for (const field of ["host", "protocol"] as const) {
-    if (config[field].trim() === "") {
-      reportDiagnostic(context.program, {
-        code: "empty-server-field",
-        format: { field },
-        target: configTarget,
-      });
-      return;
-    }
-  }
-
-  // The value that passed the check above is the value that is emitted, so
-  // the required fields are stored trimmed.
-  const server: AsyncAPIServerState = {
-    name,
-    host: config.host.trim(),
-    protocol: config.protocol.trim(),
-  };
-
-  // An optional field that holds no character but a space says nothing. It
-  // is stored as absent, the same as a field the author left out.
-  for (const field of ["protocolVersion", "pathname", "title", "summary", "description"] as const) {
-    const value = config[field]?.trim();
-    if (value !== undefined && value !== "") server[field] = value;
-  }
+  const server = normalizeServerConfig(context, name, config, configTarget);
+  if (server === undefined) return;
 
   const location = getSourceLocation(context.decoratorTarget);
   const record: ServerRecord = {

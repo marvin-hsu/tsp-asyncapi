@@ -86,11 +86,11 @@ export function listServersOutsideService(
     for (const record of records) stray.push({ namespace, record });
   }
 
-  return stray
-    .sort((a, b) => compareServerRecords(a.record, b.record))
-    .map(({ namespace, record }) => ({
-      namespace,
-      name: record.server.name,
-      target: record.nameTarget,
-    }));
+  stray.sort((a, b) => compareServerRecords(a.record, b.record));
+
+  return stray.map(({ namespace, record }) => ({
+    namespace,
+    name: record.server.name,
+    target: record.nameTarget,
+  }));
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { $lib } from "../../src/lib.js";
 import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
@@ -122,6 +122,47 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     expect(doc.id).toBe("urn:com:example:events");
     expect(doc.defaultContentType).toBe("application/json");
+    await expectValidAsyncAPI(doc);
+  });
+
+  it("should emit servers, messages, and schemas that the parser accepts", async () => {
+    // The cases above only reach the document skeleton and `info`. This one
+    // drives every section the emitter fills today at once. It is the case
+    // that puts `components.messages`, `components.schemas`, and the `$ref`
+    // between them in front of the official parser.
+    const code = `
+      @service(#{ title: "Order Events" })
+      @AsyncAPI.server("production", #{
+        host: "kafka.example.com:9092",
+        protocol: "kafka",
+        protocolVersion: "3.5.0"
+      })
+      @AsyncAPI.server("sit", #{ host: "kafka.sit.example.com:9092", protocol: "kafka" })
+      namespace Orders;
+
+      model OrderItem {
+        productId: string;
+        quantity: int32;
+      }
+
+      @AsyncAPI.message
+      model OrderPlaced {
+        id: string;
+        amount: float64;
+        items: OrderItem[];
+      }
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(Object.keys(doc.servers)).toEqual(["production", "sit"]);
+    expect(Object.keys(doc.components.messages)).toEqual(["OrderPlaced"]);
+    expect(doc.components.messages.OrderPlaced.payload).toEqual({
+      $ref: "#/components/schemas/OrderPlaced",
+    });
+    // `OrderItem` has no `@message` of its own. It reaches the document only
+    // because the `OrderPlaced` payload refers to it.
+    expect(Object.keys(doc.components.schemas).sort()).toEqual(["OrderItem", "OrderPlaced"]);
+
     await expectValidAsyncAPI(doc);
   });
 });
