@@ -28,7 +28,7 @@ import {
   isSafeComponentsKey,
   sanitizeDeclarationName,
   unqualifiedDeclarationName,
-} from "../schemas/schema-naming.js";
+} from "../schemas/naming.js";
 
 /**
  * Returns the `components.messages` key for one `@message` model.

@@ -11,7 +11,7 @@ import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { getContentType, getHeadersModel, isHeader } from "../../decorators/index.js";
 import { SchemaBuilder } from "../schemas/builder.js";
-import { SCHEMA_ENCODING_MIME_TYPE } from "../schemas/schema-annotations.js";
+import { SCHEMA_ENCODING_MIME_TYPE } from "../schemas/annotations.js";
 
 /** The `contentType` of a message has its own field, so it is never a header. */
 const CONTENT_TYPE_HEADER = "content-type";

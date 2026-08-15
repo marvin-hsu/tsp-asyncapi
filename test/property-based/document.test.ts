@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
-import { isSafeComponentsKey } from "../../src/builders/schemas/schema-naming.js";
+import { isSafeComponentsKey } from "../../src/builders/schemas/naming.js";
 
 /**
  * Properties of a whole emitted document.

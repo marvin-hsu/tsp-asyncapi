@@ -17,20 +17,20 @@ import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";
-import { refFor, isUninstantiatedTemplateDeclaration } from "./schema-naming.js";
-import { SchemaDiagnostics } from "./schema-diagnostics.js";
-import { SchemaKeyRegistry } from "./schema-key-registration.js";
+import { refFor, isUninstantiatedTemplateDeclaration } from "./naming.js";
+import { SchemaDiagnostics } from "./diagnostics.js";
+import { SchemaKeyRegistry } from "./key-registration.js";
 import {
   findDiscriminatingProperty,
   findEncodedNameOverrideConflict,
   findNeverOverrideOfInheritedProperty,
-} from "./schema-inheritance.js";
+} from "./inheritance.js";
 import {
   withDocs,
   withPropertyDocs,
   buildValidationKeywords,
   SCHEMA_ENCODING_MIME_TYPE,
-} from "./schema-annotations.js";
+} from "./annotations.js";
 import {
   isBuiltinScalar,
   isBuiltinCollectionInstantiation,
@@ -39,7 +39,7 @@ import {
   buildEnumSchemaBody,
   buildEnumMemberSchema,
   SCALAR_SCHEMAS,
-} from "./schema-scalars.js";
+} from "./scalars.js";
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.

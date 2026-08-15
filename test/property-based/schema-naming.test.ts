@@ -4,7 +4,7 @@ import {
   isSafeComponentsKey,
   refFor,
   sanitizeDeclarationName,
-} from "../../src/builders/schemas/schema-naming.js";
+} from "../../src/builders/schemas/naming.js";
 
 /**
  * Properties of the Components Object key sanitizer.
