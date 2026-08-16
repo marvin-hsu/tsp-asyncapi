@@ -91,7 +91,9 @@ coverage/
 temp/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
-plan/
+# 不加尾斜線。worktree 裡的 `plan` 是指向主工作區的 symlink，git 把
+# symlink 當檔案看，尾斜線的樣式只匹配目錄，會漏掉它。
+plan
 *.tgz
 
 # =========================
