@@ -28,8 +28,13 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          # Use a dynamic test version to avoid conflicts
-          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; pkg.version = "0.0.0-test." + Date.now(); fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
+          # Change name to scoped package for GitHub Packages
+          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
+
+          # Force pnpm to use GitHub Packages registry
+          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com/" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+
           pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
