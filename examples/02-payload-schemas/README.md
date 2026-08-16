@@ -82,10 +82,10 @@ the service namespace. That is why every key here is a bare name. Example 05
 declares a model inside a nested namespace, and its key carries the prefix.
 
 A `components.messages` key is built the same way, minus the namespace
-prefix. A message key is therefore always a bare name. A message whose
-payload sits in a nested namespace shows the two forms side by side: the
-message key stays bare, and the payload `$ref` points at the dotted schema
-key.
+prefix. A message key is therefore always a bare name. Example 05 shows the
+two forms side by side. It declares `model FirmwareReport` inside
+`namespace Firmware`. The message key stays the bare `FirmwareReport`, and the
+payload `$ref` points at the dotted schema key `Firmware.FirmwareReport`.
 
 Example 03 covers the key of a template instantiation.
 
@@ -124,6 +124,12 @@ examples:
 `@encodedName("application/json", "postal_code")` renames the emitted
 property key. The TypeSpec name stays `postalCode`. The schema key, and the
 entry in `required`, both become `postal_code`.
+
+## The operation
+
+`sendOrderPlaced` carries `@send`, so the emitted document holds one
+operation with `action: send`. Example 01 explains that rule. The operation is
+here so the contract names a producer for `OrderPlaced`.
 
 ## Next
 

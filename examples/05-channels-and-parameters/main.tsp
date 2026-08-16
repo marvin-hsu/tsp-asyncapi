@@ -37,10 +37,21 @@ model DeviceAlarm {
 // is reported, and a declaration the address never uses is reported too.
 // A parameter whose type carries `@message` is a message declaration, not an
 // address parameter. So `event` takes no part in the matching.
+//
+// The signature rule of the two action decorators:
+// For `@send` the parameters are the messages sent. The return type is the
+// messages of the reply.
+// For `@receive` the parameters are the messages of the reply. The return
+// type is the messages received.
+//
+// The address parameters sit beside the message parameter here. An address
+// parameter is one whose type carries no `@message`. That rule holds under
+// either action.
 @channel("telemetry.{region}.devices.{deviceId}.readings")
 @useServer("edge")
 interface DeviceReadings {
-  publish(
+  @send
+  op sendDeviceReading(
     /** The region the device reports from. */
     // The type is an enum, so the emitted parameter carries an `enum` array.
     // The default value fills the `default` field.
@@ -65,10 +76,13 @@ interface DeviceReadings {
 // The second argument of `@channel` is the channel id. It overrides the key
 // in the emitted `channels` map. Without it the key would be `DeviceAlarms`,
 // the declaration name of the interface.
+// The key of an emitted operation is the name of the operation, and that key
+// is document-wide. So each operation below carries a name of its own.
 @channel("telemetry.alarms", "device-alarms")
 @useServer("edge")
 interface DeviceAlarms {
-  publish(event: DeviceAlarm): void;
+  @send
+  op sendDeviceAlarm(event: DeviceAlarm): void;
 }
 
 /**
@@ -80,9 +94,17 @@ interface DeviceAlarms {
 // It is a separate decorator, and not a `@channel` with the address left
 // out. That keeps "the address is unknown" apart from "the address was
 // forgotten".
+// The only argument is the channel id. It is not an address. It overrides the
+// key in the emitted `channels` map, the way the second argument of
+// `@channel` does. So the key here is `device-replies`, and not the
+// declaration name `DeviceReplies`.
+// This is the one channel here the application receives on, so its operation
+// carries `@receive`. The return type is the messages received, so
+// `DeviceAlarm` sits in the return type and not in a parameter.
 @dynamicChannel("device-replies")
 interface DeviceReplies {
-  publish(event: DeviceAlarm): void;
+  @receive
+  op onDeviceReply(): DeviceAlarm;
 }
 
 /**
@@ -99,7 +121,8 @@ namespace Firmware {
     version: string;
   }
 
-  op publish(
+  @send
+  op sendFirmwareReport(
     /** The version of the channel contract. */
     // A union of string literals also produces an `enum` array.
     channelVersion: "v1" | "v2" = "v2",

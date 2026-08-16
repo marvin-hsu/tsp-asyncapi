@@ -11,7 +11,13 @@ channels:
     messages:
       OrderPlaced:
         $ref: "#/components/messages/OrderPlaced"
-operations: {}
+operations:
+  sendOrderPlaced:
+    action: send
+    channel:
+      $ref: "#/channels/PlacedOrders"
+    messages:
+      - $ref: "#/channels/PlacedOrders/messages/OrderPlaced"
 components:
   schemas:
     PostalAddress:

@@ -100,6 +100,23 @@ declaration name.
 The channel refers to the message by that same key. So the `messages` map of
 `InvoicingEvents` holds `InvoiceIssuedV1`, not `InvoiceIssued`.
 
+## Two operations on one channel
+
+This is the first example with two operations on one channel. Each one
+carries `@send`, so the document holds two entries in `operations`.
+
+The two entries share one `channel` reference. They differ only in their
+`messages` array. `sendInvoiceIssued` names `InvoiceIssuedV1`, and
+`sendInvoiceSettled` names `InvoiceSettled`.
+
+A message reference addresses the `messages` map of the channel. It uses the
+message key, so the override from `@message("InvoiceIssuedV1")` shows up in
+the operation too.
+
+Both operations are `@send`, because this service issues and settles the
+invoices. `@receive` would state the opposite direction, which would be
+wrong here.
+
 ## Next
 
 Read [05-channels-and-parameters](../05-channels-and-parameters/) for

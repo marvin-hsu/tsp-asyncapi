@@ -79,8 +79,8 @@ using AsyncAPI;
 // `@useSecurity` requires a scheme on every server of this namespace.
 // AsyncAPI reads the `security` array as OR. A client satisfies one of the
 // two schemes.
-// Every requirement here is server-wide. `@useSecurity` also applies to an
-// operation, where its requirement is added to the server's.
+// These two requirements are server-wide. `@useSecurity` also targets an
+// operation, and the operation below shows that form.
 @useSecurity("broker-scram")
 @useSecurity("signup-oauth")
 @asyncTag("signup", #{ description: "Everything the signup domain publishes." })
@@ -271,11 +271,24 @@ model SignupMessage {
 // matched against an operation parameter of this channel.
 // `@useServer` lists the servers this channel is available on. A channel
 // with no `@useServer` is available on every server.
+// `@send` marks the operation as a message this application sends. The
+// argument overrides the key of the operation in the emitted `operations`
+// map. Without it the key would be `publish`, the bare name of the operation.
+// That key is document-wide, so give it a name that says what it does.
+// `@useSecurity` on an operation adds one scheme to that operation alone. The
+// requirement is added to the server's, and it never replaces it. So the
+// emitted operation carries a `security` array of its own, next to the array
+// on every server.
+// The parameters are the messages sent and the address parameters. `event`
+// carries `@message`, so it is the message. `tenantId` does not, so it is an
+// address parameter.
 @channel("signup.v1.{tenantId}.events")
 @useServer("kafka-dev")
 @useServer("kafka-prod")
 interface SignupFunnel {
-  publish(
+  @send("publishSignupEvent")
+  @useSecurity("signup-oauth")
+  op publish(
     /** The tenant whose events this topic carries. */
     @parameterLocation("$message.payload#/event/tenantId")
     @example("acme")

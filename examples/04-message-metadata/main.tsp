@@ -89,8 +89,20 @@ model InvoiceSettled {
   settledAt: utcDateTime;
 }
 
+// One channel, and two operations on it. Each operation carries `@send`, so
+// each one reaches the `operations` map under its own name.
+// The two entries hold the same `channel` reference. They differ in their
+// `messages` array, because each one names a different message of that
+// channel.
+// Both are `@send`, because this service issues and settles the invoices. A
+// consumer of these events would declare the same models under `@receive`.
+// The signature inverts under `@receive`. The messages move from the
+// parameters to the return type. Example 05 shows that form.
 @channel("invoicing.events")
 interface InvoicingEvents {
-  issued(event: InvoiceIssued): void;
-  settled(event: InvoiceSettled): void;
+  @send
+  op sendInvoiceIssued(event: InvoiceIssued): void;
+
+  @send
+  op sendInvoiceSettled(event: InvoiceSettled): void;
 }

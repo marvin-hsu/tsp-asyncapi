@@ -1,0 +1,154 @@
+asyncapi: 3.1.0
+id: urn:example:order-desk
+info:
+  title: Order Desk
+  version: 1.0.0
+  description: The request and reply patterns this emitter supports.
+defaultContentType: application/json
+channels:
+  OrderStatusDesk:
+    address: orders.status
+    description: Status queries and their answers, on one channel.
+    messages:
+      OrderStatusQuery:
+        $ref: "#/components/messages/OrderStatusQuery"
+      OrderStatus:
+        $ref: "#/components/messages/OrderStatus"
+  order-replies:
+    address: null
+    description: The replies to order commands, on a channel the broker names at runtime.
+    messages:
+      OrderAccepted:
+        $ref: "#/components/messages/OrderAccepted"
+  OrderCommands:
+    address: orders.create
+    description: The commands that create an order.
+    messages:
+      CreateOrder:
+        $ref: "#/components/messages/CreateOrder"
+operations:
+  getOrderStatus:
+    action: send
+    channel:
+      $ref: "#/channels/OrderStatusDesk"
+    messages:
+      - $ref: "#/channels/OrderStatusDesk/messages/OrderStatusQuery"
+    reply:
+      channel:
+        $ref: "#/channels/OrderStatusDesk"
+      messages:
+        - $ref: "#/channels/OrderStatusDesk/messages/OrderStatus"
+  onOrderAccepted:
+    action: receive
+    channel:
+      $ref: "#/channels/order-replies"
+    messages:
+      - $ref: "#/channels/order-replies/messages/OrderAccepted"
+  createOrder:
+    action: send
+    channel:
+      $ref: "#/channels/OrderCommands"
+    messages:
+      - $ref: "#/channels/OrderCommands/messages/CreateOrder"
+    reply:
+      address:
+        location: $message.header#/replyTo
+        description: The reply topic.
+      channel:
+        $ref: "#/channels/order-replies"
+      messages:
+        - $ref: "#/channels/order-replies/messages/OrderAccepted"
+components:
+  schemas:
+    OrderStatusQuery:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+      required:
+        - orderId
+      description: A question about the state of one order.
+    OrderStatus:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum:
+            - pending
+            - shipped
+            - cancelled
+      required:
+        - orderId
+        - state
+      description: The answer to one status query.
+    CreateOrderPayload:
+      type: object
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+      required:
+        - sku
+        - quantity
+      description: A command that asks for one new order.
+    OrderAcceptedPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+      required:
+        - orderId
+      description: The acknowledgement of one accepted order.
+  messages:
+    OrderStatusQuery:
+      name: OrderStatusQuery
+      description: A question about the state of one order.
+      payload:
+        $ref: "#/components/schemas/OrderStatusQuery"
+    OrderStatus:
+      name: OrderStatus
+      description: The answer to one status query.
+      payload:
+        $ref: "#/components/schemas/OrderStatus"
+    CreateOrder:
+      name: CreateOrder
+      description: A command that asks for one new order.
+      headers:
+        type: object
+        properties:
+          correlation-id:
+            type: string
+            description: Ties the reply back to this command.
+            format: uuid
+        required:
+          - correlation-id
+      payload:
+        $ref: "#/components/schemas/CreateOrderPayload"
+      correlationId:
+        location: $message.header#/correlation-id
+        description: The id of the originating request.
+    OrderAccepted:
+      name: OrderAccepted
+      description: The acknowledgement of one accepted order.
+      headers:
+        type: object
+        properties:
+          correlation-id:
+            type: string
+            description: Carries the value the command set.
+            format: uuid
+        required:
+          - correlation-id
+      payload:
+        $ref: "#/components/schemas/OrderAcceptedPayload"
+      correlationId:
+        location: $message.header#/correlation-id
+        description: The id of the originating request.

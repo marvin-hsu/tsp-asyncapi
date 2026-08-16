@@ -61,7 +61,31 @@ channels:
     messages:
       FirmwareReport:
         $ref: "#/components/messages/FirmwareReport"
-operations: {}
+operations:
+  sendDeviceReading:
+    action: send
+    channel:
+      $ref: "#/channels/DeviceReadings"
+    messages:
+      - $ref: "#/channels/DeviceReadings/messages/DeviceReading"
+  sendDeviceAlarm:
+    action: send
+    channel:
+      $ref: "#/channels/device-alarms"
+    messages:
+      - $ref: "#/channels/device-alarms/messages/DeviceAlarm"
+  onDeviceReply:
+    action: receive
+    channel:
+      $ref: "#/channels/device-replies"
+    messages:
+      - $ref: "#/channels/device-replies/messages/DeviceAlarm"
+  sendFirmwareReport:
+    action: send
+    channel:
+      $ref: "#/channels/Firmware"
+    messages:
+      - $ref: "#/channels/Firmware/messages/FirmwareReport"
 components:
   schemas:
     DeviceReading:

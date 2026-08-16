@@ -1,4 +1,4 @@
-# 07 — A Kafka user-signup contract
+# 08 — A Kafka user-signup contract
 
 One realistic contract for one domain. The earlier examples show each feature
 on its own. This one puts them together in a document you can copy and adapt.
@@ -11,6 +11,7 @@ on its own. This one puts them together in a document you can copy and adapt.
 - A base envelope, three event subtypes, and a `@discriminator`.
 - An `@oneOf` union of the three subtypes.
 - Correlation and tracing headers lifted out of the payload.
+- One `@send` operation, with its own operation id and its own security.
 - Two named message examples.
 - Tags on `info` and on the message.
 
@@ -27,7 +28,7 @@ pnpm build
 Then compile this example.
 
 ```bash
-cd examples/07-kafka-user-signup
+cd examples/08-kafka-user-signup
 tsp compile .
 ```
 
@@ -48,9 +49,11 @@ uses. A declared variable that no template uses is reported as
 every server of the namespace. AsyncAPI reads that array as OR, so a client
 satisfies one of the two schemes.
 
-Every requirement here is server-wide. `@useSecurity` also applies to an
-operation, where the requirement is added to the server's rather than
-replacing it. This example does not show that.
+The two requirements above are server-wide. `@useSecurity` also targets an
+operation, and `publishSignupEvent` below carries one. An operation's
+requirement is added to the server's rather than replacing it. The emitter
+never copies the server schemes into the operation array, so a client
+satisfies both arrays.
 
 ### The address
 
@@ -59,6 +62,35 @@ not in the payload. A breaking change gets a new address and a new channel.
 
 `{tenantId}` is matched against the `tenantId` parameter of the `publish`
 operation. `@parameterLocation` says where the value sits at runtime.
+
+### The operation
+
+`@send("publishSignupEvent")` marks the operation and sets its key in the
+emitted `operations` map. Without the argument the key would be `publish`, the
+bare name of the operation. That key is document-wide, so a bare `publish`
+would collide with any other operation of the same name.
+
+The parameters of a `@send` operation are the messages it sends, plus the
+address parameters. `event` carries `@message`, so it is the message.
+`tenantId` does not, so it is an address parameter.
+
+`@useSecurity("signup-oauth")` on the operation adds one entry to that
+operation's own `security` array.
+
+```yaml
+operations:
+  publishSignupEvent:
+    action: send
+    channel:
+      $ref: "#/channels/SignupFunnel"
+    security:
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    messages:
+      - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
+```
+
+A message reference addresses the `messages` map of the channel, so it uses
+the message key `SignupEventV1` that `@message` set.
 
 ### The events
 
@@ -89,22 +121,13 @@ declared field.
 
 ## What this document cannot express yet
 
-Two parts of a production AsyncAPI document are missing, and no example in
-this directory can add them.
-
-**The `operations` object.** The emitted document carries `operations: {}`
-because no operation here is marked with `@send` or `@receive`. Both exist and
-do emit operations; this example has not been extended to use them. Without
-them a TypeSpec operation still declares which messages a channel carries and
-which address parameters it has.
-
 **Kafka bindings.** A production Kafka contract states the partition key, the
 group id, the client id, and the schema registry it uses. AsyncAPI carries all
 of those in `bindings.kafka`, on a channel, an operation, or a message. This
 emitter has no binding decorator of any kind. Add the bindings by hand to the
-emitted document, or wait for binding support.
+emitted document.
 
 ## Previous
 
-Read [06-servers-and-security](../06-servers-and-security/) for servers and
-security schemes on their own.
+Read [07-request-and-reply](../07-request-and-reply/) for the request and
+reply pattern on its own.

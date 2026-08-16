@@ -13,7 +13,19 @@ channels:
         $ref: "#/components/messages/InvoiceIssuedV1"
       InvoiceSettled:
         $ref: "#/components/messages/InvoiceSettled"
-operations: {}
+operations:
+  sendInvoiceIssued:
+    action: send
+    channel:
+      $ref: "#/channels/InvoicingEvents"
+    messages:
+      - $ref: "#/channels/InvoicingEvents/messages/InvoiceIssuedV1"
+  sendInvoiceSettled:
+    action: send
+    channel:
+      $ref: "#/channels/InvoicingEvents"
+    messages:
+      - $ref: "#/channels/InvoicingEvents/messages/InvoiceSettled"
 components:
   schemas:
     InvoiceIssuedPayload:

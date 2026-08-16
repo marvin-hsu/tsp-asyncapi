@@ -1,6 +1,6 @@
 # Examples
 
-Seven worked examples of `tsp-asyncapi`. Each one is a complete, compiling
+Eight worked examples of `tsp-asyncapi`. Each one is a complete, compiling
 TypeSpec project. Each one carries the AsyncAPI document it produces.
 
 Every example has three or four files.
@@ -20,20 +20,22 @@ a diff on the output.
 
 Each example builds on the one before it.
 
-| #                                                         | Shows                                                       |
-| --------------------------------------------------------- | ----------------------------------------------------------- |
-| [01-hello-world](01-hello-world/)                         | the smallest complete document, and how to run the emitter  |
-| [02-payload-schemas](02-payload-schemas/)                 | models, enums, scalars, constraints, formats, wire names    |
-| [03-schema-composition](03-schema-composition/)           | inheritance, discriminators, unions, templates, extensions  |
-| [04-message-metadata](04-message-metadata/)               | headers, content type, correlation id, examples             |
-| [05-channels-and-parameters](05-channels-and-parameters/) | addresses, address parameters, channel ids, server binding  |
-| [06-servers-and-security](06-servers-and-security/)       | servers, server variables, security schemes, tags           |
-| [07-kafka-user-signup](07-kafka-user-signup/)             | one realistic Kafka contract that combines all of the above |
+| #                                                         | Shows                                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| [01-hello-world](01-hello-world/)                         | the smallest complete document, one `@send`, how to run it   |
+| [02-payload-schemas](02-payload-schemas/)                 | models, enums, scalars, constraints, formats, wire names     |
+| [03-schema-composition](03-schema-composition/)           | inheritance, discriminators, unions, templates, extensions   |
+| [04-message-metadata](04-message-metadata/)               | headers, content type, correlation id, examples, two `@send` |
+| [05-channels-and-parameters](05-channels-and-parameters/) | addresses, address parameters, channel ids, `@receive`       |
+| [06-servers-and-security](06-servers-and-security/)       | servers, server variables, security schemes, tags            |
+| [07-request-and-reply](07-request-and-reply/)             | the `reply` object, reply channels, reply addresses          |
+| [08-kafka-user-signup](08-kafka-user-signup/)             | one realistic Kafka contract that combines all of the above  |
 
 Start at 01 even if you already know TypeSpec. It explains how a channel
 finds its messages, and that rule holds in every later example.
 
-Copy 07 when you start a contract of your own.
+Copy [08-kafka-user-signup](08-kafka-user-signup/) when you start a contract
+of your own.
 
 ## Compile one
 
@@ -77,20 +79,8 @@ this repository. In a project of your own, depend on the package and write
 
 ## What the examples do not cover
 
-Two parts of AsyncAPI are missing from every example here.
-
-**The `operations` object.** Every emitted document below carries
-`operations: {}`, and that is a gap in these examples rather than a limit of
-the emitter. `@send` and `@receive` exist and do emit operations; the examples
-were written before they landed and have not been extended yet. A TypeSpec
-operation still has a job in every example here even without them. It declares
-which messages its channel carries, and it declares the channel address
-parameters. Mark one with `@send` or `@receive` and it also reaches the
-`operations` object. See `docs/reference/decorators.md` until an example
-covers it.
-
 **Protocol bindings.** AsyncAPI puts protocol detail in a `bindings` object
 on a server, a channel, an operation, or a message. Kafka partition keys,
 AMQP exchange settings, and MQTT quality of service all live there. This
 emitter has no binding decorator of any kind. Add bindings by hand to the
-emitted document, or wait for binding support.
+emitted document.

@@ -113,7 +113,10 @@ model OrderPlaced {
   placedAt: utcDateTime;
 }
 
+// `@send` marks the operation as a message this application sends. The
+// operation then reaches the `operations` map, under its own name.
 @channel("catalog.orders.placed")
 interface PlacedOrders {
-  send(event: OrderPlaced): void;
+  @send
+  op sendOrderPlaced(event: OrderPlaced): void;
 }

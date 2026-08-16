@@ -93,7 +93,10 @@ model OrderFulfilled {
   fulfilledAt: utcDateTime;
 }
 
+// `@send` marks the operation as a message this application sends. The
+// operation then reaches the `operations` map, under its own name.
 @channel("fulfilment.orders.fulfilled")
 interface FulfilledOrders {
-  send(event: OrderFulfilled): void;
+  @send
+  op sendOrderFulfilled(event: OrderFulfilled): void;
 }

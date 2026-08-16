@@ -7,6 +7,7 @@ The smallest complete document this emitter can produce. Read this one first.
 - One service namespace with `@service` and `@info`.
 - One payload model marked with `@message`.
 - One channel declared with `@channel` on an interface.
+- One operation marked with `@send`.
 - How a channel finds its messages.
 - The `tspconfig.yaml` that every other example in this directory reuses.
 
@@ -54,6 +55,7 @@ not on your path, call it by that path.
 | `defaultContentType`         | the `default-content-type` emitter option     |
 | `channels.Greetings`         | `@channel` on `interface Greetings`           |
 | `channels.Greetings.address` | the first argument of `@channel`              |
+| `operations.sendGreeting`    | `@send` on `op sendGreeting`                  |
 | `components.messages`        | one entry per `@message` model                |
 | `components.schemas`         | one entry per model a message payload reaches |
 
@@ -64,22 +66,30 @@ emitter reads the parameters and the return type of each of those operations.
 Every model marked `@message` that it finds becomes an entry in the channel's
 `messages` map.
 
-So the operation is what connects a message to a channel. Delete the `send`
-operation and the channel carries no message. The emitter reports that as
-`channel-no-messages`.
+So the operation is what connects a message to a channel. Delete the
+`sendGreeting` operation and the channel carries no message. The emitter
+reports that as `channel-no-messages`.
 
 A nested interface is a separate scope. It can carry a channel of its own.
 Example 05 shows the same rule for a nested namespace.
 
-## Why `operations` is empty
+## How an operation reaches `operations`
 
-The emitted document carries `operations: {}`. That is on purpose.
+A parameter carries its message to the channel with or without `@send`,
+because the channel reads the signature either way. The operation reaches the
+`operations` map only when it carries `@send` or `@receive`.
 
-This example does not mark its operation with `@send` or `@receive`, so it
-reaches no AsyncAPI operation and the document carries `operations: {}`. The
-operation still has a job without them: it declares which messages the channel
-carries, and it declares the channel address parameters. Both decorators do
-exist; see `docs/reference/decorators.md`.
+`sendGreeting` carries `@send`, so the document holds one operation. The
+emitted entry names the channel and the messages it sends.
+
+The key of the entry is the name of the operation. Pass an argument to
+`@send` to override that key.
+
+Each message reference addresses the `messages` map of the channel, not
+`components.messages`. AsyncAPI requires that form.
+
+`@receive` is the same decorator for the other direction, and it inverts the
+signature. Example 07 covers it, together with request and reply.
 
 ## The emitted document
 
@@ -98,7 +108,13 @@ channels:
     messages:
       Greeting:
         $ref: "#/components/messages/Greeting"
-operations: {}
+operations:
+  sendGreeting:
+    action: send
+    channel:
+      $ref: "#/channels/Greetings"
+    messages:
+      - $ref: "#/channels/Greetings/messages/Greeting"
 components:
   schemas:
     Greeting:

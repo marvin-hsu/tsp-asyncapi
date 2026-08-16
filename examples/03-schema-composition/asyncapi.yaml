@@ -11,7 +11,13 @@ channels:
     messages:
       OrderFulfilled:
         $ref: "#/components/messages/OrderFulfilled"
-operations: {}
+operations:
+  sendOrderFulfilled:
+    action: send
+    channel:
+      $ref: "#/channels/FulfilledOrders"
+    messages:
+      - $ref: "#/channels/FulfilledOrders/messages/OrderFulfilled"
 components:
   schemas:
     OrderLine:

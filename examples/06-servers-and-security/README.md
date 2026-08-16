@@ -3,7 +3,10 @@
 The connection side. Two servers, four security schemes, and document-level
 tags and links.
 
-This example declares no channel and no message. It emits `channels: {}`.
+This example declares no channel and no message. It emits `channels: {}` and
+`operations: {}`. That is the whole shape of the example, and not a gap. An
+operation needs a channel to sit on, and a channel needs a message to carry.
+Neither belongs on the connection side.
 
 ## Run it
 
@@ -106,9 +109,14 @@ too, because it would reach no part of the document.
 `components.securitySchemes` and no `security` array.
 
 **Every requirement here is server-wide.** AsyncAPI puts `security` on an
-operation as well as on a server, and `@useSecurity` reaches both. An
-operation's requirement is added to the server's rather than replacing it.
-This example does not show the operation half.
+operation as well as on a server, and `@useSecurity` targets both a namespace
+and an operation. An operation's requirement is added to the server's rather
+than replacing it. The emitter never copies the server schemes into the
+operation array, so a client satisfies both arrays.
+
+This example declares no operation, so it can never show that half. Example
+08 does. Its `publishSignupEvent` operation carries a `@useSecurity` of its
+own, and the emitted operation holds a one-entry `security` array.
 
 ## Tags and external documentation
 
@@ -135,5 +143,5 @@ the link.
 
 ## Next
 
-Read [07-kafka-user-signup](../07-kafka-user-signup/) for one realistic
-contract that combines everything.
+Read [07-request-and-reply](../07-request-and-reply/) for the request and
+reply pattern.

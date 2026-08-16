@@ -12,7 +12,13 @@ channels:
     messages:
       Greeting:
         $ref: "#/components/messages/Greeting"
-operations: {}
+operations:
+  sendGreeting:
+    action: send
+    channel:
+      $ref: "#/channels/Greetings"
+    messages:
+      - $ref: "#/channels/Greetings/messages/Greeting"
 components:
   schemas:
     Greeting:

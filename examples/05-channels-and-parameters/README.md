@@ -2,6 +2,9 @@
 
 Addressing. Four channels, each showing one part of it.
 
+It is also the first example with `@receive`, on the one channel this
+application receives on.
+
 ## Run it
 
 Both steps run once, from the root of the repository. The emitter runs from
@@ -23,12 +26,12 @@ If `tsp` is not on your path, call `../../node_modules/.bin/tsp` instead.
 
 ## The four channels
 
-| Channel key      | Declared on                | What it shows                       |
-| ---------------- | -------------------------- | ----------------------------------- |
-| `DeviceReadings` | `interface DeviceReadings` | a templated address with parameters |
-| `device-alarms`  | `interface DeviceAlarms`   | an explicit channel id              |
-| `device-replies` | `interface DeviceReplies`  | `@dynamicChannel`, address unknown  |
-| `Firmware`       | `namespace Firmware`       | a channel on a namespace scope      |
+| Channel key      | Declared on                | What it shows                       | Operation            |
+| ---------------- | -------------------------- | ----------------------------------- | -------------------- |
+| `DeviceReadings` | `interface DeviceReadings` | a templated address with parameters | `sendDeviceReading`  |
+| `device-alarms`  | `interface DeviceAlarms`   | an explicit channel id              | `sendDeviceAlarm`    |
+| `device-replies` | `interface DeviceReplies`  | `@dynamicChannel`, address unknown  | `onDeviceReply`      |
+| `Firmware`       | `namespace Firmware`       | a channel on a namespace scope      | `sendFirmwareReport` |
 
 ## Where a channel can sit
 
@@ -73,6 +76,10 @@ parameter of an operation the channel owns. The match runs both ways.
 A parameter whose type carries `@message` is a message declaration. It takes
 no part in the matching in either direction. That is why `event` is not
 treated as an address parameter.
+
+That rule does not depend on the action. `sendDeviceReading` mixes two
+address parameters with one message parameter, and the emitted channel still
+carries `region` and `deviceId` under `parameters`.
 
 A channel parameter must be required, and its type must be a string type. An
 optional one is reported, and so is a non-string one.
@@ -119,6 +126,11 @@ the literal `address: null`, which AsyncAPI reads as "unknown".
 It is a separate decorator, and not a `@channel` with the address left out.
 That keeps "the address is unknown" apart from "the address was forgotten".
 
+The only argument is the channel id. It is not an address. It overrides the
+key in the emitted `channels` map, the way the second argument of `@channel`
+does. So `@dynamicChannel("device-replies")` on `interface DeviceReplies`
+gives the key `device-replies`.
+
 A dynamic channel has no address, so it never carries `parameters`.
 
 Apply `@channel` and `@dynamicChannel` to one target, and the emitter reports
@@ -138,6 +150,32 @@ The name is not checked against the declared servers. A name that no
 
 A `@useServer` on a target that carries no channel reaches no part of the
 document. The emitter reports that as `use-server-without-channel`.
+
+## The four operations
+
+Every operation here carries an action decorator, so each one reaches the
+`operations` map.
+
+Three of them carry `@send`. `sendDeviceReading`, `sendDeviceAlarm` and
+`sendFirmwareReport` are the messages this application produces.
+
+`onDeviceReply` carries `@receive`, because a dynamic reply channel is one
+this application receives on.
+
+**The signature rule.** For `@send` the parameters are the messages sent, and
+the return type is the messages of the reply. For `@receive` the parameters
+are the messages of the reply, and the return type is the messages received.
+
+So `onDeviceReply` is written `op onDeviceReply(): DeviceAlarm;`. It takes no
+parameter, and `DeviceAlarm` sits in the return type. Example 07 uses the
+inverted form again, where the reply is the subject.
+
+The key of an emitted operation is the name of the operation, and that key is
+document-wide. A name shared by two operations reports
+`duplicate-operation-id`, and the first one in source order keeps the key. The
+channel scope makes no difference, so `sendFirmwareReport` in
+`namespace Firmware` needs a name no other operation uses. Pass an argument to
+`@send` or `@receive` to set the key yourself.
 
 ## Next
 

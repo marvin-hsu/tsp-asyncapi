@@ -39,13 +39,13 @@ model Greeting {
 // The emitter walks the parameters and the return type of each of those
 // operations. Every `@message` model it finds becomes an entry in the
 // channel's `messages` map. So `Greeting` reaches the channel through the
-// `event` parameter of `send` below.
+// `event` parameter of `sendGreeting` below.
 @channel("hello.greetings")
 interface Greetings {
-  // The operation carries no decorator, so the emitted `operations` object
-  // stays empty. That keeps this first example to one idea. Mark it with
-  // `@send` and it also emits an AsyncAPI operation.
-  // The operation is needed either way. It is what tells the channel which
-  // messages it carries.
-  send(event: Greeting): void;
+  // `@send` marks this operation as a message this application sends. The
+  // operation then reaches the `operations` map, under its own name.
+  // The parameter carries `Greeting` to the channel. It does that with or
+  // without `@send`, because the channel reads the signature either way.
+  @send
+  op sendGreeting(event: Greeting): void;
 }

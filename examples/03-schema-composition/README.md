@@ -85,6 +85,12 @@ keyword the emitter would produce itself.
 
 `DeliveryNote` uses it twice, for `unevaluatedProperties` and `$comment`.
 
+## The operation
+
+`sendOrderFulfilled` carries `@send`, so the emitted document holds one
+operation with `action: send`. Example 01 explains that rule. The operation is
+here so the contract names a producer for `OrderFulfilled`.
+
 ## Next
 
 Read [04-message-metadata](../04-message-metadata/) for everything that sits

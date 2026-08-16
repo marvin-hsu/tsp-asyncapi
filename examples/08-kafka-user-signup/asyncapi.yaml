@@ -78,7 +78,15 @@ channels:
     messages:
       SignupEventV1:
         $ref: "#/components/messages/SignupEventV1"
-operations: {}
+operations:
+  publishSignupEvent:
+    action: send
+    channel:
+      $ref: "#/channels/SignupFunnel"
+    security:
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    messages:
+      - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
 components:
   schemas:
     Plan:
