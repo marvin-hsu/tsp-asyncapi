@@ -170,7 +170,155 @@ The name is outside the character set AsyncAPI allows for a key of the root `ser
 
 **Fix:** Use a name that only holds letters, digits, `_`, and `-`. The emitter never rewrites the name, because that would silently change the key you asked for.
 
+### `empty-channel-address`
+
+> @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
+
+The address is empty, or it only holds whitespace. The channel is dropped.
+
+**Fix:** give the channel an address. Use `@dynamicChannel` when the address is only known at runtime.
+
+### `invalid-channel-address`
+
+> The channel address '\<address\>' carries a query string. AsyncAPI states that a channel address must not use query parameters, and that a channel binding describes them instead. This channel was dropped. Move everything after the '?' into a channel binding.
+
+Three problems report this code. The address holds a query string, the address holds a fragment, or its `{}` pairs are unbalanced or nested. The message names which of the three it is. The channel is dropped in every case.
+
+The scheme and the host are not checked. A full URL such as `wss://example.com/socket` is a legal address.
+
+**Fix:** move a query string or a fragment into a channel binding. Pair up the braces, and do not nest them.
+
+### `invalid-channel-param-name`
+
+> '\<name\>' is not a legal channel address parameter name. Only the characters a-z, A-Z, 0-9, '-', and '_' are allowed, because the name is also the key of that parameter in the emitted `parameters` map and the name of the TypeSpec property that declares it. This channel was dropped.
+
+A `{name}` in the address falls outside the character set. The name is also the name of the TypeSpec property that declares the parameter, so a name outside the set can never be declared.
+
+**Fix:** rename the expression to one that holds only letters, digits, `-`, and `_`.
+
+### `empty-channel-id`
+
+> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.
+
+The explicit channel id argument is empty, or it only holds whitespace.
+
+**Fix:** give the channel an id, or leave the argument out. Without it, the key is the declaration name of the interface or namespace.
+
+### `duplicate-channel-decorator`
+
+> @channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.
+
+`@channel` is not repeatable. A channel holds one address, so stacking the decorator would silently discard every address but one.
+
+**Fix:** remove the extra `@channel`. Declare a second channel on a second interface or namespace.
+
+### `duplicate-dynamic-channel-decorator`
+
+> @dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.
+
+`@dynamicChannel` is not repeatable, for the reason `@channel` is not.
+
+**Fix:** remove the extra `@dynamicChannel`.
+
+### `conflicting-channel-decorators`
+
+> @channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.
+
+Both channel decorators reached one target. One states an address, and the other states that the address is unknown. Nothing picks a winner, so the target gets no channel at all.
+
+**Fix:** keep one of the two decorators.
+
+### `duplicate-channel-id`
+
+> Duplicate channel id: '\<id\>'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.
+
+Two channels resolved to one key of the `channels` map. Two interfaces of one name in different namespaces do this, because a channel key drops the namespace prefix. Two explicit ids that hold one string do it as well.
+
+**Fix:** pass an explicit id to `@channel` or `@dynamicChannel` on one of them.
+
+### `missing-channel-param`
+
+> The channel address uses '{\<name\>}', but no operation in this channel declares a parameter with that name. AsyncAPI requires the `parameters` map to cover every expression in the address. Add a '\<name\>' parameter to an operation of this channel, or take the expression out of the address.
+
+The address holds an expression that no operation of the channel declares. The emitted `parameters` map still covers the whole address, with an empty Parameter Object for that name.
+
+**Fix:** add the parameter to an operation of the channel, or take the expression out of the address.
+
+### `unused-channel-param`
+
+> The parameter '\<name\>' is not used by the address of channel '\<id\>'. An operation parameter whose type is not a @message model describes a channel address parameter, and this emitter never rewrites the address to absorb one. Add '{\<name\>}' to the address, or mark the parameter type with @message.
+
+An operation of the channel declares a parameter the address never names. Every top-level operation parameter whose type does not carry `@message` describes a channel address parameter, so this one has nowhere to go.
+
+**Fix:** add the expression to the address, or mark the parameter's type with `@message` so it counts as a message instead.
+
+### `non-string-channel-param`
+
+> The channel parameter '\<name\>' is not declared as a string. The AsyncAPI Parameter Object has no `schema` field, so a channel parameter carries no type and its value is always a string. Declare it as a string, a string literal, a union of string literals, or a string-backed enum.
+
+The declared type is not a string type. The AsyncAPI Parameter Object holds `enum`, `default`, `description`, `examples`, and `location`, and no `schema`. So there is nowhere to put a type.
+
+**Fix:** declare the parameter as a string, a string literal, a union of string literals, or a string-backed enum.
+
+### `optional-channel-param`
+
+> The channel parameter '\<name\>' is optional. A Channel Address Expression is a bare '{name}' with no operator, so a separator next to it cannot disappear along with the value, whatever the position in the address. Make the parameter required, and give the Parameter Object a `default` through a TypeSpec default value if it usually carries one value.
+
+The declaration is optional. This is an error whatever the position of the expression in the address. A Channel Address Expression is a bare `{name}`. It has none of RFC 6570's operators, so a separator next to an absent value cannot disappear with it.
+
+**Fix:** make the parameter required. Give it a TypeSpec default value when it usually carries one value. That value becomes the `default` of the Parameter Object.
+
+### `conflicting-channel-param`
+
+> The channel parameter '\<name\>' is declared more than once in channel '\<id\>', with a different '\<field\>'. AsyncAPI emits one Parameter Object per name on a channel, so only one of the two values can be kept. The first one in source order was kept. Give the two declarations the same type, default, documentation, examples, and location.
+
+Two operations of one channel declare one parameter name with a different type, default, `@doc`, `@example`, or `@parameterLocation`. A channel holds one Parameter Object per name, so one of the two values has to go. The first one in source order is kept, so the rest of the document stays readable.
+
+The two types are compared by the values they allow, not by the way they are written. Two operations that each write `"eu" | "us"` inline agree.
+
+**Fix:** give the two declarations the same type, default, documentation, examples, and location.
+
+### `duplicate-parameter-location-decorator`
+
+> @parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.
+
+`@parameterLocation` is not repeatable. A Parameter Object holds one `location` field.
+
+**Fix:** remove the extra `@parameterLocation`.
+
+### `invalid-parameter-location`
+
+> '\<location\>' is not a legal channel parameter location, so no `location` was emitted. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.payload#/user/id'.
+
+The runtime expression is outside the grammar. It must start with `$message.header#` or `$message.payload#`, and a JSON Pointer may follow. The `#` is required, because the normative JSON Schema of the specification requires it.
+
+**Fix:** write the expression in that form, such as `$message.payload#/user/id`.
+
 ## Warnings
+
+### `channel-no-messages`
+
+> Channel '\<id\>' has no recognizable messages. Did you forget to annotate the payload models with '@message'? The channel was emitted without a `messages` map.
+
+No operation of the channel names a model that carries `@message`. The channel is still emitted, and the `messages` field is left out. AsyncAPI makes that field optional, so the document stays valid, but a channel with no message is almost always a payload model that lost its `@message`.
+
+**Fix:** mark the payload models with `@message`. Check that the operations sit directly inside the interface or namespace that carries the channel. A nested interface is a separate scope.
+
+### `duplicate-use-server`
+
+> @useServer names the server '\<name\>' more than once on this channel. AsyncAPI requires the entries of a channel's `servers` array to be unique, so one reference was emitted. Remove the extra @useServer.
+
+One name reached `@useServer` twice on one channel. AsyncAPI requires the entries of the array to be unique, so the emitter emits one reference.
+
+**Fix:** remove the extra `@useServer`.
+
+### `use-server-without-channel`
+
+> @useServer names the server '\<name\>', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a `servers` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.
+
+`@useServer` sits on a target that carries no channel. Only a channel holds a `servers` field, so the application reaches no part of the document.
+
+**Fix:** add `@channel` or `@dynamicChannel` to the target, or remove the `@useServer`.
 
 ### `message-key-shadows-schema-key`
 

@@ -292,6 +292,128 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Invalid server name: '${"name"}'. AsyncAPI only allows letters, digits, '_', and '-' in a server name. This @server was dropped.`,
       },
     },
+    "empty-channel-address": {
+      severity: "error",
+      messages: {
+        default:
+          "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.",
+      },
+    },
+    "invalid-channel-address": {
+      severity: "error",
+      messages: {
+        // Every diagnostic here carries a `default` message, including this
+        // one, which never reports under that id. The report type of the
+        // library is derived from the message ids every code shares. A code
+        // without a `default` leaves that shared set empty, and the derived
+        // type then demands a `format` argument from codes that take none.
+        default: paramMessage`The channel address '${"address"}' cannot be used. This channel was dropped.`,
+        query: paramMessage`The channel address '${"address"}' carries a query string. AsyncAPI states that a channel address must not use query parameters, and that a channel binding describes them instead. This channel was dropped. Move everything after the '?' into a channel binding.`,
+        fragment: paramMessage`The channel address '${"address"}' carries a fragment. AsyncAPI states that a channel address must not use a fragment, and that a channel binding describes one instead. This channel was dropped. Move everything after the '#' into a channel binding.`,
+        unbalanced: paramMessage`The channel address '${"address"}' has an unbalanced or nested '{}' pair. A Channel Address Expression is a bare '{name}', and it does not nest. This channel was dropped.`,
+      },
+    },
+    "invalid-channel-param-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"name"}' is not a legal channel address parameter name. Only the characters a-z, A-Z, 0-9, '-', and '_' are allowed, because the name is also the key of that parameter in the emitted \`parameters\` map and the name of the TypeSpec property that declares it. This channel was dropped.`,
+      },
+    },
+    "empty-channel-id": {
+      severity: "error",
+      messages: {
+        default:
+          "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.",
+      },
+    },
+    "duplicate-channel-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.",
+      },
+    },
+    "duplicate-dynamic-channel-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.",
+      },
+    },
+    "conflicting-channel-decorators": {
+      severity: "error",
+      messages: {
+        default:
+          "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.",
+      },
+    },
+    "duplicate-channel-id": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate channel id: '${"id"}'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.`,
+      },
+    },
+    "channel-no-messages": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Channel '${"id"}' has no recognizable messages. Did you forget to annotate the payload models with '@message'? The channel was emitted without a \`messages\` map.`,
+      },
+    },
+    "missing-channel-param": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The channel address uses '{${"name"}}', but no operation in this channel declares a parameter with that name. AsyncAPI requires the \`parameters\` map to cover every expression in the address. Add a '${"name"}' parameter to an operation of this channel, or take the expression out of the address.`,
+      },
+    },
+    "unused-channel-param": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The parameter '${"name"}' is not used by the address of channel '${"id"}'. An operation parameter whose type is not a @message model describes a channel address parameter, and this emitter never rewrites the address to absorb one. Add '{${"name"}}' to the address, or mark the parameter type with @message.`,
+      },
+    },
+    "non-string-channel-param": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The channel parameter '${"name"}' is not declared as a string. The AsyncAPI Parameter Object has no \`schema\` field, so a channel parameter carries no type and its value is always a string. Declare it as a string, a string literal, a union of string literals, or a string-backed enum.`,
+      },
+    },
+    "optional-channel-param": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The channel parameter '${"name"}' is optional. A Channel Address Expression is a bare '{name}' with no operator, so a separator next to it cannot disappear along with the value, whatever the position in the address. Make the parameter required, and give the Parameter Object a \`default\` through a TypeSpec default value if it usually carries one value.`,
+      },
+    },
+    "conflicting-channel-param": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The channel parameter '${"name"}' is declared more than once in channel '${"id"}', with a different '${"field"}'. AsyncAPI emits one Parameter Object per name on a channel, so only one of the two values can be kept. The first one in source order was kept. Give the two declarations the same type, default, documentation, examples, and location.`,
+      },
+    },
+    "duplicate-parameter-location-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.",
+      },
+    },
+    "invalid-parameter-location": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"location"}' is not a legal channel parameter location, so no \`location\` was emitted. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.payload#/user/id'.`,
+      },
+    },
+    "duplicate-use-server": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useServer names the server '${"name"}' more than once on this channel. AsyncAPI requires the entries of a channel's \`servers\` array to be unique, so one reference was emitted. Remove the extra @useServer.`,
+      },
+    },
+    "use-server-without-channel": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useServer names the server '${"name"}', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a \`servers\` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

@@ -1,4 +1,4 @@
-import { DecoratorContext, Model } from "@typespec/compiler";
+import { DecoratorContext, Type } from "@typespec/compiler";
 import { useStateSet } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
 
@@ -33,10 +33,10 @@ type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
 export function singleApplication(
   stateKey: symbol,
   code: DuplicateCode,
-): (context: DecoratorContext, target: Model) => boolean {
-  const [isApplied, markApplied] = useStateSet<Model>(stateKey);
+): (context: DecoratorContext, target: Type) => boolean {
+  const [isApplied, markApplied] = useStateSet<Type>(stateKey);
 
-  return function claim(context: DecoratorContext, target: Model): boolean {
+  return function claim(context: DecoratorContext, target: Type): boolean {
     if (isApplied(context.program, target)) {
       reportDiagnostic(context.program, { code, target });
       return false;

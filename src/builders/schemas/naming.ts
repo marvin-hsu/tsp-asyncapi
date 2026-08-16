@@ -14,20 +14,7 @@ import {
 } from "@typespec/compiler";
 import { ReferenceObject } from "../../types/index.js";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
-
-/**
- * Escapes a `components.schemas` key for use as a JSON Pointer token inside
- * a `$ref`.
- * Per RFC 6901, `~` becomes `~0` and `/` becomes `~1`.
- * A model or namespace identifier can contain arbitrary characters through
- * backquoting. A raw `/` or `~` would otherwise produce a `$ref` that every
- * conforming resolver misreads as a path through nested objects.
- * The key stored in `this.schemas` is left unescaped. Only the `$ref` string
- * needs this escaping.
- */
-function toJsonPointerToken(key: string): string {
-  return key.replaceAll("~", "~0").replaceAll("/", "~1");
-}
+import { toJsonPointerToken } from "../json-pointer.js";
 
 /** Upper-cases just the first character, leaving the rest of `text` as-is. */
 function capitalizeFirst(text: string): string {

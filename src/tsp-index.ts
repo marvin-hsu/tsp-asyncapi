@@ -1,7 +1,9 @@
 import {
   $asyncTag,
+  $channel,
   $contentType,
   $correlationId,
+  $dynamicChannel,
   $externalDocs,
   $header,
   $headers,
@@ -10,7 +12,9 @@ import {
   $message,
   $messageExample,
   $oneOf,
+  $parameterLocation,
   $server,
+  $useServer,
 } from "./decorators/index.js";
 
 export { $lib } from "./lib.js";
@@ -40,5 +44,9 @@ export const $decorators = {
     headers: $headers,
     correlationId: $correlationId,
     messageExample: $messageExample,
+    channel: $channel,
+    dynamicChannel: $dynamicChannel,
+    useServer: $useServer,
+    parameterLocation: $parameterLocation,
   },
 };

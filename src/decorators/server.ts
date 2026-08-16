@@ -1,15 +1,9 @@
-import {
-  DecoratorContext,
-  DiagnosticTarget,
-  Namespace,
-  Program,
-  getSourceLocation,
-} from "@typespec/compiler";
+import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { reportDiagnostic } from "../lib.js";
+import { bySourcePosition, sourcePositionOf } from "../source-order.js";
 import {
   AsyncAPIServerState,
   ServerRecord,
-  compareServerRecords,
   getServersInternal,
   setServers,
 } from "./server-state.js";
@@ -131,11 +125,9 @@ export function $server(
   const server = normalizeServerConfig(context, name, config, configTarget);
   if (server === undefined) return;
 
-  const location = getSourceLocation(context.decoratorTarget);
   const record: ServerRecord = {
     server,
-    file: location.file.path,
-    pos: location.pos,
+    ...sourcePositionOf(context.decoratorTarget),
     nameTarget,
   };
 
@@ -156,7 +148,7 @@ export function $server(
     if (existing.file === record.file && existing.pos === record.pos) {
       return;
     }
-    const dropped = compareServerRecords(record, existing) < 0 ? existing : record;
+    const dropped = bySourcePosition(context.program)(record, existing) < 0 ? existing : record;
     if (dropped === existing) servers[clashIndex] = record;
     reportDiagnostic(context.program, {
       code: "duplicate-server-name",
@@ -184,5 +176,5 @@ export function $server(
  */
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[] {
   const records = getServersInternal(program, target) ?? [];
-  return [...records].sort(compareServerRecords).map((record) => ({ ...record.server }));
+  return [...records].sort(bySourcePosition(program)).map((record) => ({ ...record.server }));
 }

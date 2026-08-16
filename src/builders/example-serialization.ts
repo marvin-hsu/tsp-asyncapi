@@ -8,12 +8,21 @@
  */
 
 import {
+  $example,
   EncodeData,
+  Enum,
+  Model,
+  ModelProperty,
   Program,
   Scalar,
+  Type,
+  Union,
+  UnionVariant,
   UnserializableValueError,
+  getExamples,
   serializeValueAsJson,
 } from "@typespec/compiler";
+import { orderBySourceNodes } from "../source-order.js";
 
 /**
  * Builds a defined, non-`undefined` `encodeAs` whose `encoding` matches none
@@ -79,4 +88,68 @@ export function makeSerializeHandlers(
       return result;
     },
   };
+}
+
+/** Every type the built-in `@example` can be applied to. */
+type ExampleTarget = Model | Scalar | Enum | Union | ModelProperty | UnionVariant;
+
+/**
+ * Serializes every built-in `@example` of one target, in source order.
+ *
+ * Two layers emit those examples. A schema puts them in its `examples`
+ * keyword, and a channel parameter puts them in its own `examples` array.
+ * Both turn the same decorator into the same JSON, and both drop a value the
+ * serializer cannot represent. That is one decision, so it lives here once.
+ *
+ * A value is dropped in two cases. The serializer may throw, which covers an
+ * unsupported scalar constructor anywhere inside the value and a function
+ * value. It may also return `undefined`, which carries no information the
+ * caller can emit. A throw calls `onUnserializable`, so the caller reports
+ * the drop the way its own layer reports diagnostics.
+ *
+ * The caller decides what a serialized value must look like. A schema takes
+ * any JSON value, and a channel parameter keeps only strings.
+ *
+ * @param program - The program the target belongs to
+ * @param target - The declaration or property the examples were written on
+ * @param valueType - The type each example value is serialized against
+ * @param onUnserializable - Called with the source-order index of each
+ * dropped example
+ * @returns The serialized values, in source order, without the dropped ones
+ * @internal
+ */
+export function serializeExamples(
+  program: Program,
+  target: ExampleTarget,
+  valueType: Type,
+  onUnserializable: (index: number) => void,
+): unknown[] {
+  // `@example`'s own `extern dec` declaration legally targets `UnionVariant`
+  // (see `decorators.tsp`). But `getExamples`'s exported TS signature omits
+  // it. This is a typing gap in `@typespec/compiler` itself, not a real
+  // runtime restriction. Its state is stored generically over `Type`. The
+  // cast below only widens the static type to match what the decorator
+  // already allows.
+  const recorded = getExamples(program, target as Model | Scalar | Enum | Union | ModelProperty);
+  if (recorded.length === 0) return [];
+  const nodes = target.decorators
+    .filter((decorator) => decorator.decorator === $example)
+    .map((decorator) => decorator.node);
+  const handlers = makeSerializeHandlers(program);
+  const values: unknown[] = [];
+  orderBySourceNodes(program, nodes, recorded).forEach((example, index) => {
+    let serialized: unknown;
+    try {
+      serialized = serializeValueAsJson(program, example.value, valueType, undefined, handlers);
+    } catch {
+      // An example that carries no usable information is dropped rather than
+      // left to crash the whole emit. The compiler's own duration serializer,
+      // for one, throws a plain `RangeError` from `Temporal.Duration.from` on
+      // a malformed `duration.fromISO(...)` value it never validates.
+      onUnserializable(index);
+      return;
+    }
+    if (serialized !== undefined) values.push(serialized);
+  });
+  return values;
 }

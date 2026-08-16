@@ -170,7 +170,155 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 **修法：** 改用只含英文字母、數字、`_`、`-` 的名稱。emitter 絕不自動改名，因為那會靜默換掉你要求的 key。
 
+### `empty-channel-address`
+
+> @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
+
+address 是空字串，或只有空白字元。這個 channel 被丟棄。
+
+**修法：** 給這個 channel 一個 address。位址只有在執行期才決定時，改用 `@dynamicChannel`。
+
+### `invalid-channel-address`
+
+> The channel address '\<address\>' carries a query string. AsyncAPI states that a channel address must not use query parameters, and that a channel binding describes them instead. This channel was dropped. Move everything after the '?' into a channel binding.
+
+三種問題會回報這個代碼：address 含 query string、address 含 fragment、`{}` 不成對或巢狀。訊息會指出是哪一種。三種情況都會丟棄整個 channel。
+
+scheme 與 host 不檢查。`wss://example.com/socket` 這樣的完整 URL 是合法的 address。
+
+**修法：** 把 query string 或 fragment 移到 channel binding。讓大括號成對，且不要巢狀。
+
+### `invalid-channel-param-name`
+
+> '\<name\>' is not a legal channel address parameter name. Only the characters a-z, A-Z, 0-9, '-', and '_' are allowed, because the name is also the key of that parameter in the emitted `parameters` map and the name of the TypeSpec property that declares it. This channel was dropped.
+
+address 裡的某個 `{name}` 超出字元集。這個名稱同時也是宣告該參數的 TypeSpec 屬性名稱，所以超出字元集的名稱永遠不可能被宣告。
+
+**修法：** 把模板名稱改成只含英文字母、數字、`-`、`_`。
+
+### `empty-channel-id`
+
+> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.
+
+明確指定的 channel id 引數是空字串，或只有空白字元。
+
+**修法：** 給一個 id，或直接省略該引數。省略時 key 用 interface 或 namespace 的宣告名稱。
+
+### `duplicate-channel-decorator`
+
+> @channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.
+
+`@channel` 不可重複套用。一個 channel 只有一個 address，疊加會靜默丟掉其餘的 address。
+
+**修法：** 移除多餘的 `@channel`。第二個 channel 請宣告在第二個 interface 或 namespace 上。
+
+### `duplicate-dynamic-channel-decorator`
+
+> @dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.
+
+`@dynamicChannel` 不可重複套用，理由與 `@channel` 相同。
+
+**修法：** 移除多餘的 `@dynamicChannel`。
+
+### `conflicting-channel-decorators`
+
+> @channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.
+
+兩個 channel decorator 同時標在一個 target 上。一個給了 address，另一個說 address 未知。沒有規則可以判定誰勝出，所以這個 target 完全不輸出 channel。
+
+**修法：** 兩個 decorator 只保留一個。
+
+### `duplicate-channel-id`
+
+> Duplicate channel id: '\<id\>'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.
+
+兩個 channel 對應到同一個 `channels` map 的 key。常見成因：不同 namespace 下兩個同名 interface，因為 channel key 會去掉 namespace 前綴；或兩個明確指定的 id 是同一個字串。
+
+**修法：** 對其中一個的 `@channel` 或 `@dynamicChannel` 傳入明確的 id。
+
+### `missing-channel-param`
+
+> The channel address uses '{\<name\>}', but no operation in this channel declares a parameter with that name. AsyncAPI requires the `parameters` map to cover every expression in the address. Add a '\<name\>' parameter to an operation of this channel, or take the expression out of the address.
+
+address 含一個模板，但這個 channel 的 operation 都沒有宣告它。輸出的 `parameters` map 仍會涵蓋整個 address，該名稱對應一個空的 Parameter Object。
+
+**修法：** 在這個 channel 的 operation 加上該參數，或把模板從 address 移除。
+
+### `unused-channel-param`
+
+> The parameter '\<name\>' is not used by the address of channel '\<id\>'. An operation parameter whose type is not a @message model describes a channel address parameter, and this emitter never rewrites the address to absorb one. Add '{\<name\>}' to the address, or mark the parameter type with @message.
+
+這個 channel 的 operation 宣告了 address 沒有用到的參數。型別不帶 `@message` 的頂層 operation 參數一律視為 channel address 參數，所以這個參數無處可去。
+
+**修法：** 把模板加進 address，或在該參數的型別上標 `@message`，讓它改算成 message。
+
+### `non-string-channel-param`
+
+> The channel parameter '\<name\>' is not declared as a string. The AsyncAPI Parameter Object has no `schema` field, so a channel parameter carries no type and its value is always a string. Declare it as a string, a string literal, a union of string literals, or a string-backed enum.
+
+宣告的型別不是字串型別。AsyncAPI Parameter Object 只有 `enum`、`default`、`description`、`examples`、`location` 五個欄位，沒有 `schema`。型別因此無處可放。
+
+**修法：** 把參數宣告成 string、字串字面值、字串字面值的 union，或字串 enum。
+
+### `optional-channel-param`
+
+> The channel parameter '\<name\>' is optional. A Channel Address Expression is a bare '{name}' with no operator, so a separator next to it cannot disappear along with the value, whatever the position in the address. Make the parameter required, and give the Parameter Object a `default` through a TypeSpec default value if it usually carries one value.
+
+宣告是選填的。不論模板在 address 的哪個位置，這都是錯誤。Channel Address Expression 只允許裸的 `{name}`，沒有 RFC 6570 的 operator，所以分隔字元無法跟著缺席的值一起消失。
+
+**修法：** 把參數改成必填。若它經常是同一個值，給它 TypeSpec 預設值。該值會成為 Parameter Object 的 `default`。
+
+### `conflicting-channel-param`
+
+> The channel parameter '\<name\>' is declared more than once in channel '\<id\>', with a different '\<field\>'. AsyncAPI emits one Parameter Object per name on a channel, so only one of the two values can be kept. The first one in source order was kept. Give the two declarations the same type, default, documentation, examples, and location.
+
+同一個 channel 的兩個 operation 宣告同一個參數名稱，但兩處的型別、預設值、`@doc`、`@example` 或 `@parameterLocation` 不同。一個 channel 對一個名稱只輸出一個 Parameter Object，兩個值只能留一個。保留原始碼順序在前的那一個，讓文件其餘部分仍可閱讀。
+
+型別的比較依據是它允許的值，不是它的寫法。兩個 operation 各自寫一次 `"eu" | "us"`，兩者視為一致。
+
+**修法：** 讓兩處宣告的型別、預設值、說明、範例與 location 一致。
+
+### `duplicate-parameter-location-decorator`
+
+> @parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.
+
+`@parameterLocation` 不可重複套用。一個 Parameter Object 只有一個 `location` 欄位。
+
+**修法：** 移除多餘的 `@parameterLocation`。
+
+### `invalid-parameter-location`
+
+> '\<location\>' is not a legal channel parameter location, so no `location` was emitted. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.payload#/user/id'.
+
+runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$message.payload#`，後面可以接 JSON Pointer。`#` 是必要的，因為規格的規範性 JSON Schema 要求它。
+
+**修法：** 照該格式撰寫，例如 `$message.payload#/user/id`。
+
 ## 警告
+
+### `channel-no-messages`
+
+> Channel '\<id\>' has no recognizable messages. Did you forget to annotate the payload models with '@message'? The channel was emitted without a `messages` map.
+
+這個 channel 的 operation 都沒有用到帶 `@message` 的 model。channel 仍會輸出，但不輸出 `messages` 欄位。該欄位在規格中是選填，文件仍合法，但沒有 message 的 channel 通常代表 payload model 漏標 `@message`。
+
+**修法：** 在 payload model 上標 `@message`。同時確認這些 operation 直接寫在帶 channel 的 interface 或 namespace 裡。巢狀的 interface 是另一個範圍。
+
+### `duplicate-use-server`
+
+> @useServer names the server '\<name\>' more than once on this channel. AsyncAPI requires the entries of a channel's `servers` array to be unique, so one reference was emitted. Remove the extra @useServer.
+
+同一個 channel 上有兩個 `@useServer` 指到同一個名稱。AsyncAPI 要求該陣列的項目唯一，所以 emitter 只輸出一個參照。
+
+**修法：** 移除多餘的 `@useServer`。
+
+### `use-server-without-channel`
+
+> @useServer names the server '\<name\>', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a `servers` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.
+
+`@useServer` 標在沒有 channel 的 target 上。只有 channel 才有 `servers` 欄位，所以這次套用到不了文件的任何位置。
+
+**修法：** 為該 target 加上 `@channel` 或 `@dynamicChannel`，或移除這個 `@useServer`。
 
 ### `message-key-shadows-schema-key`
 

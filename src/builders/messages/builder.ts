@@ -31,6 +31,21 @@ import {
 } from "../schemas/naming.js";
 
 /**
+ * What the message builder produces.
+ *
+ * `messages` is the `components.messages` map, and it is absent when the
+ * program declares no message. An empty map is never emitted.
+ *
+ * `keys` names the key each emitted model claimed. A model that a key
+ * collision dropped is not in it, so a channel that refers to such a model
+ * emits no entry for it.
+ */
+export interface BuiltMessages {
+  messages?: Record<string, MessageObject>;
+  keys: Map<Model, string>;
+}
+
+/**
  * Returns the `components.messages` key for one `@message` model.
  * The decorator argument wins. Without it, the key is the model's own
  * declaration name, built the same way a `components.schemas` key is, minus
@@ -208,11 +223,13 @@ function buildMessage(
  * decorator only on an instantiation, so `@message model Envelope<T>`
  * contributes one message per instantiation and none for the declaration
  * itself.
+ *
+ * The key each emitted model was given is returned alongside the map. A
+ * channel refers to its messages by that key, and recomputing it there would
+ * put the key rule in two places. So the one place that resolves a message
+ * key hands the answer on.
  */
-export function buildMessages(
-  program: Program,
-  schemas: SchemaBuilder,
-): Record<string, MessageObject> | undefined {
+export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMessages {
   // A null prototype keeps a key such as `__proto__` an ordinary own
   // property. A plain object literal would run the inherited setter instead,
   // dropping the message and replacing the map's prototype. This matches
@@ -253,7 +270,13 @@ export function buildMessages(
   // shadowing such a subtype would otherwise go unreported.
   schemas.flushPendingSubtypes();
   reportShadowedSchemaKeys(program, schemas, claimedBy);
-  return Object.keys(messages).length > 0 ? messages : undefined;
+
+  const keys = new Map<Model, string>();
+  for (const [key, model] of claimedBy) keys.set(model, key);
+  return {
+    ...(Object.keys(messages).length > 0 ? { messages } : {}),
+    keys,
+  };
 }
 
 /**

@@ -9,9 +9,6 @@ import {
   Program,
   getDoc,
   getSummary,
-  getExamples,
-  serializeValueAsJson,
-  $example,
   getPattern,
   getFormat,
   getMinValueAsNumeric,
@@ -30,8 +27,7 @@ import {
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
-import { makeSerializeHandlers } from "../example-serialization.js";
-import { orderBySourceNodes } from "../source-order.js";
+import { serializeExamples } from "../example-serialization.js";
 
 /**
  * The mime type a schema's own property keys are resolved against through
@@ -57,13 +53,12 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * already resolves to the same thing, maps to `description`. TypeSpec's
  * built-in `@example` maps to `examples`.
  * Each example value is serialized to plain JSON against `exampleValueType`,
- * in source order (see `orderBySourceNodes`).
- * A value `serializeValueAsJson` cannot represent causes that whole example
- * to be dropped. This covers an unsupported scalar constructor anywhere in
- * the value, including nested inside an array or object, and a function
- * value. The example is dropped rather than left to throw past this
- * builder, or to leak in as a JSON `null` or a silently-missing key. Either
- * way, the example carries no usable information.
+ * in source order. `serializeExamples` owns that step, and the channel
+ * parameter builder uses the same one.
+ * A value the serializer cannot represent is dropped there. The example is
+ * dropped rather than left to throw past this builder, or to leak in as a
+ * JSON `null` or a silently-missing key. Either way, the example carries no
+ * usable information.
  * A dropped example still reports the `unserializable-example` warning
  * diagnostic. It targets the declaration or property the `@example` was
  * applied to. So the drop is not completely silent, even though the
@@ -92,35 +87,13 @@ function buildDocFields(
 ): Pick<SchemaObject, "title" | "description" | "examples"> {
   const title = getSummary(program, target);
   const description = getDoc(program, target);
-  const handlers = makeSerializeHandlers(program);
-  // `@example`'s own `extern dec` declaration legally targets `UnionVariant`
-  // (see `decorators.tsp`). But `getExamples`'s exported TS signature omits
-  // it. This is a typing gap in `@typespec/compiler` itself, not a real
-  // runtime restriction; its state is stored generically over `Type`.
-  // The cast below only widens the static type to match what the decorator
-  // already allows.
-  const rawExamples = getExamples(program, target as Model | Scalar | Enum | Union | ModelProperty);
-  const exampleNodes = target.decorators.filter((d) => d.decorator === $example).map((d) => d.node);
-  const examples = orderBySourceNodes(program, exampleNodes, rawExamples)
-    .map((example, index) => {
-      try {
-        return serializeValueAsJson(program, example.value, exampleValueType, undefined, handlers);
-      } catch {
-        // An example that carries no usable information is dropped rather
-        // than left to crash the whole emit. This covers an unserializable
-        // scalar per `UnserializableValueError`, and any other failure.
-        // For example, the compiler's own duration serializer throws a
-        // plain `RangeError` from `Temporal.Duration.from` on a malformed
-        // `duration.fromISO(...)` value that the compiler never validates.
-        // Still surface the drop as a diagnostic, rather than dropping it
-        // in total silence.
-        // Each example is its own drop, so the index separates them. Two
-        // bad examples on one target are two mistakes and get two reports.
-        diagnostics.reportOnce({ code: "unserializable-example", target }, String(index));
-        return undefined;
-      }
-    })
-    .filter((value) => value !== undefined);
+  // A dropped example still surfaces as a diagnostic, rather than being
+  // dropped in total silence. Each example is its own drop, so the
+  // source-order index separates them. Two bad examples on one target are
+  // two mistakes and get two reports.
+  const examples = serializeExamples(program, target, exampleValueType, (index) =>
+    diagnostics.reportOnce({ code: "unserializable-example", target }, String(index)),
+  );
   return {
     ...(title !== undefined ? { title } : {}),
     ...(description !== undefined ? { description } : {}),

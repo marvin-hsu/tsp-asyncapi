@@ -4,7 +4,7 @@ import { getMessageExamples, MessageExampleState } from "../../decorators/index.
 import { reportDiagnostic } from "../../lib.js";
 import { MessageExampleObject } from "../../types/index.js";
 import { makeSerializeHandlers } from "../example-serialization.js";
-import { orderBySourceNodes } from "../source-order.js";
+import { orderBySourceNodes } from "../../source-order.js";
 import { present, text } from "../optional-fields.js";
 
 /**

@@ -10,6 +10,7 @@ import { DecoratorExpressionNode } from '@typespec/compiler/ast';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
+import { Interface } from '@typespec/compiler';
 import { Model } from '@typespec/compiler';
 import { ModelProperty } from '@typespec/compiler';
 import { Namespace } from '@typespec/compiler';
@@ -123,6 +124,63 @@ readonly default: CallableMessage<["name", "namespace"]>;
 "invalid-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
+"empty-channel-address": {
+readonly default: "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.";
+};
+"invalid-channel-address": {
+readonly default: CallableMessage<["address"]>;
+readonly query: CallableMessage<["address"]>;
+readonly fragment: CallableMessage<["address"]>;
+readonly unbalanced: CallableMessage<["address"]>;
+};
+"invalid-channel-param-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-channel-id": {
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+};
+"duplicate-channel-decorator": {
+readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
+};
+"duplicate-dynamic-channel-decorator": {
+readonly default: "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.";
+};
+"conflicting-channel-decorators": {
+readonly default: "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.";
+};
+"duplicate-channel-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"channel-no-messages": {
+readonly default: CallableMessage<["id"]>;
+};
+"missing-channel-param": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-channel-param": {
+readonly default: CallableMessage<["name", "id", "name"]>;
+};
+"non-string-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"optional-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"conflicting-channel-param": {
+readonly default: CallableMessage<["name", "id", "field"]>;
+};
+"duplicate-parameter-location-decorator": {
+readonly default: "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.";
+};
+"invalid-parameter-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"duplicate-use-server": {
+readonly default: CallableMessage<["name"]>;
+};
+"use-server-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -217,7 +275,25 @@ export interface AsyncTagState extends AsyncTagMetadata {
 }
 
 // @public
-export type ChannelObject = Record<string, never>;
+export interface ChannelObject {
+    address: string | null;
+    description?: string;
+    externalDocs?: ExternalDocumentationObject;
+    messages?: Record<string, ReferenceObject>;
+    parameters?: Record<string, ParameterObject>;
+    servers?: ReferenceObject[];
+    tags?: TagObject[];
+    title?: string;
+}
+
+// @public
+export interface ChannelState {
+    address: string | null;
+    channelId?: string;
+}
+
+// @public
+export type ChannelTarget = Interface | Namespace;
 
 // @public
 export interface ComponentsObject {
@@ -247,7 +323,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -348,6 +424,63 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["name", "namespace"]>;
     };
     "invalid-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-channel-address": {
+        readonly default: "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.";
+    };
+    "invalid-channel-address": {
+        readonly default: CallableMessage<["address"]>;
+        readonly query: CallableMessage<["address"]>;
+        readonly fragment: CallableMessage<["address"]>;
+        readonly unbalanced: CallableMessage<["address"]>;
+    };
+    "invalid-channel-param-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-channel-id": {
+        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+    };
+    "duplicate-channel-decorator": {
+        readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
+    };
+    "duplicate-dynamic-channel-decorator": {
+        readonly default: "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.";
+    };
+    "conflicting-channel-decorators": {
+        readonly default: "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.";
+    };
+    "duplicate-channel-id": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "channel-no-messages": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "missing-channel-param": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "unused-channel-param": {
+        readonly default: CallableMessage<["name", "id", "name"]>;
+    };
+    "non-string-channel-param": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "optional-channel-param": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "conflicting-channel-param": {
+        readonly default: CallableMessage<["name", "id", "field"]>;
+    };
+    "duplicate-parameter-location-decorator": {
+        readonly default: "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.";
+    };
+    "invalid-parameter-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "duplicate-use-server": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
     };
     "unsupported-payload-type": {
@@ -459,6 +592,63 @@ readonly default: CallableMessage<["name", "namespace"]>;
 "invalid-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
+"empty-channel-address": {
+readonly default: "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.";
+};
+"invalid-channel-address": {
+readonly default: CallableMessage<["address"]>;
+readonly query: CallableMessage<["address"]>;
+readonly fragment: CallableMessage<["address"]>;
+readonly unbalanced: CallableMessage<["address"]>;
+};
+"invalid-channel-param-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-channel-id": {
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+};
+"duplicate-channel-decorator": {
+readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
+};
+"duplicate-dynamic-channel-decorator": {
+readonly default: "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.";
+};
+"conflicting-channel-decorators": {
+readonly default: "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.";
+};
+"duplicate-channel-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"channel-no-messages": {
+readonly default: CallableMessage<["id"]>;
+};
+"missing-channel-param": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-channel-param": {
+readonly default: CallableMessage<["name", "id", "name"]>;
+};
+"non-string-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"optional-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"conflicting-channel-param": {
+readonly default: CallableMessage<["name", "id", "field"]>;
+};
+"duplicate-parameter-location-decorator": {
+readonly default: "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.";
+};
+"invalid-parameter-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"duplicate-use-server": {
+readonly default: CallableMessage<["name"]>;
+};
+"use-server-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -487,6 +677,9 @@ export interface ExternalDocumentationObject {
 export function getAsyncTags(program: Program, target: Type): AsyncTagState[];
 
 // @public
+export function getChannel(program: Program, target: ChannelTarget): ChannelState | undefined;
+
+// @public
 export function getContentType(program: Program, target: Model): string | undefined;
 
 // @public
@@ -513,10 +706,16 @@ export function getJsonSchemaExtensions(program: Program, target: Model | ModelP
 // @public
 export function getMessageExamples(program: Program, target: Model): MessageExampleState[];
 
+// @public
+export function getParameterLocation(program: Program, target: ModelProperty): string | undefined;
+
 // Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
 //
 // @public
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
+
+// @public
+export function getUsedServers(program: Program, target: ChannelTarget): UseServerState[];
 
 // @public
 export interface InfoObject {
@@ -554,6 +753,9 @@ export interface LicenseObject {
     name: string;
     url?: string;
 }
+
+// @public
+export function listChannels(program: Program): Map<ChannelTarget, ChannelState>;
 
 // @public
 export function listMessages(program: Program): Map<Model, MessageState>;
@@ -602,13 +804,22 @@ export interface MessageState {
 export type OperationObject = Record<string, never>;
 
 // @public
+export interface ParameterObject {
+    default?: string;
+    description?: string;
+    enum?: string[];
+    examples?: string[];
+    location?: string;
+}
+
+// @public
 export interface ReferenceObject {
     // (undocumented)
     $ref: string;
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -709,6 +920,63 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["name", "namespace"]>;
     };
     "invalid-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-channel-address": {
+        readonly default: "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.";
+    };
+    "invalid-channel-address": {
+        readonly default: CallableMessage<["address"]>;
+        readonly query: CallableMessage<["address"]>;
+        readonly fragment: CallableMessage<["address"]>;
+        readonly unbalanced: CallableMessage<["address"]>;
+    };
+    "invalid-channel-param-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-channel-id": {
+        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+    };
+    "duplicate-channel-decorator": {
+        readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
+    };
+    "duplicate-dynamic-channel-decorator": {
+        readonly default: "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.";
+    };
+    "conflicting-channel-decorators": {
+        readonly default: "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.";
+    };
+    "duplicate-channel-id": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "channel-no-messages": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "missing-channel-param": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "unused-channel-param": {
+        readonly default: CallableMessage<["name", "id", "name"]>;
+    };
+    "non-string-channel-param": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "optional-channel-param": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "conflicting-channel-param": {
+        readonly default: CallableMessage<["name", "id", "field"]>;
+    };
+    "duplicate-parameter-location-decorator": {
+        readonly default: "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.";
+    };
+    "invalid-parameter-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "duplicate-use-server": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
     };
     "unsupported-payload-type": {
@@ -820,6 +1088,63 @@ readonly default: CallableMessage<["name", "namespace"]>;
 "invalid-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
+"empty-channel-address": {
+readonly default: "@channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.";
+};
+"invalid-channel-address": {
+readonly default: CallableMessage<["address"]>;
+readonly query: CallableMessage<["address"]>;
+readonly fragment: CallableMessage<["address"]>;
+readonly unbalanced: CallableMessage<["address"]>;
+};
+"invalid-channel-param-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-channel-id": {
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+};
+"duplicate-channel-decorator": {
+readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
+};
+"duplicate-dynamic-channel-decorator": {
+readonly default: "@dynamicChannel is applied to this interface or namespace more than once. Only one application takes effect, and the rest are discarded. Remove the extra @dynamicChannel.";
+};
+"conflicting-channel-decorators": {
+readonly default: "@channel and @dynamicChannel are both applied to this interface or namespace. One states an address and the other states that the address is unknown, and no rule picks a winner, so no channel was emitted at all. Keep one of the two.";
+};
+"duplicate-channel-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"channel-no-messages": {
+readonly default: CallableMessage<["id"]>;
+};
+"missing-channel-param": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-channel-param": {
+readonly default: CallableMessage<["name", "id", "name"]>;
+};
+"non-string-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"optional-channel-param": {
+readonly default: CallableMessage<["name"]>;
+};
+"conflicting-channel-param": {
+readonly default: CallableMessage<["name", "id", "field"]>;
+};
+"duplicate-parameter-location-decorator": {
+readonly default: "@parameterLocation is applied to this property more than once. A channel parameter carries one location, so only one application takes effect and the rest are discarded. Remove the extra @parameterLocation.";
+};
+"invalid-parameter-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"duplicate-use-server": {
+readonly default: CallableMessage<["name"]>;
+};
+"use-server-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -890,6 +1215,12 @@ export interface TagObject {
     description?: string;
     externalDocs?: ExternalDocumentationObject;
     name: string;
+}
+
+// @public
+export interface UseServerState {
+    name: string;
+    node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
 }
 
 // (No @packageDocumentation comment for this package)

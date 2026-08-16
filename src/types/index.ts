@@ -118,10 +118,73 @@ export interface ExternalDocumentationObject {
 }
 
 /**
- * Describes the channels and their properties.
+ * Describes one channel: an address plus the messages that flow over it.
  * @public
  */
-export type ChannelObject = Record<string, never>;
+export interface ChannelObject {
+  /**
+   * The address of the channel, such as a topic name or a routing key.
+   * It is `null` when the address is only known at runtime. AsyncAPI reads
+   * `null` as "unknown", and this emitter emits the literal `null` rather
+   * than leaving the field out. The difference matters: an operation reply
+   * may only point at a channel whose address is `null`.
+   */
+  address: string | null;
+  /** A human-friendly title for the channel. */
+  title?: string;
+  // AsyncAPI also defines `summary`. It is left out of this interface on
+  // purpose, for the same reason `MessageObject` leaves it out. `@summary`
+  // already fills `title` and `@doc` already fills `description`, so
+  // TypeSpec has no third source of prose to fill it from.
+  /** A longer description of the channel. CommonMark is allowed. */
+  description?: string;
+  /**
+   * The servers this channel is available on, each a reference into the
+   * root `servers` map. AsyncAPI requires a Reference Object here, so a
+   * Server Object is never inlined. An absent field means every server.
+   */
+  servers?: ReferenceObject[];
+  /**
+   * The parameters of the channel address, keyed by the name each one
+   * carries inside the address. The field is only present when the address
+   * holds at least one `{name}` expression.
+   */
+  parameters?: Record<string, ParameterObject>;
+  /**
+   * The messages that flow over this channel, each a reference into
+   * `components.messages`.
+   */
+  messages?: Record<string, ReferenceObject>;
+  /** The tags of this channel, each a full Tag Object. */
+  tags?: TagObject[];
+  /** Additional external documentation for this channel. */
+  externalDocs?: ExternalDocumentationObject;
+}
+
+/**
+ * One parameter of a channel address.
+ *
+ * AsyncAPI 3 defines no `schema` field on this object. The five fields
+ * below are the whole object, plus specification extensions. So a channel
+ * parameter carries no type information, and its value is always a string.
+ * Do not add a `schema` field here.
+ * @public
+ */
+export interface ParameterObject {
+  /** The values the parameter may take, when they are a limited set. */
+  enum?: string[];
+  /** The value to substitute when the sender supplies none. */
+  default?: string;
+  /** A description of the parameter. CommonMark is allowed. */
+  description?: string;
+  /** Example values of the parameter. */
+  examples?: string[];
+  /**
+   * A runtime expression that names where the parameter value sits inside
+   * the message, such as `$message.payload#/user/id`.
+   */
+  location?: string;
+}
 
 /**
  * Describes a specific operation.

@@ -84,6 +84,48 @@ extern dec messageExample(
   options?: valueof MessageExampleOptions
 );
 
+// Declares one channel on an interface or a namespace.
+// The channel owns the operations declared directly inside that interface or
+// namespace. A nested interface, and a namespace nested inside a namespace,
+// are separate scopes and may carry a channel of their own.
+// `address` is required. It may hold `{name}` expressions, and an operation
+// of the channel then declares each name as a parameter.
+// The address is checked while the decorator runs. A query string and a
+// fragment are both rejected, because AsyncAPI expresses them with a channel
+// binding instead. The scheme and the host are not checked, so a full URL is
+// a legal address.
+// `channelId` overrides the key of this channel in the emitted `channels`
+// map. Without it, the key is the declaration name of the target.
+// Apply it only once per target, and never together with `@dynamicChannel`.
+extern dec channel(
+  target: Interface | Namespace,
+  address: valueof string,
+  channelId?: valueof string
+);
+// Declares one channel whose address is only known at runtime.
+// The emitted channel carries the literal `address: null`, which AsyncAPI
+// reads as "unknown".
+// This is a separate decorator, and not a `@channel` with the address left
+// out, so that "the address is unknown" stays distinguishable from "the
+// address was forgotten".
+// Apply it only once per target, and never together with `@channel`.
+extern dec dynamicChannel(target: Interface | Namespace, channelId?: valueof string);
+// Limits a channel to the servers it is available on.
+// Repeatable: apply it more than once on the same target to name more than
+// one server. The references keep their source order.
+// The emitted `servers` array holds references into the root `servers` map.
+// A channel with no `@useServer` carries no `servers` field at all, which
+// AsyncAPI reads as "available on every server".
+// The name is not checked against the declared servers. A name that no
+// `@server` declares produces a reference that resolves to nothing.
+extern dec useServer(target: Interface | Namespace, name: valueof string);
+// Sets the `location` of one channel address parameter.
+// `location` is a runtime expression. It names where the parameter value
+// sits at runtime, such as `$message.payload#/user/id`.
+// The emitter checks the format of the expression only, the same rule
+// `@correlationId` follows.
+extern dec parameterLocation(target: ModelProperty, location: valueof string);
+
 model AsyncAPIInfo {
   version: string;
   description?: string;

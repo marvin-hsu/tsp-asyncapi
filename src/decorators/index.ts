@@ -31,6 +31,16 @@ export { $header, isHeader } from "./header.js";
 export { $headers, getHeadersModel } from "./headers.js";
 export { $correlationId, getCorrelationId, type CorrelationIdState } from "./correlation-id.js";
 export {
+  $channel,
+  $dynamicChannel,
+  getChannel,
+  listChannels,
+  type ChannelState,
+} from "./channel.js";
+export type { ChannelTarget } from "./channel-state.js";
+export { $useServer, getUsedServers, type UseServerState } from "./use-server.js";
+export { $parameterLocation, getParameterLocation } from "./parameter-location.js";
+export {
   $messageExample,
   getMessageExamples,
   type MessageExampleOptions,
