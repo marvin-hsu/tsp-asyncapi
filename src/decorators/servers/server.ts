@@ -1,21 +1,16 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
-import { SERVER_NAME_PATTERN } from "../constants.js";
-import { reportDiagnostic } from "../lib.js";
-import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source-order.js";
-import {
-  AsyncAPIServerState,
-  ServerRecord,
-  getServersInternal,
-  setServers,
-} from "./server-state.js";
+import { SERVER_NAME_PATTERN } from "../../constants.js";
+import { reportDiagnostic } from "../../lib.js";
+import { bySourcePosition, isSameApplication, sourcePositionOf } from "../../source-order.js";
+import { AsyncAPIServerState, ServerRecord, getServersInternal, setServers } from "./state.js";
 
 import {
   copyServerVariables,
   resolveServerVariables,
   ServerVariablesArgument,
-} from "./server-variables.js";
+} from "./variables.js";
 
-export type { AsyncAPIServerState, AsyncAPIServerVariableState } from "./server-state.js";
+export type { AsyncAPIServerState, AsyncAPIServerVariableState } from "./state.js";
 
 /**
  * The `config` argument of `@server`, as the author wrote it.

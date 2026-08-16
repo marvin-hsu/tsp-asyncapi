@@ -3,8 +3,8 @@ import {
   ChannelRecord,
   ChannelTarget,
   listChannelsInternal,
-} from "../../decorators/channel-state.js";
-import { listUseServerTargets } from "../../decorators/use-server-state.js";
+} from "../../decorators/channels/state.js";
+import { listUseServerTargets } from "../../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ChannelObject } from "../../types/index.js";
 import { buildExternalDocs } from "../external-docs.js";

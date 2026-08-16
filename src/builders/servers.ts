@@ -6,11 +6,11 @@ import {
   AsyncAPIServerVariableState,
   listServersOutsideService,
   namespaceHasServers,
-} from "../decorators/server-state.js";
+} from "../decorators/servers/state.js";
 import {
   listSecurityUsesWithoutServer,
   listUsedSecuritySchemes,
-} from "../decorators/use-security-state.js";
+} from "../decorators/security/use-security-state.js";
 import { buildExternalDocs } from "./external-docs.js";
 import { reportDiagnostic } from "../lib.js";
 import { SECURITY_SCHEME_REF_PREFIX } from "../constants.js";

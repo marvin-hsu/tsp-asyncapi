@@ -1,6 +1,6 @@
 import { DecoratorContext, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { DEFAULT_INFO_VERSION } from "../constants.js";
+import { DEFAULT_INFO_VERSION } from "../../constants.js";
 
 const infoStateKey = Symbol.for("tsp-asyncapi.info");
 

@@ -1,8 +1,8 @@
 import { DecoratorContext, ModelProperty, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
-import { isRuntimeExpression } from "./runtime-expression.js";
-import { singleApplication } from "./single-application.js";
+import { reportDiagnostic } from "../../lib.js";
+import { isRuntimeExpression } from "../runtime-expression.js";
+import { singleApplication } from "../single-application.js";
 
 const parameterLocationStateKey = Symbol.for("tsp-asyncapi.parameterLocation");
 

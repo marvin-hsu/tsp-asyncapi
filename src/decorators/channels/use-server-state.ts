@@ -1,7 +1,7 @@
 import { Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
-import { ChannelTarget } from "./channel-state.js";
+import { ChannelTarget } from "./state.js";
 
 const useServerStateKey = Symbol.for("tsp-asyncapi.useServer");
 

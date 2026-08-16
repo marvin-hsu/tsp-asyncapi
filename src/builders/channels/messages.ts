@@ -1,5 +1,5 @@
 import { Model, Program } from "@typespec/compiler";
-import { ChannelTarget } from "../../decorators/channel-state.js";
+import { ChannelTarget } from "../../decorators/channels/state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ReferenceObject } from "../../types/index.js";
 import { toJsonPointerToken } from "../json-pointer.js";

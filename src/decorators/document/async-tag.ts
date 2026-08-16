@@ -1,7 +1,7 @@
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
+import { reportDiagnostic } from "../../lib.js";
 
 const asyncTagStateKey = Symbol.for("tsp-asyncapi.asyncTag");
 

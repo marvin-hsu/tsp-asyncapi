@@ -1,7 +1,7 @@
 import { DecoratorContext, Namespace, Program } from "@typespec/compiler";
-import { SECURITY_SCHEME_NAME_PATTERN } from "../constants.js";
-import { reportDiagnostic } from "../lib.js";
-import { isSameApplication, sourcePositionOf } from "../source-order.js";
+import { SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
+import { reportDiagnostic } from "../../lib.js";
+import { isSameApplication, sourcePositionOf } from "../../source-order.js";
 import {
   getUseSecurityInternal,
   listUsedSecuritySchemes,

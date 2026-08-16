@@ -1,6 +1,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
-import { reportDiagnostic } from "../lib.js";
-import { AsyncAPIServerVariableState } from "./server-state.js";
+import { reportDiagnostic } from "../../lib.js";
+import { AsyncAPIServerVariableState } from "./state.js";
 
 /**
  * The value argument of the `variables` field of `@server`, before any

@@ -9,51 +9,59 @@
 /** @public */
 export const namespace = "AsyncAPI";
 
-export { $info, getInfo, type AsyncAPIInfoState } from "./info.js";
+export { $info, getInfo, type AsyncAPIInfoState } from "./document/info.js";
 export {
   $server,
   getServers,
   type AsyncAPIServerState,
   type AsyncAPIServerVariableState,
-} from "./server.js";
+} from "./servers/server.js";
 export {
   $securityScheme,
   getSecuritySchemes,
   type AsyncAPISecuritySchemeState,
-} from "./security-scheme.js";
-export { $useSecurity, getUsedSecuritySchemes } from "./use-security.js";
-export { $externalDocs, getExternalDocs, type ExternalDocsState } from "./external-docs.js";
+} from "./security/scheme.js";
+export { $useSecurity, getUsedSecuritySchemes } from "./security/use-security.js";
+export {
+  $externalDocs,
+  getExternalDocs,
+  type ExternalDocsState,
+} from "./document/external-docs.js";
 export {
   $asyncTag,
   getAsyncTags,
   type AsyncTagExternalDocs,
   type AsyncTagMetadata,
   type AsyncTagState,
-} from "./async-tag.js";
-export { $oneOf, isOneOf } from "./one-of.js";
+} from "./document/async-tag.js";
+export { $oneOf, isOneOf } from "./schemas/one-of.js";
 export {
   $jsonSchemaExtension,
   getJsonSchemaExtensions,
   type JsonSchemaExtensionRecord,
-} from "./json-schema-extension.js";
-export { $message, listMessages, type MessageState } from "./message.js";
-export { $contentType, getContentType } from "./content-type.js";
-export { $header, isHeader } from "./header.js";
-export { $headers, getHeadersModel } from "./headers.js";
-export { $correlationId, getCorrelationId, type CorrelationIdState } from "./correlation-id.js";
+} from "./schemas/json-schema-extension.js";
+export { $message, listMessages, type MessageState } from "./messages/message.js";
+export { $contentType, getContentType } from "./messages/content-type.js";
+export { $header, isHeader } from "./messages/header.js";
+export { $headers, getHeadersModel } from "./messages/headers.js";
+export {
+  $correlationId,
+  getCorrelationId,
+  type CorrelationIdState,
+} from "./messages/correlation-id.js";
 export {
   $channel,
   $dynamicChannel,
   getChannel,
   listChannels,
   type ChannelState,
-} from "./channel.js";
-export type { ChannelTarget } from "./channel-state.js";
-export { $useServer, getUsedServers, type UseServerState } from "./use-server.js";
-export { $parameterLocation, getParameterLocation } from "./parameter-location.js";
+} from "./channels/channel.js";
+export type { ChannelTarget } from "./channels/state.js";
+export { $useServer, getUsedServers, type UseServerState } from "./channels/use-server.js";
+export { $parameterLocation, getParameterLocation } from "./channels/parameter-location.js";
 export {
   $messageExample,
   getMessageExamples,
   type MessageExampleOptions,
   type MessageExampleState,
-} from "./message-example.js";
+} from "./messages/example.js";

@@ -1,6 +1,6 @@
 import { DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { SourcePosition, bySourcePosition } from "../source-order.js";
+import { SourcePosition, bySourcePosition } from "../../source-order.js";
 
 const serverStateKey = Symbol.for("tsp-asyncapi.server");
 

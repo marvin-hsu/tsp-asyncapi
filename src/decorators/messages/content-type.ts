@@ -1,7 +1,7 @@
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
-import { singleApplication } from "./single-application.js";
+import { reportDiagnostic } from "../../lib.js";
+import { singleApplication } from "../single-application.js";
 
 const contentTypeStateKey = Symbol.for("tsp-asyncapi.contentType");
 

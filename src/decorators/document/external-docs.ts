@@ -1,7 +1,7 @@
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
-import { isAbsoluteUrl } from "./absolute-url.js";
+import { reportDiagnostic } from "../../lib.js";
+import { isAbsoluteUrl } from "../absolute-url.js";
 
 const externalDocsKey = Symbol.for("tsp-asyncapi.externalDocs");
 

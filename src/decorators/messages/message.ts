@@ -1,6 +1,6 @@
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { singleApplication } from "./single-application.js";
+import { singleApplication } from "../single-application.js";
 
 const messageStateKey = Symbol.for("tsp-asyncapi.message");
 

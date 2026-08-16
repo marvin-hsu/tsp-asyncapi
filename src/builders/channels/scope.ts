@@ -12,7 +12,7 @@
  */
 
 import { Model, Operation, Program, Type } from "@typespec/compiler";
-import { ChannelTarget } from "../../decorators/channel-state.js";
+import { ChannelTarget } from "../../decorators/channels/state.js";
 import { listMessages } from "../../decorators/index.js";
 import { bySourcePosition, sourcePositionOf } from "../../source-order.js";
 

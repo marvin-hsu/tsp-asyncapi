@@ -1,6 +1,6 @@
 import { DecoratorContext, Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
-import { ChannelTarget } from "./channel-state.js";
+import { ChannelTarget } from "./state.js";
 import { UseServerState, getUsedServersInternal, setUsedServers } from "./use-server-state.js";
 
 export type { UseServerState } from "./use-server-state.js";

@@ -1,6 +1,6 @@
 import { Program } from "@typespec/compiler";
 import { SecuritySchemeObject } from "../types/index.js";
-import { getSecuritySchemes } from "../decorators/security-scheme.js";
+import { getSecuritySchemes } from "../decorators/security/scheme.js";
 
 /**
  * Builds the `components.securitySchemes` map from the `@securityScheme`

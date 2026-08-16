@@ -1,7 +1,7 @@
 import { Enum, ModelProperty, Program, Scalar, Type, Union, getDoc } from "@typespec/compiler";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
-import { parseAddressParameters } from "../../decorators/address-template.js";
-import { ChannelRecord, ChannelTarget } from "../../decorators/channel-state.js";
+import { parseAddressParameters } from "../../decorators/channels/address-template.js";
+import { ChannelRecord, ChannelTarget } from "../../decorators/channels/state.js";
 import { getParameterLocation, listMessages } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ParameterObject } from "../../types/index.js";

@@ -1,6 +1,6 @@
 import { DecoratorContext, DiagnosticTarget, Program } from "@typespec/compiler";
-import { reportDiagnostic } from "../lib.js";
-import { sourcePositionOf } from "../source-order.js";
+import { reportDiagnostic } from "../../lib.js";
+import { sourcePositionOf } from "../../source-order.js";
 import { checkAddress } from "./address-template.js";
 import {
   ChannelRecord,
@@ -10,9 +10,9 @@ import {
   getChannelInternal,
   listChannelsInternal,
   setChannel,
-} from "./channel-state.js";
+} from "./state.js";
 
-export type { ChannelState } from "./channel-state.js";
+export type { ChannelState } from "./state.js";
 
 /**
  * Reads the explicit channel id argument, and reports a blank one.

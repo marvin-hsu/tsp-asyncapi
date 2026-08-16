@@ -1,6 +1,6 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
-import { reportDiagnostic } from "../lib.js";
-import { OAuthFlowObject, OAuthFlowsObject, SecuritySchemeObject } from "../types/index.js";
+import { reportDiagnostic } from "../../lib.js";
+import { OAuthFlowObject, OAuthFlowsObject, SecuritySchemeObject } from "../../types/index.js";
 import {
   AsyncAPISecuritySchemeState,
   findSecuritySchemeByName,
@@ -8,12 +8,12 @@ import {
   listSecuritySchemes,
   SecuritySchemeRecord,
   setSecuritySchemes,
-} from "./security-scheme-state.js";
-import { isAbsoluteUrl } from "./absolute-url.js";
-import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source-order.js";
-import { HTTP_BEARER_SCHEME, SECURITY_SCHEME_NAME_PATTERN } from "../constants.js";
+} from "./scheme-state.js";
+import { isAbsoluteUrl } from "../absolute-url.js";
+import { bySourcePosition, isSameApplication, sourcePositionOf } from "../../source-order.js";
+import { HTTP_BEARER_SCHEME, SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
 
-export type { AsyncAPISecuritySchemeState } from "./security-scheme-state.js";
+export type { AsyncAPISecuritySchemeState } from "./scheme-state.js";
 
 /**
  * The names of the four OAuth flows, in the order the emitted object lists

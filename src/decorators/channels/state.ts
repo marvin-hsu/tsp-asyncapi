@@ -6,8 +6,8 @@ import {
   Program,
 } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { reportDiagnostic } from "../lib.js";
-import { SourcePosition, bySourcePosition } from "../source-order.js";
+import { reportDiagnostic } from "../../lib.js";
+import { SourcePosition, bySourcePosition } from "../../source-order.js";
 
 const channelStateKey = Symbol.for("tsp-asyncapi.channel");
 const channelAppliedKey = Symbol.for("tsp-asyncapi.channel.applied");
