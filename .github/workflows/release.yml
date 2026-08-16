@@ -5,6 +5,15 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Lets a release be retried without deleting and re-pushing the tag. A
+  # publish can fail for reasons that have nothing to do with the commit,
+  # such as a registry credential that turns out to need a one-time
+  # password, and the tag is still the right thing to release.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The existing tag to publish, such as v0.1.0
+        required: true
 
 # npm provenance signs the published tarball against this repository and this
 # workflow run. It needs an OIDC token, and it only works because the
@@ -20,6 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # On a tag push this is already the tag. On a manual run the
+          # workflow starts from the default branch, so the tag has to be
+          # asked for by name.
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -41,10 +56,11 @@ jobs:
       # twice. So the two are compared before anything is built.
       - name: Check the tag against package.json
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          raw="${{ inputs.tag || github.ref_name }}"
+          tag="${raw#v}"
           declared="$(node -p "require('./package.json').version")"
           if [ "$tag" != "$declared" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME says $tag, package.json says $declared. Bump one to match the other."
+            echo "::error::Tag $raw says $tag, package.json says $declared. Bump one to match the other."
             exit 1
           fi
           echo "Publishing $declared"
@@ -63,6 +79,6 @@ jobs:
       # The release notes are left for a person to write. This only records
       # that the version exists and points at the diff.
       - name: Create the GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: gh release create "${{ inputs.tag || github.ref_name }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
