@@ -79,7 +79,7 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          npm pkg set name="@${{ github.repository_owner }}/tsp-asyncapi"
+          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
           pnpm publish --no-git-checks
         env:
           npm_config_registry: https://npm.pkg.github.com/
