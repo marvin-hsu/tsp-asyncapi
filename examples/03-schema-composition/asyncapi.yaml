@@ -1,0 +1,151 @@
+asyncapi: 3.1.0
+id: urn:example:fulfilment-service
+info:
+  title: Fulfilment Service
+  version: 1.0.0
+  description: How the schema layer composes schemas.
+defaultContentType: application/json
+channels:
+  FulfilledOrders:
+    address: fulfilment.orders.fulfilled
+    messages:
+      OrderFulfilled:
+        $ref: "#/components/messages/OrderFulfilled"
+operations: {}
+components:
+  schemas:
+    OrderLine:
+      type: object
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+        unitPrice:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+        - sku
+        - quantity
+        - unitPrice
+    OrderLinePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderLine"
+        total:
+          type: integer
+          format: int32
+      required:
+        - items
+        - total
+    Pickup:
+      type: object
+      properties:
+        storeId:
+          type: string
+        readyAt:
+          type: string
+          format: date-time
+      required:
+        - storeId
+        - readyAt
+    Delivery:
+      type: object
+      properties:
+        street:
+          type: string
+        carrier:
+          type: string
+      required:
+        - street
+        - carrier
+    Fulfilment:
+      oneOf:
+        - $ref: "#/components/schemas/Pickup"
+        - $ref: "#/components/schemas/Delivery"
+    PaymentEvent:
+      type: object
+      properties:
+        kind:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+      required:
+        - kind
+        - occurredAt
+      discriminator: kind
+    DeliveryNote:
+      type: object
+      properties:
+        text:
+          type: string
+      required:
+        - text
+      $comment: This schema rejects every unknown property.
+      unevaluatedProperties: false
+    OrderFulfilled:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        lines:
+          $ref: "#/components/schemas/OrderLinePage"
+        fulfilment:
+          $ref: "#/components/schemas/Fulfilment"
+        payment:
+          $ref: "#/components/schemas/PaymentEvent"
+        note:
+          $ref: "#/components/schemas/DeliveryNote"
+        fulfilledAt:
+          type: string
+          format: date-time
+      required:
+        - orderId
+        - lines
+        - fulfilment
+        - payment
+        - fulfilledAt
+      title: Order fulfilled
+      description: One order that reached fulfilment.
+    PaymentAuthorized:
+      allOf:
+        - $ref: "#/components/schemas/PaymentEvent"
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - authorized
+            authorizationCode:
+              type: string
+          required:
+            - kind
+            - authorizationCode
+    PaymentDeclined:
+      allOf:
+        - $ref: "#/components/schemas/PaymentEvent"
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - declined
+            reason:
+              type: string
+          required:
+            - kind
+  messages:
+    OrderFulfilled:
+      name: OrderFulfilled
+      title: Order fulfilled
+      description: One order that reached fulfilment.
+      payload:
+        $ref: "#/components/schemas/OrderFulfilled"

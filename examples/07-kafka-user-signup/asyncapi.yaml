@@ -1,0 +1,296 @@
+asyncapi: 3.1.0
+id: urn:example:user-signup-events
+info:
+  title: User Signup Events
+  version: 1.4.0
+  description: The events the signup domain publishes to Kafka.
+  contact:
+    name: Identity Platform
+    url: https://example.com/teams/identity
+    email: identity@example.com
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  tags:
+    - name: signup
+      description: Everything the signup domain publishes.
+    - name: public-contract
+      description: Consumed outside the identity platform. Break it with care.
+      externalDocs:
+        url: https://example.com/contracts/signup
+        description: The compatibility policy for this contract.
+  externalDocs:
+    url: https://example.com/docs/signup-events
+    description: The signup event guide.
+defaultContentType: application/json
+servers:
+  kafka-dev:
+    host: "{tenant}.kafka.dev.example.com:9092"
+    protocol: kafka
+    protocolVersion: "3.7"
+    title: Development broker
+    description: One cluster shared by every development tenant.
+    variables:
+      tenant:
+        default: sandbox
+        description: The tenant this client connects as.
+        examples:
+          - sandbox
+          - acme
+    security:
+      - $ref: "#/components/securitySchemes/broker-scram"
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    externalDocs:
+      url: https://example.com/docs/signup-events
+      description: The signup event guide.
+  kafka-prod:
+    host: "{region}.kafka.example.com:9093"
+    protocol: kafka-secure
+    protocolVersion: "3.7"
+    title: Production broker
+    summary: The production cluster, one deployment per region.
+    variables:
+      region:
+        enum:
+          - eu-west-1
+          - us-east-1
+        default: eu-west-1
+        description: The region of the cluster.
+    security:
+      - $ref: "#/components/securitySchemes/broker-scram"
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    externalDocs:
+      url: https://example.com/docs/signup-events
+      description: The signup event guide.
+channels:
+  SignupFunnel:
+    address: signup.v1.{tenantId}.events
+    description: The signup funnel events of one tenant.
+    servers:
+      - $ref: "#/servers/kafka-dev"
+      - $ref: "#/servers/kafka-prod"
+    parameters:
+      tenantId:
+        description: The tenant whose events this topic carries.
+        examples:
+          - acme
+        location: $message.payload#/event/tenantId
+    messages:
+      SignupEventV1:
+        $ref: "#/components/messages/SignupEventV1"
+operations: {}
+components:
+  schemas:
+    Plan:
+      type: string
+      enum:
+        - free
+        - team
+        - enterprise
+      description: The plan the account is on.
+    SignupSource:
+      type: string
+      enum:
+        - web
+        - mobile
+        - partnerApi
+      description: How the account was created.
+    SignupEvent:
+      type: object
+      properties:
+        eventType:
+          type: string
+          description: The name of the event. It selects the subtype.
+        eventId:
+          type: string
+          description: The identifier of this event.
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+          description: When the event happened, in UTC.
+        userId:
+          type: string
+          description: The account the event is about.
+          format: uuid
+        tenantId:
+          type: string
+          description: The tenant the account belongs to.
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9][a-z0-9-]*$
+      required:
+        - eventType
+        - eventId
+        - occurredAt
+        - userId
+        - tenantId
+      discriminator: eventType
+      description: The envelope every signup event carries.
+    UserRegistered:
+      allOf:
+        - $ref: "#/components/schemas/SignupEvent"
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - user.registered
+            email:
+              type: string
+              description: An RFC 5321 mailbox address.
+              maxLength: 254
+            plan:
+              $ref: "#/components/schemas/Plan"
+            source:
+              $ref: "#/components/schemas/SignupSource"
+            referralCode:
+              type: string
+              description: The referral code the account signed up with.
+          required:
+            - eventType
+            - email
+            - plan
+            - source
+    EmailVerified:
+      allOf:
+        - $ref: "#/components/schemas/SignupEvent"
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - user.emailVerified
+            email:
+              type: string
+              description: An RFC 5321 mailbox address.
+              maxLength: 254
+            attempt:
+              type: integer
+              format: int32
+              description: How many verification mails went out before this one landed.
+              minimum: 1
+          required:
+            - eventType
+            - email
+            - attempt
+    SignupAbandoned:
+      allOf:
+        - $ref: "#/components/schemas/SignupEvent"
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - user.signupAbandoned
+            lastStep:
+              type: string
+              enum:
+                - email
+                - password
+                - profile
+              description: The step the account stopped at.
+            elapsedSeconds:
+              type: integer
+              format: int32
+              description: How long the account stayed in the funnel, in seconds.
+              minimum: 0
+          required:
+            - eventType
+            - lastStep
+            - elapsedSeconds
+    SignupEventEnvelope:
+      oneOf:
+        - $ref: "#/components/schemas/UserRegistered"
+        - $ref: "#/components/schemas/EmailVerified"
+        - $ref: "#/components/schemas/SignupAbandoned"
+    SignupMessagePayload:
+      type: object
+      properties:
+        event:
+          allOf:
+            - $ref: "#/components/schemas/SignupEventEnvelope"
+          description: The event itself.
+      required:
+        - event
+      title: A signup funnel event
+      description: One event of the signup funnel.
+      $comment: The payload shape is versioned by the topic address.
+  messages:
+    SignupEventV1:
+      name: SignupEventV1
+      title: A signup funnel event
+      description: One event of the signup funnel.
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          correlation-id:
+            type: string
+            description: Ties this event to the request that caused it.
+            format: uuid
+          x-trace-id:
+            type: string
+            description: The trace this event belongs to.
+            pattern: ^[0-9a-f]{16}$
+          x-schema-version:
+            type: string
+            enum:
+              - "1"
+            description: The version of the payload contract.
+        required:
+          - correlation-id
+          - x-trace-id
+          - x-schema-version
+      payload:
+        $ref: "#/components/schemas/SignupMessagePayload"
+      correlationId:
+        location: $message.header#/correlation-id
+        description: The id of the originating request.
+      tags:
+        - name: signup
+          description: Everything the signup domain publishes.
+      examples:
+        - name: registered
+          summary: A new account on the team plan.
+          headers:
+            correlation-id: 6f9c0f6a-9b18-4a0b-9a6d-3e3f2c1a0b11
+            x-trace-id: 1c9f0a2d4e6b8c0a
+            x-schema-version: "1"
+          payload:
+            event:
+              eventType: user.registered
+              eventId: 0f0d3a1e-2b4c-4f6a-8d0e-1a2b3c4d5e6f
+              occurredAt: 2026-03-04T09:15:00Z
+              userId: b1a2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+              tenantId: acme
+              email: ada@example.com
+              plan: team
+              source: web
+        - name: abandoned
+          summary: The account stopped at the profile step.
+          payload:
+            event:
+              eventType: user.signupAbandoned
+              eventId: 7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d
+              occurredAt: 2026-03-04T09:22:31Z
+              userId: b1a2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+              tenantId: acme
+              lastStep: profile
+              elapsedSeconds: 411
+  securitySchemes:
+    broker-scram:
+      type: scramSha512
+      description: SASL/SCRAM-SHA-512 against the broker.
+    signup-oauth:
+      type: oauth2
+      description: Machine-to-machine access to the signup topics.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth2/token
+          refreshUrl: https://auth.example.com/oauth2/token
+          availableScopes:
+            signup:read: Consume signup events.
+            signup:write: Produce signup events.
+      scopes:
+        - signup:read

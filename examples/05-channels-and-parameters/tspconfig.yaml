@@ -1,0 +1,13 @@
+# The same configuration as 01-hello-world, with a different `asyncapi-id`.
+# See 01-hello-world/tspconfig.yaml for what each option does.
+emit:
+  - "tsp-asyncapi"
+
+options:
+  "tsp-asyncapi":
+    # Puts the emitted file next to `main.tsp`.
+    emitter-output-dir: "{project-root}"
+    file-type: "yaml"
+    output-file: "asyncapi.yaml"
+    default-content-type: "application/json"
+    asyncapi-id: "urn:example:telemetry-service"

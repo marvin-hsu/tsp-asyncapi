@@ -1,0 +1,99 @@
+asyncapi: 3.1.0
+id: urn:example:ledger-service
+info:
+  title: Ledger Service
+  version: 2.1.0
+  description: Two brokers, four security schemes and document-level tags.
+  contact:
+    name: Ledger Team
+    email: ledger@example.com
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  tags:
+    - name: ledger
+      description: Everything the ledger publishes.
+    - name: internal
+      description: Not exposed outside the platform.
+      externalDocs:
+        url: https://example.com/internal/ledger
+        description: The internal runbook.
+  externalDocs:
+    url: https://example.com/docs/ledger
+    description: The ledger contract guide.
+defaultContentType: application/json
+servers:
+  kafka-dev:
+    host: "{tenant}.dev.kafka.example.com:9092"
+    protocol: kafka
+    protocolVersion: "3.7"
+    title: Development broker
+    description: One shared cluster for every development tenant.
+    variables:
+      tenant:
+        default: sandbox
+        description: The tenant this client connects as.
+        examples:
+          - sandbox
+          - acme
+    security:
+      - $ref: "#/components/securitySchemes/ledger-oauth"
+      - $ref: "#/components/securitySchemes/broker-scram"
+    externalDocs:
+      url: https://example.com/docs/ledger
+      description: The ledger contract guide.
+  amqp-prod:
+    host: amqp.example.com:{port}
+    protocol: amqp
+    protocolVersion: 0.9.1
+    pathname: /{vhost}
+    title: Production broker
+    summary: The production AMQP broker.
+    variables:
+      port:
+        enum:
+          - "5671"
+          - "5672"
+        default: "5671"
+        description: TLS on 5671.
+      vhost:
+        default: ledger
+        description: The virtual host to open.
+    security:
+      - $ref: "#/components/securitySchemes/ledger-oauth"
+      - $ref: "#/components/securitySchemes/broker-scram"
+    externalDocs:
+      url: https://example.com/docs/ledger
+      description: The ledger contract guide.
+channels: {}
+operations: {}
+components:
+  securitySchemes:
+    ledger-oauth:
+      type: oauth2
+      description: Machine-to-machine access to the ledger topics.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/oauth2/token
+          refreshUrl: https://auth.example.com/oauth2/token
+          availableScopes:
+            ledger:read: Read ledger entries.
+            ledger:write: Append ledger entries.
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth2/authorize
+          tokenUrl: https://auth.example.com/oauth2/token
+          availableScopes:
+            ledger:read: Read ledger entries.
+      scopes:
+        - ledger:read
+    broker-scram:
+      type: scramSha512
+      description: SASL/SCRAM-SHA-512 against the broker.
+    gateway-key:
+      type: httpApiKey
+      description: A static key checked by the gateway.
+      name: X-Ledger-Key
+      in: header
+    legacy-login:
+      type: userPassword
+      description: Kept for the legacy bridge only.

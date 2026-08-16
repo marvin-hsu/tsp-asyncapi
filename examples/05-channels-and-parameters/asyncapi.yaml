@@ -1,0 +1,114 @@
+asyncapi: 3.1.0
+id: urn:example:telemetry-service
+info:
+  title: Telemetry Service
+  version: 1.0.0
+  description: Channel addressing, parameters and server binding.
+defaultContentType: application/json
+servers:
+  edge:
+    host: edge.example.com:9092
+    protocol: kafka
+    title: Edge broker
+channels:
+  DeviceReadings:
+    address: telemetry.{region}.devices.{deviceId}.readings
+    description: Readings from one device, in one region.
+    servers:
+      - $ref: "#/servers/edge"
+    parameters:
+      region:
+        enum:
+          - eu
+          - us
+          - ap
+        default: eu
+        description: The region the device reports from.
+        examples:
+          - eu
+      deviceId:
+        description: The serial number of the device.
+        examples:
+          - dev-00417
+        location: $message.payload#/deviceId
+    messages:
+      DeviceReading:
+        $ref: "#/components/messages/DeviceReading"
+  device-alarms:
+    address: telemetry.alarms
+    description: Alarms raised by any device.
+    servers:
+      - $ref: "#/servers/edge"
+    messages:
+      DeviceAlarm:
+        $ref: "#/components/messages/DeviceAlarm"
+  device-replies:
+    address: null
+    description: A channel whose address the broker assigns at runtime.
+    messages:
+      DeviceAlarm:
+        $ref: "#/components/messages/DeviceAlarm"
+  Firmware:
+    address: telemetry.firmware.{channelVersion}
+    description: Firmware reports, on a channel that sits on a namespace.
+    parameters:
+      channelVersion:
+        enum:
+          - v1
+          - v2
+        default: v2
+        description: The version of the channel contract.
+    messages:
+      FirmwareReport:
+        $ref: "#/components/messages/FirmwareReport"
+operations: {}
+components:
+  schemas:
+    DeviceReading:
+      type: object
+      properties:
+        deviceId:
+          type: string
+        celsius:
+          type: number
+          format: double
+        readAt:
+          type: string
+          format: date-time
+      required:
+        - deviceId
+        - celsius
+        - readAt
+    DeviceAlarm:
+      type: object
+      properties:
+        deviceId:
+          type: string
+        code:
+          type: string
+      required:
+        - deviceId
+        - code
+    Firmware.FirmwareReport:
+      type: object
+      properties:
+        deviceId:
+          type: string
+        version:
+          type: string
+      required:
+        - deviceId
+        - version
+  messages:
+    DeviceReading:
+      name: DeviceReading
+      payload:
+        $ref: "#/components/schemas/DeviceReading"
+    DeviceAlarm:
+      name: DeviceAlarm
+      payload:
+        $ref: "#/components/schemas/DeviceAlarm"
+    FirmwareReport:
+      name: FirmwareReport
+      payload:
+        $ref: "#/components/schemas/Firmware.FirmwareReport"

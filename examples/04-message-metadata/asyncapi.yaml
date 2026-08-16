@@ -1,0 +1,114 @@
+asyncapi: 3.1.0
+id: urn:example:invoicing-service
+info:
+  title: Invoicing Service
+  version: 1.0.0
+  description: Message headers, content types, correlation and examples.
+defaultContentType: application/json
+channels:
+  InvoicingEvents:
+    address: invoicing.events
+    messages:
+      InvoiceIssuedV1:
+        $ref: "#/components/messages/InvoiceIssuedV1"
+      InvoiceSettled:
+        $ref: "#/components/messages/InvoiceSettled"
+operations: {}
+components:
+  schemas:
+    InvoiceIssuedPayload:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+          description: The identifier of the invoice.
+        amountDue:
+          type: integer
+          format: int64
+          description: The amount still due, in the smallest currency unit.
+      required:
+        - invoiceId
+        - amountDue
+      description: One issued invoice.
+    MqmdHeaders:
+      type: object
+      properties:
+        messageId:
+          type: string
+        putDate:
+          type: string
+          format: date-time
+      required:
+        - messageId
+        - putDate
+    SettlementHeaders:
+      type: object
+      properties:
+        mqmd:
+          allOf:
+            - $ref: "#/components/schemas/MqmdHeaders"
+          description: The queue manager fields the broker sets.
+        contractVersion:
+          type: string
+          enum:
+            - "1"
+            - "2"
+          description: The version of the settlement contract.
+      required:
+        - mqmd
+        - contractVersion
+      description: The transport headers every settlement message carries.
+    InvoiceSettled:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+        settledAt:
+          type: string
+          format: date-time
+      required:
+        - invoiceId
+        - settledAt
+      description: One settled invoice.
+  messages:
+    InvoiceIssuedV1:
+      name: InvoiceIssuedV1
+      description: One issued invoice.
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          correlation-id:
+            type: string
+            format: uuid
+          x-trace-id:
+            type: string
+        required:
+          - correlation-id
+          - x-trace-id
+      payload:
+        $ref: "#/components/schemas/InvoiceIssuedPayload"
+      correlationId:
+        location: $message.header#/correlation-id
+        description: The id of the originating request.
+      examples:
+        - name: small-invoice
+          summary: One line, paid in full.
+          headers:
+            correlation-id: c-1001
+            x-trace-id: t-77
+          payload:
+            invoiceId: inv-1
+            amountDue: 4200
+        - name: zero-invoice
+          payload:
+            invoiceId: inv-2
+            amountDue: 0
+    InvoiceSettled:
+      name: InvoiceSettled
+      description: One settled invoice.
+      contentType: application/cloudevents+json
+      headers:
+        $ref: "#/components/schemas/SettlementHeaders"
+      payload:
+        $ref: "#/components/schemas/InvoiceSettled"

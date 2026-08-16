@@ -1,0 +1,139 @@
+asyncapi: 3.1.0
+id: urn:example:catalog-service
+info:
+  title: Catalog Service
+  version: 1.0.0
+  description: The basic shapes of the schema layer.
+defaultContentType: application/json
+channels:
+  PlacedOrders:
+    address: catalog.orders.placed
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+operations: {}
+components:
+  schemas:
+    PostalAddress:
+      type: object
+      properties:
+        street:
+          type: string
+          minLength: 1
+          maxLength: 80
+        city:
+          type: string
+          minLength: 1
+        postal_code:
+          type: string
+          pattern: ^[0-9]{4,10}$
+        country:
+          type: string
+          pattern: ^[A-Z]{2}$
+      required:
+        - street
+        - city
+        - postal_code
+        - country
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          description: An RFC 5321 mailbox address.
+          maxLength: 254
+        billingAddress:
+          $ref: "#/components/schemas/PostalAddress"
+        shippingAddress:
+          $ref: "#/components/schemas/PostalAddress"
+        tags:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 20
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - closed
+        nickname:
+          anyOf:
+            - type: string
+            - type: "null"
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - id
+        - email
+        - billingAddress
+        - tags
+        - status
+        - nickname
+        - attributes
+    Currency:
+      type: string
+      enum:
+        - USD
+        - EUR
+        - JPY
+    Money:
+      type: object
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 0
+          exclusiveMaximum: 1000000000
+        currency:
+          $ref: "#/components/schemas/Currency"
+      required:
+        - amount
+        - currency
+      title: An amount of money
+      description: An amount in the smallest unit the currency defines.
+      examples:
+        - amount: 1250
+          currency: EUR
+    Priority:
+      type: number
+      enum:
+        - 0
+        - 5
+        - 10
+    OrderPlaced:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        customer:
+          $ref: "#/components/schemas/Customer"
+        total:
+          $ref: "#/components/schemas/Money"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        placedAt:
+          type: string
+          format: date-time
+      required:
+        - orderId
+        - customer
+        - total
+        - priority
+        - placedAt
+      title: Order placed
+      description: One placed order.
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      title: Order placed
+      description: One placed order.
+      payload:
+        $ref: "#/components/schemas/OrderPlaced"

@@ -1,0 +1,36 @@
+asyncapi: 3.1.0
+id: urn:example:hello-service
+info:
+  title: Hello Service
+  version: 1.0.0
+  description: The smallest AsyncAPI document this emitter can produce.
+defaultContentType: application/json
+channels:
+  Greetings:
+    address: hello.greetings
+    description: Greetings sent to every listener.
+    messages:
+      Greeting:
+        $ref: "#/components/messages/Greeting"
+operations: {}
+components:
+  schemas:
+    Greeting:
+      type: object
+      properties:
+        to:
+          type: string
+          description: The recipient of the greeting.
+        text:
+          type: string
+          description: The text of the greeting.
+      required:
+        - to
+        - text
+      description: A greeting sent to one recipient.
+  messages:
+    Greeting:
+      name: Greeting
+      description: A greeting sent to one recipient.
+      payload:
+        $ref: "#/components/schemas/Greeting"
