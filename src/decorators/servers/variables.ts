@@ -65,7 +65,7 @@ function normalizeVariable(
     if (entries === undefined) continue;
     // One diagnostic covers the whole list. Every blank entry is the same
     // mistake, so naming it once is enough.
-    if (entries.includes("")) {
+    if (entries.some((entry) => entry === "")) {
       reportDiagnostic(context.program, {
         code: "blank-server-variable-value",
         format: { name, field },
