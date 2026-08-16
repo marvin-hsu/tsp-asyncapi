@@ -77,17 +77,41 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish to GitHub Packages
-        run: |
-          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
-          pnpm publish --no-git-checks
-        env:
-          npm_config_registry: https://npm.pkg.github.com/
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # The release notes are left for a person to write. This only records
       # that the version exists and points at the diff.
       - name: Create the GitHub release
         run: gh release create "${{ inputs.tag || github.ref_name }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
+
+  publish-github-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js for GitHub Packages
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: "https://npm.pkg.github.com"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish to GitHub Packages
+        run: |
+          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
+
+          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com/" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+
+          pnpm publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
