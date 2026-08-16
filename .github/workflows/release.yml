@@ -1,0 +1,68 @@
+name: Release
+
+# Publishing is driven by a tag, so the thing that is released is a commit
+# someone chose, not whatever happens to be on main at the time.
+on:
+  push:
+    tags: ["v*"]
+
+# npm provenance signs the published tarball against this repository and this
+# workflow run. It needs an OIDC token, and it only works because the
+# repository is public.
+permissions:
+  # `write` because the last step creates the GitHub release. Reading is
+  # enough for everything before it.
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          # Points npm at the public registry and tells it to read
+          # NODE_AUTH_TOKEN, which the publish step supplies.
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # A tag that disagrees with package.json publishes a version nobody
+      # asked for, and npm does not allow the same version to be published
+      # twice. So the two are compared before anything is built.
+      - name: Check the tag against package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          declared="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$declared" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME says $tag, package.json says $declared. Bump one to match the other."
+            exit 1
+          fi
+          echo "Publishing $declared"
+
+      # The same gate a change passes before it reaches main. A tag can be
+      # placed on any commit, including one that predates a fix, so the gate
+      # runs again here rather than trusting that CI once passed.
+      - name: Verify
+        run: pnpm check
+
+      - name: Publish to npm
+        run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # The release notes are left for a person to write. This only records
+      # that the version exists and points at the diff.
+      - name: Create the GitHub release
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -2,6 +2,22 @@
   "name": "tsp-asyncapi",
   "version": "1.0.0",
   "description": "AsyncAPI emitter for TypeSpec",
+  "keywords": [
+    "typespec",
+    "asyncapi",
+    "emitter",
+    "asyncapi-3",
+    "kafka",
+    "event-driven"
+  ],
+  "homepage": "https://marvin-hsu.github.io/tsp-asyncapi/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marvin-hsu/tsp-asyncapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marvin-hsu/tsp-asyncapi/issues"
+  },
   "main": "dist/src/index.js",
   "tspMain": "lib/main.tsp",
   "exports": {
@@ -49,10 +65,6 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "typespec",
-    "asyncapi"
-  ],
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": "eslint --fix",
     "*": "prettier --write --ignore-unknown"
@@ -96,5 +108,12 @@
     "typescript-eslint": "^8.67.0",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
