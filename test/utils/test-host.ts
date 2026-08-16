@@ -13,6 +13,35 @@ import yaml from "yaml";
  */
 export type TestSource = string | Record<string, string>;
 
+/**
+ * The name of the entry file of a test compilation.
+ * The tester wraps this one file with the library import and the `using`
+ * statement, and the compiler starts from it.
+ */
+const ENTRY_FILE = "main.tsp";
+
+/**
+ * Builds the tester for one source.
+ *
+ * A multi-file case declares every file it needs, and each of them is
+ * imported from the entry file. The imports cannot be written in the entry
+ * file itself, because the tester puts its own `using` statement above the
+ * text this helper is given, and TypeSpec requires every import to come
+ * first. The files are imported in the order the record lists them.
+ *
+ * @param code - The source of the compilation
+ * @param options - The emitter options
+ * @returns The tester to compile with
+ */
+function createTester(code: TestSource, options: Record<string, unknown>) {
+  const tester = AsyncAPITester.emit(LIBRARY_NAME, options);
+  if (typeof code === "string") return tester;
+  const imports = Object.keys(code)
+    .filter((name) => name !== ENTRY_FILE)
+    .map((name) => `./${name}`);
+  return imports.length > 0 ? tester.import(...imports) : tester;
+}
+
 export async function emitAsyncAPIWithDiagnostics(
   code: TestSource,
   options: Record<string, unknown> = {},
@@ -26,9 +55,7 @@ export async function emitAsyncAPIWithDiagnostics(
       ? `@service(#{ title: "TestService" }) namespace Test;\n${code}`
       : code;
 
-  const [result, diagnostics] = await AsyncAPITester.emit(LIBRARY_NAME, options).compileAndDiagnose(
-    fullCode,
-  );
+  const [result, diagnostics] = await createTester(code, options).compileAndDiagnose(fullCode);
 
   const fileType = typeof options["file-type"] === "string" ? options["file-type"] : "yaml";
   const outputFileName =

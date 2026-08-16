@@ -181,6 +181,48 @@ readonly default: CallableMessage<["name"]>;
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
+"undeclared-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"blank-server-variable-value": {
+readonly default: CallableMessage<["field", "name"]>;
+};
+"duplicate-server-variable-value": {
+readonly default: CallableMessage<["name", "value"]>;
+};
+"server-variable-default-not-in-enum": {
+readonly default: CallableMessage<["name", "default"]>;
+};
+"duplicate-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"invalid-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-security-scheme-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"blank-security-scope-name": {
+readonly default: "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.";
+};
+"invalid-url": {
+readonly default: CallableMessage<["field", "url"]>;
+};
+"missing-oauth-flow-url": {
+readonly default: CallableMessage<["flow", "field"]>;
+};
+"empty-oauth-flows": {
+readonly default: "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.";
+};
+"use-security-outside-server": {
+readonly default: CallableMessage<["schemeName", "namespace"]>;
+};
+"undeclared-security-scheme": {
+readonly default: CallableMessage<["schemeName"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -235,6 +277,14 @@ export interface AsyncAPIInfoState {
     version: string;
 }
 
+// Warning: (ae-internal-missing-underscore) The name "AsyncAPISecuritySchemeState" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface AsyncAPISecuritySchemeState {
+    name: string;
+    scheme: SecuritySchemeObject;
+}
+
 // Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerState" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -254,6 +304,17 @@ export interface AsyncAPIServerState {
     summary?: string;
     // (undocumented)
     title?: string;
+    variables?: Record<string, AsyncAPIServerVariableState>;
+}
+
+// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerVariableState" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface AsyncAPIServerVariableState {
+    default?: string;
+    description?: string;
+    enum?: string[];
+    examples?: string[];
 }
 
 // @public
@@ -301,6 +362,7 @@ export interface ComponentsObject {
     channels?: Record<string, never>;
     messages?: Record<string, MessageObject>;
     schemas?: Record<string, SchemaObject>;
+    securitySchemes?: Record<string, SecuritySchemeObject>;
 }
 
 // @public
@@ -323,7 +385,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -482,6 +544,48 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "undeclared-server-variable": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "unused-server-variable": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "blank-server-variable-value": {
+        readonly default: CallableMessage<["field", "name"]>;
+    };
+    "duplicate-server-variable-value": {
+        readonly default: CallableMessage<["name", "value"]>;
+    };
+    "server-variable-default-not-in-enum": {
+        readonly default: CallableMessage<["name", "default"]>;
+    };
+    "duplicate-security-scheme-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "invalid-security-scheme-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-security-scheme-field": {
+        readonly default: CallableMessage<["field"]>;
+    };
+    "blank-security-scope-name": {
+        readonly default: "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.";
+    };
+    "invalid-url": {
+        readonly default: CallableMessage<["field", "url"]>;
+    };
+    "missing-oauth-flow-url": {
+        readonly default: CallableMessage<["flow", "field"]>;
+    };
+    "empty-oauth-flows": {
+        readonly default: "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.";
+    };
+    "use-security-outside-server": {
+        readonly default: CallableMessage<["schemeName", "namespace"]>;
+    };
+    "undeclared-security-scheme": {
+        readonly default: CallableMessage<["schemeName"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -649,6 +753,48 @@ readonly default: CallableMessage<["name"]>;
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
+"undeclared-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"blank-server-variable-value": {
+readonly default: CallableMessage<["field", "name"]>;
+};
+"duplicate-server-variable-value": {
+readonly default: CallableMessage<["name", "value"]>;
+};
+"server-variable-default-not-in-enum": {
+readonly default: CallableMessage<["name", "default"]>;
+};
+"duplicate-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"invalid-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-security-scheme-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"blank-security-scope-name": {
+readonly default: "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.";
+};
+"invalid-url": {
+readonly default: CallableMessage<["field", "url"]>;
+};
+"missing-oauth-flow-url": {
+readonly default: CallableMessage<["flow", "field"]>;
+};
+"empty-oauth-flows": {
+readonly default: "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.";
+};
+"use-security-outside-server": {
+readonly default: CallableMessage<["schemeName", "namespace"]>;
+};
+"undeclared-security-scheme": {
+readonly default: CallableMessage<["schemeName"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -709,10 +855,18 @@ export function getMessageExamples(program: Program, target: Model): MessageExam
 // @public
 export function getParameterLocation(program: Program, target: ModelProperty): string | undefined;
 
+// Warning: (ae-incompatible-release-tags) The symbol "getSecuritySchemes" is marked as @public, but its signature references "AsyncAPISecuritySchemeState" which is marked as @internal
+//
+// @public
+export function getSecuritySchemes(program: Program): AsyncAPISecuritySchemeState[];
+
 // Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
 //
 // @public
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
+
+// @public
+export function getUsedSecuritySchemes(program: Program, target: Namespace): string[];
 
 // @public
 export function getUsedServers(program: Program, target: ChannelTarget): UseServerState[];
@@ -801,6 +955,26 @@ export interface MessageState {
 }
 
 // @public
+export interface OAuthFlowObject {
+    authorizationUrl?: string;
+    availableScopes: Record<string, string>;
+    refreshUrl?: string;
+    tokenUrl?: string;
+}
+
+// @public
+export interface OAuthFlowsObject {
+    // (undocumented)
+    authorizationCode?: OAuthFlowObject;
+    // (undocumented)
+    clientCredentials?: OAuthFlowObject;
+    // (undocumented)
+    implicit?: OAuthFlowObject;
+    // (undocumented)
+    password?: OAuthFlowObject;
+}
+
+// @public
 export type OperationObject = Record<string, never>;
 
 // @public
@@ -819,7 +993,7 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -978,6 +1152,48 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
+    };
+    "undeclared-server-variable": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "unused-server-variable": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "blank-server-variable-value": {
+        readonly default: CallableMessage<["field", "name"]>;
+    };
+    "duplicate-server-variable-value": {
+        readonly default: CallableMessage<["name", "value"]>;
+    };
+    "server-variable-default-not-in-enum": {
+        readonly default: CallableMessage<["name", "default"]>;
+    };
+    "duplicate-security-scheme-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "invalid-security-scheme-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "empty-security-scheme-field": {
+        readonly default: CallableMessage<["field"]>;
+    };
+    "blank-security-scope-name": {
+        readonly default: "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.";
+    };
+    "invalid-url": {
+        readonly default: CallableMessage<["field", "url"]>;
+    };
+    "missing-oauth-flow-url": {
+        readonly default: CallableMessage<["flow", "field"]>;
+    };
+    "empty-oauth-flows": {
+        readonly default: "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.";
+    };
+    "use-security-outside-server": {
+        readonly default: CallableMessage<["schemeName", "namespace"]>;
+    };
+    "undeclared-security-scheme": {
+        readonly default: CallableMessage<["schemeName"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -1145,6 +1361,48 @@ readonly default: CallableMessage<["name"]>;
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
+"undeclared-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"unused-server-variable": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"blank-server-variable-value": {
+readonly default: CallableMessage<["field", "name"]>;
+};
+"duplicate-server-variable-value": {
+readonly default: CallableMessage<["name", "value"]>;
+};
+"server-variable-default-not-in-enum": {
+readonly default: CallableMessage<["name", "default"]>;
+};
+"duplicate-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"invalid-security-scheme-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"empty-security-scheme-field": {
+readonly default: CallableMessage<["field"]>;
+};
+"blank-security-scope-name": {
+readonly default: "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.";
+};
+"invalid-url": {
+readonly default: CallableMessage<["field", "url"]>;
+};
+"missing-oauth-flow-url": {
+readonly default: CallableMessage<["flow", "field"]>;
+};
+"empty-oauth-flows": {
+readonly default: "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.";
+};
+"use-security-outside-server": {
+readonly default: CallableMessage<["schemeName", "namespace"]>;
+};
+"undeclared-security-scheme": {
+readonly default: CallableMessage<["schemeName"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -1200,14 +1458,41 @@ export interface SchemaObject {
 }
 
 // @public
+export interface SecuritySchemeObject {
+    bearerFormat?: string;
+    description?: string;
+    flows?: OAuthFlowsObject;
+    in?: string;
+    name?: string;
+    openIdConnectUrl?: string;
+    scheme?: string;
+    scopes?: string[];
+    type: SecuritySchemeType;
+}
+
+// @public
+export type SecuritySchemeType = "userPassword" | "apiKey" | "X509" | "symmetricEncryption" | "asymmetricEncryption" | "httpApiKey" | "http" | "oauth2" | "openIdConnect" | "plain" | "scramSha256" | "scramSha512" | "gssapi";
+
+// @public
 export interface ServerObject {
     description?: string;
+    externalDocs?: ExternalDocumentationObject;
     host: string;
     pathname?: string;
     protocol: string;
     protocolVersion?: string;
+    security?: ReferenceObject[];
     summary?: string;
     title?: string;
+    variables?: Record<string, ServerVariableObject>;
+}
+
+// @public
+export interface ServerVariableObject {
+    default?: string;
+    description?: string;
+    enum?: string[];
+    examples?: string[];
 }
 
 // @public

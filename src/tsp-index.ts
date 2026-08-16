@@ -13,7 +13,9 @@ import {
   $messageExample,
   $oneOf,
   $parameterLocation,
+  $securityScheme,
   $server,
+  $useSecurity,
   $useServer,
 } from "./decorators/index.js";
 
@@ -34,6 +36,8 @@ export const $decorators = {
   AsyncAPI: {
     info: $info,
     server: $server,
+    securityScheme: $securityScheme,
+    useSecurity: $useSecurity,
     externalDocs: $externalDocs,
     asyncTag: $asyncTag,
     oneOf: $oneOf,

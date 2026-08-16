@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../src/testing/index.js";
-import { buildServers } from "../../src/builders/servers.js";
-import { getServers } from "../../src/decorators/index.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
-import { byCodePoint } from "../utils/sort.js";
+import { AsyncAPITester } from "../../../src/testing/index.js";
+import { buildServersFrom } from "../../utils/servers.js";
+import { namespaceOf } from "../../utils/namespace.js";
+import { getServers } from "../../../src/decorators/index.js";
+import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { byCodePoint } from "../../utils/sort.js";
 
 describe("Unit: servers", () => {
   it("emits one entry per declared server with its fields", async () => {
@@ -133,7 +134,7 @@ describe("Unit: servers", () => {
     `);
 
     expectDiagnosticEmpty(diagnostics);
-    const servers = buildServers(runner.program, Test) ?? {};
+    const servers = buildServersFrom(runner.program, Test) ?? {};
     expect(Object.keys(servers)).toEqual(["__proto__", "ok"]);
     expect(Object.getOwnPropertyDescriptor(servers, "__proto__")?.value).toEqual({
       host: "proto.example.com",
@@ -154,10 +155,11 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
-    expect(buildServers(runner.program, Test)).toEqual({
+    expect(buildServersFrom(runner.program, Test)).toEqual({
       broker: { host: "first.example.com", protocol: "kafka" },
     });
   });
@@ -175,10 +177,11 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
-    expect(buildServers(runner.program, Test)).toEqual({
+    expect(buildServersFrom(runner.program, Test)).toEqual({
       broker: { host: "first.example.com", protocol: "kafka" },
       other: { host: "other.example.com", protocol: "kafka" },
     });
@@ -197,14 +200,16 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
         message: /Duplicate server name: 'dup'/,
       },
       {
         code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
         message: /Duplicate server name: 'dup'/,
       },
     ]);
-    expect(buildServers(runner.program, Test)).toEqual({
+    expect(buildServersFrom(runner.program, Test)).toEqual({
       dup: { host: "one.example.com", protocol: "kafka" },
     });
   });
@@ -222,10 +227,11 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
         message: /Duplicate server name: 'broker'/,
       },
     ]);
-    expect(buildServers(runner.program, Test)).toEqual({
+    expect(buildServersFrom(runner.program, Test)).toEqual({
       broker: { host: "stacked.example.com", protocol: "kafka" },
     });
   });
@@ -242,10 +248,11 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/empty-server-field",
+        severity: "error",
         message: /Empty server field: 'host'/,
       },
     ]);
-    expect(Object.keys(buildServers(runner.program, Test) ?? {})).toEqual(["sit"]);
+    expect(Object.keys(buildServersFrom(runner.program, Test) ?? {})).toEqual(["sit"]);
   });
 
   it("reports a diagnostic and drops a server whose protocol is blank", async () => {
@@ -259,10 +266,11 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/empty-server-field",
+        severity: "error",
         message: /Empty server field: 'protocol'/,
       },
     ]);
-    expect(buildServers(runner.program, Test)).toBeUndefined();
+    expect(buildServersFrom(runner.program, Test)).toBeUndefined();
   });
 
   it("omits an optional field that holds only whitespace", async () => {
@@ -331,9 +339,14 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/server-outside-service",
+        severity: "warning",
         message: /Server 'nested' on namespace '[\w.]*Test\.Sub' was dropped/,
       },
     ]);
+    // The diagnostic is a warning, so the document is still written. The
+    // check below would pass on a missing document as well, which is why the
+    // document itself is checked first.
+    expect(doc).not.toBeNull();
     expect(doc).not.toHaveProperty("servers");
   });
 
@@ -350,9 +363,150 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/server-outside-service",
+        severity: "warning",
         message: /Server 'lonely' on namespace 'Test' was dropped/,
       },
     ]);
+    expect(doc).not.toBeNull();
+    expect(doc).not.toHaveProperty("servers");
+  });
+
+  it("writes no document at all when a server problem is reported as an error", async () => {
+    // The severity of each diagnostic decides what the author ends up with.
+    // An error stops the compiler before the emitter runs, so no file is
+    // written. Every test that asserts against the builder rather than
+    // against a document depends on that, and this is the one place the
+    // suite states it.
+    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @server("blank", #{ host: "kafka.example.com", protocol: "  " })
+      namespace Test;
+    `);
+
+    expectDiagnostics(diagnostics, [
+      {
+        code: "tsp-asyncapi/empty-server-field",
+        severity: "error",
+        message: /Empty server field: 'protocol'/,
+      },
+    ]);
+    expect(doc).toBeNull();
+  });
+
+  it("orders the servers of two files by the order the files are imported", async () => {
+    // Source position orders the servers, and two applications in different
+    // files compare by the rank of their file. The rank comes from
+    // `program.sourceFiles`, whose insertion order is the order the compiler
+    // reached each file. So `second.tsp`, imported first, ranks first, even
+    // though its path sorts last. Ranking by path instead would put `alpha`
+    // first and would disagree with the rest of the emitter.
+    const doc = await emitAsyncAPI({
+      "second.tsp": `
+        using AsyncAPI;
+        @@server(Test, "bravo", #{ host: "bravo.example.com", protocol: "kafka" });
+      `,
+      "first.tsp": `
+        using AsyncAPI;
+        @@server(Test, "alpha", #{ host: "alpha.example.com", protocol: "kafka" });
+      `,
+      "main.tsp": `
+        @service(#{ title: "Orders" })
+        namespace Test;
+      `,
+    });
+
+    expect(Object.keys(doc.servers)).toEqual(["bravo", "alpha"]);
+  });
+
+  it("keeps the server of the file imported first when two files share a name", async () => {
+    // The file imported first ranks first, so its application is the earlier
+    // one and it is the one kept. `second.tsp` is imported first here, so its
+    // server survives even though `first.tsp` sorts earlier by path.
+    const runner = await AsyncAPITester.import("./second.tsp", "./first.tsp").createInstance();
+    const [, diagnostics] = await runner.compileAndDiagnose({
+      "second.tsp": `
+        using AsyncAPI;
+        @@server(Test, "broker", #{ host: "second.example.com", protocol: "kafka" });
+      `,
+      "first.tsp": `
+        using AsyncAPI;
+        @@server(Test, "broker", #{ host: "first.example.com", protocol: "kafka" });
+      `,
+      "main.tsp": `
+        @service(#{ title: "Orders" })
+        namespace Test;
+      `,
+    });
+
+    expectDiagnostics(diagnostics, [
+      {
+        code: "tsp-asyncapi/duplicate-server-name",
+        severity: "error",
+        message: /Duplicate server name: 'broker'/,
+      },
+    ]);
+    // The clash is an error, so a real compilation writes no document. The
+    // surviving server is read from the state instead.
+    expect(buildServersFrom(runner.program, namespaceOf(runner.program, "Test"))).toEqual({
+      broker: { host: "second.example.com", protocol: "kafka" },
+    });
+  });
+
+  it("applies one augment decorator once when its namespace is opened in two files", async () => {
+    // This is the real shape of the case the reopened-namespace test covers
+    // with two blocks in one file. The augment decorator runs once per
+    // declaration of its target, and the two runs share a file and an
+    // offset, so they are one application.
+    const doc = await emitAsyncAPI({
+      "main.tsp": `
+        @service(#{ title: "Orders" })
+        namespace Test;
+
+        @@server(Test, "only", #{ host: "a.example.com", protocol: "kafka" });
+      `,
+      "first.tsp": `
+        namespace Test {}
+      `,
+      "second.tsp": `
+        namespace Test {}
+      `,
+    });
+
+    expect(doc.servers).toEqual({
+      only: { host: "a.example.com", protocol: "kafka" },
+    });
+  });
+
+  it("reports the stray servers of two namespaces in source order", async () => {
+    // The stray servers are collected by walking the state map, which is in
+    // decorator evaluation order, and then sorted by source position. The
+    // evaluation follows the order the namespaces are declared in, and the
+    // two augment decorators below are written the other way round. So the
+    // sort is what decides the order the author reads.
+    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @@server(Alpha, "alpha-broker", #{ host: "alpha.example.com", protocol: "kafka" });
+      @@server(Beta, "beta-broker", #{ host: "beta.example.com", protocol: "kafka" });
+
+      namespace Beta {}
+      namespace Alpha {}
+
+      @service(#{ title: "Orders" })
+      namespace Test {}
+    `);
+
+    expectDiagnostics(diagnostics, [
+      {
+        code: "tsp-asyncapi/server-outside-service",
+        severity: "warning",
+        message: /Server 'alpha-broker' on namespace 'Alpha' was dropped/,
+      },
+      {
+        code: "tsp-asyncapi/server-outside-service",
+        severity: "warning",
+        message: /Server 'beta-broker' on namespace 'Beta' was dropped/,
+      },
+    ]);
+    expect(doc).not.toBeNull();
     expect(doc).not.toHaveProperty("servers");
   });
 
@@ -368,9 +522,10 @@ describe("Unit: servers", () => {
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/invalid-server-name",
+        severity: "error",
         message: /Invalid server name: 'prod.kafka'/,
       },
     ]);
-    expect(Object.keys(buildServers(runner.program, Test) ?? {})).toEqual(["sit"]);
+    expect(Object.keys(buildServersFrom(runner.program, Test) ?? {})).toEqual(["sit"]);
   });
 });

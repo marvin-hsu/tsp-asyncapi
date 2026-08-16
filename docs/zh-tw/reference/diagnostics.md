@@ -170,6 +170,8 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 **修法：** 改用只含英文字母、數字、`_`、`-` 的名稱。emitter 絕不自動改名，因為那會靜默換掉你要求的 key。
 
+<<<<<<< HEAD
+
 ### `empty-channel-address`
 
 > @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
@@ -319,6 +321,119 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 `@useServer` 標在沒有 channel 的 target 上。只有 channel 才有 `servers` 欄位，所以這次套用到不了文件的任何位置。
 
 **修法：** 為該 target 加上 `@channel` 或 `@dynamicChannel`，或移除這個 `@useServer`。
+=======
+
+### `duplicate-security-scheme-name`
+
+> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
+
+兩個 `@securityScheme` 用了同一個名稱。名稱就是 `components.securitySchemes` map 的 key，兩者會相撞。scheme 是跨整個程式收集的，因此標在不同 namespace 上也算重名。
+
+**修法：** 其中一個改名。
+
+### `invalid-security-scheme-name`
+
+> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
+
+名稱超出 AsyncAPI 允許的 Components Object key 字元集。此處允許點號，根層 `servers` map 的 key 則不允許。
+
+有兩個 decorator 會發出這條診斷。`@securityScheme` 把名稱寫成 `components.securitySchemes` 的 key。`@useSecurity` 把名稱寫進指向該 key 的 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。
+
+**修法：** 改用只含英文字母、數字、`.`、`-`、`_` 的名稱。emitter 絕不自動改名。
+
+### `empty-security-scheme-field`
+
+> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
+
+scheme 的必填字串欄位是空字串，或只有空白字元。涵蓋 `httpApiKey` 的 `name`、`http` 的 `scheme`、`openIdConnect` 的 `openIdConnectUrl`。空白值可以通過型別檢查，卻讓文件不合規格。
+
+**修法：** 給該欄位一個值。
+
+### `missing-oauth-flow-url`
+
+> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
+
+OAuth flow 缺少該 flow 必填的 URL。`implicit` 與 `authorizationCode` 需要 `authorizationUrl`。`password`、`clientCredentials`、`authorizationCode` 需要 `tokenUrl`。
+
+**修法：** 補上該 flow 需要的 URL。
+
+### `empty-oauth-flows`
+
+> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
+
+`oauth2` scheme 的 `flows` 是空物件。
+
+**修法：** 至少宣告一個 flow。
+
+### `invalid-url`
+
+> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
+
+URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，純文字也不合格。AsyncAPI 對這些欄位標了 `uri` 格式。值不合格時，parser 會拒絕整份文件。
+
+兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
+
+**修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
+
+## 警告
+
+### `undeclared-server-variable`
+
+> The template '{\<name\>}' in this server has no matching entry in `variables`. A reader cannot tell what to put there. The server is still emitted, with the template text unchanged. Add '\<name\>' to `variables`, or take the template out of `host` and `pathname`.
+
+server 的 `host` 或 `pathname` 含 `{var}` 模板，但同一個 server 的 `variables` 沒有對應項目。兩個欄位的模板名稱合起來視為同一組。
+
+**修法：** 把該名稱加進 `variables`，或從欄位中移除該模板。
+
+### `unused-server-variable`
+
+> The variable '\<name\>' is declared on this server, and neither `host` nor `pathname` uses a '{\<name\>}' template. The variable is still emitted. Use it in one of the two fields, or remove it.
+
+`variables` 宣告了沒有任何模板引用的項目。AsyncAPI 只會把變數代入 `host` 與 `pathname`，所以該項目不起作用。
+
+**修法：** 在兩個欄位其中之一使用該名稱，或刪除該項目。
+
+### `server-variable-default-not-in-enum`
+
+> The variable '\<name\>' has the default '\<default\>', which is not one of its `enum` values. A client that takes the default then holds a value the same variable forbids. Both values are still emitted.
+
+同一個變數同時宣告 `default` 與 `enum`，而 default 不在列舉值內。AsyncAPI 不禁止這種寫法，因此兩個值都會輸出。
+
+**修法：** 把 default 加進 `enum`，或把 default 改成列舉內的值。
+
+### `blank-server-variable-value`
+
+> The `\<field\>` of the server variable '\<name\>' holds an entry that is blank. A blank entry names no value, so it was dropped. A list left with no entry at all is dropped whole, and the variable is then emitted without it. Give every entry a value, or remove the ones that carry none.
+
+server 變數的 `enum` 或 `examples` 有項目是空字串，或只有空白字元。這種項目沒有指出任何值，所以會被丟棄。整個列表都沒有項目留下時，該欄位不會出現在變數上。
+
+**修法：** 給每個項目一個值，或刪除空白的項目。
+
+### `blank-security-scope-name`
+
+> The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.
+
+`oauth2` 或 `openIdConnect` scheme 的 `scopes` 有項目是空字串，或只有空白字元。這種項目沒有指出任何 scope，所以會被丟棄。空的 `scopes` 仍然會寫進文件，AsyncAPI 把它讀成「這個 scheme 不需要任何 scope」。那是另一種主張。
+
+**修法：** 給每個項目一個 scope 名稱，或刪除空白的項目。
+
+### `use-security-outside-server`
+
+> @useSecurity('\<schemeName\>') on namespace '\<namespace\>' was dropped. The `security` array sits on a server, and this namespace declares no @server. Move this @useSecurity to the namespace that carries @server.
+
+`@useSecurity` 標在沒有宣告 server 的 namespace 上。emitter 把 `security` 陣列寫在 server 物件上，這次標記沒有可以落腳的位置。
+
+**修法：** 把 `@useSecurity` 移到標有 `@server` 的 namespace，或用 `@@useSecurity` 從目前位置 augment 過去。
+
+### `undeclared-security-scheme`
+
+> @useSecurity('\<schemeName\>') names a security scheme that no @securityScheme defines. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @securityScheme with this name, or correct the name.
+
+`@useSecurity` 指定的名稱，程式中沒有任何 `@securityScheme` 定義。server 上的項目是指向 `components.securitySchemes` 的 `$ref`，這個 `$ref` 會指到文件中不存在的 key。
+
+**修法：** 新增同名的 `@securityScheme`，或修正 `@useSecurity` 的名稱。
+
+> > > > > > > d5286af (feat(servers): add server variables, security schemes and externalDocs)
 
 ### `message-key-shadows-schema-key`
 

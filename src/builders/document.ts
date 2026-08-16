@@ -5,7 +5,12 @@ import { buildChannels } from "./channels/builder.js";
 import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages/builder.js";
 import { SchemaBuilder } from "./schemas/builder.js";
-import { buildServers, reportServersOutsideService } from "./servers.js";
+import {
+  buildServers,
+  reportSecurityUsesWithoutServer,
+  reportServersOutsideService,
+} from "./servers.js";
+import { buildSecuritySchemes } from "./security-schemes.js";
 import { ASYNCAPI_VERSION, DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
 /**
@@ -26,10 +31,15 @@ function buildComponents(program: Program): {
   const schemaBuilder = new SchemaBuilder(program);
   const { messages, keys } = buildMessages(program, schemaBuilder);
   const schemas = schemaBuilder.getSchemas();
+  // The security schemes come from the whole program, not from the service
+  // namespace. `components` is a document-wide registry, and a scheme is
+  // reached by name rather than by the namespace it sits on.
+  const securitySchemes = buildSecuritySchemes(program);
 
   const components: ComponentsObject = {
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(messages ? { messages } : {}),
+    ...(securitySchemes ? { securitySchemes } : {}),
   };
   return {
     components: Object.keys(components).length > 0 ? components : undefined,
@@ -54,7 +64,14 @@ export function buildAsyncAPIDocument(
   // Servers come from the service namespace, the same source as `info`. A
   // server on any other namespace is reported, then left out.
   reportServersOutsideService(program, service?.type);
-  const servers = service ? buildServers(program, service.type) : undefined;
+  // A `@useSecurity` reaches the document through a server, so one whose
+  // namespace contributes no server is reported too.
+  reportSecurityUsesWithoutServer(program, service?.type);
+  // The servers are built after the components, so the full set of scheme
+  // keys is known here. A `@useSecurity` naming anything else would emit a
+  // reference no parser can resolve, so the builder needs this set.
+  const declaredSchemes = new Set(Object.keys(components?.securitySchemes ?? {}));
+  const servers = service ? buildServers(program, service.type, declaredSchemes) : undefined;
 
   // The root document. Its version comes from `ASYNCAPI_VERSION`.
   return {

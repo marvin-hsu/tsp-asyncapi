@@ -86,6 +86,226 @@ server 的順序依原始碼撰寫順序。順序取自原始碼位置，不取�
 
 server 名稱只能使用英文字母、數字、`_` 與 `-`。其他名稱會發出 [`invalid-server-name`](./diagnostics#invalid-server-name) 錯誤。emitter 絕不自動改名。兩個 server 同名會發出 [`duplicate-server-name`](./diagnostics#duplicate-server-name) 錯誤，保留原始碼中較前面的那個。
 
+### Server variables
+
+`host` 與 `pathname` 都可以含 `{var}` 模板。config 的 `variables` 欄位為每個名稱給出一個 Server Variable Object。
+
+```typespec
+model AsyncAPIServerVariable {
+  `enum`?: string[];
+  default?: string;
+  description?: string;
+  examples?: string[];
+}
+```
+
+所有欄位皆為選填。AsyncAPI 與 OpenAPI 3 不同，不要求 `default`。`enum` 是 TypeSpec 關鍵字，所以要寫成 `` `enum` ``。
+
+```typespec
+@service(#{ title: "Orders" })
+@server("broker", #{
+  host: "{env}.kafka.example.com:9092",
+  protocol: "kafka",
+  pathname: "/{tenant}",
+  variables: #{
+    env: #{ default: "prod", `enum`: #["prod", "sit"], description: "The environment." },
+    tenant: #{ default: "acme" }
+  }
+})
+namespace Orders;
+```
+
+```yaml
+servers:
+  broker:
+    host: "{env}.kafka.example.com:9092"
+    protocol: kafka
+    pathname: /{tenant}
+    variables:
+      env:
+        enum:
+          - prod
+          - sit
+        default: prod
+        description: The environment.
+      tenant:
+        default: acme
+```
+
+`host` 與 `pathname` 的模板名稱合起來視為同一組。模板沒有對應項目時發出 [`undeclared-server-variable`](./diagnostics#undeclared-server-variable) 警告。該 server 仍會輸出，模板文字保持原樣。宣告了卻沒有模板使用的項目發出 [`unused-server-variable`](./diagnostics#unused-server-variable) 警告，該項目仍會輸出。`default` 不在同一個變數的 `enum` 內時，發出 [`server-variable-default-not-in-enum`](./diagnostics#server-variable-default-not-in-enum) 警告。`enum` 或 `examples` 的空白項目沒有指出任何值，會被丟棄，並發出 [`blank-server-variable-value`](./diagnostics#blank-server-variable-value) 警告。整個列表都沒有項目留下時，該欄位一併丟棄。
+
+## `@securityScheme`
+
+```typespec
+extern dec securityScheme(
+  target: Namespace,
+  name: valueof string,
+  scheme: valueof AsyncAPISecurityScheme
+);
+```
+
+定義一筆 `components.securitySchemes` 項目。`name` 引數就是該項目的 key。此 decorator 可重複標記。
+
+scheme 是跨整個程式收集的。`components` 是整份文件共用的登錄表，所以任何 namespace 上的 scheme 都會進入文件。這一點與 `@server` 不同，emitter 只讀 service namespace 上的 server。
+
+`AsyncAPISecurityScheme` 是每種 scheme 一個 model 的 union。`type` 欄位決定採用哪個 model。各 model 之間不共用欄位，因此型別檢查會擋掉屬於其他種類的欄位。
+
+| `type`                                                                                                                 | 額外欄位                                                |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `userPassword`、`X509`、`symmetricEncryption`、`asymmetricEncryption`、`plain`、`scramSha256`、`scramSha512`、`gssapi` | 無                                                      |
+| `apiKey`                                                                                                               | `in`：`"user"` 或 `"password"`                          |
+| `httpApiKey`                                                                                                           | `name`，以及 `in`：`"query"`、`"header"` 或 `"cookie"`  |
+| `http`                                                                                                                 | `scheme`；`scheme` 為 `"bearer"` 時另有 `bearerFormat?` |
+| `oauth2`                                                                                                               | `flows`、`scopes?`                                      |
+| `openIdConnect`                                                                                                        | `openIdConnectUrl`、`scopes?`                           |
+
+每種 scheme 另有選填的 `description`。`type` 的值一律照 AsyncAPI 的拼寫輸出，包含 `X509` 的大寫 X。
+
+`apiKey` 與 `httpApiKey` 刻意分成兩個 model。兩者的 `in` 值域不同，而 `name` 只屬於 `httpApiKey`。
+
+`http` 也因為同樣的理由分成兩個 model。AsyncAPI 用另一個物件描述 `bearer` scheme，只有那個物件帶 `bearerFormat`。驗證器會擋掉出現在其他 scheme 旁的這個欄位，所以型別檢查也在同一處擋下。
+
+```typespec
+@service(#{ title: "Orders" })
+@securityScheme("kafka-scram", #{ type: "scramSha512", description: "SASL/SCRAM over TLS." })
+@securityScheme("api-key", #{ type: "httpApiKey", name: "X-Api-Key", in: "header" })
+namespace Orders;
+```
+
+```yaml
+components:
+  securitySchemes:
+    kafka-scram:
+      type: scramSha512
+      description: SASL/SCRAM over TLS.
+    api-key:
+      type: httpApiKey
+      name: X-Api-Key
+      in: header
+```
+
+`oauth2` scheme 帶一個 OAuth Flows Object。AsyncAPI 把它定義成四個選填具名欄位，不是陣列。
+
+```typespec
+model AsyncAPIOAuthFlows {
+  implicit?: ImplicitOAuthFlow;
+  password?: PasswordOAuthFlow;
+  clientCredentials?: ClientCredentialsOAuthFlow;
+  authorizationCode?: AuthorizationCodeOAuthFlow;
+}
+
+model OAuthFlowBase {
+  refreshUrl?: string;
+  availableScopes: Record<string>;
+}
+
+model ImplicitOAuthFlow {
+  ...OAuthFlowBase;
+  authorizationUrl?: string;
+}
+
+model PasswordOAuthFlow {
+  ...OAuthFlowBase;
+  tokenUrl?: string;
+}
+
+model ClientCredentialsOAuthFlow {
+  ...OAuthFlowBase;
+  tokenUrl?: string;
+}
+
+model AuthorizationCodeOAuthFlow {
+  ...OAuthFlowBase;
+  authorizationUrl?: string;
+  tokenUrl?: string;
+}
+```
+
+每個 flow 各有自己的 model。AsyncAPI 對每個 flow 要求不同的 URL 組合，也禁止該 flow 用不到的那個 URL。`implicit` 內出現 `tokenUrl`，或 `password`、`clientCredentials` 內出現 `authorizationUrl`，整個 scheme 就不合法。一個 flow 一個 model 把這件事寫進型別，型別檢查因此會擋下 flow 禁止的 URL。
+
+AsyncAPI 把 scope 對照表命名為 `availableScopes`。OpenAPI 對同一份對照表用的名稱是 `scopes`。scheme 本身的 `scopes` 欄位是另一回事，它列出這個 scheme 需要的 scope 名稱，是各 flow `availableScopes` 的子集。
+
+```typespec
+@service(#{ title: "Orders" })
+@securityScheme("oauth", #{
+  type: "oauth2",
+  scopes: #["orders:write"],
+  flows: #{
+    clientCredentials: #{
+      tokenUrl: "https://example.com/token",
+      availableScopes: #{ `orders:read`: "Read orders", `orders:write`: "Write orders" }
+    }
+  }
+})
+namespace Orders;
+```
+
+```yaml
+components:
+  securitySchemes:
+    oauth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.com/token
+          availableScopes:
+            orders:read: Read orders
+            orders:write: Write orders
+      scopes:
+        - orders:write
+```
+
+`implicit` 與 `authorizationCode` 需要 `authorizationUrl`。`password`、`clientCredentials`、`authorizationCode` 需要 `tokenUrl`。缺少或空白會發出 [`missing-oauth-flow-url`](./diagnostics#missing-oauth-flow-url) 錯誤，並丟棄該 scheme。`flows` 沒有任何 flow 會發出 [`empty-oauth-flows`](./diagnostics#empty-oauth-flows) 錯誤。
+
+scheme 的每個 URL 都必須是絕對 URL。這涵蓋 `openIdConnectUrl`，以及各 flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。AsyncAPI 對這些欄位標了 `uri` 格式，相對路徑（例如 `/token`）會讓 parser 拒絕整份文件。這種值會發出 [`invalid-url`](./diagnostics#invalid-url) 錯誤，並丟棄該 scheme。
+
+`scopes` 的空白項目沒有指出任何 scope，會被丟棄，並發出 [`blank-security-scope-name`](./diagnostics#blank-security-scope-name) 警告。scheme 本身保留。`availableScopes` 內的空白說明會保留成空字串，因為 AsyncAPI 要求該 map 的每個 key 都要有值。
+
+scheme 名稱只能使用英文字母、數字、`.`、`-` 與 `_`。其他名稱會發出 [`invalid-security-scheme-name`](./diagnostics#invalid-security-scheme-name) 錯誤。兩個 scheme 同名會發出 [`duplicate-security-scheme-name`](./diagnostics#duplicate-security-scheme-name) 錯誤，保留原始碼中較前面的那個。必填字串欄位空白會發出 [`empty-security-scheme-field`](./diagnostics#empty-security-scheme-field) 錯誤。
+
+## `@useSecurity`
+
+```typespec
+extern dec useSecurity(target: Namespace, schemeName: valueof string);
+```
+
+要求 namespace 上每個 server 都套用一個 security scheme。此 decorator 可重複標記。每次標記在該 namespace 所有 server 的 `security` 陣列各加一筆。
+
+AsyncAPI 把該陣列讀成 OR。用戶端滿足其中一個 scheme 即可，不必全部滿足。
+
+```typespec
+@service(#{ title: "Orders" })
+@securityScheme("kafka-scram", #{ type: "scramSha512" })
+@useSecurity("kafka-scram")
+@server("production", #{ host: "kafka.example.com:9092", protocol: "kafka-secure" })
+@server("sit", #{ host: "kafka.sit.example.com:9092", protocol: "kafka-secure" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka-secure
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+  sit:
+    host: kafka.sit.example.com:9092
+    protocol: kafka-secure
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+```
+
+輸出一律是指向 `components.securitySchemes` 的 `$ref`。AsyncAPI 也允許在該處內嵌 scheme，本 emitter 不輸出這種形式。
+
+scheme 名稱的字元集與 `@securityScheme` 的名稱相同：英文字母、數字、`.`、`-` 與 `_`。名稱會寫進 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。其他名稱會發出 [`invalid-security-scheme-name`](./diagnostics#invalid-security-scheme-name) 錯誤，並丟棄該次標記。
+
+名稱照原文使用，前後空白不會被移除。`@securityScheme` 對自己的名稱也是同樣處理。所以帶空白的名稱在兩邊都會被拒絕。
+
+emitter 也會檢查名稱是否存在。沒有任何 `@securityScheme` 定義的名稱，會產生指向文件中不存在的 key 的 `$ref`。AsyncAPI parser 會因此拒絕整份文件。這種項目會發出 [`undeclared-security-scheme`](./diagnostics#undeclared-security-scheme) 警告，並被丟棄。若某個 server 的項目全部被丟棄，該 server 不會有 `security` 欄位。
+
+`security` 陣列位在 server 物件上。標在沒有 `@server` 的 namespace 上的 `@useSecurity` 不會有任何效果，並發出 [`use-security-outside-server`](./diagnostics#use-security-outside-server) 警告。
+
 ## `@externalDocs`
 
 ```typespec
@@ -93,6 +313,10 @@ extern dec externalDocs(target: unknown, url: valueof string, description?: valu
 ```
 
 附加外部文件連結。target 宣告為 `unknown`，因為 external docs 可以標在多種位置上。**目前 emitter 讀取兩處：service namespace 上的輸出到 `info.externalDocs`，`@message` model 上的輸出到該 message 的 `externalDocs`。** 標在其他位置會記錄下來，但還不會輸出。
+
+標有 `@server` 的 namespace 也會把該連結放到它宣告的每個 server 上。server 來自 service namespace，而 `info` 讀的是同一個 namespace，所以連結會出現在兩處。AsyncAPI 在兩種物件上都定義了 `externalDocs`。
+
+`url` 必須是絕對 URL。AsyncAPI 對這個欄位標了 `uri` 格式，相對路徑（例如 `/docs`）會讓 parser 拒絕整份文件。url 不是絕對 URL 時，emitter 回報 [`invalid-url`](./diagnostics#invalid-url) 錯誤，並丟棄這次標記。
 
 ```typespec
 @externalDocs("https://example.com/docs", "Service Documentation")

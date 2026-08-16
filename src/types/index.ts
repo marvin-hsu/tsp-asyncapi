@@ -67,6 +67,38 @@ export interface ServerObject {
   summary?: string;
   /** A description of the server. CommonMark is allowed. */
   description?: string;
+  /**
+   * The values that replace the `{var}` templates of `host` and `pathname`,
+   * keyed by the name written inside the braces.
+   */
+  variables?: Record<string, ServerVariableObject>;
+  /**
+   * The security schemes a client of this server satisfies. AsyncAPI reads
+   * the array as OR, so one entry is enough.
+   * The emitter always writes a reference into `components.securitySchemes`.
+   * The specification also allows an inline Security Scheme Object here, and
+   * this emitter never writes one, so the type is narrowed to a reference.
+   */
+  security?: ReferenceObject[];
+  /** Additional external documentation for this server. */
+  externalDocs?: ExternalDocumentationObject;
+}
+
+/**
+ * One value that a `{var}` template of `host` or `pathname` stands for.
+ * Every field is optional. AsyncAPI, unlike OpenAPI 3, does not require a
+ * `default`.
+ * @public
+ */
+export interface ServerVariableObject {
+  /** The values this variable is allowed to take. */
+  enum?: string[];
+  /** The value used when a client supplies none. */
+  default?: string;
+  /** A description of the variable. CommonMark is allowed. */
+  description?: string;
+  /** Example values for this variable. */
+  examples?: string[];
 }
 
 /**
@@ -201,7 +233,96 @@ export interface ComponentsObject {
   schemas?: Record<string, SchemaObject>;
   /** Reusable messages, keyed by the message name. */
   messages?: Record<string, MessageObject>;
+  /** Reusable security schemes, keyed by the scheme name. */
+  securitySchemes?: Record<string, SecuritySchemeObject>;
   channels?: Record<string, never>;
+}
+
+/**
+ * The name of one kind of security scheme.
+ * Every value is the spelling AsyncAPI 3 uses. The emitter writes it
+ * unchanged, so the case of each value is part of the contract.
+ * @public
+ */
+export type SecuritySchemeType =
+  | "userPassword"
+  | "apiKey"
+  | "X509"
+  | "symmetricEncryption"
+  | "asymmetricEncryption"
+  | "httpApiKey"
+  | "http"
+  | "oauth2"
+  | "openIdConnect"
+  | "plain"
+  | "scramSha256"
+  | "scramSha512"
+  | "gssapi";
+
+/**
+ * One security scheme a server or an operation requires.
+ * Which fields apply depends on `type`. The decorator accepts one model per
+ * kind of scheme, so a field of another kind never reaches this object.
+ * @public
+ */
+export interface SecuritySchemeObject {
+  /** The kind of this scheme. */
+  type: SecuritySchemeType;
+  /** A description of the scheme. CommonMark is allowed. */
+  description?: string;
+  /** The parameter name. It belongs to `httpApiKey` alone. */
+  name?: string;
+  /**
+   * Where the key travels. `apiKey` uses `user` or `password`.
+   * `httpApiKey` uses `query`, `header`, or `cookie`.
+   */
+  in?: string;
+  /** The RFC 7235 authorization scheme, such as `basic`. For `http`. */
+  scheme?: string;
+  /** A hint about the bearer token format, such as `JWT`. For `http`. */
+  bearerFormat?: string;
+  /** The OAuth flows this scheme offers. For `oauth2`. */
+  flows?: OAuthFlowsObject;
+  /** The OpenID Connect discovery URL. For `openIdConnect`. */
+  openIdConnectUrl?: string;
+  /**
+   * The scope names this scheme needs. It is a subset of the
+   * `availableScopes` of the flows.
+   */
+  scopes?: string[];
+}
+
+/**
+ * The OAuth flows of an `oauth2` scheme.
+ * AsyncAPI models this as an object with four named fields, not as the
+ * array `@typespec/http` uses.
+ * @public
+ */
+export interface OAuthFlowsObject {
+  implicit?: OAuthFlowObject;
+  password?: OAuthFlowObject;
+  clientCredentials?: OAuthFlowObject;
+  authorizationCode?: OAuthFlowObject;
+}
+
+/**
+ * One OAuth flow.
+ * `implicit` and `authorizationCode` need `authorizationUrl`. `password`,
+ * `clientCredentials`, and `authorizationCode` need `tokenUrl`.
+ * @public
+ */
+export interface OAuthFlowObject {
+  /** The authorization URL. It must be absolute. */
+  authorizationUrl?: string;
+  /** The token URL. It must be absolute. */
+  tokenUrl?: string;
+  /** The refresh URL. It must be absolute. */
+  refreshUrl?: string;
+  /**
+   * Every scope this flow offers, mapped to its description. AsyncAPI
+   * renames the OpenAPI `scopes` field to `availableScopes`.
+   */
+  availableScopes: Record<string, string>;
 }
 
 /**

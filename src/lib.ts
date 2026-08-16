@@ -414,6 +414,110 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`@useServer names the server '${"name"}', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a \`servers\` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.`,
       },
     },
+    "undeclared-server-variable": {
+      // This is a warning, not an error, because the server survives it. An
+      // error stops the compiler from running the emitter, so no document
+      // would be written at all, and the promise the message makes could
+      // not be kept.
+      severity: "warning",
+      messages: {
+        default: paramMessage`The template '{${"name"}}' in this server has no matching entry in \`variables\`. A reader cannot tell what to put there. The server is still emitted, with the template text unchanged. Add '${"name"}' to \`variables\`, or take the template out of \`host\` and \`pathname\`.`,
+      },
+    },
+    "unused-server-variable": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`The variable '${"name"}' is declared on this server, and neither \`host\` nor \`pathname\` uses a '{${"name"}}' template. The variable is still emitted. Use it in one of the two fields, or remove it.`,
+      },
+    },
+    "blank-server-variable-value": {
+      // This is a warning, not an error, because the variable survives it.
+      // An error stops the compiler from running the emitter, so no document
+      // would be written at all, and the promise the message makes could
+      // not be kept.
+      severity: "warning",
+      messages: {
+        default: paramMessage`The \`${"field"}\` of the server variable '${"name"}' holds an entry that is blank. A blank entry names no value, so it was dropped. A list left with no entry at all is dropped whole, and the variable is then emitted without it. Give every entry a value, or remove the ones that carry none.`,
+      },
+    },
+    "duplicate-server-variable-value": {
+      // A warning for the same reason the blank check above is one. The
+      // variable survives, and an error would stop the emitter before it
+      // could write the document this message describes.
+      severity: "warning",
+      messages: {
+        default: paramMessage`The \`enum\` of the server variable '${"name"}' names '${"value"}' more than once. AsyncAPI requires the entries to be unique, so a repeat makes the whole document fail validation. The repeat was dropped. Note that two entries that differ only in surrounding whitespace become the same value, because every entry is trimmed first.`,
+      },
+    },
+    "server-variable-default-not-in-enum": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`The variable '${"name"}' has the default '${"default"}', which is not one of its \`enum\` values. A client that takes the default then holds a value the same variable forbids. Both values are still emitted.`,
+      },
+    },
+    "duplicate-security-scheme-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate security scheme name: '${"name"}'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.`,
+      },
+    },
+    "invalid-security-scheme-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Invalid security scheme name: '${"name"}'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.`,
+      },
+    },
+    "empty-security-scheme-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Empty security scheme field: '${"field"}'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.`,
+      },
+    },
+    "blank-security-scope-name": {
+      // This is a warning, not an error, because the scheme survives it. An
+      // error stops the compiler from running the emitter, so no document
+      // would be written at all, and the promise the message makes could
+      // not be kept.
+      severity: "warning",
+      messages: {
+        default:
+          "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.",
+      },
+    },
+    "invalid-url": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The '${"field"}' value '${"url"}' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.`,
+      },
+    },
+    "missing-oauth-flow-url": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The '${"flow"}' OAuth flow needs a '${"field"}'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.`,
+      },
+    },
+    "empty-oauth-flows": {
+      severity: "error",
+      messages: {
+        default:
+          "This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.",
+      },
+    },
+    "use-security-outside-server": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useSecurity('${"schemeName"}') on namespace '${"namespace"}' was dropped. The \`security\` array sits on a server, and this namespace declares no @server. Move this @useSecurity to the namespace that carries @server.`,
+      },
+    },
+    "undeclared-security-scheme": {
+      // This is a warning, not an error, because the document survives it.
+      // An error stops the compiler before the emitter writes anything, and
+      // the check runs while the document is built.
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useSecurity('${"schemeName"}') names a security scheme that no @securityScheme defines. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @securityScheme with this name, or correct the name.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

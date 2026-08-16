@@ -49,7 +49,13 @@ using AsyncAPI;
 @tag("orders")
 @tag("payment")
 @externalDocs("https://example.com/docs", "Service Documentation")
-@server("production", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+@securityScheme("kafka-scram", #{ type: "scramSha512" })
+@useSecurity("kafka-scram")
+@server("production", #{
+  host: "{env}.kafka.example.com:9092",
+  protocol: "kafka-secure",
+  variables: #{ env: #{ default: "prod", `enum`: #["prod", "sit"] } }
+})
 namespace Orders;
 
 // The schema conversion layer turns this model into an AsyncAPI Schema

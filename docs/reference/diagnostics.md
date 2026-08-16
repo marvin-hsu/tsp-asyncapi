@@ -170,6 +170,8 @@ The name is outside the character set AsyncAPI allows for a key of the root `ser
 
 **Fix:** Use a name that only holds letters, digits, `_`, and `-`. The emitter never rewrites the name, because that would silently change the key you asked for.
 
+<<<<<<< HEAD
+
 ### `empty-channel-address`
 
 > @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
@@ -319,6 +321,119 @@ One name reached `@useServer` twice on one channel. AsyncAPI requires the entrie
 `@useServer` sits on a target that carries no channel. Only a channel holds a `servers` field, so the application reaches no part of the document.
 
 **Fix:** add `@channel` or `@dynamicChannel` to the target, or remove the `@useServer`.
+=======
+
+### `duplicate-security-scheme-name`
+
+> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
+
+Two `@securityScheme` applications share a name. The name is the key of the `components.securitySchemes` map, so the two would collide. The schemes are collected across the whole program, so two applications on different namespaces clash as well.
+
+**Fix:** Give one of them a different name.
+
+### `invalid-security-scheme-name`
+
+> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
+
+The name is outside the character set AsyncAPI allows for a key of the Components Object. A dot is allowed here, unlike in a key of the root `servers` map.
+
+Two decorators report this. `@securityScheme` writes the name as a key of `components.securitySchemes`. `@useSecurity` writes it into a JSON Pointer that addresses such a key, and a character outside the set makes the pointer malformed.
+
+**Fix:** Use a name that only holds letters, digits, `.`, `-`, and `_`. The emitter never rewrites the name.
+
+### `empty-security-scheme-field`
+
+> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
+
+A required string field of the scheme is empty, or holds whitespace only. This covers `name` on `httpApiKey`, `scheme` on `http`, and `openIdConnectUrl` on `openIdConnect`. A blank value passes the type check and then makes the document invalid.
+
+**Fix:** Give the field a value.
+
+### `missing-oauth-flow-url`
+
+> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
+
+An OAuth flow leaves out a URL that AsyncAPI requires for that flow. `implicit` and `authorizationCode` need an `authorizationUrl`. `password`, `clientCredentials`, and `authorizationCode` need a `tokenUrl`.
+
+**Fix:** Give the flow the URL it needs.
+
+### `empty-oauth-flows`
+
+> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
+
+The `flows` field of an `oauth2` scheme is an empty object.
+
+**Fix:** Declare at least one flow.
+
+### `invalid-url`
+
+> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
+
+A URL field holds a value that is not an absolute URL. A relative reference such as `/token` fails, and so does free text. AsyncAPI marks these fields with the `uri` format, and a parser rejects the document over a value that fails it.
+
+Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
+
+**Fix:** Write the URL with a scheme, such as `https://example.com/token`.
+
+## Warnings
+
+### `undeclared-server-variable`
+
+> The template '{\<name\>}' in this server has no matching entry in `variables`. A reader cannot tell what to put there. The server is still emitted, with the template text unchanged. Add '\<name\>' to `variables`, or take the template out of `host` and `pathname`.
+
+The `host` or the `pathname` of a server holds a `{var}` template, and the `variables` field of the same server declares no entry for that name. The names of both fields are read as one set.
+
+**Fix:** Add the name to `variables`, or remove the template from the field.
+
+### `unused-server-variable`
+
+> The variable '\<name\>' is declared on this server, and neither `host` nor `pathname` uses a '{\<name\>}' template. The variable is still emitted. Use it in one of the two fields, or remove it.
+
+The `variables` field declares an entry that no template refers to. AsyncAPI substitutes a variable into `host` and `pathname` only, so the entry has no effect.
+
+**Fix:** Use the name in one of the two fields, or drop the entry.
+
+### `server-variable-default-not-in-enum`
+
+> The variable '\<name\>' has the default '\<default\>', which is not one of its `enum` values. A client that takes the default then holds a value the same variable forbids. Both values are still emitted.
+
+One variable declares both a `default` and an `enum`, and the default is outside the list. AsyncAPI does not forbid this, so both values reach the document.
+
+**Fix:** Add the default to the `enum`, or change the default to a listed value.
+
+### `blank-server-variable-value`
+
+> The `\<field\>` of the server variable '\<name\>' holds an entry that is blank. A blank entry names no value, so it was dropped. A list left with no entry at all is dropped whole, and the variable is then emitted without it. Give every entry a value, or remove the ones that carry none.
+
+The `enum` or the `examples` of a server variable holds an entry that is empty, or holds whitespace only. Such an entry names no value, so it is dropped. A list that ends up with no entry is left out of the variable altogether.
+
+**Fix:** Give every entry a value, or remove the blank ones.
+
+### `blank-security-scope-name`
+
+> The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.
+
+The `scopes` of an `oauth2` or an `openIdConnect` scheme holds an entry that is empty, or holds whitespace only. Such an entry names no scope, so it is dropped. An empty `scopes` still reaches the document, and AsyncAPI reads it as "this scheme needs no scope", which is a different claim.
+
+**Fix:** Give every entry a scope name, or remove the blank ones.
+
+### `use-security-outside-server`
+
+> @useSecurity('\<schemeName\>') on namespace '\<namespace\>' was dropped. The `security` array sits on a server, and this namespace declares no @server. Move this @useSecurity to the namespace that carries @server.
+
+`@useSecurity` is applied to a namespace that declares no server. The emitter writes the `security` array onto a server object, so the application has nowhere to go.
+
+**Fix:** Move the `@useSecurity` to the namespace that carries `@server`, or use `@@useSecurity` to augment it from where you are.
+
+### `undeclared-security-scheme`
+
+> @useSecurity('\<schemeName\>') names a security scheme that no @securityScheme defines. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @securityScheme with this name, or correct the name.
+
+`@useSecurity` names a scheme that the program never declares. The entry on a server is a reference into `components.securitySchemes`, so the reference would address a key the document does not carry.
+
+**Fix:** Add a `@securityScheme` with this name, or correct the name in the `@useSecurity`.
+
+> > > > > > > d5286af (feat(servers): add server variables, security schemes and externalDocs)
 
 ### `message-key-shadows-schema-key`
 

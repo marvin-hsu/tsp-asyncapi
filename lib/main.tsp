@@ -13,7 +13,32 @@ extern dec info(target: Namespace, info: valueof AsyncAPIInfo);
 // that namespace only, and warns about a server on any other namespace.
 // Every field is trimmed. A blank optional field counts as absent and is
 // left out of the emitted document.
+// `host` and `pathname` may both carry `{var}` templates. Every name used
+// there needs an entry in `variables`, or the emitter reports it.
 extern dec server(target: Namespace, name: valueof string, config: valueof AsyncAPIServer);
+// Defines one entry of `components.securitySchemes`. The `name` argument
+// becomes the key of that entry.
+// Repeatable: apply it more than once to define more than one scheme.
+// The schemes are collected across the whole program, not from the service
+// namespace only. `components` is a document-wide registry, so a scheme
+// reaches the document from any namespace.
+// The `scheme` argument is one of the Security Scheme models below. The
+// `type` field picks the model, and the type checker then rejects a field
+// that belongs to another kind of scheme.
+extern dec securityScheme(
+  target: Namespace,
+  name: valueof string,
+  scheme: valueof AsyncAPISecurityScheme
+);
+// Requires one security scheme on every server of this namespace.
+// The `schemeName` argument names a scheme defined by `@securityScheme`.
+// Repeatable: apply it more than once to require more than one scheme.
+// AsyncAPI reads the `security` array as OR. A client satisfies one of the
+// listed schemes.
+// The emitter always writes a `$ref` into `#/components/securitySchemes`.
+// A name that no `@securityScheme` defines is reported while the document is
+// built, because the scheme may be declared after this application runs.
+extern dec useSecurity(target: Namespace, schemeName: valueof string);
 // Target is unknown because externalDocs can be applied to Namespace, Model, Operation, Message, etc.
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 // Adds one tag, with its metadata, to the emitted object.
@@ -155,6 +180,190 @@ model AsyncAPIServer {
   title?: string;
   summary?: string;
   description?: string;
+
+  // The values that replace the `{var}` templates of `host` and `pathname`.
+  // The key is the name written inside the braces.
+  variables?: Record<AsyncAPIServerVariable>;
+}
+
+// One value that a `{var}` template of `host` or `pathname` stands for.
+// Every field is optional. AsyncAPI, unlike OpenAPI 3, does not require a
+// `default`.
+// `enum` needs backticks because it is a TypeSpec keyword.
+model AsyncAPIServerVariable {
+  `enum`?: string[];
+  default?: string;
+  description?: string;
+  examples?: string[];
+}
+
+// The security schemes AsyncAPI 3 defines, one model each.
+// The models never share a field. AsyncAPI gives `apiKey` and `httpApiKey`
+// an `in` field with a different value set each, and it gives `name` to
+// `httpApiKey` alone. One model per kind keeps those apart, so the type
+// checker rejects a field on the wrong kind of scheme.
+alias AsyncAPISecurityScheme =
+  | UserPasswordSecurityScheme
+  | ApiKeySecurityScheme
+  | X509SecurityScheme
+  | SymmetricEncryptionSecurityScheme
+  | AsymmetricEncryptionSecurityScheme
+  | HttpApiKeySecurityScheme
+  | BearerHttpSecurityScheme
+  | HttpSecurityScheme
+  | OAuth2SecurityScheme
+  | OpenIdConnectSecurityScheme
+  | PlainSecurityScheme
+  | ScramSha256SecurityScheme
+  | ScramSha512SecurityScheme
+  | GssapiSecurityScheme;
+
+model UserPasswordSecurityScheme {
+  type: "userPassword";
+  description?: string;
+}
+
+// The `in` values here are `user` and `password`. They are not the
+// header/query/cookie values of `httpApiKey`. This scheme has no `name`.
+model ApiKeySecurityScheme {
+  type: "apiKey";
+  in: "user" | "password";
+  description?: string;
+}
+
+// The spelling is `X509`, with a capital X. It comes from the
+// specification and is emitted unchanged.
+model X509SecurityScheme {
+  type: "X509";
+  description?: string;
+}
+
+model SymmetricEncryptionSecurityScheme {
+  type: "symmetricEncryption";
+  description?: string;
+}
+
+model AsymmetricEncryptionSecurityScheme {
+  type: "asymmetricEncryption";
+  description?: string;
+}
+
+model HttpApiKeySecurityScheme {
+  type: "httpApiKey";
+  name: string;
+  in: "query" | "header" | "cookie";
+  description?: string;
+}
+
+// The `http` scheme, in the shape AsyncAPI gives every scheme that is not
+// `bearer`. It carries no `bearerFormat`.
+model HttpSecurityScheme {
+  type: "http";
+  scheme: string;
+  description?: string;
+}
+
+// The `http` scheme, in the shape AsyncAPI gives the `bearer` scheme.
+// `bearerFormat` describes a bearer token, so the specification puts the
+// field on this shape alone. A validator rejects a document that carries
+// `bearerFormat` next to any other `scheme`. One model per shape keeps the
+// two apart, so the type checker rejects the field on the wrong scheme.
+model BearerHttpSecurityScheme {
+  type: "http";
+  scheme: "bearer";
+  bearerFormat?: string;
+  description?: string;
+}
+
+model OAuth2SecurityScheme {
+  type: "oauth2";
+  flows: AsyncAPIOAuthFlows;
+
+  // The scope names this scheme needs. It is a subset of the
+  // `availableScopes` the flows declare.
+  scopes?: string[];
+
+  description?: string;
+}
+
+model OpenIdConnectSecurityScheme {
+  type: "openIdConnect";
+  openIdConnectUrl: string;
+  scopes?: string[];
+  description?: string;
+}
+
+model PlainSecurityScheme {
+  type: "plain";
+  description?: string;
+}
+
+model ScramSha256SecurityScheme {
+  type: "scramSha256";
+  description?: string;
+}
+
+model ScramSha512SecurityScheme {
+  type: "scramSha512";
+  description?: string;
+}
+
+model GssapiSecurityScheme {
+  type: "gssapi";
+  description?: string;
+}
+
+// The four OAuth flows, each an optional named field. AsyncAPI models this
+// as an object, not as the array `@typespec/http` uses.
+// Declare at least one flow. An object with no flow is reported.
+// Each field takes a model of its own. AsyncAPI requires a different set of
+// URLs per flow, and it also forbids the URL the flow does not use. A
+// validator rejects a `tokenUrl` inside `implicit`, and an
+// `authorizationUrl` inside `password` or `clientCredentials`. One model per
+// flow states that, so the type checker rejects a URL the flow forbids.
+model AsyncAPIOAuthFlows {
+  implicit?: ImplicitOAuthFlow;
+  password?: PasswordOAuthFlow;
+  clientCredentials?: ClientCredentialsOAuthFlow;
+  authorizationCode?: AuthorizationCodeOAuthFlow;
+}
+
+// The fields every flow shares.
+// `refreshUrl` is optional on all four flows. `availableScopes` maps every
+// scope the flow offers to its description. AsyncAPI renames the OpenAPI
+// `scopes` field to `availableScopes`.
+model OAuthFlowBase {
+  refreshUrl?: string;
+  availableScopes: Record<string>;
+}
+
+// The implicit flow. It uses `authorizationUrl` and forbids `tokenUrl`.
+// The URL stays optional here, so the emitter reports a missing or blank
+// one with a message that names the flow.
+model ImplicitOAuthFlow {
+  ...OAuthFlowBase;
+  authorizationUrl?: string;
+}
+
+// The resource owner password flow. It uses `tokenUrl` and forbids
+// `authorizationUrl`.
+model PasswordOAuthFlow {
+  ...OAuthFlowBase;
+  tokenUrl?: string;
+}
+
+// The client credentials flow. It uses `tokenUrl` and forbids
+// `authorizationUrl`.
+model ClientCredentialsOAuthFlow {
+  ...OAuthFlowBase;
+  tokenUrl?: string;
+}
+
+// The authorization code flow. It is the only flow that uses both URLs.
+model AuthorizationCodeOAuthFlow {
+  ...OAuthFlowBase;
+  authorizationUrl?: string;
+  tokenUrl?: string;
 }
 
 // The example content of one message. Both fields hold the value the message

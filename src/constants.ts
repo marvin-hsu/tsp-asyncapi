@@ -55,6 +55,44 @@ export const ASYNCAPI_VERSION = "3.1.0";
 export const DEFAULT_DOCUMENT_TITLE = "AsyncAPI Document";
 
 /**
+ * The prefix of a JSON Pointer into `components.securitySchemes`.
+ *
+ * A server names its schemes through a reference, never through an inline
+ * copy of the scheme. Every such reference is built from this prefix and the
+ * scheme name, so the pointer is written in one place only.
+ */
+export const SECURITY_SCHEME_REF_PREFIX = "#/components/securitySchemes/";
+
+/**
+ * The character set AsyncAPI 3 allows for a key of the root `servers` map.
+ *
+ * This set is stricter than the one for a key of the Components Object. A
+ * dot is not allowed here.
+ */
+export const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+/**
+ * The character set AsyncAPI 3 allows for a key of the Components Object.
+ *
+ * A dot is allowed here, unlike in a key of the root `servers` map. Two
+ * decorators check a name against this set. `@securityScheme` writes the
+ * name as a key, and `@useSecurity` writes it into a JSON Pointer that
+ * addresses such a key. Both need the same answer, so the pattern lives in
+ * one place.
+ */
+export const SECURITY_SCHEME_NAME_PATTERN = /^[a-zA-Z0-9.\-_]+$/;
+
+/**
+ * The one `http` authorization scheme that takes a `bearerFormat`.
+ *
+ * AsyncAPI defines a separate object for the bearer scheme, and only that
+ * object carries `bearerFormat`. A validator rejects the field next to any
+ * other scheme, so the emitter compares against this value before it writes
+ * the field.
+ */
+export const HTTP_BEARER_SCHEME = "bearer";
+
+/**
  * The `info.version` used when nothing supplies one.
  *
  * AsyncAPI requires `info.version`, so the emitter cannot leave it out.

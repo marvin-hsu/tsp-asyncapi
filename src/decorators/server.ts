@@ -1,6 +1,7 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
+import { SERVER_NAME_PATTERN } from "../constants.js";
 import { reportDiagnostic } from "../lib.js";
-import { bySourcePosition, sourcePositionOf } from "../source-order.js";
+import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source-order.js";
 import {
   AsyncAPIServerState,
   ServerRecord,
@@ -8,14 +9,23 @@ import {
   setServers,
 } from "./server-state.js";
 
-export type { AsyncAPIServerState } from "./server-state.js";
+import {
+  copyServerVariables,
+  resolveServerVariables,
+  ServerVariablesArgument,
+} from "./server-variables.js";
+
+export type { AsyncAPIServerState, AsyncAPIServerVariableState } from "./server-state.js";
 
 /**
- * The character set AsyncAPI 3 allows for a key of the root `servers` map.
- * This pattern is stricter than the one for keys of the Components Object.
- * A dot is not allowed here.
+ * The `config` argument of `@server`, as the author wrote it.
+ * It differs from the stored state in two ways. The state also holds the
+ * name, which is a separate argument, and the state holds only the fields
+ * that survived the checks below.
  */
-const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
+type ServerConfigArgument = Omit<AsyncAPIServerState, "name" | "variables"> & {
+  variables?: ServerVariablesArgument;
+};
 
 /**
  * Turns the `config` argument of `@server` into the state to store.
@@ -34,7 +44,7 @@ const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 function normalizeServerConfig(
   context: DecoratorContext,
   name: string,
-  config: Omit<AsyncAPIServerState, "name">,
+  config: ServerConfigArgument,
   configTarget: DiagnosticTarget,
 ): AsyncAPIServerState | undefined {
   // `host` and `protocol` are required by AsyncAPI. A blank value passes the
@@ -63,6 +73,17 @@ function normalizeServerConfig(
     if (value !== undefined && value !== "") server[field] = value;
   }
 
+  // The templates are read from the trimmed values, so the names checked
+  // here are the names the emitted document carries.
+  const variables = resolveServerVariables(
+    context,
+    server.host,
+    server.pathname,
+    config.variables,
+    configTarget,
+  );
+  if (variables !== undefined) server.variables = variables;
+
   return server;
 }
 
@@ -86,6 +107,10 @@ function normalizeServerConfig(
  * the trim carries no value, so it is stored as absent and stays out of the
  * emitted document.
  *
+ * `host` and `pathname` may both carry `{var}` templates. Every name used
+ * there needs an entry in `variables`. A name with no entry is reported, and
+ * the server is still emitted with the template text unchanged.
+ *
  * @param context - The decorator context
  * @param target - The namespace to apply this decorator to
  * @param name - The key for this server in the emitted `servers` map
@@ -104,7 +129,7 @@ export function $server(
   context: DecoratorContext,
   target: Namespace,
   name: string,
-  config: Omit<AsyncAPIServerState, "name">,
+  config: ServerConfigArgument,
 ) {
   // Report on the name argument. Both name problems below point here.
   const nameTarget = context.getArgumentTarget(0) ?? target;
@@ -145,7 +170,7 @@ export function $server(
     // opens the namespace. Those runs are one application, not a clash.
     // Two distinct statements can never share a file and a position, so a
     // real duplicate is still reported.
-    if (existing.file === record.file && existing.pos === record.pos) {
+    if (isSameApplication(existing, record)) {
       return;
     }
     const dropped = bySourcePosition(context.program)(record, existing) < 0 ? existing : record;
@@ -170,11 +195,16 @@ export function $server(
  * @param target - The namespace the decorator was applied to
  * @returns A copy of the recorded servers, in source order. The list is
  * empty when the decorator was never applied. The caller may change the
- * returned objects. The change stays with the caller.
+ * returned objects. The change stays with the caller. The copy reaches the
+ * variables as well, because they are a nested graph that a shallow copy
+ * would still share.
  *
  * @public
  */
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[] {
   const records = getServersInternal(program, target) ?? [];
-  return [...records].sort(bySourcePosition(program)).map((record) => ({ ...record.server }));
+  return [...records].sort(bySourcePosition(program)).map((record) => ({
+    ...record.server,
+    ...(record.server.variables ? { variables: copyServerVariables(record.server.variables) } : {}),
+  }));
 }

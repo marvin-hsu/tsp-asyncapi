@@ -10,7 +10,18 @@
 export const namespace = "AsyncAPI";
 
 export { $info, getInfo, type AsyncAPIInfoState } from "./info.js";
-export { $server, getServers, type AsyncAPIServerState } from "./server.js";
+export {
+  $server,
+  getServers,
+  type AsyncAPIServerState,
+  type AsyncAPIServerVariableState,
+} from "./server.js";
+export {
+  $securityScheme,
+  getSecuritySchemes,
+  type AsyncAPISecuritySchemeState,
+} from "./security-scheme.js";
+export { $useSecurity, getUsedSecuritySchemes } from "./use-security.js";
 export { $externalDocs, getExternalDocs, type ExternalDocsState } from "./external-docs.js";
 export {
   $asyncTag,

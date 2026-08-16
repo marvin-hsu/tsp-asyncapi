@@ -132,3 +132,21 @@ export function orderBySourceNodes<T>(
     .sort((a, b) => compare(a.key, b.key))
     .map((sorted) => sorted.entry);
 }
+
+/**
+ * True when two recorded applications are the same one, run twice.
+ *
+ * An augment decorator runs once per declaration of its target. A namespace
+ * that is reopened therefore runs the same statement again, and the second
+ * run must not be mistaken for a second application. Two statements written
+ * in different places can never share a file and an offset, so the position
+ * is the identity.
+ *
+ * @param a - The first recorded position
+ * @param b - The second recorded position
+ * @returns Whether both were written at the same place in the same file
+ * @internal
+ */
+export function isSameApplication(a: SourcePosition, b: SourcePosition): boolean {
+  return a.file === b.file && a.pos === b.pos;
+}

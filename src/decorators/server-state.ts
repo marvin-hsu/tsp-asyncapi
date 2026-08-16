@@ -5,6 +5,23 @@ import { SourcePosition, bySourcePosition } from "../source-order.js";
 const serverStateKey = Symbol.for("tsp-asyncapi.server");
 
 /**
+ * One value that a `{var}` template of `host` or `pathname` stands for.
+ * It is part of the state `getServers` returns, so it is part of the
+ * public surface.
+ * @internal
+ */
+export interface AsyncAPIServerVariableState {
+  /** The values this variable is allowed to take. */
+  enum?: string[];
+  /** The value used when a client supplies none. */
+  default?: string;
+  /** A description of the variable. */
+  description?: string;
+  /** Example values for this variable. */
+  examples?: string[];
+}
+
+/**
  * State interface representing one server declared by `@server`.
  * @internal
  */
@@ -18,6 +35,8 @@ export interface AsyncAPIServerState {
   title?: string;
   summary?: string;
   description?: string;
+  /** The values for the `{var}` templates of `host` and `pathname`. */
+  variables?: Record<string, AsyncAPIServerVariableState>;
 }
 
 /**
@@ -35,6 +54,19 @@ const [getServersInternal, setServers, getServerStateMap] = useStateMap<Namespac
 );
 
 export { getServersInternal, setServers };
+
+/**
+/**
+ * True when a namespace carries at least one server that survived its own
+ * checks.
+ *
+ * @param program - The program to read the state from
+ * @param namespace - The namespace to look at
+ * @returns Whether `@server` recorded anything for that namespace
+ */
+export function namespaceHasServers(program: Program, namespace: Namespace): boolean {
+  return (getServersInternal(program, namespace)?.length ?? 0) > 0;
+}
 
 /**
  * One server that the emitter leaves out of the document, because it sits on

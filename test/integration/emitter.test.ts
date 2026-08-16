@@ -369,4 +369,54 @@ describe("Phase 1: Document Skeleton & Info", () => {
 
     await expect(doc).toBeValidAsyncAPI();
   });
+
+  it("should emit security schemes, server security, and variables that the parser accepts", async () => {
+    // The three parts of the server security story only meet here. The
+    // parser resolves the `$ref` from a server into `components`, and it
+    // checks the substitution of a variable into `host` and `pathname`.
+    const code = `
+      @service(#{ title: "Order Events" })
+      @AsyncAPI.securityScheme("kafka-scram", #{
+        type: "scramSha512",
+        description: "SASL/SCRAM over TLS."
+      })
+      @AsyncAPI.securityScheme("oauth", #{
+        type: "oauth2",
+        scopes: #["orders:read"],
+        flows: #{
+          clientCredentials: #{
+            tokenUrl: "https://example.com/token",
+            refreshUrl: "https://example.com/refresh",
+            availableScopes: #{ \`orders:read\`: "Read orders" }
+          }
+        }
+      })
+      @AsyncAPI.useSecurity("kafka-scram")
+      @AsyncAPI.useSecurity("oauth")
+      @AsyncAPI.server("production", #{
+        host: "{tenant}.kafka.example.com:9092",
+        protocol: "kafka-secure",
+        protocolVersion: "3.5.0",
+        pathname: "/{stage}",
+        variables: #{
+          tenant: #{ default: "acme", \`enum\`: #["acme", "globex"], description: "The tenant." },
+          stage: #{ default: "v1", examples: #["v1"] }
+        }
+      })
+      namespace Orders;
+    `;
+    const doc = await emitAsyncAPI(code);
+
+    expect(doc.servers.production.security).toEqual([
+      { $ref: "#/components/securitySchemes/kafka-scram" },
+      { $ref: "#/components/securitySchemes/oauth" },
+    ]);
+    expect(Object.keys(doc.servers.production.variables)).toEqual(["tenant", "stage"]);
+    expect(Object.keys(doc.components.securitySchemes).sort(byCodePoint)).toEqual([
+      "kafka-scram",
+      "oauth",
+    ]);
+
+    await expect(doc).toBeValidAsyncAPI();
+  });
 });
