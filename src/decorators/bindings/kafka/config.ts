@@ -28,7 +28,7 @@ import {
  *
  * Deriving these rather than writing them out twice is what keeps the two
  * from drifting. The field list of a Kafka binding is already spelled out in
- * `lib/main.tsp` for the author and in `src/types/index.ts` for the emitted
+ * `lib/main.tsp` for the author and in `src/types.ts` for the emitted
  * document. A third hand-written copy here would compile happily while the
  * public type said something the emitter no longer does.
  *
