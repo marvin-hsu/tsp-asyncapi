@@ -6,12 +6,13 @@ import { listReplyDeclarations } from "../../decorators/operations/reply-state.j
 import { OperationActionState, listOperationActions } from "../../decorators/operations/state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { OperationObject } from "../../types/index.js";
+import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { owningChannelTarget } from "../channels/scope.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { channelRef } from "../json-pointer.js";
 import { operationSides } from "../operation-models.js";
-import { present, text } from "../optional-fields.js";
+import { present, text } from "../../optional-fields.js";
 import { buildSecurityRequirements } from "../security-requirements.js";
 import { buildTags } from "../tags.js";
 import { operationId } from "./id.js";
@@ -63,7 +64,12 @@ export function buildOperations(
       // with no such channel reaches nothing. The channel may be missing
       // because the target carries no channel decorator, and it may be
       // missing because the declared channel was dropped.
-      if (target.node !== undefined && emittedNodes.has(target.node)) continue;
+      if (target.node !== undefined && emittedNodes.has(target.node)) {
+        // The copies carry this declaration into the document, so its
+        // bindings reached an object too.
+        markBindingsPlaced(program, "operation", target);
+        continue;
+      }
       reportDiagnostic(program, {
         code: "operation-without-channel",
         format: { name: target.name },
@@ -75,6 +81,9 @@ export function buildOperations(
     const id = operationId(target, record);
     if (claimed.has(id)) {
       reportDiagnostic(program, { code: "duplicate-operation-id", format: { id }, target });
+      // The repeated id is the mistake, and it is already reported. The
+      // bindings of this operation are not a second one.
+      markBindingsPlaced(program, "operation", target);
       continue;
     }
     claimed.add(id);
@@ -141,10 +150,9 @@ interface OperationContext {
  * Builds one Operation Object.
  *
  * The field order follows the Operation Object table of the specification.
- * AsyncAPI also defines `summary` and `bindings` here. `summary` is left out
- * for the reason a channel leaves it out: `@summary` already fills `title`
- * and `@doc` already fills `description`. `bindings` is left out because
- * this emitter has no binding decorator yet.
+ * AsyncAPI also defines `summary` here. It is left out for the reason a
+ * channel leaves it out: `@summary` already fills `title` and `@doc` already
+ * fills `description`.
  *
  * The two sides of the signature are read by the action. `operationSides`
  * states that rule, and it states it in one place because the channel
@@ -164,6 +172,7 @@ function buildOperation(program: Program, context: OperationContext): OperationO
     ...present("security", buildSecurityRequirements(program, operation, declaredSchemes)),
     ...present("tags", buildTags(program, operation)),
     ...present("externalDocs", buildExternalDocs(program, operation)),
+    ...present("bindings", buildBindings(program, "operation", operation)),
     ...present("messages", buildMessageReferences(request, channel, messageKeys)),
     ...present(
       "reply",

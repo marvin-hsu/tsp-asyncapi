@@ -7,8 +7,9 @@ import {
 import { listUseServerTargets } from "../../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ChannelObject, ReferenceObject } from "../../types/index.js";
+import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
 import { buildExternalDocs } from "../external-docs.js";
-import { present, text } from "../optional-fields.js";
+import { present, text } from "../../optional-fields.js";
 import { buildTags } from "../tags.js";
 import { buildChannelMessages } from "./messages.js";
 import { buildChannelParameters } from "./parameters.js";
@@ -50,6 +51,9 @@ export function buildChannels(
     const id = record.state.channelId ?? target.name;
     if (claimedBy.has(id)) {
       reportDiagnostic(program, { code: "duplicate-channel-id", format: { id }, target });
+      // The repeated id is the mistake, and it is already reported. The
+      // bindings of this channel are not a second one.
+      markBindingsPlaced(program, "channel", target);
       continue;
     }
     claimedBy.add(id);
@@ -123,6 +127,7 @@ function buildChannel(
     ...present("servers", buildChannelServers(program, target)),
     ...present("parameters", buildChannelParameters(program, target, record, id)),
     ...present("messages", messages),
+    ...present("bindings", buildBindings(program, "channel", target)),
     ...present("tags", buildTags(program, target)),
     ...present("externalDocs", buildExternalDocs(program, target)),
   };

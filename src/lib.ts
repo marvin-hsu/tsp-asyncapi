@@ -601,6 +601,49 @@ export const $lib = createTypeSpecLibrary({
           "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.",
       },
     },
+    "duplicate-binding": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The protocol '${"protocol"}' already has a binding at the ${"level"} level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("${"protocol"}", ...) claims the same member as the decorator named after that protocol.`,
+      },
+    },
+    "empty-binding-protocol": {
+      severity: "error",
+      messages: {
+        default:
+          "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.",
+      },
+    },
+    "invalid-binding-config": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The config given to @binding("${"protocol"}", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.`,
+      },
+    },
+    // A warning, not an error, because the message states a recovery and the
+    // emitter performs it. The field is dropped and the rest of the binding
+    // is emitted. An error would stop the document from being written at
+    // all, so the author could never see the recovery the message promises.
+    // The sibling binding codes are errors because they drop a whole
+    // binding, and nothing survives for the author to inspect.
+    "invalid-binding-field": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that, so the field was dropped and the rest of the binding was kept.`,
+      },
+    },
+    // The level-less wording is a second message, not the default message
+    // with another level value. `@binding` records the level `any`, which is
+    // not a position in the document. Interpolating it would read "for the
+    // any level" and send the author looking for a position that does not
+    // exist. So the second wording names all four objects instead.
+    "binding-outside-document": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`A '${"protocol"}' binding for the ${"level"} level sits on a target that emits no such object, so it reaches no part of the document. This binding was dropped. Add the decorator that emits the object: @channel or @dynamicChannel for a channel, @send or @receive for an operation, @message for a message, and @server on the service namespace for a server.`,
+        anyLevel: paramMessage`The '${"protocol"}' binding given to @binding sits on a target that emits no server, no channel, no operation and no message, so it reaches no part of the document. This binding was dropped. Add the decorator that emits the object: @channel or @dynamicChannel for a channel, @send or @receive for an operation, @message for a message, and @server on the service namespace for a server.`,
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

@@ -15,6 +15,8 @@ import {
   MessageState,
 } from "../../decorators/index.js";
 import { SchemaBuilder } from "../schemas/builder.js";
+import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
+import { present, text } from "../../optional-fields.js";
 import {
   buildMessageHeaders,
   MessageHeaderPlan,
@@ -155,7 +157,9 @@ function liftedOf(plan: MessageHeaderPlan, model: Model): ReadonlySet<ModelPrope
  * the key it was stored under.
  *
  * A field with nothing to say is left out. An empty string would claim the
- * message has a blank title rather than none.
+ * message has a blank title rather than none. Every optional field goes
+ * through `text` or `present`, so that rule has one definition here as well
+ * as in the other builders.
  *
  * `headers` comes from the plan the caller resolved before any schema was
  * built. See `planMessageHeaders`. The payload is built after it, so the
@@ -188,15 +192,16 @@ function buildMessage(
 
   return {
     name: key,
-    ...(title ? { title } : {}),
-    ...(description ? { description } : {}),
-    ...(contentType ? { contentType } : {}),
-    ...(headers ? { headers } : {}),
+    ...text("title", title),
+    ...text("description", description),
+    ...text("contentType", contentType),
+    ...present("headers", headers),
     payload: schemas.buildPayloadDeclaration(model, liftedOf(headerPlan, model)),
-    ...(correlationId ? { correlationId } : {}),
-    ...(tags ? { tags } : {}),
-    ...(externalDocs ? { externalDocs } : {}),
-    ...(examples ? { examples } : {}),
+    ...present("correlationId", correlationId),
+    ...present("bindings", buildBindings(program, "message", model)),
+    ...present("tags", tags),
+    ...present("externalDocs", externalDocs),
+    ...present("examples", examples),
   };
 }
 
@@ -250,6 +255,14 @@ export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMe
     const key = messageKeyFor(program, model, state);
     const owner = claimedBy.get(key);
     if (owner !== undefined) {
+      // Both branches below leave this loop without building a Message
+      // Object, so both have to account for the bindings of this model here.
+      // The model reached the message the key names, through the model that
+      // claimed it. Two instantiations of one template are the case that has
+      // no report of its own, and leaving the marking to the reporting branch
+      // made every second instantiation warn that its binding reaches
+      // nothing.
+      markBindingsPlaced(program, "message", model);
       if (!isSameDeclaration(schemas, owner, model)) {
         reportDiagnostic(program, {
           code: "duplicate-message-key",
@@ -290,6 +303,9 @@ export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMe
  * any key is claimed.
  *
  * The results are discarded. Only the reporting matters here.
+ *
+ * The bindings are not handled here. The caller marks them placed on every
+ * path that drops a model, including the one this function never sees.
  *
  * Two instantiations of one template that share a key are not dropped this
  * way. The surviving instantiation reports the same decorator applications,

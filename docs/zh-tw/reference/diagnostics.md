@@ -633,3 +633,53 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 屬性宣告為 `never` 以移除繼承屬性，但基底的 `$ref` 分支仍會要求它。emitter 同樣改為攤平 schema（`never` 屬性省略）。
 
 **修法：** 若攤平可接受則不需處理，此警告只說明形狀改變。否則調整繼承結構，讓該屬性一開始就不被繼承。
+
+## 錯誤
+
+以下五個代碼來自通訊協定 binding。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings)。
+
+### `duplicate-binding`
+
+> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
+
+同一個 target 的同一層級上，一個通訊協定被宣告兩次。`@binding("kafka", ...)` 與 `@kafkaChannel` 並存也是同一個錯誤，因為兩者都寫 `kafka` 成員。
+
+**修法：** 兩個 decorator 只留一個。
+
+### `empty-binding-protocol`
+
+> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
+
+通訊協定名稱會成為輸出文件中的 key。空白的 key 沒有指到任何東西。
+
+**修法：** 填入通訊協定名稱。
+
+### `invalid-binding-config`
+
+> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
+
+AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
+
+**修法：** 把設定寫成物件值。
+
+## 警告
+
+### `binding-outside-document`
+
+> A '\<protocol\>' binding for the \<level\> level sits on a target that emits no such object, so it reaches no part of the document. This binding was dropped. Add the decorator that emits the object: @channel or @dynamicChannel for a channel, @send or @receive for an operation, @message for a message, and @server on the service namespace for a server.
+
+binding 依附在 target 產生的物件上。target 不產生物件時，該 binding 不會有任何效果。
+
+`@binding` 沒有指定層級，因此它回報另一段訊息。那段訊息列出四種物件，不指名單一層級。
+
+**修法：** 補上會產生該物件的 decorator，或移除該 binding。
+
+### `invalid-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
+
+某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+
+這一則是警告，因為 emitter 會自行復原。它只丟掉該欄位，其餘欄位照常輸出。其他 binding 診斷是錯誤，因為它們丟掉整個 binding。
+
+**修法：** 依訊息指出的範圍填值。

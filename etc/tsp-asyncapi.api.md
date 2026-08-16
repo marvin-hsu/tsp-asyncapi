@@ -260,6 +260,22 @@ readonly default: CallableMessage<["id", "id"]>;
 "reply-without-action": {
 readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
 };
+"duplicate-binding": {
+readonly default: CallableMessage<["protocol", "level", "protocol"]>;
+};
+"empty-binding-protocol": {
+readonly default: "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.";
+};
+"invalid-binding-config": {
+readonly default: CallableMessage<["protocol"]>;
+};
+"invalid-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected"]>;
+};
+"binding-outside-document": {
+readonly default: CallableMessage<["protocol", "level"]>;
+readonly anyLevel: CallableMessage<["protocol"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -373,8 +389,15 @@ export interface AsyncTagState extends AsyncTagMetadata {
 }
 
 // @public
+export type BindingObject = Record<string, unknown>;
+
+// @public
+export type BindingsObject = Record<string, BindingObject>;
+
+// @public
 export interface ChannelObject {
     address: string | null;
+    bindings?: BindingsObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject;
     messages?: Record<string, ReferenceObject>;
@@ -422,7 +445,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -659,6 +682,22 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "reply-without-action": {
         readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
+    };
+    "duplicate-binding": {
+        readonly default: CallableMessage<["protocol", "level", "protocol"]>;
+    };
+    "empty-binding-protocol": {
+        readonly default: "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.";
+    };
+    "invalid-binding-config": {
+        readonly default: CallableMessage<["protocol"]>;
+    };
+    "invalid-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "expected"]>;
+    };
+    "binding-outside-document": {
+        readonly default: CallableMessage<["protocol", "level"]>;
+        readonly anyLevel: CallableMessage<["protocol"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -904,6 +943,22 @@ readonly default: CallableMessage<["id", "id"]>;
 "reply-without-action": {
 readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
 };
+"duplicate-binding": {
+readonly default: CallableMessage<["protocol", "level", "protocol"]>;
+};
+"empty-binding-protocol": {
+readonly default: "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.";
+};
+"invalid-binding-config": {
+readonly default: CallableMessage<["protocol"]>;
+};
+"invalid-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected"]>;
+};
+"binding-outside-document": {
+readonly default: CallableMessage<["protocol", "level"]>;
+readonly anyLevel: CallableMessage<["protocol"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -1018,6 +1073,66 @@ export interface JsonSchemaExtensionRecord {
 }
 
 // @public
+export interface KafkaChannelBindingConfig {
+    partitions?: number;
+    replicas?: number;
+    topic?: string;
+    topicConfiguration?: Record<string, unknown>;
+}
+
+// @public
+export interface KafkaChannelBindingObject {
+    bindingVersion: string;
+    partitions?: number;
+    replicas?: number;
+    topic?: string;
+    topicConfiguration?: Record<string, unknown>;
+}
+
+// @public
+export interface KafkaMessageBindingConfig {
+    key?: unknown;
+    schemaIdLocation?: string;
+    schemaIdPayloadEncoding?: string;
+    schemaLookupStrategy?: string;
+}
+
+// @public
+export interface KafkaMessageBindingObject {
+    bindingVersion: string;
+    key?: SchemaObject;
+    schemaIdLocation?: string;
+    schemaIdPayloadEncoding?: string;
+    schemaLookupStrategy?: string;
+}
+
+// @public
+export interface KafkaOperationBindingConfig {
+    clientId?: unknown;
+    groupId?: unknown;
+}
+
+// @public
+export interface KafkaOperationBindingObject {
+    bindingVersion: string;
+    clientId?: SchemaObject;
+    groupId?: SchemaObject;
+}
+
+// @public
+export interface KafkaServerBindingConfig {
+    schemaRegistryUrl?: string;
+    schemaRegistryVendor?: string;
+}
+
+// @public
+export interface KafkaServerBindingObject {
+    bindingVersion: string;
+    schemaRegistryUrl?: string;
+    schemaRegistryVendor?: string;
+}
+
+// @public
 export const LIBRARY_NAME = "tsp-asyncapi";
 
 // @public
@@ -1055,6 +1170,7 @@ export interface MessageExampleState extends MessageExampleOptions {
 
 // @public
 export interface MessageObject {
+    bindings?: BindingsObject;
     contentType?: string;
     correlationId?: CorrelationIdObject;
     description?: string;
@@ -1104,6 +1220,7 @@ export interface OperationActionState {
 // @public
 export interface OperationObject {
     action: "send" | "receive";
+    bindings?: BindingsObject;
     channel: ReferenceObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject;
@@ -1149,7 +1266,7 @@ export interface ReplyAddressState {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1386,6 +1503,22 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "reply-without-action": {
         readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
+    };
+    "duplicate-binding": {
+        readonly default: CallableMessage<["protocol", "level", "protocol"]>;
+    };
+    "empty-binding-protocol": {
+        readonly default: "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.";
+    };
+    "invalid-binding-config": {
+        readonly default: CallableMessage<["protocol"]>;
+    };
+    "invalid-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "expected"]>;
+    };
+    "binding-outside-document": {
+        readonly default: CallableMessage<["protocol", "level"]>;
+        readonly anyLevel: CallableMessage<["protocol"]>;
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -1631,6 +1764,22 @@ readonly default: CallableMessage<["id", "id"]>;
 "reply-without-action": {
 readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
 };
+"duplicate-binding": {
+readonly default: CallableMessage<["protocol", "level", "protocol"]>;
+};
+"empty-binding-protocol": {
+readonly default: "The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.";
+};
+"invalid-binding-config": {
+readonly default: CallableMessage<["protocol"]>;
+};
+"invalid-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected"]>;
+};
+"binding-outside-document": {
+readonly default: CallableMessage<["protocol", "level"]>;
+readonly anyLevel: CallableMessage<["protocol"]>;
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -1703,6 +1852,7 @@ export type SecuritySchemeType = "userPassword" | "apiKey" | "X509" | "symmetric
 
 // @public
 export interface ServerObject {
+    bindings?: BindingsObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject;
     host: string;

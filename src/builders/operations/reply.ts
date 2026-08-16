@@ -8,7 +8,7 @@ import { reportDiagnostic } from "../../lib.js";
 import { OperationReplyObject } from "../../types/index.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { channelRef } from "../json-pointer.js";
-import { present } from "../optional-fields.js";
+import { present } from "../../optional-fields.js";
 import { buildMessageReferences } from "./messages.js";
 
 /** Everything the reply builder needs about one operation. */

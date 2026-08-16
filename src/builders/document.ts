@@ -1,6 +1,7 @@
 import { Model, Program, Service } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
+import { reportUnattachedBindings } from "./bindings/builder.js";
 import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
@@ -78,6 +79,11 @@ export function buildAsyncAPIDocument(
   // channel and to one message of that channel, so it needs the id and the
   // message keys of every channel that reached the document.
   const operations = buildOperations(program, emitted, messageKeys, declaredSchemes);
+
+  // The bindings are checked last. A binding reaches its object through
+  // whichever builder emits that object, and the four builders have all run
+  // by now. Anything still unplaced had every chance to be placed.
+  reportUnattachedBindings(program);
 
   // The root document. Its version comes from `ASYNCAPI_VERSION`.
   return {

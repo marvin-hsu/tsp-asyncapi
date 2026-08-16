@@ -77,6 +77,11 @@ export {
   getReplyAddress,
   type ReplyAddressState,
 } from "./operations/reply.js";
+export { $binding } from "./bindings/binding.js";
+export { $kafkaChannel, type KafkaChannelBindingConfig } from "./bindings/kafka/channel.js";
+export { $kafkaMessage, type KafkaMessageBindingConfig } from "./bindings/kafka/message.js";
+export { $kafkaOperation, type KafkaOperationBindingConfig } from "./bindings/kafka/operation.js";
+export { $kafkaServer, type KafkaServerBindingConfig } from "./bindings/kafka/server.js";
 export {
   $messageExample,
   getMessageExamples,

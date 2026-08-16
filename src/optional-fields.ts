@@ -13,6 +13,26 @@
  */
 
 /**
+ * Reads one text field the author wrote, and keeps it only when it says
+ * something.
+ *
+ * A blank string names nothing. It is answered as absent, the same as a field
+ * the author left out. Surrounding spaces are removed, because the emitted
+ * document carries the name the author meant and not the spaces around it.
+ *
+ * This is the value half of the rule. Use it where the caller needs the value
+ * rather than a field to spread, such as a decorator that stores the value or
+ * checks it against an allowed set.
+ *
+ * @param value - The text as the author wrote it
+ * @returns The trimmed text, or `undefined` when there is nothing to say
+ */
+export function trimmed(value: string | undefined): string | undefined {
+  const result = (value ?? "").trim();
+  return result === "" ? undefined : result;
+}
+
+/**
  * Keeps a text field only when it says something.
  *
  * Spread the result into the object under construction:
@@ -20,6 +40,10 @@
  * ```ts
  * return { name, ...text("description", metadata.description) };
  * ```
+ *
+ * The emitted value is trimmed. `trimmed` decides both halves, so a field
+ * spread through here and a field a decorator stored through `trimmed` cannot
+ * disagree about `"  x  "`.
  *
  * @param key - The field name in the emitted document
  * @param value - The text, which may be absent or blank
@@ -30,8 +54,7 @@ export function text<K extends string>(
   key: K,
   value: string | undefined,
 ): Record<K, string> | Record<string, never> {
-  if (value === undefined || value.trim() === "") return {};
-  return { [key]: value } as Record<K, string>;
+  return present(key, trimmed(value));
 }
 
 /**

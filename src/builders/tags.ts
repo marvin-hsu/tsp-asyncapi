@@ -3,7 +3,7 @@ import { TagObject } from "../types/index.js";
 import { AsyncTagExternalDocs, AsyncTagState, getAsyncTags } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
 import { orderBySourceNodes } from "../source-order.js";
-import { text } from "./optional-fields.js";
+import { text } from "../optional-fields.js";
 
 /**
  * Builds the `tags` array of one object, or returns `undefined` when the

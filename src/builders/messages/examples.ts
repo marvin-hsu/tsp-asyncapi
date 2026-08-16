@@ -5,7 +5,7 @@ import { reportDiagnostic } from "../../lib.js";
 import { MessageExampleObject } from "../../types/index.js";
 import { makeSerializeHandlers } from "../example-serialization.js";
 import { orderBySourceNodes } from "../../source-order.js";
-import { present, text } from "../optional-fields.js";
+import { present, text } from "../../optional-fields.js";
 
 /**
  * Builds the `examples` array of one message, or returns `undefined` when

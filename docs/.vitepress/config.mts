@@ -29,6 +29,7 @@ export default defineConfig({
             items: [
               { text: "Emitter Options", link: "/reference/emitter-options" },
               { text: "Decorators", link: "/reference/decorators" },
+              { text: "Protocol Bindings", link: "/reference/bindings" },
               { text: "Diagnostics", link: "/reference/diagnostics" },
             ],
           },
@@ -67,6 +68,7 @@ export default defineConfig({
                 link: "/zh-tw/reference/emitter-options",
               },
               { text: "Decorator", link: "/zh-tw/reference/decorators" },
+              { text: "通訊協定 binding", link: "/zh-tw/reference/bindings" },
               { text: "診斷訊息", link: "/zh-tw/reference/diagnostics" },
             ],
           },

@@ -136,6 +136,77 @@ describe("AsyncAPI emitted document", () => {
     await expect(doc).toBeValidAsyncAPI();
   });
 
+  it("should describe a Kafka contract with all four bindings end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+      @kafkaServer(#{
+        schemaRegistryUrl: "https://registry.example.com",
+        schemaRegistryVendor: "confluent",
+      })
+      namespace TestService;
+
+      @kafkaMessage(#{
+        key: #{ type: "string" },
+        schemaIdLocation: "payload",
+        schemaIdPayloadEncoding: "apicurio-new",
+        schemaLookupStrategy: "TopicIdStrategy",
+      })
+      @message
+      model OrderCreated {
+        orderId: string;
+      }
+
+      @kafkaChannel(#{
+        topic: "orders.created",
+        partitions: 12,
+        replicas: 3,
+        topicConfiguration: #{ \`cleanup.policy\`: #["compact"] },
+      })
+      @channel("orders.created")
+      @useServer("kafka-prod")
+      interface OrderChannel {
+        @kafkaOperation(#{ groupId: #{ type: "string" }, clientId: #{ type: "string" } })
+        @receive
+        op onOrderCreated(): OrderCreated;
+      }
+    `);
+
+    expect(doc.servers["kafka-prod"].bindings).toEqual({
+      kafka: {
+        schemaRegistryUrl: "https://registry.example.com",
+        schemaRegistryVendor: "confluent",
+        bindingVersion: "0.5.0",
+      },
+    });
+    expect(doc.channels.OrderChannel.bindings).toEqual({
+      kafka: {
+        topic: "orders.created",
+        partitions: 12,
+        replicas: 3,
+        topicConfiguration: { "cleanup.policy": ["compact"] },
+        bindingVersion: "0.5.0",
+      },
+    });
+    expect(doc.operations.onOrderCreated.bindings).toEqual({
+      kafka: {
+        groupId: { type: "string" },
+        clientId: { type: "string" },
+        bindingVersion: "0.5.0",
+      },
+    });
+    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+      kafka: {
+        key: { type: "string" },
+        schemaIdLocation: "payload",
+        schemaIdPayloadEncoding: "apicurio-new",
+        schemaLookupStrategy: "TopicIdStrategy",
+        bindingVersion: "0.5.0",
+      },
+    });
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
   it("should validate a channel that carries every optional field", async () => {
     const doc = await emitAsyncAPI(`
       @service(#{ title: "Orders" })

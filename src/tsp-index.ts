@@ -1,5 +1,10 @@
 import {
   $asyncTag,
+  $binding,
+  $kafkaChannel,
+  $kafkaMessage,
+  $kafkaOperation,
+  $kafkaServer,
   $channel,
   $contentType,
   $correlationId,
@@ -60,5 +65,10 @@ export const $decorators = {
     receive: $receive,
     replyChannel: $replyChannel,
     replyAddress: $replyAddress,
+    binding: $binding,
+    kafkaServer: $kafkaServer,
+    kafkaChannel: $kafkaChannel,
+    kafkaOperation: $kafkaOperation,
+    kafkaMessage: $kafkaMessage,
   },
 };

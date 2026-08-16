@@ -8,6 +8,7 @@ import {
   namespaceHasServers,
 } from "../decorators/servers/state.js";
 import { listSecurityUsesWithoutServer } from "../decorators/security/use-security-state.js";
+import { buildBindings } from "./bindings/builder.js";
 import { buildExternalDocs } from "./external-docs.js";
 import { buildSecurityRequirements } from "./security-requirements.js";
 import { reportDiagnostic } from "../lib.js";
@@ -100,13 +101,19 @@ export function buildServers(
 
   const security = buildSecurityRequirements(program, namespace, declaredSchemes);
   const externalDocs = buildExternalDocs(program, namespace);
+  const bindings = buildBindings(program, "server", namespace);
 
   const entries: [string, ServerObject][] = declared.map((state) => {
     const server = buildServer(state);
     // Each server gets its own copy of the shared values, so a later change
-    // to one server cannot reach another.
+    // to one server cannot reach another. A security requirement and an
+    // External Documentation Object are both flat, so a spread copies them
+    // whole. A binding is a nested object: it holds one member per protocol,
+    // and each member is an object of its own. So its copy has to be deep.
+    // A spread would leave every server pointing at one protocol member.
     if (security !== undefined) server.security = security.map((ref) => ({ ...ref }));
     if (externalDocs !== undefined) server.externalDocs = { ...externalDocs };
+    if (bindings !== undefined) server.bindings = structuredClone(bindings);
     return [state.name, server];
   });
 

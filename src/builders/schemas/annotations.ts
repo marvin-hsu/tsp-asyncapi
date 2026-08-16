@@ -28,6 +28,7 @@ import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { serializeExamples } from "../example-serialization.js";
+import { toPlainValue } from "../../marshalled-values.js";
 
 /**
  * The mime type a schema's own property keys are resolved against through
@@ -337,13 +338,21 @@ export function buildValidationKeywords(
  * plain object of top-level schema keywords, one property per record.
  * A target with no `@jsonSchemaExtension` application returns `{}`, so
  * merging this in is always a no-op for the common case.
+ *
+ * The decorator stores the value as the compiler marshalled it. That is plain
+ * JavaScript for a string, a number and a boolean, and it is the compiler's
+ * own value object for a scalar such as `utcDateTime`. So the value goes
+ * through `toPlainValue` here, the same rule every binding decorator uses.
+ * Writing the marshalled object straight into the schema would emit the
+ * compiler's internals.
  */
 function buildJsonSchemaExtensionFields(
+  program: Program,
   extensions: readonly JsonSchemaExtensionRecord[],
 ): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
   for (const { key, value } of extensions) {
-    fields[key] = value;
+    fields[key] = toPlainValue(program, value);
   }
   return fields;
 }
@@ -435,7 +444,7 @@ export function withDocs(
   // produced, rather than being silently dropped as "already present".
   const extensionFields =
     target.kind === "Model"
-      ? buildJsonSchemaExtensionFields(getJsonSchemaExtensions(program, target))
+      ? buildJsonSchemaExtensionFields(program, getJsonSchemaExtensions(program, target))
       : {};
   if (collidesWithBase) {
     // `title`/`description`/`examples` are annotations. Left inside the
@@ -516,7 +525,7 @@ export function withPropertyDocs(
   // collision-priority rationale.
   const extensionFields =
     prop.kind === "ModelProperty"
-      ? buildJsonSchemaExtensionFields(getJsonSchemaExtensions(program, prop))
+      ? buildJsonSchemaExtensionFields(program, getJsonSchemaExtensions(program, prop))
       : {};
   const extra = { ...docs, ...validation, ...extensionFields };
   if (Object.keys(extra).length === 0) {

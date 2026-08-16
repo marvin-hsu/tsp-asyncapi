@@ -633,3 +633,53 @@ An overriding property's `@encodedName` differs from the same-named ancestor pro
 A property is declared `never` to remove an inherited property, but the base's `$ref` branch would still require it. As above, the emitter flattens the schema (with the `never`-typed property omitted).
 
 **Fix:** none needed if flattening is acceptable — this warning documents the shape change. Otherwise restructure the hierarchy so the property isn't inherited in the first place.
+
+## Errors
+
+The five codes below come from the protocol bindings. See [Protocol Bindings](/reference/bindings) for the decorators that report them.
+
+### `duplicate-binding`
+
+> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
+
+One protocol is claimed twice at one level on one target. `@binding("kafka", ...)` next to `@kafkaChannel` is the same mistake, because both write the `kafka` member.
+
+**Fix:** keep one of the two decorators.
+
+### `empty-binding-protocol`
+
+> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
+
+The protocol name becomes a key in the emitted document. A blank key names nothing.
+
+**Fix:** name the protocol.
+
+### `invalid-binding-config`
+
+> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
+
+AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
+
+**Fix:** write the config as an object value.
+
+## Warnings
+
+### `binding-outside-document`
+
+> A '\<protocol\>' binding for the \<level\> level sits on a target that emits no such object, so it reaches no part of the document. This binding was dropped. Add the decorator that emits the object: @channel or @dynamicChannel for a channel, @send or @receive for an operation, @message for a message, and @server on the service namespace for a server.
+
+A binding sits on the object its target emits. A target that emits no object carries a binding that changes nothing.
+
+`@binding` names no level, so it reports a second wording. That message names all four objects rather than one level.
+
+**Fix:** add the decorator that emits the object, or remove the binding.
+
+### `invalid-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
+
+One field carries a value the binding specification forbids. The Kafka binding raises it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+
+This is a warning because the emitter recovers. It drops the one field and emits the rest of the binding. The other binding codes are errors, because each of them drops a whole binding.
+
+**Fix:** give the field a value the message names.

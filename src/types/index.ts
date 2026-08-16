@@ -80,8 +80,82 @@ export interface ServerObject {
    * this emitter never writes one, so the type is narrowed to a reference.
    */
   security?: ReferenceObject[];
+  /** The protocol-specific settings of this server, keyed by protocol name. */
+  bindings?: BindingsObject;
   /** Additional external documentation for this server. */
   externalDocs?: ExternalDocumentationObject;
+}
+
+/**
+ * The protocol-specific settings of one object, keyed by protocol name.
+ * @public
+ */
+export type BindingsObject = Record<string, BindingObject>;
+
+/**
+ * The settings one protocol defines for one object.
+ * @public
+ */
+export type BindingObject = Record<string, unknown>;
+
+/**
+ * The Kafka settings of one server.
+ * @public
+ */
+export interface KafkaServerBindingObject {
+  /** The URL of the schema registry the server uses. */
+  schemaRegistryUrl?: string;
+  /** The vendor of that registry, such as `confluent`. */
+  schemaRegistryVendor?: string;
+  /** The version of the Kafka binding specification these fields follow. */
+  bindingVersion: string;
+}
+
+/**
+ * The Kafka settings of one channel.
+ * @public
+ */
+export interface KafkaChannelBindingObject {
+  /** The topic name, when it differs from the channel address. */
+  topic?: string;
+  /** The number of partitions of the topic. */
+  partitions?: number;
+  /** The number of replicas of the topic. */
+  replicas?: number;
+  /** The Kafka topic configuration. */
+  topicConfiguration?: Record<string, unknown>;
+  /** The version of the Kafka binding specification these fields follow. */
+  bindingVersion: string;
+}
+
+/**
+ * The Kafka settings of one operation.
+ * @public
+ */
+export interface KafkaOperationBindingObject {
+  /** The schema of the consumer group id. */
+  groupId?: SchemaObject;
+  /** The schema of the consumer client id. */
+  clientId?: SchemaObject;
+  /** The version of the Kafka binding specification these fields follow. */
+  bindingVersion: string;
+}
+
+/**
+ * The Kafka settings of one message.
+ * @public
+ */
+export interface KafkaMessageBindingObject {
+  /** The schema of the message key. */
+  key?: SchemaObject;
+  /** Where the schema id sits: `header` or `payload`. */
+  schemaIdLocation?: string;
+  /** How the schema id is encoded inside the payload. */
+  schemaIdPayloadEncoding?: string;
+  /** How a consumer looks the schema up. */
+  schemaLookupStrategy?: string;
+  /** The version of the Kafka binding specification these fields follow. */
+  bindingVersion: string;
 }
 
 /**
@@ -187,6 +261,8 @@ export interface ChannelObject {
    * `components.messages`.
    */
   messages?: Record<string, ReferenceObject>;
+  /** The protocol-specific settings of this channel, keyed by protocol name. */
+  bindings?: BindingsObject;
   /** The tags of this channel, each a full Tag Object. */
   tags?: TagObject[];
   /** Additional external documentation for this channel. */
@@ -255,9 +331,8 @@ export interface OperationObject {
   tags?: TagObject[];
   /** Additional external documentation for this operation. */
   externalDocs?: ExternalDocumentationObject;
-  // AsyncAPI also defines `bindings` here. This emitter has no binding
-  // decorator yet, so the field is left out of this interface rather than
-  // declared and never filled.
+  /** The protocol-specific settings of this operation, keyed by protocol name. */
+  bindings?: BindingsObject;
   /**
    * The messages this operation carries, each a reference into the
    * `messages` map of its channel. An absent field means every message of
@@ -437,6 +512,8 @@ export interface MessageObject {
   payload?: SchemaObject | ReferenceObject;
   /** How the message relates to the one it answers or continues. */
   correlationId?: CorrelationIdObject;
+  /** The protocol-specific settings of this message, keyed by protocol name. */
+  bindings?: BindingsObject;
   /** The tags of this message, each a full Tag Object. */
   tags?: TagObject[];
   /** Additional external documentation for this message. */

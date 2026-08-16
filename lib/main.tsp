@@ -200,6 +200,76 @@ extern dec replyAddress(
   description?: valueof string
 );
 
+// Adds one raw protocol binding to whichever object the target emits.
+// This is the escape hatch. Use it for a protocol this library ships no
+// decorator for, and for a field a newer binding version added.
+// The config is emitted exactly as written. This decorator adds no
+// `bindingVersion`, because it does not read the shape of the config.
+// Target is unknown because AsyncAPI puts `bindings` on four objects: a
+// server, a channel, an operation, and a message. This decorator names no
+// level, so the binding lands wherever the target emits an object.
+// One protocol claims one member per level per target. A second application
+// of the same protocol name is reported, and so is a `@binding` that names
+// the protocol a protocol-specific decorator already claimed.
+extern dec binding(target: unknown, protocol: valueof string, config: valueof unknown);
+// Adds the Kafka server binding to the servers of one namespace.
+// Apply it to the service namespace. Every server that namespace declares
+// gets its own copy. `@server` is repeatable and keyed by name, so no
+// decorator target can single one server out.
+extern dec kafkaServer(target: Namespace, config: valueof AsyncAPIKafkaServerBinding);
+// Adds the Kafka channel binding to one channel.
+// Apply it to the interface or namespace that carries `@channel` or
+// `@dynamicChannel`.
+extern dec kafkaChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIKafkaChannelBinding
+);
+// Adds the Kafka operation binding to one operation.
+// Apply it to an operation that carries `@send` or `@receive`.
+extern dec kafkaOperation(target: Operation, config: valueof AsyncAPIKafkaOperationBinding);
+// Adds the Kafka message binding to one message.
+// Apply it to a model that carries `@message`.
+extern dec kafkaMessage(target: Model, config: valueof AsyncAPIKafkaMessageBinding);
+
+// The Kafka server binding fields.
+// AsyncAPI says the three schema-registry fields of the channel and message
+// bindings only apply when `schemaRegistryUrl` is set here. The emitter does
+// not check that rule, because it spans two objects.
+model AsyncAPIKafkaServerBinding {
+  schemaRegistryUrl?: string;
+  schemaRegistryVendor?: string;
+}
+
+// The Kafka channel binding fields.
+// `topicConfiguration` is `Record<unknown>` on purpose. AsyncAPI says that
+// object may carry additional properties, and Kafka names its topic settings
+// with dots, so a vendor setting such as
+// `confluent.value.schema.validation` stays legal.
+model AsyncAPIKafkaChannelBinding {
+  topic?: string;
+  partitions?: int32;
+  replicas?: int32;
+  topicConfiguration?: Record<unknown>;
+}
+
+// The Kafka operation binding fields.
+// Both are Schema Objects. Write each one as an object literal, such as
+// `#{ type: "string" }`. The emitter writes it into the document as written.
+model AsyncAPIKafkaOperationBinding {
+  groupId?: unknown;
+  clientId?: unknown;
+}
+
+// The Kafka message binding fields.
+// `key` is a Schema Object, written as an object literal.
+// `schemaIdLocation` is `header` or `payload`.
+model AsyncAPIKafkaMessageBinding {
+  key?: unknown;
+  schemaIdLocation?: string;
+  schemaIdPayloadEncoding?: string;
+  schemaLookupStrategy?: string;
+}
+
 model AsyncAPIInfo {
   version: string;
   description?: string;

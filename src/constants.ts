@@ -140,6 +140,25 @@ export const SECURITY_SCHEME_NAME_PATTERN = /^[a-zA-Z0-9.\-_]+$/;
 export const HTTP_BEARER_SCHEME = "bearer";
 
 /**
+ * The member name the Kafka bindings claim inside a Bindings Object.
+ */
+export const KAFKA_BINDING_PROTOCOL = "kafka";
+
+/**
+ * The version of the Kafka binding specification this library emits.
+ *
+ * Every Kafka binding carries this field. The specification says a reader
+ * must assume `latest` when the field is absent, which makes the meaning of
+ * the document drift as the binding specification moves. A contract cannot
+ * drift, so the version is always written.
+ *
+ * The Kafka renderer is the one place that writes it. A decorator records
+ * fields and never the version, so raising this constant moves all four
+ * levels at once.
+ */
+export const KAFKA_BINDING_VERSION = "0.5.0";
+
+/**
  * The `info.version` used when nothing supplies one.
  *
  * AsyncAPI requires `info.version`, so the emitter cannot leave it out.

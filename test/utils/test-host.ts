@@ -61,14 +61,20 @@ export async function emitAsyncAPIWithDiagnostics(
   const outputFileName =
     typeof options["output-file"] === "string" ? options["output-file"] : `asyncapi.${fileType}`;
 
+  // The program is returned alongside the document. Most cases read the
+  // document alone, but a decorator that records state and emits nothing can
+  // only be checked by reading that state back. A decorator that reports an
+  // error also stops the emitter from running, so there is no document to
+  // read in that case either.
   const content = result.outputs[outputFileName];
   if (!content) {
-    return { doc: null, diagnostics };
+    return { doc: null, diagnostics, program: result.program };
   }
 
   return {
     doc: fileType === "json" ? JSON.parse(content) : yaml.parse(content),
     diagnostics,
+    program: result.program,
   };
 }
 
