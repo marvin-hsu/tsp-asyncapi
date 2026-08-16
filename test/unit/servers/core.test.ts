@@ -7,6 +7,7 @@ import { namespaceOf } from "../../utils/namespace.js";
 import { getServers } from "../../../src/decorators/index.js";
 import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
+import { bySourcePosition, isSameApplication } from "../../../src/source-order.js";
 
 describe("Unit: servers", () => {
   it("emits one entry per declared server with its fields", async () => {
@@ -57,6 +58,61 @@ describe("Unit: servers", () => {
       host: "mqtt.example.com",
       protocol: "mqtt",
     });
+  });
+
+  it("emits each optional field on its own, without the other four", async () => {
+    // The decorator copies the five optional fields in a loop. The builder
+    // then writes each one behind its own guard. The two tests above pass
+    // all five fields, then none of them. Neither shape can tell the five
+    // guards apart. A server that carries exactly one field pins each guard
+    // on its own. It proves that no field leaks in from a neighbour, and
+    // that no field is dropped when its neighbours are absent.
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("version-only", #{
+        host: "a.example.com", protocol: "kafka", protocolVersion: "3.5.0"
+      })
+      @server("pathname-only", #{
+        host: "b.example.com", protocol: "kafka", pathname: "/orders"
+      })
+      @server("title-only", #{
+        host: "c.example.com", protocol: "kafka", title: "Title only"
+      })
+      @server("summary-only", #{
+        host: "d.example.com", protocol: "kafka", summary: "Summary only"
+      })
+      @server("description-only", #{
+        host: "e.example.com", protocol: "kafka", description: "Description only"
+      })
+      namespace Test;
+    `);
+
+    expect(doc.servers["version-only"]).toEqual({
+      host: "a.example.com",
+      protocol: "kafka",
+      protocolVersion: "3.5.0",
+    });
+    expect(doc.servers["pathname-only"]).toEqual({
+      host: "b.example.com",
+      protocol: "kafka",
+      pathname: "/orders",
+    });
+    expect(doc.servers["title-only"]).toEqual({
+      host: "c.example.com",
+      protocol: "kafka",
+      title: "Title only",
+    });
+    expect(doc.servers["summary-only"]).toEqual({
+      host: "d.example.com",
+      protocol: "kafka",
+      summary: "Summary only",
+    });
+    expect(doc.servers["description-only"]).toEqual({
+      host: "e.example.com",
+      protocol: "kafka",
+      description: "Description only",
+    });
+    await expect(doc).toBeValidAsyncAPI();
   });
 
   it("omits the servers field entirely when no server is declared", async () => {
@@ -527,5 +583,50 @@ describe("Unit: servers", () => {
       },
     ]);
     expect(Object.keys(buildServersFrom(runner.program, Test) ?? {})).toEqual(["sit"]);
+  });
+});
+
+describe("Unit: source order keys", () => {
+  it("ranks a path the program never loaded before every loaded file", async () => {
+    // `fileRanking` reads `program.sourceFiles`, and a path the map does not
+    // hold falls back to rank -1. A compiled program only ever hands this
+    // comparator paths that its own map holds, so the fallback needs a
+    // position built by hand. The fallback keeps the sort total, which is
+    // what stops `Array.prototype.sort` from returning `NaN` order.
+    const runner = await AsyncAPITester.createInstance();
+    const [, diagnostics] = await runner.compileAndDiagnose(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+    `);
+
+    expectDiagnosticEmpty(diagnostics);
+    const loaded = [...runner.program.sourceFiles.keys()][0];
+    const compare = bySourcePosition(runner.program);
+
+    expect(compare({ file: "never-loaded.tsp", pos: 0 }, { file: loaded, pos: 0 })).toBeLessThan(0);
+    expect(compare({ file: loaded, pos: 0 }, { file: "never-loaded.tsp", pos: 0 })).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("treats two positions as the same application only when file and offset both match", () => {
+    // The identity of an application is its source position. An augment
+    // decorator runs once per declaration of its target, so the same
+    // statement arrives twice with one position. Two statements never share
+    // a file and an offset. The compiled cases above drive this through the
+    // decorators, which run from the build output. The rule itself is
+    // pinned here, on the source module the rest of the emitter imports.
+    expect(isSameApplication({ file: "main.tsp", pos: 12 }, { file: "main.tsp", pos: 12 })).toBe(
+      true,
+    );
+    // Same file, different offset: two statements written apart.
+    expect(isSameApplication({ file: "main.tsp", pos: 12 }, { file: "main.tsp", pos: 40 })).toBe(
+      false,
+    );
+    // Same offset, different file: the offset alone is not the identity,
+    // because it only means something inside its own file.
+    expect(isSameApplication({ file: "main.tsp", pos: 12 }, { file: "other.tsp", pos: 12 })).toBe(
+      false,
+    );
   });
 });

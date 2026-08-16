@@ -88,6 +88,36 @@ describe("Unit: server variables", () => {
     expect(doc.servers.production.variables).toEqual({ env: {} });
   });
 
+  it("emits each variable field on its own, without the other three", async () => {
+    // The builder writes `enum`, `default`, `description` and `examples`
+    // one at a time, each behind its own guard. The first test above passes
+    // all four fields, and the test above passes none. Neither shape can
+    // tell the four guards apart. Four variables that each carry one field
+    // pin them separately. `enum` alone must not pull in a `default`, and a
+    // lone `description` must survive with no sibling.
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("production", #{
+        host: "{a}.{b}.{c}.{d}.example.com",
+        protocol: "kafka",
+        variables: #{
+          a: #{ \`enum\`: #["one", "two"] },
+          b: #{ default: "only-default" },
+          c: #{ description: "Only a description." },
+          d: #{ examples: #["only-example"] }
+        }
+      })
+      namespace Test;
+    `);
+
+    expect(doc.servers.production.variables).toEqual({
+      a: { enum: ["one", "two"] },
+      b: { default: "only-default" },
+      c: { description: "Only a description." },
+      d: { examples: ["only-example"] },
+    });
+  });
+
   it("omits the variables field when the server declares none", async () => {
     const doc = await emitAsyncAPI(`
       @service(#{ title: "Orders" })
@@ -161,6 +191,35 @@ describe("Unit: server variables", () => {
     // AsyncAPI declares `enum` with `uniqueItems`, so a repeat makes the
     // whole document fail validation. The first entry wins, which keeps the
     // order the author wrote.
+    expectDiagnostics(diagnostics, [
+      {
+        code: "tsp-asyncapi/duplicate-server-variable-value",
+        severity: "warning",
+        message: /names 'prod' more than once/,
+      },
+    ]);
+    expect(doc.servers.production.variables).toEqual({
+      env: { enum: ["prod", "sit"], default: "prod" },
+    });
+  });
+
+  it("reports a value that repeats three times only once", async () => {
+    // A repeat is one mistake, however many times it is written. The
+    // reporter remembers the values it has already named, so the third
+    // occurrence adds no second diagnostic. Two occurrences never reach
+    // that guard, so this needs a third one.
+    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @server("production", #{
+        host: "{env}.kafka.example.com",
+        protocol: "kafka",
+        variables: #{
+          env: #{ \`enum\`: #["prod", "prod", "prod", "sit"], default: "prod" }
+        }
+      })
+      namespace Test;
+    `);
+
     expectDiagnostics(diagnostics, [
       {
         code: "tsp-asyncapi/duplicate-server-variable-value",
@@ -379,6 +438,58 @@ describe("Unit: server variables", () => {
     expect(buildServersFrom(runner.program, Test)?.production.variables).toEqual({
       env: { enum: ["prod", "sit"], default: "uat" },
     });
+  });
+
+  it("emits a variable that carries no default", async () => {
+    // The builder writes each variable field on its own, and only when the
+    // field holds a value. Every other case here gives the variable a
+    // `default`, so the absent side of that one guard is never taken. A
+    // variable with no `default` is legal AsyncAPI: the enum still
+    // constrains the value, and the reader must then supply one.
+    const runner = await AsyncAPITester.createInstance();
+    const [{ Test }, diagnostics] = await runner.compileAndDiagnose(t.code`
+      @service(#{ title: "Orders" })
+      @server("production", #{
+        host: "{env}.kafka.example.com",
+        protocol: "kafka",
+        variables: #{
+          env: #{
+            \`enum\`: #["prod", "sit"],
+            description: "The environment.",
+            examples: #["prod"]
+          }
+        }
+      })
+      namespace ${t.namespace("Test")} {}
+    `);
+
+    expectDiagnosticEmpty(diagnostics);
+    expect(buildServersFrom(runner.program, Test)?.production.variables).toEqual({
+      env: {
+        enum: ["prod", "sit"],
+        description: "The environment.",
+        examples: ["prod"],
+      },
+    });
+  });
+
+  it("omits the variables field when the map is written but holds no entry", async () => {
+    // The resolver returns `undefined` when no variable survives, and the
+    // server then carries no `variables` key at all. An empty map is the
+    // shortest input that reaches that return: the host has no template, so
+    // nothing is reported, and the map contributes no entry either.
+    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @server("production", #{
+        host: "kafka.example.com:9092",
+        protocol: "kafka",
+        variables: #{}
+      })
+      namespace Test;
+    `);
+
+    expectDiagnosticEmpty(diagnostics);
+    expect(doc.servers.production).not.toHaveProperty("variables");
   });
 
   it("keeps the recorded variables safe from a change to the returned copy", async () => {
