@@ -39,7 +39,7 @@ export default defineConfig({
       exclude: [
         "src/decorators/**/*.ts",
         "src/index.ts",
-        "src/types/**",
+        "src/types.ts",
         "test/**",
         "src/testing/**/*.ts",
       ],

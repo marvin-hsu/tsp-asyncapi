@@ -1,5 +1,5 @@
 import { Program, Type, getTags } from "@typespec/compiler";
-import { TagObject } from "../types/index.js";
+import { TagObject } from "../types.js";
 import { AsyncTagExternalDocs, AsyncTagState, getAsyncTags } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
 import { orderBySourceNodes } from "../source-order.js";

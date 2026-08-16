@@ -1,5 +1,5 @@
 import { Program, Service, getDoc } from "@typespec/compiler";
-import { InfoObject } from "../types/index.js";
+import { InfoObject } from "../types.js";
 import { getInfo } from "../decorators/index.js";
 import { buildTags } from "./tags.js";
 import { buildExternalDocs } from "./external-docs.js";

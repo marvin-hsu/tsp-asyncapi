@@ -4,7 +4,7 @@ import {
   listUsedSecuritySchemes,
 } from "../decorators/security/use-security-state.js";
 import { reportDiagnostic } from "../lib.js";
-import { ReferenceObject } from "../types/index.js";
+import { ReferenceObject } from "../types.js";
 import { securitySchemeRef } from "./json-pointer.js";
 
 /**

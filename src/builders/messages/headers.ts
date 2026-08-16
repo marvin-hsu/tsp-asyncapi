@@ -7,7 +7,7 @@ import {
   resolveEncodedName,
   walkPropertiesInherited,
 } from "@typespec/compiler";
-import { MultiFormatSchemaObject, SchemaObject, ReferenceObject } from "../../types/index.js";
+import { MultiFormatSchemaObject, SchemaObject, ReferenceObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import {
   getContentType,

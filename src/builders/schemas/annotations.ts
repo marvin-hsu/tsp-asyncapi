@@ -24,7 +24,7 @@ import {
   getMinItemsAsNumeric,
   getMaxItemsAsNumeric,
 } from "@typespec/compiler";
-import { SchemaObject, ReferenceObject } from "../../types/index.js";
+import { SchemaObject, ReferenceObject } from "../../types.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { serializeExamples } from "../example-serialization.js";

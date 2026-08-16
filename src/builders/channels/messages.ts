@@ -1,7 +1,7 @@
 import { Model, Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ReferenceObject } from "../../types/index.js";
+import { ReferenceObject } from "../../types.js";
 import { componentsMessageRef } from "../json-pointer.js";
 import { channelMessageModels } from "../operation-models.js";
 

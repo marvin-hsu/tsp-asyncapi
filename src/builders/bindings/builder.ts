@@ -23,7 +23,7 @@ import {
 } from "../../decorators/bindings/state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { bySourcePosition } from "../../source-order.js";
-import { BindingObject, BindingsObject } from "../../types/index.js";
+import { BindingObject, BindingsObject } from "../../types.js";
 import { renderKafkaBinding } from "./kafka.js";
 
 /**

@@ -5,7 +5,7 @@ import { getOperationAction } from "../../decorators/operations/action.js";
 import { listReplyDeclarations } from "../../decorators/operations/reply-state.js";
 import { OperationActionState, listOperationActions } from "../../decorators/operations/state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { OperationObject } from "../../types/index.js";
+import { OperationObject } from "../../types.js";
 import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { owningChannelTarget } from "../channels/scope.js";

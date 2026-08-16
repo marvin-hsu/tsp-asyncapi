@@ -1,5 +1,5 @@
 import { Namespace, Program } from "@typespec/compiler";
-import { ServerObject } from "../../src/types/index.js";
+import { ServerObject } from "../../src/types.js";
 import { buildSecuritySchemes } from "../../src/builders/security-schemes.js";
 import { buildServers } from "../../src/builders/servers.js";
 

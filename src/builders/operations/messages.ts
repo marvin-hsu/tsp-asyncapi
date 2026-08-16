@@ -1,5 +1,5 @@
 import { Model } from "@typespec/compiler";
-import { ReferenceObject } from "../../types/index.js";
+import { ReferenceObject } from "../../types.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { channelMessageRef } from "../json-pointer.js";
 

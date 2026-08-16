@@ -1,5 +1,5 @@
 import { getDoc, getFriendlyName, getSummary, Model, Program } from "@typespec/compiler";
-import { MessageObject } from "../../types/index.js";
+import { MessageObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import {
   getContentType,

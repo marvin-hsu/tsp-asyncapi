@@ -1,5 +1,5 @@
 import { Model, ModelProperty, Program } from "@typespec/compiler";
-import { MultiFormatSchemaObject, ReferenceObject, SchemaObject } from "../../types/index.js";
+import { MultiFormatSchemaObject, ReferenceObject, SchemaObject } from "../../types.js";
 import { getRawPayload, RawSchemaState } from "../../decorators/index.js";
 import { SchemaBuilder } from "../schemas/builder.js";
 // This import is type-only on purpose. The headers builder imports

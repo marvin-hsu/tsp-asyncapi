@@ -12,7 +12,7 @@ import {
   getFriendlyName,
   isService,
 } from "@typespec/compiler";
-import { ReferenceObject } from "../../types/index.js";
+import { ReferenceObject } from "../../types.js";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
 import { componentsSchemaRef } from "../json-pointer.js";
 

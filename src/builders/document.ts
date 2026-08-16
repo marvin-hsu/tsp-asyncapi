@@ -1,5 +1,5 @@
 import { Model, Program, Service } from "@typespec/compiler";
-import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
+import { AsyncAPIDocument, ComponentsObject } from "../types.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import { reportUnattachedBindings } from "./bindings/builder.js";
 import { buildChannels } from "./channels/builder.js";

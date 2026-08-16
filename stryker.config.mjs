@@ -23,7 +23,7 @@ export default {
   // that carry no runtime behaviour, `index` only re-exports, and `testing`
   // is a helper for consumers rather than emitter logic. Mutating those
   // produces survivors that mean nothing.
-  mutate: ["src/**/*.ts", "!src/index.ts", "!src/types/**", "!src/testing/**", "!src/lib.ts"],
+  mutate: ["src/**/*.ts", "!src/index.ts", "!src/types.ts", "!src/testing/**", "!src/lib.ts"],
 
   // The suite builds first through `pretest`, and Stryker runs vitest
   // directly, so the build has to happen before the run instead.

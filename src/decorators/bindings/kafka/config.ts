@@ -17,7 +17,7 @@ import {
   KafkaMessageBindingObject,
   KafkaOperationBindingObject,
   KafkaServerBindingObject,
-} from "../../../types/index.js";
+} from "../../../types.js";
 
 /**
  * What one Kafka decorator records, for each of the four levels.

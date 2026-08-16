@@ -2,7 +2,7 @@ import { Model, Program, serializeValueAsJson, Value } from "@typespec/compiler"
 import { $ } from "@typespec/compiler/typekit";
 import { getMessageExamples, MessageExampleState } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { MessageExampleObject } from "../../types/index.js";
+import { MessageExampleObject } from "../../types.js";
 import { makeSerializeHandlers } from "../example-serialization.js";
 import { orderBySourceNodes } from "../../source-order.js";
 import { present, text } from "../../optional-fields.js";

@@ -2,7 +2,7 @@ import { Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { getUsedServers } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ReferenceObject } from "../../types/index.js";
+import { ReferenceObject } from "../../types.js";
 import { serverRef } from "../json-pointer.js";
 import { orderBySourceNodes } from "../../source-order.js";
 

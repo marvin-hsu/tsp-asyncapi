@@ -1,5 +1,5 @@
 import { Program } from "@typespec/compiler";
-import { SecuritySchemeObject } from "../types/index.js";
+import { SecuritySchemeObject } from "../types.js";
 import { getSecuritySchemes } from "../decorators/security/scheme.js";
 
 /**

@@ -1,5 +1,5 @@
 import { Model, Program } from "@typespec/compiler";
-import { AsyncAPIDocument } from "../../types/index.js";
+import { AsyncAPIDocument } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import { localRef } from "../../decorators/index.js";
 import { isPlainObject } from "../../marshalled-values.js";

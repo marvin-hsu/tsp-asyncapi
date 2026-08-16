@@ -6,7 +6,7 @@ import {
 } from "../../decorators/channels/state.js";
 import { listUseServerTargets } from "../../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ChannelObject, ReferenceObject } from "../../types/index.js";
+import { ChannelObject, ReferenceObject } from "../../types.js";
 import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { present, text } from "../../optional-fields.js";

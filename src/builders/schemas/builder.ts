@@ -13,7 +13,7 @@ import {
   resolveEncodedName,
   getDiscriminator,
 } from "@typespec/compiler";
-import { SchemaObject, ReferenceObject } from "../../types/index.js";
+import { SchemaObject, ReferenceObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";

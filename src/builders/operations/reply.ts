@@ -5,7 +5,7 @@ import {
   getReplyChannelInternal,
 } from "../../decorators/operations/reply-state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { OperationReplyObject } from "../../types/index.js";
+import { OperationReplyObject } from "../../types.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { channelRef } from "../json-pointer.js";
 import { present } from "../../optional-fields.js";

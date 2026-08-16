@@ -1,5 +1,5 @@
 import { getNamespaceFullName, Namespace, Program } from "@typespec/compiler";
-import { ServerObject, ServerVariableObject } from "../types/index.js";
+import { ServerObject, ServerVariableObject } from "../types.js";
 import { getServers } from "../decorators/index.js";
 import {
   AsyncAPIServerState,
