@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { AsyncAPITester } from "../../src/testing/index.js";
+import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t, TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
-import { buildInfo } from "../../src/builders/info.js";
-import { buildTags } from "../../src/builders/tags.js";
-import { buildExternalDocs } from "../../src/builders/external-docs.js";
-import { buildAsyncAPIDocument } from "../../src/builders/document.js";
+import { buildInfo } from "../../../src/builders/info.js";
+import { buildTags } from "../../../src/builders/tags.js";
+import { buildExternalDocs } from "../../../src/builders/external-docs.js";
+import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;
