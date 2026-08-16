@@ -7,7 +7,7 @@ import { singleApplication } from "../single-application.js";
 const parameterLocationStateKey = Symbol.for("tsp-asyncapi.parameterLocation");
 
 const parameterLocationAppliedKey = Symbol.for("tsp-asyncapi.parameterLocation.applied");
-const claim = singleApplication(
+const guard = singleApplication(
   parameterLocationAppliedKey,
   "duplicate-parameter-location-decorator",
 );
@@ -55,7 +55,7 @@ export function $parameterLocation(
   // last in the source runs first and wins. The guard records that this
   // decorator ran, before any value is validated, so a value that fails
   // validation still blocks a later application.
-  if (!claim(context, target)) return;
+  if (!guard.claim(context, target)) return;
   if (!isRuntimeExpression(location)) {
     // Nothing is recorded, so no `location` reaches the document. An
     // expression this emitter cannot parse is one no AsyncAPI tool can

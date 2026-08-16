@@ -5,7 +5,7 @@ import { singleApplication } from "../single-application.js";
 const messageStateKey = Symbol.for("tsp-asyncapi.message");
 
 const messageAppliedKey = Symbol.for("tsp-asyncapi.message.applied");
-const claim = singleApplication(messageAppliedKey, "duplicate-message-decorator");
+const guard = singleApplication(messageAppliedKey, "duplicate-message-decorator");
 
 /**
  * State recorded by `@message` for one model.
@@ -63,7 +63,7 @@ export function $message(context: DecoratorContext, target: Model, name?: string
   // written last in the source runs first and wins. The guard records
   // that this decorator ran, before any value is validated, so a value
   // that fails validation still blocks a later application.
-  if (!claim(context, target)) return;
+  if (!guard.claim(context, target)) return;
   setMessage(context.program, target, { name });
 }
 

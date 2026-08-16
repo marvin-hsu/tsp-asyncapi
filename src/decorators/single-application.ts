@@ -1,4 +1,4 @@
-import { DecoratorContext, Type } from "@typespec/compiler";
+import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { useStateSet } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
 
@@ -6,6 +6,24 @@ import { reportDiagnostic } from "../lib.js";
  * The diagnostic a decorator reports when it is applied twice.
  */
 type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
+
+/** The guard one decorator uses to keep itself to a single application. */
+export interface ApplicationGuard {
+  /**
+   * Records that the decorator ran on a target, and tells the caller whether
+   * it may proceed. A second application is reported and rejected.
+   */
+  claim(context: DecoratorContext, target: Type): boolean;
+  /**
+   * Answers whether this decorator already ran on a target.
+   *
+   * A decorator that only guards itself never needs this. A decorator whose
+   * mistake spans two decorators does. `@send` and `@receive` state opposite
+   * directions, so each one has to see whether the other reached the same
+   * operation.
+   */
+  isApplied(program: Program, target: Type): boolean;
+}
 
 /**
  * Builds the guard a decorator uses to reject a second application.
@@ -28,20 +46,22 @@ type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
  *
  * @param stateKey - A symbol private to the calling decorator
  * @param code - The diagnostic reported for the second application
- * @returns A function that returns true when the caller may proceed
+ * @returns The guard for that decorator
  */
-export function singleApplication(
-  stateKey: symbol,
-  code: DuplicateCode,
-): (context: DecoratorContext, target: Type) => boolean {
+export function singleApplication(stateKey: symbol, code: DuplicateCode): ApplicationGuard {
   const [isApplied, markApplied] = useStateSet<Type>(stateKey);
 
-  return function claim(context: DecoratorContext, target: Type): boolean {
-    if (isApplied(context.program, target)) {
-      reportDiagnostic(context.program, { code, target });
-      return false;
-    }
-    markApplied(context.program, target);
-    return true;
+  return {
+    claim(context: DecoratorContext, target: Type): boolean {
+      if (isApplied(context.program, target)) {
+        reportDiagnostic(context.program, { code, target });
+        return false;
+      }
+      markApplied(context.program, target);
+      return true;
+    },
+    isApplied(program: Program, target: Type): boolean {
+      return isApplied(program, target);
+    },
   };
 }

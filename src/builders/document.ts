@@ -2,6 +2,7 @@ import { Model, Program, Service } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import { buildChannels } from "./channels/builder.js";
+import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages/builder.js";
 import { SchemaBuilder } from "./schemas/builder.js";
@@ -59,7 +60,7 @@ export function buildAsyncAPIDocument(
 
   // The channels are built after the components, because a channel refers to
   // its messages by the key `components.messages` gave them.
-  const channels = buildChannels(program, messageKeys);
+  const { channels, emitted } = buildChannels(program, messageKeys);
 
   // Servers come from the service namespace, the same source as `info`. A
   // server on any other namespace is reported, then left out.
@@ -72,6 +73,11 @@ export function buildAsyncAPIDocument(
   // reference no parser can resolve, so the builder needs this set.
   const declaredSchemes = new Set(Object.keys(components?.securitySchemes ?? {}));
   const servers = service ? buildServers(program, service.type, declaredSchemes) : undefined;
+
+  // The operations are built after the channels. An operation refers to its
+  // channel and to one message of that channel, so it needs the id and the
+  // message keys of every channel that reached the document.
+  const operations = buildOperations(program, emitted, messageKeys, declaredSchemes);
 
   // The root document. Its version comes from `ASYNCAPI_VERSION`.
   return {
@@ -87,7 +93,9 @@ export function buildAsyncAPIDocument(
     // `channels` is required, so an empty map is emitted when the program
     // declares no channel.
     channels,
-    operations: {},
+    // `operations` is required, so an empty map is emitted when the program
+    // declares no operation.
+    operations,
     ...(components ? { components } : {}),
   };
 }

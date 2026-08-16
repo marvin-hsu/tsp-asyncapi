@@ -14,6 +14,7 @@ import { Interface } from '@typespec/compiler';
 import { Model } from '@typespec/compiler';
 import { ModelProperty } from '@typespec/compiler';
 import { Namespace } from '@typespec/compiler';
+import { Operation } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
@@ -223,6 +224,42 @@ readonly default: CallableMessage<["schemeName", "namespace"]>;
 "undeclared-security-scheme": {
 readonly default: CallableMessage<["schemeName"]>;
 };
+"duplicate-send-decorator": {
+readonly default: "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.";
+};
+"duplicate-receive-decorator": {
+readonly default: "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.";
+};
+"conflicting-operation-actions": {
+readonly default: "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.";
+};
+"empty-operation-id": {
+readonly default: "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.";
+};
+"duplicate-operation-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"operation-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-reply-channel-decorator": {
+readonly default: "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.";
+};
+"duplicate-reply-address-decorator": {
+readonly default: "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.";
+};
+"invalid-reply-address-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"reply-channel-not-a-channel": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"reply-address-needs-dynamic-channel": {
+readonly default: CallableMessage<["id", "id"]>;
+};
+"reply-without-action": {
+readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -385,7 +422,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -586,6 +623,42 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "undeclared-security-scheme": {
         readonly default: CallableMessage<["schemeName"]>;
+    };
+    "duplicate-send-decorator": {
+        readonly default: "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.";
+    };
+    "duplicate-receive-decorator": {
+        readonly default: "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.";
+    };
+    "conflicting-operation-actions": {
+        readonly default: "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.";
+    };
+    "empty-operation-id": {
+        readonly default: "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.";
+    };
+    "duplicate-operation-id": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "operation-without-channel": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-reply-channel-decorator": {
+        readonly default: "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.";
+    };
+    "duplicate-reply-address-decorator": {
+        readonly default: "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.";
+    };
+    "invalid-reply-address-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "reply-channel-not-a-channel": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "reply-address-needs-dynamic-channel": {
+        readonly default: CallableMessage<["id", "id"]>;
+    };
+    "reply-without-action": {
+        readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -795,6 +868,42 @@ readonly default: CallableMessage<["schemeName", "namespace"]>;
 "undeclared-security-scheme": {
 readonly default: CallableMessage<["schemeName"]>;
 };
+"duplicate-send-decorator": {
+readonly default: "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.";
+};
+"duplicate-receive-decorator": {
+readonly default: "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.";
+};
+"conflicting-operation-actions": {
+readonly default: "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.";
+};
+"empty-operation-id": {
+readonly default: "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.";
+};
+"duplicate-operation-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"operation-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-reply-channel-decorator": {
+readonly default: "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.";
+};
+"duplicate-reply-address-decorator": {
+readonly default: "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.";
+};
+"invalid-reply-address-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"reply-channel-not-a-channel": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"reply-address-needs-dynamic-channel": {
+readonly default: CallableMessage<["id", "id"]>;
+};
+"reply-without-action": {
+readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -853,7 +962,16 @@ export function getJsonSchemaExtensions(program: Program, target: Model | ModelP
 export function getMessageExamples(program: Program, target: Model): MessageExampleState[];
 
 // @public
+export function getOperationAction(program: Program, target: Operation): OperationActionState | undefined;
+
+// @public
 export function getParameterLocation(program: Program, target: ModelProperty): string | undefined;
+
+// @public
+export function getReplyAddress(program: Program, target: Operation): ReplyAddressState | undefined;
+
+// @public
+export function getReplyChannel(program: Program, target: Operation): ChannelTarget | undefined;
 
 // Warning: (ae-incompatible-release-tags) The symbol "getSecuritySchemes" is marked as @public, but its signature references "AsyncAPISecuritySchemeState" which is marked as @internal
 //
@@ -866,7 +984,7 @@ export function getSecuritySchemes(program: Program): AsyncAPISecuritySchemeStat
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
 
 // @public
-export function getUsedSecuritySchemes(program: Program, target: Namespace): string[];
+export function getUsedSecuritySchemes(program: Program, target: UseSecurityTarget): string[];
 
 // @public
 export function getUsedServers(program: Program, target: ChannelTarget): UseServerState[];
@@ -975,7 +1093,39 @@ export interface OAuthFlowsObject {
 }
 
 // @public
-export type OperationObject = Record<string, never>;
+export type OperationAction = "send" | "receive";
+
+// @public
+export interface OperationActionState {
+    action: OperationAction;
+    operationId?: string;
+}
+
+// @public
+export interface OperationObject {
+    action: "send" | "receive";
+    channel: ReferenceObject;
+    description?: string;
+    externalDocs?: ExternalDocumentationObject;
+    messages?: ReferenceObject[];
+    reply?: OperationReplyObject;
+    security?: ReferenceObject[];
+    tags?: TagObject[];
+    title?: string;
+}
+
+// @public
+export interface OperationReplyAddressObject {
+    description?: string;
+    location: string;
+}
+
+// @public
+export interface OperationReplyObject {
+    address?: OperationReplyAddressObject;
+    channel: ReferenceObject;
+    messages?: ReferenceObject[];
+}
 
 // @public
 export interface ParameterObject {
@@ -993,7 +1143,13 @@ export interface ReferenceObject {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export interface ReplyAddressState {
+    description?: string;
+    location: string;
+}
+
+// @public
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1194,6 +1350,42 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "undeclared-security-scheme": {
         readonly default: CallableMessage<["schemeName"]>;
+    };
+    "duplicate-send-decorator": {
+        readonly default: "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.";
+    };
+    "duplicate-receive-decorator": {
+        readonly default: "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.";
+    };
+    "conflicting-operation-actions": {
+        readonly default: "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.";
+    };
+    "empty-operation-id": {
+        readonly default: "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.";
+    };
+    "duplicate-operation-id": {
+        readonly default: CallableMessage<["id"]>;
+    };
+    "operation-without-channel": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "duplicate-reply-channel-decorator": {
+        readonly default: "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.";
+    };
+    "duplicate-reply-address-decorator": {
+        readonly default: "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.";
+    };
+    "invalid-reply-address-location": {
+        readonly default: CallableMessage<["location"]>;
+    };
+    "reply-channel-not-a-channel": {
+        readonly default: CallableMessage<["name", "name"]>;
+    };
+    "reply-address-needs-dynamic-channel": {
+        readonly default: CallableMessage<["id", "id"]>;
+    };
+    "reply-without-action": {
+        readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
     };
     "unsupported-payload-type": {
         readonly default: CallableMessage<["kind"]>;
@@ -1403,6 +1595,42 @@ readonly default: CallableMessage<["schemeName", "namespace"]>;
 "undeclared-security-scheme": {
 readonly default: CallableMessage<["schemeName"]>;
 };
+"duplicate-send-decorator": {
+readonly default: "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.";
+};
+"duplicate-receive-decorator": {
+readonly default: "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.";
+};
+"conflicting-operation-actions": {
+readonly default: "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.";
+};
+"empty-operation-id": {
+readonly default: "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.";
+};
+"duplicate-operation-id": {
+readonly default: CallableMessage<["id"]>;
+};
+"operation-without-channel": {
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-reply-channel-decorator": {
+readonly default: "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.";
+};
+"duplicate-reply-address-decorator": {
+readonly default: "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.";
+};
+"invalid-reply-address-location": {
+readonly default: CallableMessage<["location"]>;
+};
+"reply-channel-not-a-channel": {
+readonly default: CallableMessage<["name", "name"]>;
+};
+"reply-address-needs-dynamic-channel": {
+readonly default: CallableMessage<["id", "id"]>;
+};
+"reply-without-action": {
+readonly default: "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.";
+};
 "unsupported-payload-type": {
 readonly default: CallableMessage<["kind"]>;
 };
@@ -1501,6 +1729,9 @@ export interface TagObject {
     externalDocs?: ExternalDocumentationObject;
     name: string;
 }
+
+// @public
+export type UseSecurityTarget = Namespace | Operation;
 
 // @public
 export interface UseServerState {

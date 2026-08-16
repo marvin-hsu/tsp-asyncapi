@@ -1,4 +1,4 @@
-import { DecoratorContext, Namespace, Program } from "@typespec/compiler";
+import { DecoratorContext, Program } from "@typespec/compiler";
 import { SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isSameApplication, sourcePositionOf } from "../../source-order.js";
@@ -7,12 +7,22 @@ import {
   listUsedSecuritySchemes,
   setUseSecurity,
   UseSecurityRecord,
+  UseSecurityTarget,
 } from "./use-security-state.js";
 
+export type { UseSecurityTarget } from "./use-security-state.js";
+
 /**
- * Requires one security scheme on every server of a namespace.
- * This decorator is repeatable. Each application adds one scheme to the
- * `security` array of every server the namespace declares.
+ * Requires one security scheme on the servers of a namespace, or on one
+ * operation.
+ * This decorator is repeatable. Each application on a namespace adds one
+ * scheme to the `security` array of every server that namespace declares.
+ * Each application on an operation adds one scheme to the `security` array
+ * of that operation.
+ *
+ * Operation security is additive. It never replaces the security of the
+ * server. The emitted array on an operation holds the schemes of that
+ * operation alone, and a client satisfies the array of the server as well.
  *
  * AsyncAPI reads that array as OR. A client satisfies one of the listed
  * schemes, not all of them.
@@ -39,7 +49,8 @@ import {
  * anywhere in the program can still arrive after this decorator runs.
  *
  * @param context - The decorator context
- * @param target - The namespace whose servers require this scheme
+ * @param target - The namespace whose servers require this scheme, or the
+ * operation that requires it
  * @param schemeName - The name given to a `@securityScheme`
  *
  * @example
@@ -52,7 +63,11 @@ import {
  *
  * @public
  */
-export function $useSecurity(context: DecoratorContext, target: Namespace, schemeName: string) {
+export function $useSecurity(
+  context: DecoratorContext,
+  target: UseSecurityTarget,
+  schemeName: string,
+) {
   // Report on the name argument, the same node the reference is built from.
   const nameTarget = context.getArgumentTarget(0) ?? target;
 
@@ -94,12 +109,12 @@ export function $useSecurity(context: DecoratorContext, target: Namespace, schem
  * `security` array as OR, so a repeated name adds nothing.
  *
  * @param program - The program to read the state from
- * @param target - The namespace the decorator was applied to
+ * @param target - The namespace or operation the decorator was applied to
  * @returns The scheme names, in source order. The list is empty when the
  * decorator was never applied.
  *
  * @public
  */
-export function getUsedSecuritySchemes(program: Program, target: Namespace): string[] {
+export function getUsedSecuritySchemes(program: Program, target: UseSecurityTarget): string[] {
   return listUsedSecuritySchemes(program, target).map((record) => record.schemeName);
 }

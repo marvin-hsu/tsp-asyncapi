@@ -3,7 +3,7 @@ import { ChannelTarget } from "../../decorators/channels/state.js";
 import { getUsedServers } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ReferenceObject } from "../../types/index.js";
-import { toJsonPointerToken } from "../json-pointer.js";
+import { serverRef } from "../json-pointer.js";
 import { orderBySourceNodes } from "../../source-order.js";
 
 /**
@@ -50,11 +50,7 @@ export function buildChannelServers(
       continue;
     }
     claimed.add(entry.name);
-    // `@useServer` takes a bare string and never checks its charset, so this
-    // is the one reference site where a `~` or a `/` can really arrive. The
-    // name is escaped for the pointer, the same way every other `$ref` in
-    // this emitter is built.
-    references.push({ $ref: `#/servers/${toJsonPointerToken(entry.name)}` });
+    references.push({ $ref: serverRef(entry.name) });
   }
   return references;
 }

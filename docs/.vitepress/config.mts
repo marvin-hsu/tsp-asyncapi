@@ -21,6 +21,7 @@ export default defineConfig({
             items: [
               { text: "Getting Started", link: "/guide/getting-started" },
               { text: "Schema Conversion", link: "/guide/schema-conversion" },
+              { text: "Request and Reply", link: "/guide/request-reply" },
             ],
           },
           {
@@ -55,6 +56,7 @@ export default defineConfig({
             items: [
               { text: "快速開始", link: "/zh-tw/guide/getting-started" },
               { text: "Schema 轉換", link: "/zh-tw/guide/schema-conversion" },
+              { text: "Request 與 Reply", link: "/zh-tw/guide/request-reply" },
             ],
           },
           {

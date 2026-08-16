@@ -40,37 +40,33 @@ import "tsp-asyncapi";
 using AsyncAPI;
 
 @service(#{ title: "Order Service API" })
-@info(#{
-  version: "1.0.0",
-  description: "This is a sample Order Service event-driven API.",
-  contact: #{ name: "API Support", email: "support@example.com" },
-  license: #{ name: "MIT", url: "https://opensource.org/licenses/MIT" }
-})
-@tag("orders")
-@tag("payment")
-@externalDocs("https://example.com/docs", "Service Documentation")
+@info(#{ version: "1.0.0", description: "A sample event-driven order API." })
 @securityScheme("kafka-scram", #{ type: "scramSha512" })
 @useSecurity("kafka-scram")
-@server("production", #{
-  host: "{env}.kafka.example.com:9092",
-  protocol: "kafka-secure",
-  variables: #{ env: #{ default: "prod", `enum`: #["prod", "sit"] } }
-})
+@server("production", #{ host: "kafka.example.com:9092", protocol: "kafka-secure" })
 namespace Orders;
 
-// The schema conversion layer turns this model into an AsyncAPI Schema
-// Object (see the docs site); it lands in components.schemas once
-// message payloads are wired up.
-model Order {
-  id: string;
+@message
+@doc("An order a customer placed.")
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
   amount: float64;
-  items: OrderItem[];
-  metadata: Record<string>;
 }
 
-model OrderItem {
-  productId: string;
-  quantity: int32;
+@channel("orders.created")
+@doc("Every order a customer places lands here.")
+@useServer("production")
+interface OrderChannel {
+  @send
+  @summary("Publish an order event")
+  op sendOrderCreated(event: OrderCreated): void;
+
+  @receive
+  @summary("Consume an order event")
+  op onOrderCreated(): OrderCreated;
 }
 ```
 
@@ -83,8 +79,6 @@ options:
   "tsp-asyncapi":
     output-file: "asyncapi.yaml"
     file-type: "yaml"
-    asyncapi-id: "urn:com:example:orders"
-    default-content-type: "application/json"
 ```
 
 Then compile:
@@ -93,7 +87,77 @@ Then compile:
 tsp compile . --emit tsp-asyncapi
 ```
 
-This produces a fully compliant AsyncAPI 3.1.0 document.
+This is the output of the example above. The official AsyncAPI parser accepts it with no error:
+
+```yaml
+asyncapi: 3.1.0
+info:
+  title: Order Service API
+  version: 1.0.0
+  description: A sample event-driven order API.
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka-secure
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+channels:
+  OrderChannel:
+    address: orders.created
+    description: Every order a customer places lands here.
+    servers:
+      - $ref: "#/servers/production"
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: "#/channels/OrderChannel"
+    title: Publish an order event
+    messages:
+      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+  onOrderCreated:
+    action: receive
+    channel:
+      $ref: "#/channels/OrderChannel"
+    title: Consume an order event
+    messages:
+      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+components:
+  schemas:
+    OrderCreatedPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+      description: An order a customer placed.
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      description: An order a customer placed.
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreatedPayload"
+  securitySchemes:
+    kafka-scram:
+      type: scramSha512
+```
+
+An operation refers to a message through its channel, never through `components.messages`. AsyncAPI 3 requires that form.
 
 ## Emitter options
 
@@ -127,6 +191,9 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@AsyncAPI.externalDocs` — Attaches external documentation links.
 - `@AsyncAPI.oneOf` — Marks a union to emit `oneOf` instead of the default `anyOf`.
 - `@AsyncAPI.jsonSchemaExtension` — Adds one JSON Schema keyword this emitter has no dedicated decorator for, e.g. `@jsonSchemaExtension("unevaluatedProperties", false)`. Repeatable; each application adds one key/value pair.
+- `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — Declares one channel on an interface or a namespace.
+- `@AsyncAPI.send` / `@AsyncAPI.receive` — Marks one operation as a message this application sends or receives.
+- `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — Describes the reply of an operation. See the Request and Reply guide on the docs site.
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 

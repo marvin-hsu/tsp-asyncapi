@@ -170,8 +170,6 @@ The name is outside the character set AsyncAPI allows for a key of the root `ser
 
 **Fix:** Use a name that only holds letters, digits, `_`, and `-`. The emitter never rewrites the name, because that would silently change the key you asked for.
 
-<<<<<<< HEAD
-
 ### `empty-channel-address`
 
 > @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
@@ -296,6 +294,70 @@ The runtime expression is outside the grammar. It must start with `$message.head
 
 **Fix:** write the expression in that form, such as `$message.payload#/user/id`.
 
+### `duplicate-send-decorator`
+
+> @send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.
+
+`@send` is not repeatable. An Operation Object holds one `action` field.
+
+**Fix:** remove the extra `@send`.
+
+### `duplicate-receive-decorator`
+
+> @receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.
+
+`@receive` is not repeatable, for the same reason `@send` is not.
+
+**Fix:** remove the extra `@receive`.
+
+### `conflicting-operation-actions`
+
+> @send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.
+
+The two decorators state opposite directions. Nothing picks a winner, so the operation is dropped rather than emitted with an arbitrary action.
+
+**Fix:** keep one of the two. Two directions over one channel are two operations, so write a second operation for the other direction.
+
+### `empty-operation-id`
+
+> The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.
+
+The id is the key of the operation in the emitted document, and a blank key names nothing.
+
+**Fix:** give the argument an id, or leave it out so the operation name is used.
+
+### `duplicate-operation-id`
+
+> Duplicate operation id: '\<id\>'. Each operation needs its own id, because the id is the key of that operation in the emitted document. This operation was dropped, and the first one with this id in source order was kept. Pass an explicit id to @send or @receive on one of them.
+
+Two operations resolve to one key. The key comes from the explicit id argument, and otherwise from the name of the operation. The first one in source order keeps the key.
+
+**Fix:** pass an explicit id to `@send` or `@receive` on one of them.
+
+### `duplicate-reply-channel-decorator`
+
+> @replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.
+
+`@replyChannel` is not repeatable. An Operation Reply Object holds one `channel` field.
+
+**Fix:** remove the extra `@replyChannel`.
+
+### `duplicate-reply-address-decorator`
+
+> @replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.
+
+`@replyAddress` is not repeatable. An Operation Reply Object holds one `address` field.
+
+**Fix:** remove the extra `@replyAddress`.
+
+### `invalid-reply-address-location`
+
+> '\<location\>' is not a legal reply address location, so no `address` was emitted on the reply. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.header#/replyTo'.
+
+The runtime expression is outside the grammar. It must start with `$message.header#` or `$message.payload#`, and a JSON Pointer may follow. The grammar is the one `@correlationId` and `@parameterLocation` follow.
+
+**Fix:** write the expression in that form, such as `$message.header#/replyTo`.
+
 ## Warnings
 
 ### `channel-no-messages`
@@ -321,7 +383,38 @@ One name reached `@useServer` twice on one channel. AsyncAPI requires the entrie
 `@useServer` sits on a target that carries no channel. Only a channel holds a `servers` field, so the application reaches no part of the document.
 
 **Fix:** add `@channel` or `@dynamicChannel` to the target, or remove the `@useServer`.
-=======
+
+### `operation-without-channel`
+
+> The operation '\<name\>' carries @send or @receive, and the interface or namespace around it carries no emitted channel. An operation always points at a channel, so this one reaches no part of the document. This operation was dropped. Add @channel or @dynamicChannel to the interface or namespace that holds it.
+
+An operation always points at a channel. The channel may be missing because the target carries no channel decorator. It may also be missing because the declared channel was dropped, such as one that lost a [`duplicate-channel-id`](#duplicate-channel-id) clash.
+
+**Fix:** add `@channel` or `@dynamicChannel` to the interface or namespace that holds the operation. Check that the operation sits directly inside it, because a nested interface is a separate scope.
+
+### `reply-channel-not-a-channel`
+
+> @replyChannel names '\<name\>', and that interface or namespace carries no emitted channel. A reply whose channel is unknown carries neither a checkable message list nor a checkable address, so the whole `reply` object was dropped. Add @channel or @dynamicChannel to '\<name\>'.
+
+The named target carries no channel that reached the document. The whole `reply` object goes, not the channel alone. A partial reply would state something the author never wrote.
+
+**Fix:** add `@channel` or `@dynamicChannel` to the named target.
+
+### `reply-address-needs-dynamic-channel`
+
+> @replyAddress is given, and the reply channel '\<id\>' carries an address. AsyncAPI requires the address of that channel to be null when a reply address is given. The `address` was dropped from the reply, and the rest of the reply was kept. Declare '\<id\>' with @dynamicChannel instead of @channel.
+
+A reply address is what the address of the reply channel is at runtime. A channel that already carries an address would then state two addresses, which AsyncAPI forbids.
+
+**Fix:** declare the reply channel with [`@dynamicChannel`](./decorators#dynamicchannel), or remove the `@replyAddress`.
+
+### `reply-without-action`
+
+> @replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.
+
+A reply sits on an emitted operation, and only `@send` or `@receive` emits one.
+
+**Fix:** add `@send` or `@receive` to the operation, or remove the reply decorator.
 
 ### `duplicate-security-scheme-name`
 

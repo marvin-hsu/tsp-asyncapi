@@ -21,7 +21,11 @@ export {
   getSecuritySchemes,
   type AsyncAPISecuritySchemeState,
 } from "./security/scheme.js";
-export { $useSecurity, getUsedSecuritySchemes } from "./security/use-security.js";
+export {
+  $useSecurity,
+  getUsedSecuritySchemes,
+  type UseSecurityTarget,
+} from "./security/use-security.js";
 export {
   $externalDocs,
   getExternalDocs,
@@ -59,6 +63,20 @@ export {
 export type { ChannelTarget } from "./channels/state.js";
 export { $useServer, getUsedServers, type UseServerState } from "./channels/use-server.js";
 export { $parameterLocation, getParameterLocation } from "./channels/parameter-location.js";
+export {
+  $send,
+  $receive,
+  getOperationAction,
+  type OperationAction,
+  type OperationActionState,
+} from "./operations/action.js";
+export {
+  $replyChannel,
+  $replyAddress,
+  getReplyChannel,
+  getReplyAddress,
+  type ReplyAddressState,
+} from "./operations/reply.js";
 export {
   $messageExample,
   getMessageExamples,

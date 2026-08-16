@@ -170,8 +170,6 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 **修法：** 改用只含英文字母、數字、`_`、`-` 的名稱。emitter 絕不自動改名，因為那會靜默換掉你要求的 key。
 
-<<<<<<< HEAD
-
 ### `empty-channel-address`
 
 > @channel was given a blank address. A blank address names no topic, path, or routing key, so it cannot reach the emitted document. This channel was dropped. Give it an address, such as 'orders.created', or use @dynamicChannel when the address is only known at runtime.
@@ -296,6 +294,70 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 
 **修法：** 照該格式撰寫，例如 `$message.payload#/user/id`。
 
+### `duplicate-send-decorator`
+
+> @send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.
+
+`@send` 不可重複套用。一個 Operation Object 只有一個 `action` 欄位。
+
+**修法：** 移除多餘的 `@send`。
+
+### `duplicate-receive-decorator`
+
+> @receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.
+
+`@receive` 不可重複套用，理由與 `@send` 相同。
+
+**修法：** 移除多餘的 `@receive`。
+
+### `conflicting-operation-actions`
+
+> @send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.
+
+兩個 decorator 宣告相反的方向。沒有規則可以判定誰勝出，所以這個 operation 直接被丟棄，不會輸出任意一個 action。
+
+**修法：** 只保留其中一個。同一個 channel 上的兩個方向是兩個 operation，另一個方向請另外寫一個 operation。
+
+### `empty-operation-id`
+
+> The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.
+
+id 是這個 operation 在輸出文件中的 key。空白的 key 沒有指到任何東西。
+
+**修法：** 給引數一個 id，或整個省略引數，改用 operation 名稱。
+
+### `duplicate-operation-id`
+
+> Duplicate operation id: '\<id\>'. Each operation needs its own id, because the id is the key of that operation in the emitted document. This operation was dropped, and the first one with this id in source order was kept. Pass an explicit id to @send or @receive on one of them.
+
+兩個 operation 對應到同一個 key。key 來自明確的 id 引數，沒給時來自 operation 名稱。原始碼順序在前的保留該 key。
+
+**修法：** 在其中一個的 `@send` 或 `@receive` 上傳入明確的 id。
+
+### `duplicate-reply-channel-decorator`
+
+> @replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.
+
+`@replyChannel` 不可重複套用。一個 Operation Reply Object 只有一個 `channel` 欄位。
+
+**修法：** 移除多餘的 `@replyChannel`。
+
+### `duplicate-reply-address-decorator`
+
+> @replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.
+
+`@replyAddress` 不可重複套用。一個 Operation Reply Object 只有一個 `address` 欄位。
+
+**修法：** 移除多餘的 `@replyAddress`。
+
+### `invalid-reply-address-location`
+
+> '\<location\>' is not a legal reply address location, so no `address` was emitted on the reply. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.header#/replyTo'.
+
+runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$message.payload#`，後面可以接 JSON Pointer。這與 `@correlationId` 和 `@parameterLocation` 的文法相同。
+
+**修法：** 照該格式撰寫，例如 `$message.header#/replyTo`。
+
 ## 警告
 
 ### `channel-no-messages`
@@ -321,7 +383,38 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 `@useServer` 標在沒有 channel 的 target 上。只有 channel 才有 `servers` 欄位，所以這次套用到不了文件的任何位置。
 
 **修法：** 為該 target 加上 `@channel` 或 `@dynamicChannel`，或移除這個 `@useServer`。
-=======
+
+### `operation-without-channel`
+
+> The operation '\<name\>' carries @send or @receive, and the interface or namespace around it carries no emitted channel. An operation always points at a channel, so this one reaches no part of the document. This operation was dropped. Add @channel or @dynamicChannel to the interface or namespace that holds it.
+
+operation 一定要指向一個 channel。缺少 channel 可能是因為該 target 沒有 channel decorator。也可能是宣告的 channel 被丟棄，例如在 [`duplicate-channel-id`](#duplicate-channel-id) 衝突中落敗的那一個。
+
+**修法：** 為包住這個 operation 的 interface 或 namespace 加上 `@channel` 或 `@dynamicChannel`。同時確認 operation 直接寫在它裡面，因為巢狀 interface 是另一個範圍。
+
+### `reply-channel-not-a-channel`
+
+> @replyChannel names '\<name\>', and that interface or namespace carries no emitted channel. A reply whose channel is unknown carries neither a checkable message list nor a checkable address, so the whole `reply` object was dropped. Add @channel or @dynamicChannel to '\<name\>'.
+
+指定的目標沒有進到文件的 channel。被丟棄的是整個 `reply` 物件，不只是 channel 欄位。只輸出一半的 reply 會表達出作者沒有寫過的內容。
+
+**修法：** 為指定的目標加上 `@channel` 或 `@dynamicChannel`。
+
+### `reply-address-needs-dynamic-channel`
+
+> @replyAddress is given, and the reply channel '\<id\>' carries an address. AsyncAPI requires the address of that channel to be null when a reply address is given. The `address` was dropped from the reply, and the rest of the reply was kept. Declare '\<id\>' with @dynamicChannel instead of @channel.
+
+回覆位址就是回覆 channel 在執行期的位址。已經帶有 address 的 channel 會因此有兩個位址，AsyncAPI 不允許這種寫法。
+
+**修法：** 用 [`@dynamicChannel`](./decorators#dynamicchannel) 宣告回覆 channel，或移除 `@replyAddress`。
+
+### `reply-without-action`
+
+> @replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.
+
+reply 掛在輸出的 operation 上，而只有 `@send` 或 `@receive` 才會輸出 operation。
+
+**修法：** 為該 operation 加上 `@send` 或 `@receive`，或移除 reply 的 decorator。
 
 ### `duplicate-security-scheme-name`
 

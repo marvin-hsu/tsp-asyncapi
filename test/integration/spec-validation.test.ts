@@ -3,6 +3,94 @@ import { describe, it, expect } from "vitest";
 import { emitAsyncAPI } from "../utils/test-host.js";
 
 describe("AsyncAPI emitted document", () => {
+  it("should describe a service with a send and a receive operation end to end", async () => {
+    // This is the Phase 5 milestone case. It carries a service, a server, a
+    // channel, a message, and both actions.
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Order Service" })
+      @info(#{ version: "1.0.0" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+      namespace OrderService;
+
+      @message
+      @doc("An order a customer placed.")
+      model OrderCreated {
+        @header
+        correlationId: string;
+
+        orderId: string;
+        total: float64;
+      }
+
+      @channel("orders.created")
+      @doc("Every order a customer places lands here.")
+      @useServer("kafka-prod")
+      interface OrderChannel {
+        @send
+        @summary("Publish an order event")
+        @doc("Sends one event for every order a customer places.")
+        op sendOrderCreated(event: OrderCreated): void;
+
+        @receive
+        @summary("Consume an order event")
+        op onOrderCreated(): OrderCreated;
+      }
+    `);
+
+    expect(doc.operations).toEqual({
+      sendOrderCreated: {
+        action: "send",
+        channel: { $ref: "#/channels/OrderChannel" },
+        title: "Publish an order event",
+        description: "Sends one event for every order a customer places.",
+        messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+      },
+      onOrderCreated: {
+        action: "receive",
+        channel: { $ref: "#/channels/OrderChannel" },
+        title: "Consume an order event",
+        messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+      },
+    });
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe a request and reply exchange end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Order Service" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+      namespace OrderService;
+
+      @message
+      model CreateOrder {
+        orderId: string;
+      }
+
+      @message
+      model OrderAccepted {
+        orderId: string;
+      }
+
+      @dynamicChannel
+      interface ReplyChannel {}
+
+      @channel("orders.create")
+      interface OrderChannel {
+        @send
+        @replyChannel(ReplyChannel)
+        @replyAddress("$message.header#/replyTo", "The reply topic.")
+        op createOrder(command: CreateOrder): OrderAccepted;
+      }
+    `);
+
+    expect(doc.operations.createOrder.reply).toEqual({
+      address: { location: "$message.header#/replyTo", description: "The reply topic." },
+      channel: { $ref: "#/channels/ReplyChannel" },
+      messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
+    });
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
   it("should describe one Kafka topic end to end", async () => {
     const doc = await emitAsyncAPI(`
       @service(#{ title: "Orders" })

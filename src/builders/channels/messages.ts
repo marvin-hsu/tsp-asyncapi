@@ -2,8 +2,23 @@ import { Model, Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ReferenceObject } from "../../types/index.js";
-import { toJsonPointerToken } from "../json-pointer.js";
-import { channelOperations, operationModels } from "./scope.js";
+import { componentsMessageRef } from "../json-pointer.js";
+import { channelMessageModels } from "../operation-models.js";
+
+/**
+ * What one channel contributes to the rest of the document.
+ *
+ * The map is what the channel emits. The keys are what an operation needs.
+ * An operation refers to a message through the channel, so it needs the key
+ * this channel gave that model. Returning the keys here means no layer
+ * recomputes them.
+ */
+export interface ChannelMessages {
+  /** The `messages` map, or `undefined` when the channel names none. */
+  messages: Record<string, ReferenceObject> | undefined;
+  /** The key this channel gave each model it carries. */
+  keys: Map<Model, string>;
+}
 
 /**
  * Builds the `messages` map of one channel.
@@ -15,7 +30,10 @@ import { channelOperations, operationModels } from "./scope.js";
  * entry. That mistake is already reported where the key was claimed.
  *
  * The entries follow the order the operations declare them, and a model that
- * two operations name contributes one entry.
+ * two operations name contributes one entry. Which models reach this channel
+ * at all is decided by `channelMessageModels`, which also brings in the reply
+ * of an operation that sits on another channel and names this one with
+ * `@replyChannel`.
  *
  * An empty result is reported and the field is left out. AsyncAPI makes
  * `messages` optional, so a channel with none stays valid, but a channel
@@ -26,24 +44,24 @@ import { channelOperations, operationModels } from "./scope.js";
  * @param target - The interface or namespace that carries the channel
  * @param channelId - The key of this channel, for the warning message
  * @param messageKeys - The key each emitted message model was given
- * @returns The `messages` map, or `undefined` when the channel names none
+ * @returns The `messages` map and the key of each model on this channel
  */
 export function buildChannelMessages(
   program: Program,
   target: ChannelTarget,
   channelId: string,
   messageKeys: ReadonlyMap<Model, string>,
-): Record<string, ReferenceObject> | undefined {
+): ChannelMessages {
   const entries: [string, ReferenceObject][] = [];
   const claimed = new Set<string>();
+  const keys = new Map<Model, string>();
 
-  for (const operation of channelOperations(program, target)) {
-    for (const model of operationModels(program, operation)) {
-      const key = messageKeys.get(model);
-      if (key === undefined || claimed.has(key)) continue;
-      claimed.add(key);
-      entries.push([key, { $ref: `#/components/messages/${toJsonPointerToken(key)}` }]);
-    }
+  for (const model of channelMessageModels(program, target)) {
+    const key = messageKeys.get(model);
+    if (key === undefined || claimed.has(key)) continue;
+    claimed.add(key);
+    keys.set(model, key);
+    entries.push([key, { $ref: componentsMessageRef(key) }]);
   }
 
   if (entries.length === 0) {
@@ -52,11 +70,11 @@ export function buildChannelMessages(
       format: { id: channelId },
       target,
     });
-    return undefined;
+    return { messages: undefined, keys };
   }
 
   // The map is built from entries, so a key such as `__proto__` becomes an
   // own property instead of a write to the prototype. This matches the way
   // every other map in this emitter is built.
-  return Object.fromEntries(entries);
+  return { messages: Object.fromEntries(entries), keys };
 }

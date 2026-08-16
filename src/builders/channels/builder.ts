@@ -6,7 +6,7 @@ import {
 } from "../../decorators/channels/state.js";
 import { listUseServerTargets } from "../../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ChannelObject } from "../../types/index.js";
+import { ChannelObject, ReferenceObject } from "../../types/index.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { present, text } from "../optional-fields.js";
 import { buildTags } from "../tags.js";
@@ -34,16 +34,17 @@ import { buildChannelServers } from "./servers.js";
  * @param program - The program to read the channels from
  * @param messageKeys - The key each emitted message model was given, so a
  * channel reference never recomputes a message key
- * @returns The `channels` map. It is empty when the program declares no
- * channel, and the caller emits it anyway, because AsyncAPI requires the
- * field.
+ * @returns The `channels` map, and what each emitted channel carries. The
+ * map is empty when the program declares no channel, and the caller emits it
+ * anyway, because AsyncAPI requires the field.
  */
 export function buildChannels(
   program: Program,
   messageKeys: ReadonlyMap<Model, string>,
-): Record<string, ChannelObject> {
+): ChannelsResult {
   const entries: [string, ChannelObject][] = [];
   const claimedBy = new Set<string>();
+  const emitted = new Map<ChannelTarget, EmittedChannel>();
 
   for (const { target, record } of listChannelsInternal(program)) {
     const id = record.state.channelId ?? target.name;
@@ -52,14 +53,42 @@ export function buildChannels(
       continue;
     }
     claimedBy.add(id);
-    entries.push([id, buildChannel(program, target, record, id, messageKeys)]);
+    const messages = buildChannelMessages(program, target, id, messageKeys);
+    entries.push([id, buildChannel(program, target, record, id, messages.messages)]);
+    emitted.set(target, { id, address: record.state.address, messageKeys: messages.keys });
   }
 
   reportUseServerWithoutChannel(program);
 
   // The map is built from entries, so an id such as `__proto__` becomes an
   // own property instead of a write to the prototype.
-  return Object.fromEntries(entries);
+  return { channels: Object.fromEntries(entries), emitted };
+}
+
+/**
+ * One channel that reached the document.
+ *
+ * The operation builder needs all three fields. The id builds the `$ref`
+ * that points at the channel. The keys build the `$ref` that points at one
+ * message of it. The address decides whether a reply may carry an address of
+ * its own, because AsyncAPI allows that only on a channel whose address is
+ * `null`.
+ */
+export interface EmittedChannel {
+  /** The key of this channel in the emitted `channels` map. */
+  id: string;
+  /** The address it was emitted with. It is `null` for a dynamic channel. */
+  address: string | null;
+  /** The key this channel gave each message model it carries. */
+  messageKeys: ReadonlyMap<Model, string>;
+}
+
+/** What the channel builder hands to the rest of the document. */
+export interface ChannelsResult {
+  /** The root `channels` map. */
+  channels: Record<string, ChannelObject>;
+  /** The channel each target contributed, for the targets that emitted one. */
+  emitted: ReadonlyMap<ChannelTarget, EmittedChannel>;
 }
 
 /**
@@ -85,7 +114,7 @@ function buildChannel(
   target: ChannelTarget,
   record: ChannelRecord,
   id: string,
-  messageKeys: ReadonlyMap<Model, string>,
+  messages: Record<string, ReferenceObject> | undefined,
 ): ChannelObject {
   return {
     address: record.state.address,
@@ -93,7 +122,7 @@ function buildChannel(
     ...text("description", getDoc(program, target)),
     ...present("servers", buildChannelServers(program, target)),
     ...present("parameters", buildChannelParameters(program, target, record, id)),
-    ...present("messages", buildChannelMessages(program, target, id, messageKeys)),
+    ...present("messages", messages),
     ...present("tags", buildTags(program, target)),
     ...present("externalDocs", buildExternalDocs(program, target)),
   };

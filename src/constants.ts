@@ -64,6 +64,53 @@ export const DEFAULT_DOCUMENT_TITLE = "AsyncAPI Document";
 export const SECURITY_SCHEME_REF_PREFIX = "#/components/securitySchemes/";
 
 /**
+ * The prefix of a JSON Pointer into the root `channels` map.
+ *
+ * An operation names its channel through a reference, and so does a reply.
+ * The `messages` of both are addressed through the same root, one segment
+ * deeper. Every one of those pointers is built from this prefix, so the
+ * pointer root is written in one place only.
+ */
+export const CHANNEL_REF_PREFIX = "#/channels/";
+
+/**
+ * The prefix of a JSON Pointer into `components.messages`.
+ *
+ * A channel names each message it carries through a reference into the
+ * components section. An operation never uses this prefix: it addresses the
+ * `messages` map of its channel instead.
+ */
+export const COMPONENTS_MESSAGE_REF_PREFIX = "#/components/messages/";
+
+/**
+ * The prefix of a JSON Pointer into the root `servers` map.
+ *
+ * A channel names each server it is available on through a reference into
+ * this map.
+ */
+export const SERVER_REF_PREFIX = "#/servers/";
+
+/**
+ * The prefix of a JSON Pointer into `components.schemas`.
+ *
+ * Every schema this emitter names is defined once in the components section,
+ * and every other place that needs it refers to it through this prefix.
+ */
+export const COMPONENTS_SCHEMA_REF_PREFIX = "#/components/schemas/";
+
+/**
+ * What joins the interface name and the operation name in the key of an
+ * inherited operation.
+ *
+ * `interface C extends Base` copies each operation of `Base` into `C`, so the
+ * declaration name alone cannot key the copies. The key qualifies the name
+ * with the interface that inherited it. `@typespec/openapi3` joins the same
+ * two parts with the same character in its default `parent-container`
+ * strategy.
+ */
+export const INHERITED_OPERATION_ID_SEPARATOR = "_";
+
+/**
  * The character set AsyncAPI 3 allows for a key of the root `servers` map.
  *
  * This set is stricter than the one for a key of the Components Object. A

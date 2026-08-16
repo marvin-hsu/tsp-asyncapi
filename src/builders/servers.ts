@@ -1,5 +1,5 @@
 import { getNamespaceFullName, Namespace, Program } from "@typespec/compiler";
-import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
+import { ServerObject, ServerVariableObject } from "../types/index.js";
 import { getServers } from "../decorators/index.js";
 import {
   AsyncAPIServerState,
@@ -7,13 +7,10 @@ import {
   listServersOutsideService,
   namespaceHasServers,
 } from "../decorators/servers/state.js";
-import {
-  listSecurityUsesWithoutServer,
-  listUsedSecuritySchemes,
-} from "../decorators/security/use-security-state.js";
+import { listSecurityUsesWithoutServer } from "../decorators/security/use-security-state.js";
 import { buildExternalDocs } from "./external-docs.js";
+import { buildSecurityRequirements } from "./security-requirements.js";
 import { reportDiagnostic } from "../lib.js";
-import { SECURITY_SCHEME_REF_PREFIX } from "../constants.js";
 
 /**
  * Turns the recorded variables of one server into Server Variable Objects.
@@ -67,46 +64,6 @@ function buildServer(state: AsyncAPIServerState): ServerObject {
 }
 
 /**
- * Builds the `security` array of every server on one namespace.
- *
- * Each entry is a reference into `components.securitySchemes`. AsyncAPI
- * allows an inline scheme here as well, and this emitter never writes one,
- * so a server always points at the shared definition.
- *
- * A name that no `@securityScheme` defines is reported and dropped. The
- * reference would address a key that the document does not carry, and an
- * AsyncAPI parser rejects the whole document for it. `@useSecurity` cannot
- * make this check itself, because a `@securityScheme` anywhere in the
- * program can still arrive after it runs. Here the full set is known.
- *
- * @param program - The program to read the applications from
- * @param namespace - The namespace that carries the servers
- * @param declaredSchemes - The keys of `components.securitySchemes`
- * @returns The `security` array, or `undefined` when no entry survives. The
- * caller then omits the field, because AsyncAPI reads an empty array as
- * "this server needs no scheme at all".
- */
-function buildServerSecurity(
-  program: Program,
-  namespace: Namespace,
-  declaredSchemes: ReadonlySet<string>,
-): ReferenceObject[] | undefined {
-  const references: ReferenceObject[] = [];
-  for (const { schemeName, target } of listUsedSecuritySchemes(program, namespace)) {
-    if (!declaredSchemes.has(schemeName)) {
-      reportDiagnostic(program, {
-        code: "undeclared-security-scheme",
-        format: { schemeName },
-        target,
-      });
-      continue;
-    }
-    references.push({ $ref: `${SECURITY_SCHEME_REF_PREFIX}${schemeName}` });
-  }
-  return references.length > 0 ? references : undefined;
-}
-
-/**
  * Builds the AsyncAPI `servers` map from the `@server` decorators on a
  * namespace.
  *
@@ -141,7 +98,7 @@ export function buildServers(
     return undefined;
   }
 
-  const security = buildServerSecurity(program, namespace, declaredSchemes);
+  const security = buildSecurityRequirements(program, namespace, declaredSchemes);
   const externalDocs = buildExternalDocs(program, namespace);
 
   const entries: [string, ServerObject][] = declared.map((state) => {

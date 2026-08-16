@@ -1,8 +1,18 @@
-import { DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
+import { DiagnosticTarget, Namespace, Operation, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { bySourcePosition, SourcePosition } from "../../source-order.js";
 
 const useSecurityStateKey = Symbol.for("tsp-asyncapi.useSecurity");
+
+/**
+ * The two types `@useSecurity` can be applied to.
+ *
+ * A namespace requires the scheme on every server it declares. An operation
+ * requires the scheme on that operation alone, on top of what the server
+ * already requires.
+ * @public
+ */
+export type UseSecurityTarget = Namespace | Operation;
 
 /**
  * One `@useSecurity` application.
@@ -17,14 +27,14 @@ export interface UseSecurityRecord extends SourcePosition {
 }
 
 const [getUseSecurityInternal, setUseSecurity, getUseSecurityStateMap] = useStateMap<
-  Namespace,
+  UseSecurityTarget,
   UseSecurityRecord[]
 >(useSecurityStateKey);
 
 export { getUseSecurityInternal, setUseSecurity };
 
 /**
- * Lists the `@useSecurity` applications of one namespace, in source order.
+ * Lists the `@useSecurity` applications of one target, in source order.
  *
  * A name given more than once yields one record. AsyncAPI reads the
  * `security` array as OR, so a repeated name adds nothing. The first
@@ -36,10 +46,13 @@ export { getUseSecurityInternal, setUseSecurity };
  * same list.
  *
  * @param program - The program to read the state from
- * @param target - The namespace the decorator was applied to
+ * @param target - The namespace or operation the decorator was applied to
  * @returns The applications to emit, in source order
  */
-export function listUsedSecuritySchemes(program: Program, target: Namespace): UseSecurityRecord[] {
+export function listUsedSecuritySchemes(
+  program: Program,
+  target: UseSecurityTarget,
+): UseSecurityRecord[] {
   const records = [...(getUseSecurityInternal(program, target) ?? [])].sort(
     bySourcePosition(program),
   );
@@ -80,9 +93,14 @@ export function listSecurityUsesWithoutServer(
   hasServers: (namespace: Namespace) => boolean,
 ): StraySecurityUseRecord[] {
   const stray: { namespace: Namespace; record: UseSecurityRecord }[] = [];
-  for (const [namespace, records] of getUseSecurityStateMap(program)) {
-    if (hasServers(namespace)) continue;
-    for (const record of records) stray.push({ namespace, record });
+  for (const [target, records] of getUseSecurityStateMap(program)) {
+    // An operation is skipped here. Its `@useSecurity` reaches the document
+    // through the operation itself, not through a server, so a namespace
+    // with no server says nothing about it. An operation that emits no
+    // operation object is already reported as one without a channel.
+    if (target.kind !== "Namespace") continue;
+    if (hasServers(target)) continue;
+    for (const record of records) stray.push({ namespace: target, record });
   }
 
   stray.sort(

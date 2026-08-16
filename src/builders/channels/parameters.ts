@@ -7,7 +7,8 @@ import { reportDiagnostic } from "../../lib.js";
 import { ParameterObject } from "../../types/index.js";
 import { serializeExamples } from "../example-serialization.js";
 import { present, text } from "../optional-fields.js";
-import { channelOperations, unwrapModels } from "./scope.js";
+import { unwrapModels } from "../operation-models.js";
+import { channelOperations } from "./scope.js";
 
 /**
  * Builds the `parameters` map of one channel, and reports every mistake in

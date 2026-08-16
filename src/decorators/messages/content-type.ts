@@ -12,7 +12,7 @@ const [getContentTypeInternal, setContentType] = useStateMap<Model, string>(cont
 // cannot tell a second application from a first one.
 
 const contentTypeAppliedKey = Symbol.for("tsp-asyncapi.contentType.applied");
-const claim = singleApplication(contentTypeAppliedKey, "duplicate-content-type-decorator");
+const guard = singleApplication(contentTypeAppliedKey, "duplicate-content-type-decorator");
 
 /**
  * Sets the `contentType` of a message.
@@ -53,7 +53,7 @@ export function $contentType(context: DecoratorContext, target: Model, contentTy
   // written last in the source runs first and wins. The guard records
   // that this decorator ran, before any value is validated, so a value
   // that fails validation still blocks a later application.
-  if (!claim(context, target)) return;
+  if (!guard.claim(context, target)) return;
   if (contentType.length === 0) {
     reportDiagnostic(context.program, {
       code: "empty-content-type",

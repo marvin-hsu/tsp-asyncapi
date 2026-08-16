@@ -1,6 +1,7 @@
 import { DecoratorContext, DiagnosticTarget, Program } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
 import { sourcePositionOf } from "../../source-order.js";
+import { resolveExplicitId } from "../explicit-id.js";
 import { checkAddress } from "./address-template.js";
 import {
   ChannelRecord,
@@ -13,31 +14,6 @@ import {
 } from "./state.js";
 
 export type { ChannelState } from "./state.js";
-
-/**
- * Reads the explicit channel id argument, and reports a blank one.
- *
- * The id is the key of this channel in the emitted document. A blank key
- * names nothing, so the channel is dropped rather than emitted under an
- * empty key. The AsyncAPI JSON Schema puts no pattern on a key of the
- * Channels Object, so no other character is rejected here.
- *
- * @returns The trimmed id, `undefined` when the author gave none, or `null`
- * when the id was blank and the caller must drop the channel
- */
-function resolveChannelId(
-  context: DecoratorContext,
-  channelId: string | undefined,
-  idTarget: DiagnosticTarget,
-): string | undefined | null {
-  if (channelId === undefined) return undefined;
-  const trimmed = channelId.trim();
-  if (trimmed === "") {
-    reportDiagnostic(context.program, { code: "empty-channel-id", target: idTarget });
-    return null;
-  }
-  return trimmed;
-}
 
 /**
  * Records one channel on a target.
@@ -110,7 +86,7 @@ export function $channel(
 
   if (!claimChannel(context, target, "channel")) return;
 
-  const id = resolveChannelId(context, channelId, idTarget);
+  const id = resolveExplicitId(context, channelId, idTarget, "empty-channel-id");
   if (id === null) return;
 
   const trimmed = address.trim();
@@ -188,7 +164,7 @@ export function $dynamicChannel(
 
   if (!claimChannel(context, target, "dynamic")) return;
 
-  const id = resolveChannelId(context, channelId, idTarget);
+  const id = resolveExplicitId(context, channelId, idTarget, "empty-channel-id");
   if (id === null) return;
 
   recordChannel(context, target, { address: null, ...(id ? { channelId: id } : {}) }, target);

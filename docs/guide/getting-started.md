@@ -10,7 +10,7 @@ This project is a work in progress. Knowing exactly what you get — and what yo
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Document skeleton (`asyncapi`, `id`, `defaultContentType`)                       | ✅ Emitted                                                                                                                                  |
 | `info` block: title, version, description, contact, license, tags, external docs | ✅ Emitted                                                                                                                                  |
-| `channels`, `operations`, `messages`                                             | 🚧 In development — currently emitted empty                                                                                                 |
+| `channels`, `operations`, `messages`                                             | ✅ Emitted — see [Request and Reply](./request-reply)                                                                                       |
 | `components.schemas` (model → schema conversion)                                 | 🚧 Conversion layer is implemented and fully unit-tested, but not yet wired into the emitted file. It lands together with message payloads. |
 | Servers, security, protocol bindings (Kafka first)                               | 🚧 Planned                                                                                                                                  |
 

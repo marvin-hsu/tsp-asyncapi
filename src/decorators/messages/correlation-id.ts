@@ -7,7 +7,7 @@ import { singleApplication } from "../single-application.js";
 const correlationIdStateKey = Symbol.for("tsp-asyncapi.correlationId");
 
 const correlationIdAppliedKey = Symbol.for("tsp-asyncapi.correlationId.applied");
-const claim = singleApplication(correlationIdAppliedKey, "duplicate-correlation-id-decorator");
+const guard = singleApplication(correlationIdAppliedKey, "duplicate-correlation-id-decorator");
 
 /**
  * State recorded by `@correlationId` for one model.
@@ -70,7 +70,7 @@ export function $correlationId(
   // written last in the source runs first and wins. The guard records
   // that this decorator ran, before any value is validated, so a value
   // that fails validation still blocks a later application.
-  if (!claim(context, target)) return;
+  if (!guard.claim(context, target)) return;
   if (!isRuntimeExpression(location)) {
     // Nothing is recorded, so no `correlationId` reaches the document. An
     // expression this emitter cannot parse is one no AsyncAPI tool can

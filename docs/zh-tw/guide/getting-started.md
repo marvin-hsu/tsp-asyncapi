@@ -10,7 +10,7 @@
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | 文件骨架（`asyncapi`、`id`、`defaultContentType`）                              | ✅ 已輸出                                                                            |
 | `info` 區塊：title、version、description、contact、license、tags、external docs | ✅ 已輸出                                                                            |
-| `channels`、`operations`、`messages`                                            | 🚧 開發中。目前輸出為空。                                                            |
+| `channels`、`operations`、`messages`                                            | ✅ 已輸出。見 [Request 與 Reply](./request-reply)。                                  |
 | `components.schemas`（model → schema 轉換）                                     | 🚧 轉換層已實作並有完整單元測試，但尚未接進輸出檔。它會和 message payload 一起接上。 |
 | server、security、protocol binding（Kafka 優先）                                | 🚧 規劃中                                                                            |
 

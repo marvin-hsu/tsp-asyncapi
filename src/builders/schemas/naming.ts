@@ -14,7 +14,7 @@ import {
 } from "@typespec/compiler";
 import { ReferenceObject } from "../../types/index.js";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
-import { toJsonPointerToken } from "../json-pointer.js";
+import { componentsSchemaRef } from "../json-pointer.js";
 
 /** Upper-cases just the first character, leaving the rest of `text` as-is. */
 function capitalizeFirst(text: string): string {
@@ -120,7 +120,7 @@ const MARKER_BEFORE_DIGIT = /Sep(?=\d)/g;
  * down to nothing.
  *
  * Only `-`, `_`, and `.` are kept verbatim.
- * `refFor`/`toJsonPointerToken` already escape `~` and `/`.
+ * `refFor` already escapes `~` and `/`.
  * Every other character that is unsafe or ambiguous inside a `$ref`'s URI
  * fragment, such as `#` or a space, is encoded as `Sep<codePoint>` instead.
  * For example, `#` becomes `Sep35` and a space becomes `Sep32`. This avoids
@@ -403,7 +403,7 @@ export function isUninstantiatedTemplateDeclaration(type: Model | Union): boolea
 
 /** A `$ref` pointing at `key` inside `components.schemas`. */
 export function refFor(key: string): ReferenceObject {
-  return { $ref: `#/components/schemas/${toJsonPointerToken(key)}` };
+  return { $ref: componentsSchemaRef(key) };
 }
 
 /**

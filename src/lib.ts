@@ -518,6 +518,89 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`@useSecurity('${"schemeName"}') names a security scheme that no @securityScheme defines. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @securityScheme with this name, or correct the name.`,
       },
     },
+    "duplicate-send-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@send is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @send.",
+      },
+    },
+    "duplicate-receive-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@receive is applied to this operation more than once. An operation carries one action, so only one application takes effect and the rest are discarded. Remove the extra @receive.",
+      },
+    },
+    "conflicting-operation-actions": {
+      severity: "error",
+      messages: {
+        default:
+          "@send and @receive are both applied to this operation. One states that this application sends the message and the other states that it receives one, and no rule picks a winner, so no operation was emitted at all. Keep one of the two.",
+      },
+    },
+    "empty-operation-id": {
+      severity: "error",
+      messages: {
+        default:
+          "The operation id given to this decorator is blank. The id is the key of this operation in the emitted `operations` map, and a blank key names nothing. This operation was dropped. Give it an id, or leave the argument out so the operation name is used.",
+      },
+    },
+    "duplicate-operation-id": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Duplicate operation id: '${"id"}'. Each operation needs its own id, because the id is the key of that operation in the emitted document. This operation was dropped, and the first one with this id in source order was kept. Pass an explicit id to @send or @receive on one of them.`,
+      },
+    },
+    "operation-without-channel": {
+      // This is a warning, not an error, for the reason every build-time
+      // "this decorator reaches nothing" check here is one. The check needs
+      // the built channel set. An error stops the compiler before the
+      // document this message describes is written.
+      severity: "warning",
+      messages: {
+        default: paramMessage`The operation '${"name"}' carries @send or @receive, and the interface or namespace around it carries no emitted channel. An operation always points at a channel, so this one reaches no part of the document. This operation was dropped. Add @channel or @dynamicChannel to the interface or namespace that holds it.`,
+      },
+    },
+    "duplicate-reply-channel-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@replyChannel is applied to this operation more than once. A reply points at one channel, so only one application takes effect and the rest are discarded. Remove the extra @replyChannel.",
+      },
+    },
+    "duplicate-reply-address-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@replyAddress is applied to this operation more than once. A reply carries one address, so only one application takes effect and the rest are discarded. Remove the extra @replyAddress.",
+      },
+    },
+    "invalid-reply-address-location": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"location"}' is not a legal reply address location, so no \`address\` was emitted on the reply. Write '$message.header#' or '$message.payload#', each optionally followed by a JSON Pointer, such as '$message.header#/replyTo'.`,
+      },
+    },
+    "reply-channel-not-a-channel": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@replyChannel names '${"name"}', and that interface or namespace carries no emitted channel. A reply whose channel is unknown carries neither a checkable message list nor a checkable address, so the whole \`reply\` object was dropped. Add @channel or @dynamicChannel to '${"name"}'.`,
+      },
+    },
+    "reply-address-needs-dynamic-channel": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@replyAddress is given, and the reply channel '${"id"}' carries an address. AsyncAPI requires the address of that channel to be null when a reply address is given. The \`address\` was dropped from the reply, and the rest of the reply was kept. Declare '${"id"}' with @dynamicChannel instead of @channel.`,
+      },
+    },
+    "reply-without-action": {
+      severity: "warning",
+      messages: {
+        default:
+          "@replyChannel or @replyAddress is applied to an operation that carries neither @send nor @receive. A reply sits on an emitted operation, so this decorator reaches no part of the document. Add @send or @receive to this operation, or remove the reply decorator.",
+      },
+    },
     "unsupported-payload-type": {
       severity: "error",
       messages: {

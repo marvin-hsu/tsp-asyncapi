@@ -38,7 +38,13 @@ extern dec securityScheme(
 // The emitter always writes a `$ref` into `#/components/securitySchemes`.
 // A name that no `@securityScheme` defines is reported while the document is
 // built, because the scheme may be declared after this application runs.
-extern dec useSecurity(target: Namespace, schemeName: valueof string);
+// It applies to a namespace and to an operation. On a namespace it adds the
+// scheme to every server that namespace declares. On an operation it adds
+// the scheme to that operation.
+// Operation security is additive. It never replaces the security of the
+// server. A client satisfies the array of the server and the array of the
+// operation.
+extern dec useSecurity(target: Namespace | Operation, schemeName: valueof string);
 // Target is unknown because externalDocs can be applied to Namespace, Model, Operation, Message, etc.
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 // Adds one tag, with its metadata, to the emitted object.
@@ -150,6 +156,49 @@ extern dec useServer(target: Interface | Namespace, name: valueof string);
 // The emitter checks the format of the expression only, the same rule
 // `@correlationId` follows.
 extern dec parameterLocation(target: ModelProperty, location: valueof string);
+
+// Marks one operation as a message this application sends.
+// The emitted operation carries `action: "send"`. AsyncAPI 3 reads the action
+// from the point of view of this application.
+// The operation points at the channel of the interface or namespace that
+// holds it. An interface wins over the namespace around it. An operation
+// whose scope carries no channel is reported and dropped.
+// The parameter types name the messages this operation sends. The return type
+// names the messages of its reply.
+// `operationId` overrides the key of this operation in the emitted
+// `operations` map. Without it, the key is the name of the operation.
+// Apply it only once per operation, and never together with `@receive`.
+extern dec send(target: Operation, operationId?: valueof string);
+// Marks one operation as a message this application receives.
+// The emitted operation carries `action: "receive"`.
+// The channel rule is the one `@send` follows. The direction of the signature
+// is the inverse. The return type names the messages this operation receives,
+// and the parameter types name the messages of its reply.
+// Apply it only once per operation, and never together with `@send`.
+extern dec receive(target: Operation, operationId?: valueof string);
+// Names the channel the reply of one operation travels over.
+// The argument is the interface or namespace that carries the channel, not
+// the id of that channel. The compiler resolves the reference, so a typo
+// cannot reach the document.
+// An operation with no `@replyChannel` replies over its own channel.
+// The named target must carry `@channel` or `@dynamicChannel`. A target with
+// no channel is reported, and the whole `reply` object is dropped.
+// Apply it only once per operation.
+extern dec replyChannel(target: Operation, channel: Interface | Namespace);
+// Names where the address of a reply sits at runtime.
+// `location` is a runtime expression, such as `$message.header#/replyTo`. The
+// emitter checks the format of the expression only, the same rule
+// `@correlationId` follows.
+// AsyncAPI requires the address of the reply channel to be null when a reply
+// address is given. So declare that channel with `@dynamicChannel`. The
+// emitter reports a reply address on a channel that carries an address, and
+// drops the address from the reply.
+// Apply it only once per operation.
+extern dec replyAddress(
+  target: Operation,
+  location: valueof string,
+  description?: valueof string
+);
 
 model AsyncAPIInfo {
   version: string;

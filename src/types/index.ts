@@ -219,10 +219,91 @@ export interface ParameterObject {
 }
 
 /**
- * Describes a specific operation.
+ * Describes one operation this application performs.
+ *
+ * AsyncAPI 3 reads `action` from the point of view of this application.
+ * `send` means this application produces the message, and `receive` means it
+ * consumes one.
  * @public
  */
-export type OperationObject = Record<string, never>;
+export interface OperationObject {
+  /** Whether this application sends or receives the message. */
+  action: "send" | "receive";
+  /**
+   * The channel this operation runs over, as a reference into the root
+   * `channels` map. AsyncAPI requires the reference to address the root map,
+   * never `components.channels`.
+   */
+  channel: ReferenceObject;
+  /** A human-friendly title for the operation. */
+  title?: string;
+  // AsyncAPI also defines `summary`. It is left out of this interface on
+  // purpose, for the same reason `ChannelObject` leaves it out. `@summary`
+  // already fills `title` and `@doc` already fills `description`, so
+  // TypeSpec has no third source of prose to fill it from.
+  /** A longer description of the operation. CommonMark is allowed. */
+  description?: string;
+  /**
+   * The security schemes this operation needs, each a reference into
+   * `components.securitySchemes`. They are added to what the server already
+   * requires, and they never replace it. The field is absent when the
+   * operation names none, because AsyncAPI reads an empty array as "this
+   * operation needs no scheme".
+   */
+  security?: ReferenceObject[];
+  /** The tags of this operation, each a full Tag Object. */
+  tags?: TagObject[];
+  /** Additional external documentation for this operation. */
+  externalDocs?: ExternalDocumentationObject;
+  // AsyncAPI also defines `bindings` here. This emitter has no binding
+  // decorator yet, so the field is left out of this interface rather than
+  // declared and never filled.
+  /**
+   * The messages this operation carries, each a reference into the
+   * `messages` map of its channel. An absent field means every message of
+   * the channel, so an empty array is never emitted.
+   */
+  messages?: ReferenceObject[];
+  /** The reply this operation expects, for a request/reply exchange. */
+  reply?: OperationReplyObject;
+}
+
+/**
+ * Describes the reply of one operation.
+ * @public
+ */
+export interface OperationReplyObject {
+  /**
+   * Where the reply is sent at runtime. AsyncAPI only allows this field when
+   * the address of the reply channel is `null`.
+   */
+  address?: OperationReplyAddressObject;
+  /**
+   * The channel the reply travels over, as a reference into the root
+   * `channels` map.
+   */
+  channel: ReferenceObject;
+  /**
+   * The reply messages, each a reference into the `messages` map of the
+   * reply channel. An absent field means every message of that channel, so
+   * an empty array is never emitted.
+   */
+  messages?: ReferenceObject[];
+}
+
+/**
+ * Names where the address of a reply sits at runtime.
+ * @public
+ */
+export interface OperationReplyAddressObject {
+  /**
+   * A runtime expression that names where the address sits, such as
+   * `$message.header#/replyTo`.
+   */
+  location: string;
+  /** A description of the reply address. CommonMark is allowed. */
+  description?: string;
+}
 
 /**
  * Holds reusable components for the AsyncAPI document.

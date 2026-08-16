@@ -40,36 +40,33 @@ import "tsp-asyncapi";
 using AsyncAPI;
 
 @service(#{ title: "Order Service API" })
-@info(#{
-  version: "1.0.0",
-  description: "This is a sample Order Service event-driven API.",
-  contact: #{ name: "API Support", email: "support@example.com" },
-  license: #{ name: "MIT", url: "https://opensource.org/licenses/MIT" }
-})
-@tag("orders")
-@tag("payment")
-@externalDocs("https://example.com/docs", "Service Documentation")
+@info(#{ version: "1.0.0", description: "A sample event-driven order API." })
 @securityScheme("kafka-scram", #{ type: "scramSha512" })
 @useSecurity("kafka-scram")
-@server("production", #{
-  host: "{env}.kafka.example.com:9092",
-  protocol: "kafka-secure",
-  variables: #{ env: #{ default: "prod", `enum`: #["prod", "sit"] } }
-})
+@server("production", #{ host: "kafka.example.com:9092", protocol: "kafka-secure" })
 namespace Orders;
 
-// schema 轉換層會把這個 model 轉成 AsyncAPI Schema Object（見 docs 網站）。
-// message payload 接上後，結果會放進 components.schemas。
-model Order {
-  id: string;
+@message
+@doc("An order a customer placed.")
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
   amount: float64;
-  items: OrderItem[];
-  metadata: Record<string>;
 }
 
-model OrderItem {
-  productId: string;
-  quantity: int32;
+@channel("orders.created")
+@doc("Every order a customer places lands here.")
+@useServer("production")
+interface OrderChannel {
+  @send
+  @summary("Publish an order event")
+  op sendOrderCreated(event: OrderCreated): void;
+
+  @receive
+  @summary("Consume an order event")
+  op onOrderCreated(): OrderCreated;
 }
 ```
 
@@ -82,17 +79,85 @@ options:
   "tsp-asyncapi":
     output-file: "asyncapi.yaml"
     file-type: "yaml"
-    asyncapi-id: "urn:com:example:orders"
-    default-content-type: "application/json"
 ```
 
-或直接編譯：
+接著編譯：
 
 ```bash
 tsp compile . --emit tsp-asyncapi
 ```
 
-這會產生一份完整合規的 AsyncAPI 3.1.0 文件。
+以下是上面範例的輸出。官方 AsyncAPI parser 讀這份文件不會產生任何 error：
+
+```yaml
+asyncapi: 3.1.0
+info:
+  title: Order Service API
+  version: 1.0.0
+  description: A sample event-driven order API.
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka-secure
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+channels:
+  OrderChannel:
+    address: orders.created
+    description: Every order a customer places lands here.
+    servers:
+      - $ref: "#/servers/production"
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: "#/channels/OrderChannel"
+    title: Publish an order event
+    messages:
+      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+  onOrderCreated:
+    action: receive
+    channel:
+      $ref: "#/channels/OrderChannel"
+    title: Consume an order event
+    messages:
+      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+components:
+  schemas:
+    OrderCreatedPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+      description: An order a customer placed.
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      description: An order a customer placed.
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreatedPayload"
+  securitySchemes:
+    kafka-scram:
+      type: scramSha512
+```
+
+operation 透過自己的 channel 參照 message，不會直接指向 `components.messages`。AsyncAPI 3 規定必須是這種形式。
 
 ## Emitter 選項
 
@@ -126,6 +191,9 @@ tsp compile . --emit tsp-asyncapi
 - `@AsyncAPI.externalDocs` — 附加外部文件連結。
 - `@AsyncAPI.oneOf` — 標註在 union 上，輸出 `oneOf` 取代預設的 `anyOf`。
 - `@AsyncAPI.jsonSchemaExtension` — 加入一個沒有專屬 decorator 對照的 JSON Schema 關鍵字，例如 `@jsonSchemaExtension("unevaluatedProperties", false)`。可重複套用，每次加一組 key/value。
+- `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — 在 interface 或 namespace 上宣告一個 channel。
+- `@AsyncAPI.send` / `@AsyncAPI.receive` — 把一個 operation 標記成本應用送出或接收的 message。
+- `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — 描述 operation 的回覆。見文件站台的 Request 與 Reply 一章。
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
