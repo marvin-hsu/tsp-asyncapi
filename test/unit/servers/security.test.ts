@@ -1211,8 +1211,10 @@ describe("Unit: server security", () => {
 
     // The dropped server is reported as an error, so a real compilation
     // stops before the emitter runs. The check is called directly here to
-    // show what the emitter would report.
-    reportSecurityUsesWithoutServer(runner.program);
+    // show what the emitter would report. `Test` is the service namespace,
+    // and it is passed because the check asks whether that namespace puts a
+    // server into the document.
+    reportSecurityUsesWithoutServer(runner.program, Test);
     const stray = runner.program.diagnostics.filter(
       (diagnostic) => diagnostic.code === "tsp-asyncapi/use-security-outside-server",
     );
