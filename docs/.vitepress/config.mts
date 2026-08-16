@@ -5,6 +5,17 @@ export default defineConfig({
   description: "An AsyncAPI 3.1 emitter for TypeSpec",
   base: "/tsp-asyncapi/",
   lastUpdated: true,
+  head: [
+    ["script", { async: "", src: "https://www.googletagmanager.com/gtag/js?id=G-GPFN76W5SX" }],
+    [
+      "script",
+      {},
+      `window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-GPFN76W5SX');`,
+    ],
+  ],
 
   locales: {
     root: {
