@@ -43,6 +43,11 @@ servers:
     externalDocs:
       url: https://example.com/docs/signup-events
       description: The signup event guide.
+    bindings:
+      kafka:
+        schemaRegistryUrl: https://registry.example.com
+        schemaRegistryVendor: confluent
+        bindingVersion: 0.5.0
   kafka-prod:
     host: "{region}.kafka.example.com:9093"
     protocol: kafka-secure
@@ -62,6 +67,11 @@ servers:
     externalDocs:
       url: https://example.com/docs/signup-events
       description: The signup event guide.
+    bindings:
+      kafka:
+        schemaRegistryUrl: https://registry.example.com
+        schemaRegistryVendor: confluent
+        bindingVersion: 0.5.0
 channels:
   SignupFunnel:
     address: signup.v1.{tenantId}.events
@@ -78,6 +88,15 @@ channels:
     messages:
       SignupEventV1:
         $ref: "#/components/messages/SignupEventV1"
+    bindings:
+      kafka:
+        partitions: 12
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - delete
+          retention.ms: 1209600000
+        bindingVersion: 0.5.0
 operations:
   publishSignupEvent:
     action: send
@@ -85,6 +104,29 @@ operations:
       $ref: "#/channels/SignupFunnel"
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
+    bindings:
+      kafka:
+        clientId:
+          type: string
+          description: The producing service instance.
+        bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
+  consumeSignupEvent:
+    action: receive
+    channel:
+      $ref: "#/channels/SignupFunnel"
+    security:
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    bindings:
+      kafka:
+        groupId:
+          type: string
+          description: The consumer group of the analytics pipeline.
+        clientId:
+          type: string
+          description: The consuming service instance.
+        bindingVersion: 0.5.0
     messages:
       - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
 components:
@@ -255,6 +297,15 @@ components:
       correlationId:
         location: $message.header#/correlation-id
         description: The id of the originating request.
+      bindings:
+        kafka:
+          key:
+            type: string
+            description: The tenant the event belongs to.
+          schemaIdLocation: payload
+          schemaIdPayloadEncoding: confluent
+          schemaLookupStrategy: TopicIdStrategy
+          bindingVersion: 0.5.0
       tags:
         - name: signup
           description: Everything the signup domain publishes.

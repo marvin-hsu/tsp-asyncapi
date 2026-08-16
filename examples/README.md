@@ -1,6 +1,6 @@
 # Examples
 
-Eight worked examples of `tsp-asyncapi`. Each one is a complete, compiling
+Nine worked examples of `tsp-asyncapi`. Each one is a complete, compiling
 TypeSpec project. Each one carries the AsyncAPI document it produces.
 
 Every example has three or four files.
@@ -29,13 +29,35 @@ Each example builds on the one before it.
 | [05-channels-and-parameters](05-channels-and-parameters/) | addresses, address parameters, channel ids, `@receive`       |
 | [06-servers-and-security](06-servers-and-security/)       | servers, server variables, security schemes, tags            |
 | [07-request-and-reply](07-request-and-reply/)             | the `reply` object, reply channels, reply addresses          |
-| [08-kafka-user-signup](08-kafka-user-signup/)             | one realistic Kafka contract that combines all of the above  |
+| [08-kafka-user-signup](08-kafka-user-signup/)             | one realistic Kafka contract, plus all four Kafka bindings   |
+| [09-protocol-bindings](09-protocol-bindings/)             | the generic `@binding` over MQTT, for every other protocol   |
 
 Start at 01 even if you already know TypeSpec. It explains how a channel
 finds its messages, and that rule holds in every later example.
 
 Copy [08-kafka-user-signup](08-kafka-user-signup/) when you start a contract
 of your own.
+
+Read [09-protocol-bindings](09-protocol-bindings/) when your protocol is not
+Kafka.
+
+## Protocol bindings
+
+AsyncAPI puts protocol detail in a `bindings` object. That object sits on a
+server, a channel, an operation, or a message. Examples 01 to 07 write none.
+The last two examples cover the two ways to write them.
+
+Kafka has four decorators here, one per level. They are `@kafkaServer`,
+`@kafkaChannel`, `@kafkaOperation` and `@kafkaMessage`. Each one knows its
+fields and writes `bindingVersion: 0.5.0` itself. Example 08 uses all four.
+
+Every other protocol goes through the generic `@binding`. Example 09 shows it
+over MQTT. It writes the config exactly as given. It checks the protocol name
+and the shape of the config, and nothing inside the config. It writes no
+`bindingVersion`, so you supply that field yourself.
+
+[docs/reference/bindings.md](../docs/reference/bindings.md) lists the fields of
+all four typed decorators.
 
 ## Compile one
 
@@ -79,8 +101,7 @@ this repository. In a project of your own, depend on the package and write
 
 ## What the examples do not cover
 
-**Protocol bindings.** AsyncAPI puts protocol detail in a `bindings` object
-on a server, a channel, an operation, or a message. Kafka partition keys,
-AMQP exchange settings, and MQTT quality of service all live there. This
-emitter has no binding decorator of any kind. Add bindings by hand to the
-emitted document.
+**Typed bindings for protocols other than Kafka.** WebSocket, MQTT, AMQP and
+HTTP have no decorator here. Write those bindings with the generic `@binding`,
+as example 09 does. It validates nothing inside the config, so the binding
+specification of your protocol is the only check there is.

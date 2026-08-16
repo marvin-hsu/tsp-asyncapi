@@ -162,11 +162,15 @@ Both styles are valid AsyncAPI 3. `CreateOrder` and `OrderAccepted` each carry
 a `@correlationId` here, so the correlation half of that style is already in
 this document.
 
-## What this document cannot express yet
+## The reply topic in a binding
 
 A real broker states the reply topic in a protocol binding, next to the reply
-address. This emitter has no binding decorator of any kind, on an operation or
-anywhere else. Add the binding by hand to the emitted document.
+address. The emitter now carries bindings. `@binding` writes one for any
+protocol. Kafka has four decorators of its own, and example 08 applies all of
+them.
+
+This example adds none. It declares no server at all, and its subject is the
+`reply` object. A binding here would draw attention away from that.
 
 ## Next
 

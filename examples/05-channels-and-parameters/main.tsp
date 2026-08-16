@@ -4,7 +4,7 @@ import "../..";
 using AsyncAPI;
 
 @service(#{ title: "Telemetry Service" })
-@info(#{ version: "1.0.0", description: "Channel addressing, parameters and server binding." })
+@info(#{ version: "1.0.0", description: "Channel addressing, parameters and server selection." })
 // One server, so the `@useServer` below has something to point at.
 // Example 06 covers servers in full.
 @server("edge", #{ host: "edge.example.com:9092", protocol: "kafka", title: "Edge broker" })

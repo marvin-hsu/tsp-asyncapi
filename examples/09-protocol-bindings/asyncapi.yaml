@@ -1,0 +1,85 @@
+asyncapi: 3.1.0
+id: urn:example:device-telemetry
+info:
+  title: Device Telemetry
+  version: 1.0.0
+  description: Telemetry that field devices publish over MQTT.
+defaultContentType: application/json
+servers:
+  mqtt-prod:
+    host: mqtt.example.com:8883
+    protocol: mqtt
+    protocolVersion: "5.0"
+    title: Production broker
+    bindings:
+      mqtt:
+        clientId: telemetry-gateway
+        cleanSession: false
+        keepAlive: 60
+        lastWill:
+          topic: devices/status
+          qos: 1
+          message: gateway offline
+          retain: false
+        bindingVersion: 0.2.0
+channels:
+  DeviceTelemetryChannel:
+    address: devices/{deviceId}/telemetry
+    description: The telemetry of one device.
+    servers:
+      - $ref: "#/servers/mqtt-prod"
+    parameters:
+      deviceId:
+        description: The serial number of the device.
+        examples:
+          - dev-00417
+        location: $message.payload#/deviceId
+    messages:
+      DeviceReading:
+        $ref: "#/components/messages/DeviceReading"
+operations:
+  publishDeviceReading:
+    action: send
+    channel:
+      $ref: "#/channels/DeviceTelemetryChannel"
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+        messageExpiryInterval: 300
+        bindingVersion: 0.2.0
+    messages:
+      - $ref: "#/channels/DeviceTelemetryChannel/messages/DeviceReading"
+components:
+  schemas:
+    DeviceReading:
+      type: object
+      properties:
+        deviceId:
+          type: string
+          description: The serial number of the device.
+        celsius:
+          type: number
+          format: double
+          description: The temperature at the sensor, in degrees Celsius.
+        readAt:
+          type: string
+          format: date-time
+          description: When the device took the reading, in UTC.
+      required:
+        - deviceId
+        - celsius
+        - readAt
+      description: One reading from one device.
+  messages:
+    DeviceReading:
+      name: DeviceReading
+      description: One reading from one device.
+      payload:
+        $ref: "#/components/schemas/DeviceReading"
+      bindings:
+        mqtt:
+          payloadFormatIndicator: 1
+          contentType: application/json
+          responseTopic: devices/commands
+          bindingVersion: 0.2.0

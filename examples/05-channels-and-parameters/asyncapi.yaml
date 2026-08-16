@@ -3,7 +3,7 @@ id: urn:example:telemetry-service
 info:
   title: Telemetry Service
   version: 1.0.0
-  description: Channel addressing, parameters and server binding.
+  description: Channel addressing, parameters and server selection.
 defaultContentType: application/json
 servers:
   edge:

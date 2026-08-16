@@ -95,6 +95,19 @@ using AsyncAPI;
   }
 )
 @externalDocs("https://example.com/docs/signup-events", "The signup event guide.")
+// The Kafka server binding. It names the schema registry the brokers use.
+// Every server of this namespace gets its own copy of it. `@server` is
+// repeatable and keyed by name, so no decorator target can single one server
+// out. Both brokers here are Kafka, so one registry for both is truthful.
+// `schemaRegistryUrl` is required by the message binding further down. That
+// binding sets `schemaIdLocation`, `schemaIdPayloadEncoding` and
+// `schemaLookupStrategy`. AsyncAPI forbids those three fields without a
+// server-level registry URL. The emitter cannot check the rule, because it
+// spans two objects of the document. Set the URL yourself.
+@kafkaServer(#{
+  schemaRegistryUrl: "https://registry.example.com",
+  schemaRegistryVendor: "confluent",
+})
 namespace UserSignupEvents;
 
 // The domain types every event shares.
@@ -198,6 +211,24 @@ union SignupEventEnvelope {
 // shape of the runtime expression only.
 // `@jsonSchemaExtension` writes a raw key into this model's own schema. Use
 // it for a JSON Schema keyword this emitter has no decorator for.
+// The Kafka message binding. `key` is the partition key of the record.
+// It is a Schema Object, written as an object literal. The emitter writes it
+// as given, and it checks nothing inside it. The key here is the tenant id.
+// Kafka orders records per partition, so one key per tenant keeps the events
+// of one tenant in order. The channel binding asks for 12 partitions, and
+// this key is what spreads the tenants over them.
+// The three schema-registry fields match the `confluent` vendor set on the
+// namespace. `schemaIdLocation` is `header` or `payload`, and any other value
+// is reported through `invalid-binding-field`.
+@kafkaMessage(#{
+  key: #{
+    type: "string",
+    description: "The tenant the event belongs to.",
+  },
+  schemaIdLocation: "payload",
+  schemaIdPayloadEncoding: "confluent",
+  schemaLookupStrategy: "TopicIdStrategy",
+})
 @summary("A signup funnel event")
 @message("SignupEventV1")
 @contentType("application/json")
@@ -282,10 +313,40 @@ model SignupMessage {
 // The parameters are the messages sent and the address parameters. `event`
 // carries `@message`, so it is the message. `tenantId` does not, so it is an
 // address parameter.
+// The Kafka channel binding states how the topic is laid out.
+// It carries no `topic` field on purpose. The address holds `{tenantId}`, so
+// one literal topic name cannot be written down at design time. Set `topic`
+// only when the address is a fixed string, or when the topic name differs
+// from the address.
+// `partitions` and `replicas` are positive integers. A value outside that
+// range is reported through `invalid-binding-field`. The field is dropped,
+// and the rest of the binding is kept.
+// `topicConfiguration` is an open map, because Kafka names its topic settings
+// with dots. The emitter checks one entry only. Each value of
+// `cleanup.policy` must be `delete` or `compact`. The binding types that
+// field as a list.
+@kafkaChannel(#{
+  partitions: 12,
+  replicas: 3,
+  topicConfiguration: #{
+    `cleanup.policy`: #["delete"],
+    `retention.ms`: 1209600000,
+  },
+})
 @channel("signup.v1.{tenantId}.events")
 @useServer("kafka-dev")
 @useServer("kafka-prod")
 interface SignupFunnel {
+  // The Kafka operation binding carries `groupId` and `clientId`. Both are
+  // Schema Objects, written as object literals.
+  // This operation is the producer, so it sets `clientId` alone. A producer
+  // joins no consumer group, so a `groupId` here would say nothing true.
+  @kafkaOperation(#{
+    clientId: #{
+      type: "string",
+      description: "The producing service instance.",
+    },
+  })
   @send("publishSignupEvent")
   @useSecurity("signup-oauth")
   op publish(
@@ -296,4 +357,30 @@ interface SignupFunnel {
 
     event: SignupMessage,
   ): void;
+
+  // The consumer side of the same channel. `groupId` belongs here, because
+  // only a consumer joins a group. The analytics pipeline reads every event
+  // of the funnel under one group.
+  // For `@receive` the return type is the messages received, so
+  // `SignupMessage` sits in the return type. The parameters are the messages
+  // of the reply, and this operation declares none. `tenantId` carries no
+  // `@message`, so it stays an address parameter under either action.
+  @kafkaOperation(#{
+    groupId: #{
+      type: "string",
+      description: "The consumer group of the analytics pipeline.",
+    },
+    clientId: #{
+      type: "string",
+      description: "The consuming service instance.",
+    },
+  })
+  @receive("consumeSignupEvent")
+  @useSecurity("signup-oauth")
+  op consume(
+    /** The tenant whose events this topic carries. */
+    @parameterLocation("$message.payload#/event/tenantId")
+    @example("acme")
+    tenantId: string,
+  ): SignupMessage;
 }
