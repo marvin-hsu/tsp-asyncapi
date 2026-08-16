@@ -77,14 +77,17 @@ this repository. In a project of your own, depend on the package and write
 
 ## What the examples do not cover
 
-Two parts of AsyncAPI are missing from every example here. The emitter does
-not support them yet.
+Two parts of AsyncAPI are missing from every example here.
 
-**The `operations` object.** Every emitted document carries
-`operations: {}`. The `@send` and `@receive` decorators do not exist yet. A
-TypeSpec operation still has a job in these examples. It declares which
-messages its channel carries, and it declares the channel address parameters.
-It reaches no AsyncAPI operation.
+**The `operations` object.** Every emitted document below carries
+`operations: {}`, and that is a gap in these examples rather than a limit of
+the emitter. `@send` and `@receive` exist and do emit operations; the examples
+were written before they landed and have not been extended yet. A TypeSpec
+operation still has a job in every example here even without them. It declares
+which messages its channel carries, and it declares the channel address
+parameters. Mark one with `@send` or `@receive` and it also reaches the
+`operations` object. See `docs/reference/decorators.md` until an example
+covers it.
 
 **Protocol bindings.** AsyncAPI puts protocol detail in a `bindings` object
 on a server, a channel, an operation, or a message. Kafka partition keys,

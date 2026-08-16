@@ -42,9 +42,10 @@ model Greeting {
 // `event` parameter of `send` below.
 @channel("hello.greetings")
 interface Greetings {
-  // The operation is a plain TypeSpec operation. It carries no decorator,
-  // because `@send` and `@receive` do not exist yet. The emitted
-  // `operations` object stays empty on purpose. The operation is still
-  // needed. It is what tells the channel which messages it carries.
+  // The operation carries no decorator, so the emitted `operations` object
+  // stays empty. That keeps this first example to one idea. Mark it with
+  // `@send` and it also emits an AsyncAPI operation.
+  // The operation is needed either way. It is what tells the channel which
+  // messages it carries.
   send(event: Greeting): void;
 }

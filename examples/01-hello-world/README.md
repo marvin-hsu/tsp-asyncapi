@@ -75,10 +75,11 @@ Example 05 shows the same rule for a nested namespace.
 
 The emitted document carries `operations: {}`. That is on purpose.
 
-The `@send` and `@receive` decorators do not exist yet. Until they land, no
-TypeSpec operation reaches the AsyncAPI `operations` object. The operation
-still has a job: it declares which messages the channel carries, and it
-declares the channel address parameters.
+This example does not mark its operation with `@send` or `@receive`, so it
+reaches no AsyncAPI operation and the document carries `operations: {}`. The
+operation still has a job without them: it declares which messages the channel
+carries, and it declares the channel address parameters. Both decorators do
+exist; see `docs/reference/decorators.md`.
 
 ## The emitted document
 

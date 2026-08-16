@@ -79,8 +79,8 @@ using AsyncAPI;
 // `@useSecurity` requires a scheme on every server of this namespace.
 // AsyncAPI reads the `security` array as OR. A client satisfies one of the
 // two schemes.
-// Security per operation does not exist yet, so every requirement here is
-// server-wide.
+// Every requirement here is server-wide. `@useSecurity` also applies to an
+// operation, where its requirement is added to the server's.
 @useSecurity("broker-scram")
 @useSecurity("signup-oauth")
 @asyncTag("signup", #{ description: "Everything the signup domain publishes." })

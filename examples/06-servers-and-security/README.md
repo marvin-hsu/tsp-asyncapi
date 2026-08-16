@@ -105,9 +105,10 @@ too, because it would reach no part of the document.
 `gateway-key` and `legacy-login` are defined and not required. They reach
 `components.securitySchemes` and no `security` array.
 
-**Operation-level security does not exist yet.** AsyncAPI puts `security` on
-an operation as well as on a server. This emitter has no operation support,
-so every requirement here is server-wide.
+**Every requirement here is server-wide.** AsyncAPI puts `security` on an
+operation as well as on a server, and `@useSecurity` reaches both. An
+operation's requirement is added to the server's rather than replacing it.
+This example does not show the operation half.
 
 ## Tags and external documentation
 

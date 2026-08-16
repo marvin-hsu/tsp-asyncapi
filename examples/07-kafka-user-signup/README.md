@@ -48,8 +48,9 @@ uses. A declared variable that no template uses is reported as
 every server of the namespace. AsyncAPI reads that array as OR, so a client
 satisfies one of the two schemes.
 
-Security per operation does not exist yet. Every requirement here is
-server-wide.
+Every requirement here is server-wide. `@useSecurity` also applies to an
+operation, where the requirement is added to the server's rather than
+replacing it. This example does not show that.
 
 ### The address
 
@@ -91,10 +92,11 @@ declared field.
 Two parts of a production AsyncAPI document are missing, and no example in
 this directory can add them.
 
-**The `operations` object.** The emitted document carries `operations: {}`.
-The `@send` and `@receive` decorators do not exist yet. Until they land, a
-TypeSpec operation only declares which messages a channel carries and which
-address parameters it has. It reaches no AsyncAPI operation.
+**The `operations` object.** The emitted document carries `operations: {}`
+because no operation here is marked with `@send` or `@receive`. Both exist and
+do emit operations; this example has not been extended to use them. Without
+them a TypeSpec operation still declares which messages a channel carries and
+which address parameters it has.
 
 **Kafka bindings.** A production Kafka contract states the partition key, the
 group id, the client id, and the schema registry it uses. AsyncAPI carries all
