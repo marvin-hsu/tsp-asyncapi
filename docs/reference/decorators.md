@@ -644,9 +644,113 @@ components:
 
 The model must be an object type. AsyncAPI requires the headers schema to describe a key/value map, so an array-backed model is reported as [`headers-not-object`](./diagnostics#headers-not-object).
 
-Do not mix this with a field-level `@header` on the same message. Two sources for one field have no obvious winner, so the emitter reports [`duplicate-message-headers`](./diagnostics#duplicate-message-headers) and emits neither.
+Do not mix this with a field-level `@header` or a `@rawHeaders` on the same message. Two sources for one headers object have no obvious winner, so the emitter reports [`duplicate-message-headers`](./diagnostics#duplicate-message-headers) and emits neither.
 
 A `content-type` property of the headers model conflicts with `@contentType` on the message, exactly as a field-level `@header` of that name does. The emitter reports [`content-type-header-conflict`](./diagnostics#content-type-header-conflict). Inherited properties of the headers model are checked too.
+
+## `@rawPayload`
+
+```typespec
+extern dec rawPayload(target: Model, schemaFormat: valueof string, schema: valueof unknown);
+```
+
+Describes the payload of a message with a schema of another format, such as Avro or Protobuf. AsyncAPI calls the result a Multi Format Schema Object. The emitter writes `schemaFormat` and `schema` into the message, and it emits `schema` exactly as written.
+
+The emitter never reads inside the schema. So it cannot check the schema against the format, and it cannot check it against the model.
+
+```typespec
+@message
+@contentType("application/avro")
+@rawPayload(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "OrderCreated",
+    fields: #[#{ name: "orderId", type: "string" }],
+  }
+)
+model OrderCreated {}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      contentType: application/avro
+      payload:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderCreated
+          fields:
+            - name: orderId
+              type: string
+```
+
+The model describes nothing that reaches this message. It stops being a root of the schema walk, so it claims no `components.schemas` key of its own. Neither do the models it refers to. It is not exempt from that walk. Another message that reaches this model, or one it refers to, still collects it. The collected model then gets its ordinary `components.schemas` entry, properties and all. The model is a carrier for the message decorators, so give it an empty body.
+
+The raw schema is written into the message itself, never into `components.schemas`. So two messages cannot share one raw schema yet.
+
+`schema` is a value of any shape. An object value is the usual form. A string and an array are legal too, because AsyncAPI types the field as `any`.
+
+An Avro field named `namespace` needs backticks, because `namespace` is a TypeSpec keyword: ``#{ `namespace`: "com.example" }``.
+
+The `schemaFormat` values AsyncAPI requires or recommends are accepted without a word. Any other value is emitted too, with the [`unknown-schema-format`](./diagnostics#unknown-schema-format) warning. A blank value is reported as [`empty-schema-format`](./diagnostics#empty-schema-format), and the message then falls back to the schema built from the model.
+
+Two rules hold between the format and the schema, and the emitter reports both. A format that is not JSON based, such as Protobuf, needs its schema written as a string; an object is reported as [`non-string-raw-schema`](./diagnostics#non-string-raw-schema). A top-level `$ref` that starts with `#/` points into this document, where every schema is an AsyncAPI Schema Object; any other format is reported as [`raw-schema-local-ref`](./diagnostics#raw-schema-local-ref). The schema is emitted as written in both cases.
+
+A top-level `$ref` is resolved as well, in every format. A reference that reaches nothing in the finished document is reported as [`unresolved-raw-schema-ref`](./diagnostics#unresolved-raw-schema-ref).
+
+Do not mix this with a field-level `@header` on the same message. A lifted field leaves the payload schema, and the emitter cannot take a field out of a schema it does not read. It reports [`raw-payload-lifted-header`](./diagnostics#raw-payload-lifted-header) and emits both halves. Describe the headers with `@headers` or `@rawHeaders` instead. Both combine with this decorator, and neither is reported.
+
+Apply this decorator only once per model. A second application is reported as [`duplicate-raw-payload-decorator`](./diagnostics#duplicate-raw-payload-decorator).
+
+## `@rawHeaders`
+
+```typespec
+extern dec rawHeaders(target: Model, schemaFormat: valueof string, schema: valueof unknown);
+```
+
+Describes the headers of a message with a schema of another format. It fills the `headers` field with the same Multi Format Schema Object that `@rawPayload` fills `payload` with, and it follows the same rules for `schemaFormat` and `schema`.
+
+```typespec
+@message
+@rawHeaders(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "OrderHeaders",
+    fields: #[#{ name: "traceId", type: "string" }],
+  }
+)
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderHeaders
+          fields:
+            - name: traceId
+              type: string
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+This is the third way to describe the headers of a message. The other two are a field-level `@header` and a model given to `@headers`. Use one of the three. A message that names more than one is reported as [`duplicate-message-headers`](./diagnostics#duplicate-message-headers), and no `headers` are emitted at all.
+
+Raw headers lift nothing out of the payload. So the payload still describes every field of the model.
+
+Apply this decorator only once per model. A second application is reported as [`duplicate-raw-headers-decorator`](./diagnostics#duplicate-raw-headers-decorator).
 
 ## `@correlationId`
 

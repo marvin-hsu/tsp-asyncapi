@@ -4,8 +4,12 @@ import { reportDiagnostic } from "../lib.js";
 
 /**
  * The diagnostic a decorator reports when it is applied twice.
+ *
+ * This module owns the concept, so every caller that passes such a code names
+ * this type. A caller with a copy of the declaration would keep compiling
+ * after this one narrows, because the two remain assignable.
  */
-type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
+export type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
 
 /** The guard one decorator uses to keep itself to a single application. */
 export interface ApplicationGuard {

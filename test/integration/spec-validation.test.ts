@@ -279,6 +279,65 @@ describe("AsyncAPI emitted document", () => {
     expect(doc.channels.replies.address).toBeNull();
     await expect(doc).toBeValidAsyncAPI();
   });
+
+  it("should describe a message whose payload is an Avro schema", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      namespace TestService;
+
+      @message
+      @contentType("application/avro")
+      @rawPayload(
+        "application/vnd.apache.avro;version=1.9.0",
+        #{
+          type: "record",
+          name: "OrderCreated",
+          \`namespace\`: "com.example",
+          fields: #[
+            #{ name: "orderId", type: "string" },
+            #{ name: "total", type: "double" }
+          ]
+        }
+      )
+      @rawHeaders(
+        "application/vnd.apache.avro;version=1.9.0",
+        #{
+          type: "record",
+          name: "OrderCreatedHeaders",
+          fields: #[#{ name: "traceId", type: "string" }]
+        }
+      )
+      model OrderCreated {}
+
+      @channel("orders.created")
+      interface OrderChannel {
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    // The official parser is the judge of the container's shape. Both slots
+    // of the Message Object carry the same two-field object.
+    expect(doc.components.messages.OrderCreated.payload).toEqual({
+      schemaFormat: "application/vnd.apache.avro;version=1.9.0",
+      schema: {
+        type: "record",
+        name: "OrderCreated",
+        namespace: "com.example",
+        fields: [
+          { name: "orderId", type: "string" },
+          { name: "total", type: "double" },
+        ],
+      },
+    });
+    expect(doc.components.messages.OrderCreated.headers.schemaFormat).toBe(
+      "application/vnd.apache.avro;version=1.9.0",
+    );
+    // The raw schema is written into the message, so the document carries no
+    // components.schemas entry at all.
+    expect(doc.components.schemas).toBeUndefined();
+    await expect(doc).toBeValidAsyncAPI();
+  });
 });
 
 describe("AsyncAPI spec validation helper", () => {

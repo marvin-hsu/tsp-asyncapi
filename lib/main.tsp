@@ -92,6 +92,33 @@ extern dec header(target: ModelProperty);
 // Do not mix it with a field-level `@header` on the same message. The
 // emitter reports that pair and emits neither.
 extern dec headers(target: Model, headers: Model);
+// Describes the payload of a message with a schema of another format, such
+// as Avro or Protobuf. The emitter writes a Multi Format Schema Object.
+// `schema` is emitted exactly as written. The emitter never reads inside it,
+// so it cannot check the schema against `schemaFormat`.
+// The model itself describes nothing that reaches this message. It stops
+// being a root of the schema walk. So it claims no `components.schemas` key
+// of its own, and neither do the models it refers to. It is not exempt from
+// that walk. Another message that reaches this model, or one it refers to,
+// still collects it and its properties are then emitted. So give it an empty
+// body.
+// The raw schema is written into the message, never into `components`. Two
+// messages cannot share one raw schema yet.
+// Do not mix it with a field-level `@header` on the same message. The emitter
+// cannot take a field out of a schema it does not read, so it reports the
+// pair and emits both halves. Use `@headers` or `@rawHeaders` instead. Both
+// combine with this decorator.
+// A `schemaFormat` outside the values AsyncAPI names is legal, and the
+// emitter warns about it.
+extern dec rawPayload(target: Model, schemaFormat: valueof string, schema: valueof unknown);
+// Describes the headers of a message with a schema of another format.
+// This is the third way to give a message its headers. The other two are a
+// field-level `@header` and a model given to `@headers`. Use one of the
+// three. The emitter reports a message that names more than one, and emits
+// no `headers` at all.
+// `schema` is emitted exactly as written, the same rule `@rawPayload`
+// follows.
+extern dec rawHeaders(target: Model, schemaFormat: valueof string, schema: valueof unknown);
 // Sets the `contentType` of a message. Without it, the field is left out
 // and the document-level `defaultContentType` applies.
 // A field named `content-type` and marked `@header` on the same message is

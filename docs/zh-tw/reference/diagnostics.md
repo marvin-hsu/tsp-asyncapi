@@ -76,11 +76,91 @@
 
 ### `duplicate-message-headers`
 
-> This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.
+> This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.
 
-同一個 message 宣告了兩次 headers：至少一個欄位標了 `@header`，該 model 又標了 `@headers`。emitter 不定義兩者的優先序，所以兩邊都不輸出。被標記的欄位留在 payload，錯誤修好之前不會有任何你寫的東西消失。
+同一個 message 從一個以上的來源宣告 headers。三種來源是標了 `@header` 的欄位、傳給 `@headers` 的 model，以及傳給 `@rawHeaders` 的 schema。emitter 不定義三者的優先序，所以全部都不輸出。被標記的欄位留在 payload，錯誤修好之前不會有任何你寫的東西消失。
 
-**修法：** 只留一個來源。把被標記的欄位搬進 `@headers` 的 model，或移除 `@headers`。
+**修法：** 只留一個來源。把被標記的欄位搬進 `@headers` 的 model，或移除 `@headers` 或 `@rawHeaders`。
+
+### `duplicate-raw-payload-decorator`
+
+> @rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.
+
+`@rawPayload` 不可重複套用。一個 message 只有一個 `payload` 欄位。疊加時只會保留其中一次，其餘 schema 會被靜默丟棄。
+
+**修法：** 移除多餘的 `@rawPayload`。
+
+### `duplicate-raw-headers-decorator`
+
+> @rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.
+
+`@rawHeaders` 不可重複套用，理由與 `@rawPayload` 相同。
+
+**修法：** 移除多餘的 `@rawHeaders`。
+
+### `empty-schema-format`
+
+> This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.
+
+[`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 收到空字串，或只有空白字元的字串。空白的 `schemaFormat` 沒有指出任何 schema 語言，emitter 無法把它寫進 message。
+
+emitter 不會記錄任何東西。該 message 退回使用從 model 建出來的 schema，結果與沒有寫這個 decorator 相同。
+
+**修法：** 給這個 decorator 一個格式，例如 `application/vnd.apache.avro;version=1.9.0`，或是移除它。
+
+### `invalid-raw-schema`
+
+> The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.
+
+傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schema` 引數，compiler 無法序列化成 JSON。常見原因是自訂 scalar 帶有自己的 `init` 建構式。
+
+這個檢查不要求 object，與 [`invalid-binding-config`](#invalid-binding-config) 不同。AsyncAPI 把 `schema` 欄位定義為 `any`，所以字串與陣列都合法。
+
+**修法：** 把 schema 寫成 emitter 可以序列化的值，例如 object value 或字串。
+
+### `non-string-raw-schema`
+
+> '\<format\>' is not a JSON based schema language, so AsyncAPI requires its schema to be inlined as a string. This schema was given as an object, and it is emitted as written. Write the schema as a string, such as the text of the .proto definition, or name a format that is JSON based.
+
+[`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schemaFormat` 指的是非 JSON 基礎的 schema 語言，而 `schema` 引數不是字串。AsyncAPI 規定這種 schema 必須以字串內嵌。規格舉的例子是 Protobuf，表列格式中適用這條規則的就是兩個 Protobuf 識別字。
+
+schema 仍照原樣輸出，與 [`unknown-schema-format`](#unknown-schema-format) 的處理一致。要改哪一邊由你決定。
+
+**修法：** 把 schema 寫成字串，例如 `.proto` 定義的內容；或改用 JSON 基礎的格式。
+
+### `raw-schema-local-ref`
+
+> This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
+
+傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，而它的 `schemaFormat` 不是 AsyncAPI Schema Object 格式。這種 reference 指向輸出的文件本身。emitter 寫進該文件的每一個 schema 都是 AsyncAPI Schema Object，所以被指向的一端與指向它的 schema 帶有不同的 `schemaFormat`。
+
+emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用該 schema 語言自己寫的，emitter 不讀那個語言。
+
+**修法：** 直接內嵌定義，不要用 reference；或把 schema 改寫成 AsyncAPI Schema Object 格式，例如 `application/vnd.aai.asyncapi+json;version=3.1.0`。
+
+### `unresolved-raw-schema-ref`
+
+> This schema refers to '\<ref\>', and the emitted document holds nothing there. A reference that starts with '#/' points into this document, and the emitter writes every location it can reach. A parser rejects the document as written. Note that a model reaches components.schemas only when some message uses it, and a @rawPayload model is not such a message. Point at a location the document holds, or inline the definition instead of referring to it.
+
+傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，但完成的文件在那個位置沒有任何內容。emitter 照原樣複製 raw schema，所以這個 reference 是你寫的。以 `#/` 開頭的 reference 指向輸出的文件本身，該文件的每個位置都由 emitter 產生。所以 emitter 可以判定這一個不存在。
+
+常見原因是指向 raw model 自己，例如在 model `OrderCreated` 上寫 `#/components/schemas/OrderCreated`。帶 `@rawPayload` 的 model 不會佔用自己的 `components.schemas` key。只有在另一個 message 也引用到同一個 model 時，那個位置才存在。
+
+這個檢查在文件完成後才執行，此時每個區塊都已就位。emitter 只讀 raw schema 的最外層，深度與 [`raw-schema-local-ref`](#raw-schema-local-ref) 相同。同時違反兩條規則的 reference 會回報兩次，因為兩條規則各自獨立。
+
+**修法：** 改指向文件實際存在的位置，或直接內嵌定義，不要用 reference。
+
+### `raw-payload-lifted-header`
+
+> The message model '\<name\>' carries @rawPayload and also lifts @header fields into its `headers`. The emitter emits the raw payload exactly as written, so it cannot remove the lifted fields from a schema it does not read. The raw payload and the headers are both emitted, and they can describe the same field twice. Describe the headers of '\<name\>' with @headers or @rawHeaders, or drop the @header marks and let the raw schema carry those fields.
+
+同一個 message 同時有 `@rawPayload` 與至少一個標了 `@header` 的欄位。有欄位提升的 message 平常會取得自己的一份 payload schema，那份 schema 不含被提升的欄位。raw payload 是不透明的，emitter 無法從中拿掉任何東西。Avro 或 Protobuf 的 record 仍可能宣告 message 已經當成 header 的那個欄位。
+
+兩邊都照樣輸出。raw payload 原樣進到 message，被提升的欄位仍然成為 `headers`。錯誤修好之前不會有任何你寫的東西消失。這一點與 [`duplicate-message-headers`](#duplicate-message-headers) 不同，後者兩個來源都不輸出。在那裡，兩個來源填的是同一個欄位。在這裡，兩者填的是兩個不同欄位。
+
+被提升的欄位若來自這個 model 繼承的 base message，同樣會回報。
+
+**修法：** 改用 `@headers` 或 `@rawHeaders` 描述 headers，或移除 `@header` 標記，讓 raw schema 承載那些欄位。
 
 ### `headers-not-object`
 
@@ -543,6 +623,16 @@ server 變數的 `enum` 或 `examples` 有項目是空字串，或只有空白�
 傳給 `@message` 的名稱超出 Components Object 的合法字元集，emitter 已把違規字元編碼。因此實際輸出的 key 並不是當初要求的字串。
 
 **修法：** 改用只含 `a-z`、`A-Z`、`0-9`、`.`、`-`、`_` 的名稱。
+
+### `unknown-schema-format`
+
+> '\<format\>' is not one of the schemaFormat values AsyncAPI requires or recommends. A custom value is legal, so this one is still emitted. A custom value must not be one of the listed identifiers used with another meaning. Check the spelling, and note that every listed value carries a version, such as 'application/vnd.apache.avro;version=1.9.0'.
+
+傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schemaFormat` 不在 AsyncAPI 列出的值裡面。該清單包含工具必須支援的值，以及規格建議的值。常見原因是漏了 `;version=` 這一段。
+
+這個值仍然會輸出，因為規格允許自訂值。規格同時規定，自訂值不得與清單中的識別字撞名。emitter 無法檢查這條規則，因為它看不出清單中的識別字被賦予了另一種意義。所以這條規則寫在警告訊息裡。
+
+**修法：** 檢查拼寫；若這個值本來就是你自訂的格式，忽略這個警告。
 
 ### `nested-header-ignored`
 

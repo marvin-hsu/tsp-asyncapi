@@ -482,6 +482,27 @@ export interface OAuthFlowObject {
 }
 
 /**
+ * A schema written in a language other than the AsyncAPI Schema Object.
+ *
+ * AsyncAPI calls this the Multi Format Schema Object. It carries the name of
+ * the format and the definition itself. The definition is emitted exactly as
+ * the author wrote it. The emitter never reads inside it, so it cannot check
+ * the definition against the format.
+ *
+ * Both `payload` and `headers` of a Message Object accept this object.
+ * @public
+ */
+export interface MultiFormatSchemaObject {
+  /**
+   * The format of `schema`, such as
+   * `application/vnd.apache.avro;version=1.9.0`.
+   */
+  schemaFormat: string;
+  /** The schema definition, in the language `schemaFormat` names. */
+  schema: unknown;
+}
+
+/**
  * Describes one message an application sends or receives.
  * @public
  */
@@ -494,8 +515,7 @@ export interface MessageObject {
   // purpose. `@summary` already fills `title` and `@doc` already fills
   // `description`, and TypeSpec has no third source of prose. So no input
   // could ever fill it. Every other Message Object field the emitter cannot
-  // fill, such as `traits` and `schemaFormat`, is left out for the same
-  // reason.
+  // fill, such as `traits`, is left out for the same reason.
   /** A longer description. CommonMark is allowed. */
   description?: string;
   /**
@@ -505,11 +525,15 @@ export interface MessageObject {
   contentType?: string;
   /**
    * The schema of the message headers. AsyncAPI requires it to describe a
-   * key/value map, so it is always an object type.
+   * key/value map, so it is always an object type. A `MultiFormatSchemaObject`
+   * carries headers written in another schema language.
    */
-  headers?: SchemaObject | ReferenceObject;
-  /** The definition of the message payload. */
-  payload?: SchemaObject | ReferenceObject;
+  headers?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
+  /**
+   * The definition of the message payload. A `MultiFormatSchemaObject`
+   * carries a payload written in another schema language.
+   */
+  payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
   /** How the message relates to the one it answers or continues. */
   correlationId?: CorrelationIdObject;
   /** The protocol-specific settings of this message, keyed by protocol name. */

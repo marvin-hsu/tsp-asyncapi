@@ -1,11 +1,4 @@
-import {
-  getDoc,
-  getFriendlyName,
-  getSummary,
-  Model,
-  ModelProperty,
-  Program,
-} from "@typespec/compiler";
+import { getDoc, getFriendlyName, getSummary, Model, Program } from "@typespec/compiler";
 import { MessageObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import {
@@ -23,6 +16,7 @@ import {
   planMessageHeaders,
   reportIgnoredNestedHeaders,
 } from "./headers.js";
+import { buildMessagePayload } from "./payload.js";
 import { buildMessageExamples } from "./examples.js";
 import { buildTags } from "../tags.js";
 import { buildExternalDocs } from "../external-docs.js";
@@ -121,27 +115,16 @@ function derivedMessageKey(program: Program, model: Model): string {
 }
 
 /**
- * The fields this message lifted out of its own payload.
- *
- * The plan records a header source per message, so the answer is local to
- * one message rather than shared across every message that reaches the same
- * model. A message that lifts nothing gets an empty set, and its payload
- * stays a reference to the model's own component.
- */
-function liftedOf(plan: MessageHeaderPlan, model: Model): ReadonlySet<ModelProperty> {
-  const source = plan.sources.get(model);
-  if (source === undefined || source.model !== undefined) return new Set();
-  return new Set(source.fields);
-}
-
-/**
  * Builds one Message Object.
  *
- * The payload is always a `$ref` to the model's `components.schemas` entry.
- * A `@message` target is a top-level declaration, so it is never inlined.
- * `buildDeclarationRef` is what enforces that; plain `buildSchema` would
- * inline a declaration with no compact composed name, and the same body
- * could then be emitted both inside the message and as a component.
+ * The payload comes from `buildMessagePayload`. That function owns the choice
+ * between a schema built from the model and a raw schema of another format.
+ * A model-built payload is always a `$ref` to the model's
+ * `components.schemas` entry. A `@message` target is a top-level declaration,
+ * so it is never inlined. `buildDeclarationRef` is what enforces that; plain
+ * `buildSchema` would inline a declaration with no compact composed name, and
+ * the same body could then be emitted both inside the message and as a
+ * component.
  * The key is taken from the builder rather than recomputed here, so
  * namespace qualification, `@friendlyName`, and sanitization stay in one
  * place.
@@ -196,7 +179,7 @@ function buildMessage(
     ...text("description", description),
     ...text("contentType", contentType),
     ...present("headers", headers),
-    payload: schemas.buildPayloadDeclaration(model, liftedOf(headerPlan, model)),
+    payload: buildMessagePayload(program, schemas, headerPlan, model),
     ...present("correlationId", correlationId),
     ...present("bindings", buildBindings(program, "message", model)),
     ...present("tags", tags),

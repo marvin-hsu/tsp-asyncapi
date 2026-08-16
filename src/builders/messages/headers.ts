@@ -7,24 +7,84 @@ import {
   resolveEncodedName,
   walkPropertiesInherited,
 } from "@typespec/compiler";
-import { SchemaObject, ReferenceObject } from "../../types/index.js";
+import { MultiFormatSchemaObject, SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { getContentType, getHeadersModel, isHeader } from "../../decorators/index.js";
+import {
+  getContentType,
+  getHeadersModel,
+  getRawHeaders,
+  getRawPayload,
+  isHeader,
+  RawSchemaState,
+} from "../../decorators/index.js";
 import { SchemaBuilder } from "../schemas/builder.js";
 import { SCHEMA_ENCODING_MIME_TYPE } from "../schemas/annotations.js";
+import { buildRawSchema } from "./payload.js";
 
 /** The `contentType` of a message has its own field, so it is never a header. */
 const CONTENT_TYPE_HEADER = "content-type";
 
 /**
  * Where one message takes its headers from.
- * Exactly one of the two members carries the headers. `fields` holds the
+ * Exactly one of the three members carries the headers. `fields` holds the
  * message model's own top-level fields that `@header` marks. `model` holds
- * the model that message-level `@headers` names.
+ * the model that message-level `@headers` names. `raw` holds the schema that
+ * `@rawHeaders` records, in a format the emitter does not read.
+ * `fields` is empty on the other two routes, because neither of them lifts a
+ * field out of the payload.
  */
 interface HeaderSource {
   readonly fields: readonly ModelProperty[];
   readonly model?: Model;
+  readonly raw?: RawSchemaState;
+}
+
+/**
+ * The members of a header source that describe the whole headers object.
+ *
+ * `fields` is not one of them. It holds single fields, so it combines with
+ * fields a base message lifts. The two members here each fill the whole
+ * object, so neither combines with anything.
+ *
+ * Three places ask this question, and each one used to spell out the two
+ * members again. A fourth source, or a rename of one member, would need all
+ * three edits and would compile after two. The members are named here only.
+ */
+const WHOLE_HEADER_MEMBERS = ["model", "raw"] as const;
+
+/** Reads the two decorators that each describe the whole headers object. */
+function wholeHeaderDecorators(program: Program, message: Model): Partial<HeaderSource> {
+  return {
+    model: getHeadersModel(program, message),
+    raw: getRawHeaders(program, message),
+  };
+}
+
+/**
+ * Tells whether a header source describes the whole headers object.
+ *
+ * The argument is either a resolved source or the decorators one message
+ * carries. The two answer different questions. A message can carry
+ * `@rawHeaders` and still have no source, because a
+ * `duplicate-message-headers` error dropped it.
+ */
+function describesWholeHeaders(source: Partial<HeaderSource> | undefined): boolean {
+  return source !== undefined && WHOLE_HEADER_MEMBERS.some((key) => source[key] !== undefined);
+}
+
+/**
+ * Counts the header sources one message declares.
+ *
+ * A count above one is the conflict `duplicate-message-headers` names. The
+ * lifted fields count as one source together, because they describe one
+ * headers object between them.
+ */
+function countHeaderSources(
+  fields: readonly ModelProperty[],
+  declared: Partial<HeaderSource>,
+): number {
+  const whole = WHOLE_HEADER_MEMBERS.filter((key) => declared[key] !== undefined).length;
+  return fields.length === 0 ? whole : whole + 1;
 }
 
 /**
@@ -56,9 +116,11 @@ export interface MessageHeaderPlan {
  * another message's payload, so the first build of it can happen at any
  * point in the message loop.
  *
- * A message that declares both a field-level `@header` and a message-level
- * `@headers` gets neither. There is no rule that picks one, so picking one
- * anyway would invent an order the user cannot see. The error says so.
+ * A message that names more than one of the three header sources gets none of
+ * them. The three sources are a field-level `@header`, a model-level
+ * `@headers`, and a model-level `@rawHeaders`. There is no rule that picks
+ * one, so picking one anyway would invent an order the user cannot see. The
+ * error says so.
  * The fields still stay in the payload in that case, so nothing the user
  * wrote disappears from the document while the error is unresolved.
  */
@@ -76,13 +138,21 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
     const fields = [...message.properties.values()].filter((property) =>
       isHeader(program, property),
     );
-    const model = getHeadersModel(program, message);
+    const declared = wholeHeaderDecorators(program, message);
+    const { model, raw } = declared;
     for (const field of fields) {
       topLevel.add(field);
     }
 
-    if (fields.length > 0 && model !== undefined) {
+    if (countHeaderSources(fields, declared) > 1) {
       reportDiagnostic(program, { code: "duplicate-message-headers", target: message });
+      continue;
+    }
+    if (raw !== undefined) {
+      // The schema is opaque, so no field of it can be checked against
+      // `@contentType`. The content type check below runs on the two routes
+      // whose fields the emitter can read.
+      sources.set(message, { fields: [], raw });
       continue;
     }
     if (model !== undefined) {
@@ -118,7 +188,53 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
   }
 
   adoptInheritedLiftedFields(program, messageList, sources, new Set(lifted), contentTypeReported);
+  reportRawPayloadLifting(program, messageList, sources);
   return { sources, topLevel };
+}
+
+/**
+ * Reports every message that lifts `@header` fields out of a raw payload.
+ *
+ * A lifting message normally gets a payload component of its own, and that
+ * component leaves the lifted fields out. A raw payload is opaque, so the
+ * emitter cannot leave anything out of it. The Avro or Protobuf record may
+ * still declare the field the message claims as a header. That is a document
+ * that contradicts itself, so it must not be silent.
+ *
+ * Both halves are still emitted. The raw payload goes into the message as
+ * written, and the lifted fields still become the `headers`. This departs
+ * from the `duplicate-message-headers` rule, which drops both sources. That
+ * rule exists because two sources fill one field, and no rule picks a winner.
+ * Here the two things fill two different fields of the Message Object, so
+ * nothing has to be dropped. The one thing the emitter cannot do is edit the
+ * opaque payload, and that is what the diagnostic names.
+ *
+ * The derived payload component is not built either, because the payload
+ * builder never reaches the schema layer for a raw payload. So no derived key
+ * is claimed for a schema that is never emitted.
+ *
+ * This runs after the inherited lifts are adopted, so a message that inherits
+ * its header fields from a base message is reported too.
+ */
+function reportRawPayloadLifting(
+  program: Program,
+  messages: readonly Model[],
+  sources: ReadonlyMap<Model, HeaderSource>,
+): void {
+  for (const message of messages) {
+    const source = sources.get(message);
+    if (source === undefined || source.fields.length === 0) {
+      continue;
+    }
+    if (getRawPayload(program, message) === undefined) {
+      continue;
+    }
+    reportDiagnostic(program, {
+      code: "raw-payload-lifted-header",
+      target: message,
+      format: { name: message.name },
+    });
+  }
 }
 
 /**
@@ -139,11 +255,11 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
  * The fields are not added to `lifted` again. That list records each field
  * once, and the derived message carries the field in its own source instead.
  *
- * A message that carries `@headers` is left out. That model describes the
- * whole headers object on its own, so adding a field to it would emit a
- * headers schema the user never wrote. The inherited field then stays in the
- * payload of that message while it is a header of the base message, so the
- * pair is reported. See `reportOverriddenInheritedHeaders`.
+ * A message that carries `@headers` or `@rawHeaders` is left out. Each of
+ * those describes the whole headers object on its own, so adding a field to it
+ * would emit a headers schema the user never wrote. The inherited field then
+ * stays in the payload of that message while it is a header of the base
+ * message, so the pair is reported. See `reportOverriddenInheritedHeaders`.
  *
  * A message with an unresolved `duplicate-message-headers` error is left out
  * as well, and it is not reported. Neither mechanism takes effect there, so
@@ -164,8 +280,8 @@ function adoptInheritedLiftedFields(
     if (inherited.length === 0) {
       continue;
     }
-    if (getHeadersModel(program, message) !== undefined) {
-      if (source?.model !== undefined) {
+    if (describesWholeHeaders(wholeHeaderDecorators(program, message))) {
+      if (describesWholeHeaders(source)) {
         reportOverriddenInheritedHeaders(program, message, inherited);
       }
       continue;
@@ -224,15 +340,23 @@ function reportOverriddenInheritedHeaders(
  * the message model's fields, so they are assembled into an inline object
  * schema. Each field keeps the wire name, documentation, and validation
  * keywords it would have had in the payload.
+ *
+ * A `@rawHeaders` schema is written into the message as a Multi Format Schema
+ * Object. It is never emitted as a component, for the reason a raw payload is
+ * never emitted as one. `buildRawSchema` shapes the object, so both slots of
+ * the Message Object share one definition of it.
  */
 export function buildMessageHeaders(
   schemas: SchemaBuilder,
   plan: MessageHeaderPlan,
   message: Model,
-): SchemaObject | ReferenceObject | undefined {
+): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
   const source = plan.sources.get(message);
   if (source === undefined) {
     return undefined;
+  }
+  if (source.raw !== undefined) {
+    return buildRawSchema(source.raw);
   }
   if (source.model !== undefined) {
     return schemas.buildDeclarationRef(source.model);
@@ -277,6 +401,12 @@ export function buildMessageHeaders(
  * message inherits those headers rather than losing them. See
  * `adoptInheritedLiftedFields`. Such a property is in `honoured`, because it
  * is a top-level field of the base message.
+ *
+ * A message with `@rawPayload` is not a walk root. Both diagnostics tell the
+ * user that the mark stays in the payload schema, and such a message has no
+ * payload schema built from its model. A mark inside a model that some other,
+ * non-raw message also reaches is still reported from that other message's
+ * walk.
  */
 export function reportIgnoredNestedHeaders(
   program: Program,
@@ -286,6 +416,9 @@ export function reportIgnoredNestedHeaders(
   const inherited = collectInheritedProperties(messages);
   const reported = new Set<ModelProperty>();
   for (const message of messages) {
+    if (getRawPayload(program, message) !== undefined) {
+      continue;
+    }
     navigateType(
       message,
       {

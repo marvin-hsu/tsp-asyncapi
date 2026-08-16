@@ -55,6 +55,15 @@ export const ASYNCAPI_VERSION = "3.1.0";
 export const DEFAULT_DOCUMENT_TITLE = "AsyncAPI Document";
 
 /**
+ * The prefix every reference into the document that carries it starts with.
+ *
+ * The prefixes below all extend it. A raw schema can carry a reference of its
+ * own, and this is the prefix that tells the emitter to resolve it against
+ * the emitted document.
+ */
+export const LOCAL_REF_PREFIX = "#/";
+
+/**
  * The prefix of a JSON Pointer into `components.securitySchemes`.
  *
  * A server names its schemes through a reference, never through an inline
@@ -157,6 +166,75 @@ export const KAFKA_BINDING_PROTOCOL = "kafka";
  * levels at once.
  */
 export const KAFKA_BINDING_VERSION = "0.5.0";
+
+/**
+ * The `schemaFormat` values that name the AsyncAPI Schema Object itself.
+ *
+ * Every schema this emitter writes into `components.schemas` is an AsyncAPI
+ * Schema Object. So a `$ref` into this document always points at one of these
+ * three formats. The raw schema decorators compare against this list to tell
+ * whether a `$ref` inside a raw schema can agree with its target.
+ *
+ * The three entries carry the version of the document the emitter writes. See
+ * `MULTI_FORMAT_SCHEMA_FORMATS`.
+ */
+export const NATIVE_SCHEMA_FORMATS: readonly string[] = [
+  `application/vnd.aai.asyncapi;version=${ASYNCAPI_VERSION}`,
+  `application/vnd.aai.asyncapi+json;version=${ASYNCAPI_VERSION}`,
+  `application/vnd.aai.asyncapi+yaml;version=${ASYNCAPI_VERSION}`,
+];
+
+/**
+ * The listed `schemaFormat` values whose schema language is not JSON based.
+ *
+ * AsyncAPI requires such a schema to be inlined as a string. Protobuf is the
+ * example the specification gives, and the two Protobuf identifiers are the
+ * only listed values with that property. A custom value can name another
+ * non-JSON language, and the emitter cannot know that, so this list only
+ * covers the listed ones.
+ */
+export const NON_JSON_SCHEMA_FORMATS: readonly string[] = [
+  "application/vnd.google.protobuf;version=2",
+  "application/vnd.google.protobuf;version=3",
+];
+
+/**
+ * The `schemaFormat` values AsyncAPI 3 names for a Multi Format Schema
+ * Object.
+ *
+ * The list holds the formats the specification requires a tool to support.
+ * It also holds the formats the specification recommends. A value outside
+ * this list is still legal, because the specification allows a custom value.
+ * So the emitter warns about an unlisted value and still emits it.
+ *
+ * The `+json` and `+yaml` variants are separate entries. A parser matches the
+ * whole string, so `application/vnd.aai.asyncapi` and
+ * `application/vnd.aai.asyncapi+json` are two values.
+ *
+ * The three AsyncAPI Schema Object entries come from `NATIVE_SCHEMA_FORMATS`.
+ * They carry the version of the document the emitter writes. The
+ * specification names them at the release the document declares.
+ * `application/vnd.aai.asyncapi+json;version={version}` is also the value the
+ * specification says `schemaFormat` defaults to. So those three are built from
+ * `ASYNCAPI_VERSION`. A hardcoded version would warn about the native format
+ * of the document the moment the emitted release moves.
+ *
+ * The other entries carry the version of the schema language they name, not
+ * the version of AsyncAPI. Those are written out.
+ */
+export const MULTI_FORMAT_SCHEMA_FORMATS: readonly string[] = [
+  ...NATIVE_SCHEMA_FORMATS,
+  "application/schema+json;version=draft-07",
+  "application/schema+yaml;version=draft-07",
+  "application/vnd.apache.avro;version=1.9.0",
+  "application/vnd.apache.avro+json;version=1.9.0",
+  "application/vnd.apache.avro+yaml;version=1.9.0",
+  "application/vnd.oai.openapi;version=3.0.0",
+  "application/vnd.oai.openapi+json;version=3.0.0",
+  "application/vnd.oai.openapi+yaml;version=3.0.0",
+  "application/raml+yaml;version=1.0",
+  ...NON_JSON_SCHEMA_FORMATS,
+];
 
 /**
  * The `info.version` used when nothing supplies one.

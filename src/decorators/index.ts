@@ -48,6 +48,9 @@ export { $message, listMessages, type MessageState } from "./messages/message.js
 export { $contentType, getContentType } from "./messages/content-type.js";
 export { $header, isHeader } from "./messages/header.js";
 export { $headers, getHeadersModel } from "./messages/headers.js";
+export { localRef, type RawSchemaState } from "./messages/raw-schema.js";
+export { $rawPayload, getRawPayload } from "./messages/raw-payload.js";
+export { $rawHeaders, getRawHeaders } from "./messages/raw-headers.js";
 export {
   $correlationId,
   getCorrelationId,

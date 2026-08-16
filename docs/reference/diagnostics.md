@@ -76,11 +76,91 @@ The message falls back to the document `defaultContentType`, the same result an 
 
 ### `duplicate-message-headers`
 
-> This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.
+> This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.
 
-A message declares headers twice: at least one field carries `@header`, and the model also carries `@headers`. The emitter defines no priority between the two, so it emits neither. The marked fields stay in the payload, so nothing you wrote disappears while the error is unresolved.
+A message declares headers from more than one source. The three sources are a field marked `@header`, a model given to `@headers`, and a schema given to `@rawHeaders`. The emitter defines no priority between them, so it emits none of them. The marked fields stay in the payload, so nothing you wrote disappears while the error is unresolved.
 
-**Fix:** keep one source. Move the marked fields into the `@headers` model, or drop the `@headers`.
+**Fix:** keep one source. Move the marked fields into the `@headers` model, or drop the `@headers` or the `@rawHeaders`.
+
+### `duplicate-raw-payload-decorator`
+
+> @rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.
+
+`@rawPayload` is not repeatable. A message has one `payload` field, so stacking the decorator would silently discard every schema but one.
+
+**Fix:** remove the extra `@rawPayload`.
+
+### `duplicate-raw-headers-decorator`
+
+> @rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.
+
+`@rawHeaders` is not repeatable, for the reason `@rawPayload` is not.
+
+**Fix:** remove the extra `@rawHeaders`.
+
+### `empty-schema-format`
+
+> This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.
+
+An application of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) passed an empty string, or a string of whitespace only. A blank format names no schema language, so the emitter cannot write it into the message.
+
+Nothing is recorded. The message falls back to the schema built from the model, the same result an absent decorator gives.
+
+**Fix:** give the decorator a format, such as `application/vnd.apache.avro;version=1.9.0`, or remove it.
+
+### `invalid-raw-schema`
+
+> The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.
+
+The `schema` argument of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) is a value the compiler cannot serialize to JSON. A custom scalar with its own `init` constructor is the usual cause.
+
+This check does not require an object, unlike [`invalid-binding-config`](#invalid-binding-config). AsyncAPI types the `schema` field as `any`, so a string and an array are legal.
+
+**Fix:** write the schema as a value the emitter can serialize, such as an object value or a string.
+
+### `non-string-raw-schema`
+
+> '\<format\>' is not a JSON based schema language, so AsyncAPI requires its schema to be inlined as a string. This schema was given as an object, and it is emitted as written. Write the schema as a string, such as the text of the .proto definition, or name a format that is JSON based.
+
+The `schemaFormat` of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) names a schema language that is not JSON based, and the `schema` argument is not a string. AsyncAPI states that such a schema must be inlined as a string. Protobuf is the example the specification gives, and the two Protobuf identifiers are the listed formats this rule covers.
+
+The schema is emitted as written, the same choice [`unknown-schema-format`](#unknown-schema-format) makes. You decide which half to change.
+
+**Fix:** write the schema as a string, such as the text of the `.proto` definition, or name a format that is JSON based.
+
+### `raw-schema-local-ref`
+
+> This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
+
+The schema given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) carries a top-level `$ref` that starts with `#/`, and its `schemaFormat` is not the AsyncAPI Schema Object format. Such a reference points into the emitted document. Every schema this emitter writes there is an AsyncAPI Schema Object, so the target carries a different `schemaFormat` than the schema that refers to it.
+
+Only the top level of the raw schema is read. A reference nested deeper is written in the schema language itself, and the emitter does not read that language.
+
+**Fix:** inline the definition instead of referring to it, or write the schema in the AsyncAPI Schema Object format, such as `application/vnd.aai.asyncapi+json;version=3.1.0`.
+
+### `unresolved-raw-schema-ref`
+
+> This schema refers to '\<ref\>', and the emitted document holds nothing there. A reference that starts with '#/' points into this document, and the emitter writes every location it can reach. A parser rejects the document as written. Note that a model reaches components.schemas only when some message uses it, and a @rawPayload model is not such a message. Point at a location the document holds, or inline the definition instead of referring to it.
+
+The schema given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) carries a top-level `$ref` that starts with `#/`, and the finished document holds nothing at that location. The emitter copies a raw schema exactly as written, so the reference is yours. A `#/` reference points into the emitted document, and the emitter owns every location there. So it can say that this one is missing.
+
+The common cause is a reference to the raw model itself, such as `#/components/schemas/OrderCreated` on the model `OrderCreated`. A `@rawPayload` model claims no `components.schemas` key of its own, so that target only exists when another message reaches the same model.
+
+The check runs on the finished document, after every section is in place. Only the top level of the raw schema is read, the same depth [`raw-schema-local-ref`](#raw-schema-local-ref) reads. A reference that fails both rules is reported twice, because the two rules are independent.
+
+**Fix:** point at a location the document holds, or inline the definition instead of referring to it.
+
+### `raw-payload-lifted-header`
+
+> The message model '\<name\>' carries @rawPayload and also lifts @header fields into its `headers`. The emitter emits the raw payload exactly as written, so it cannot remove the lifted fields from a schema it does not read. The raw payload and the headers are both emitted, and they can describe the same field twice. Describe the headers of '\<name\>' with @headers or @rawHeaders, or drop the @header marks and let the raw schema carry those fields.
+
+A message carries `@rawPayload` and at least one field marked `@header`. A lifting message normally gets a payload schema of its own, and that schema leaves the lifted fields out. A raw payload is opaque, so the emitter cannot leave anything out of it. The Avro or Protobuf record may still declare the field the message claims as a header.
+
+Both halves are still emitted. The raw payload reaches the message as written, and the lifted fields still become the `headers`. Nothing you wrote disappears while the error is unresolved. This differs from [`duplicate-message-headers`](#duplicate-message-headers), which drops both sources. There, two sources fill one field. Here, two things fill two different fields.
+
+The message is reported as well when the lifted fields come from a base message the model extends.
+
+**Fix:** describe the headers with `@headers` or `@rawHeaders`, or drop the `@header` marks and let the raw schema carry those fields.
 
 ### `headers-not-object`
 
@@ -543,6 +623,16 @@ The document stays valid — `components.messages` and `components.schemas` are 
 The name given to `@message` falls outside the Components Object key charset, so the emitter encoded the offending characters. The emitted key is therefore not the string that was asked for.
 
 **Fix:** pass a name that only uses `a-z`, `A-Z`, `0-9`, `.`, `-`, and `_`.
+
+### `unknown-schema-format`
+
+> '\<format\>' is not one of the schemaFormat values AsyncAPI requires or recommends. A custom value is legal, so this one is still emitted. A custom value must not be one of the listed identifiers used with another meaning. Check the spelling, and note that every listed value carries a version, such as 'application/vnd.apache.avro;version=1.9.0'.
+
+The `schemaFormat` given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) is outside the list AsyncAPI names. The list holds the values a tool must support and the values the specification recommends. A missing `;version=` part is the usual cause.
+
+The value is still emitted, because the specification allows a custom value. The specification also states that a custom value must not collide with a listed one. The emitter cannot check that rule, because it cannot see that a listed identifier now carries another meaning. So the warning carries the rule.
+
+**Fix:** check the spelling, or ignore the warning when the value is a custom format of your own.
 
 ### `nested-header-ignored`
 

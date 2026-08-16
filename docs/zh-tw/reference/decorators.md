@@ -644,9 +644,113 @@ components:
 
 這個 model 必須是 object 型態。AsyncAPI 要求 headers schema 描述一組 key/value map，所以 array 為底的 model 會回報 [`headers-not-object`](./diagnostics#headers-not-object)。
 
-同一個 message 不要同時用欄位層級的 `@header`。兩個來源沒有明確的優先序，所以 emitter 回報 [`duplicate-message-headers`](./diagnostics#duplicate-message-headers)，且兩邊都不輸出。
+同一個 message 不要同時用欄位層級的 `@header` 或 `@rawHeaders`。兩個來源沒有明確的優先序，所以 emitter 回報 [`duplicate-message-headers`](./diagnostics#duplicate-message-headers)，且兩邊都不輸出。
 
 headers model 上名為 `content-type` 的屬性，與 message 上的 `@contentType` 衝突，情形和欄位層級的同名 `@header` 相同。emitter 回報 [`content-type-header-conflict`](./diagnostics#content-type-header-conflict)。headers model 繼承來的屬性也會檢查。
+
+## `@rawPayload`
+
+```typespec
+extern dec rawPayload(target: Model, schemaFormat: valueof string, schema: valueof unknown);
+```
+
+用另一種格式的 schema 描述 message 的 payload，例如 Avro 或 Protobuf。AsyncAPI 稱這個結果為 Multi Format Schema Object。emitter 把 `schemaFormat` 與 `schema` 寫進 message，並且原樣輸出 `schema`。
+
+emitter 不解讀 schema 的內容。所以它無法檢查 schema 是否符合該格式，也無法檢查 schema 是否符合這個 model。
+
+```typespec
+@message
+@contentType("application/avro")
+@rawPayload(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "OrderCreated",
+    fields: #[#{ name: "orderId", type: "string" }],
+  }
+)
+model OrderCreated {}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      contentType: application/avro
+      payload:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderCreated
+          fields:
+            - name: orderId
+              type: string
+```
+
+這個 model 不描述任何進入這個 message 的內容。它不再是 schema 走訪的起點，所以自己不佔用 `components.schemas` 的 key。它引用的 model 也一樣。但它沒有被排除在走訪之外。若有其他 message 引用到這個 model，或引用到它所引用的 model，那個 model 仍然會被收集。被收集的 model 會拿到一般的 `components.schemas` 項目，屬性也會一併輸出。這個 model 只是承載 message decorator 的載體，所以把它的內容留空。
+
+raw schema 直接寫進 message，不寫進 `components.schemas`。所以目前兩個 message 無法共用同一份 raw schema。
+
+`schema` 可以是任何形狀的值。常見的形式是 object value。字串與陣列也合法，因為 AsyncAPI 把這個欄位定義為 `any`。
+
+Avro 中名為 `namespace` 的欄位要用反引號包住，因為 `namespace` 是 TypeSpec 的保留字：``#{ `namespace`: "com.example" }``。
+
+AsyncAPI 要求或建議的 `schemaFormat` 值不會有任何回報。其他值仍然會輸出，同時回報 [`unknown-schema-format`](./diagnostics#unknown-schema-format) 警告。空白值會回報 [`empty-schema-format`](./diagnostics#empty-schema-format)，該 message 退回使用從 model 建出來的 schema。
+
+格式與 schema 之間有兩條規則，emitter 兩條都會回報。非 JSON 基礎的格式（例如 Protobuf）要把 schema 寫成字串。寫成 object 會回報 [`non-string-raw-schema`](./diagnostics#non-string-raw-schema)。最外層以 `#/` 開頭的 `$ref` 指向這份文件，而文件裡的每個 schema 都是 AsyncAPI Schema Object。其他格式會回報 [`raw-schema-local-ref`](./diagnostics#raw-schema-local-ref)。兩種情況下 schema 都照原樣輸出。
+
+emitter 也會解析最外層的 `$ref`，所有格式都一樣。若 reference 在完成的文件中找不到對應位置，會回報 [`unresolved-raw-schema-ref`](./diagnostics#unresolved-raw-schema-ref)。
+
+同一個 message 不要同時用欄位層級的 `@header`。被提升的欄位會離開 payload schema，而 emitter 無法從它不解讀的 schema 中移除欄位。emitter 回報 [`raw-payload-lifted-header`](./diagnostics#raw-payload-lifted-header)，兩邊都照樣輸出。改用 `@headers` 或 `@rawHeaders` 描述 headers。這兩個都可以與本 decorator 併用，且不會有任何回報。
+
+同一個 model 只能套用一次。第二次套用會回報 [`duplicate-raw-payload-decorator`](./diagnostics#duplicate-raw-payload-decorator)。
+
+## `@rawHeaders`
+
+```typespec
+extern dec rawHeaders(target: Model, schemaFormat: valueof string, schema: valueof unknown);
+```
+
+用另一種格式的 schema 描述 message 的 headers。它寫進 `headers` 欄位的 Multi Format Schema Object，與 `@rawPayload` 寫進 `payload` 的完全相同。`schemaFormat` 與 `schema` 的規則也相同。
+
+```typespec
+@message
+@rawHeaders(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "OrderHeaders",
+    fields: #[#{ name: "traceId", type: "string" }],
+  }
+)
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      headers:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderHeaders
+          fields:
+            - name: traceId
+              type: string
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+```
+
+這是描述 message headers 的第三種方式。另外兩種是欄位層級的 `@header`，以及傳給 `@headers` 的 model。三者只能擇一。同時使用一種以上會回報 [`duplicate-message-headers`](./diagnostics#duplicate-message-headers)，且完全不輸出 `headers`。
+
+raw headers 不會從 payload 提升任何欄位。所以 payload 仍然描述 model 的每一個欄位。
+
+同一個 model 只能套用一次。第二次套用會回報 [`duplicate-raw-headers-decorator`](./diagnostics#duplicate-raw-headers-decorator)。
 
 ## `@correlationId`
 

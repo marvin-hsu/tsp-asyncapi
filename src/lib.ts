@@ -188,7 +188,71 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default:
-          "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.",
+          "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.",
+      },
+    },
+    "duplicate-raw-payload-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.",
+      },
+    },
+    "duplicate-raw-headers-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.",
+      },
+    },
+    "empty-schema-format": {
+      severity: "error",
+      messages: {
+        default:
+          "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.",
+      },
+    },
+    "unknown-schema-format": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`'${"format"}' is not one of the schemaFormat values AsyncAPI requires or recommends. A custom value is legal, so this one is still emitted. A custom value must not be one of the listed identifiers used with another meaning. Check the spelling, and note that every listed value carries a version, such as 'application/vnd.apache.avro;version=1.9.0'.`,
+      },
+    },
+    "invalid-raw-schema": {
+      severity: "error",
+      messages: {
+        default:
+          "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.",
+      },
+    },
+    "non-string-raw-schema": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"format"}' is not a JSON based schema language, so AsyncAPI requires its schema to be inlined as a string. This schema was given as an object, and it is emitted as written. Write the schema as a string, such as the text of the .proto definition, or name a format that is JSON based.`,
+      },
+    },
+    "string-raw-schema": {
+      severity: "error",
+      messages: {
+        default: paramMessage`'${"format"}' is a JSON based schema language, so AsyncAPI requires its schema to be inlined rather than given as text to be parsed. This schema is a string that opens a JSON object or array, and the official parser rejects a document that carries one. Write the schema as an object value. Note that a bare JSON string is still allowed, because a format such as Avro names its primitive types that way.`,
+      },
+    },
+    "raw-schema-local-ref": {
+      severity: "error",
+      messages: {
+        default: paramMessage`This schema refers to '${"ref"}', and it is written in '${"format"}'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.`,
+      },
+    },
+    "unresolved-raw-schema-ref": {
+      severity: "error",
+      messages: {
+        default: paramMessage`This schema refers to '${"ref"}', and the emitted document holds nothing there. A reference that starts with '#/' points into this document, and the emitter writes every location it can reach. A parser rejects the document as written. Note that a model reaches components.schemas only when some message uses it, and a @rawPayload model is not such a message. Point at a location the document holds, or inline the definition instead of referring to it.`,
+      },
+    },
+    "raw-payload-lifted-header": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The message model '${"name"}' carries @rawPayload and also lifts @header fields into its \`headers\`. The emitter emits the raw payload exactly as written, so it cannot remove the lifted fields from a schema it does not read. The raw payload and the headers are both emitted, and they can describe the same field twice. Describe the headers of '${"name"}' with @headers or @rawHeaders, or drop the @header marks and let the raw schema carry those fields.`,
       },
     },
     "headers-not-object": {
@@ -213,7 +277,7 @@ export const $lib = createTypeSpecLibrary({
     "inherited-header-overridden": {
       severity: "warning",
       messages: {
-        default: paramMessage`The field '${"field"}' is lifted into the \`headers\` of message '${"base"}'. Message '${"message"}' extends '${"base"}' and describes its own headers with @headers, so the lift is cancelled and the field stays in the payload of '${"message"}'. The same field is then a header of '${"base"}' and payload data of '${"message"}'. Add the field to the @headers model of '${"message"}', or drop that @headers so '${"message"}' inherits the header.`,
+        default: paramMessage`The field '${"field"}' is lifted into the \`headers\` of message '${"base"}'. Message '${"message"}' extends '${"base"}' and describes its own headers with @headers or @rawHeaders, so the lift is cancelled and the field stays in the payload of '${"message"}'. The same field is then a header of '${"base"}' and payload data of '${"message"}'. Add the field to the headers schema of '${"message"}', or drop that decorator so '${"message"}' inherits the header.`,
       },
     },
     "discriminated-lifted-header": {

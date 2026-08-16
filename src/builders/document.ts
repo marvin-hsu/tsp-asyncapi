@@ -6,6 +6,7 @@ import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages/builder.js";
+import { reportUnresolvedRawSchemaRefs } from "./messages/raw-schema-refs.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import {
   buildServers,
@@ -86,7 +87,7 @@ export function buildAsyncAPIDocument(
   reportUnattachedBindings(program);
 
   // The root document. Its version comes from `ASYNCAPI_VERSION`.
-  return {
+  const document: AsyncAPIDocument = {
     asyncapi: ASYNCAPI_VERSION,
     ...(options["asyncapi-id"] ? { id: options["asyncapi-id"] } : {}),
     info: service
@@ -104,4 +105,11 @@ export function buildAsyncAPIDocument(
     operations,
     ...(components ? { components } : {}),
   };
+
+  // A raw schema is copied verbatim, so a reference inside it can point at a
+  // location the document never got. Only the finished document answers that,
+  // so this check runs last.
+  reportUnresolvedRawSchemaRefs(program, document, messageKeys);
+
+  return document;
 }

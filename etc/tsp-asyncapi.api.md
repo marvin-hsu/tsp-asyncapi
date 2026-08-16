@@ -75,7 +75,37 @@ readonly default: "@contentType was given an empty media type. A blank media typ
 readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
 };
 "duplicate-message-headers": {
-readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+readonly default: "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.";
+};
+"duplicate-raw-payload-decorator": {
+readonly default: "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.";
+};
+"duplicate-raw-headers-decorator": {
+readonly default: "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.";
+};
+"empty-schema-format": {
+readonly default: "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.";
+};
+"unknown-schema-format": {
+readonly default: CallableMessage<["format"]>;
+};
+"invalid-raw-schema": {
+readonly default: "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.";
+};
+"non-string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"raw-schema-local-ref": {
+readonly default: CallableMessage<["ref", "format"]>;
+};
+"unresolved-raw-schema-ref": {
+readonly default: CallableMessage<["ref"]>;
+};
+"raw-payload-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
 };
 "headers-not-object": {
 readonly default: CallableMessage<["name"]>;
@@ -445,7 +475,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -498,7 +528,37 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
     };
     "duplicate-message-headers": {
-        readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+        readonly default: "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.";
+    };
+    "duplicate-raw-payload-decorator": {
+        readonly default: "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.";
+    };
+    "duplicate-raw-headers-decorator": {
+        readonly default: "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.";
+    };
+    "empty-schema-format": {
+        readonly default: "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.";
+    };
+    "unknown-schema-format": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "invalid-raw-schema": {
+        readonly default: "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.";
+    };
+    "non-string-raw-schema": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "string-raw-schema": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "raw-schema-local-ref": {
+        readonly default: CallableMessage<["ref", "format"]>;
+    };
+    "unresolved-raw-schema-ref": {
+        readonly default: CallableMessage<["ref"]>;
+    };
+    "raw-payload-lifted-header": {
+        readonly default: CallableMessage<["name", "name"]>;
     };
     "headers-not-object": {
         readonly default: CallableMessage<["name"]>;
@@ -758,7 +818,37 @@ readonly default: "@contentType was given an empty media type. A blank media typ
 readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
 };
 "duplicate-message-headers": {
-readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+readonly default: "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.";
+};
+"duplicate-raw-payload-decorator": {
+readonly default: "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.";
+};
+"duplicate-raw-headers-decorator": {
+readonly default: "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.";
+};
+"empty-schema-format": {
+readonly default: "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.";
+};
+"unknown-schema-format": {
+readonly default: CallableMessage<["format"]>;
+};
+"invalid-raw-schema": {
+readonly default: "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.";
+};
+"non-string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"raw-schema-local-ref": {
+readonly default: CallableMessage<["ref", "format"]>;
+};
+"unresolved-raw-schema-ref": {
+readonly default: CallableMessage<["ref"]>;
+};
+"raw-payload-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
 };
 "headers-not-object": {
 readonly default: CallableMessage<["name"]>;
@@ -1023,6 +1113,12 @@ export function getOperationAction(program: Program, target: Operation): Operati
 export function getParameterLocation(program: Program, target: ModelProperty): string | undefined;
 
 // @public
+export function getRawHeaders(program: Program, target: Model): RawSchemaState | undefined;
+
+// @public
+export function getRawPayload(program: Program, target: Model): RawSchemaState | undefined;
+
+// @public
 export function getReplyAddress(program: Program, target: Operation): ReplyAddressState | undefined;
 
 // @public
@@ -1176,9 +1272,9 @@ export interface MessageObject {
     description?: string;
     examples?: MessageExampleObject[];
     externalDocs?: ExternalDocumentationObject;
-    headers?: SchemaObject | ReferenceObject;
+    headers?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
     name?: string;
-    payload?: SchemaObject | ReferenceObject;
+    payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
     tags?: TagObject[];
     title?: string;
 }
@@ -1186,6 +1282,12 @@ export interface MessageObject {
 // @public
 export interface MessageState {
     name?: string;
+}
+
+// @public
+export interface MultiFormatSchemaObject {
+    schema: unknown;
+    schemaFormat: string;
 }
 
 // @public
@@ -1254,6 +1356,9 @@ export interface ParameterObject {
 }
 
 // @public
+export type RawSchemaState = MultiFormatSchemaObject;
+
+// @public
 export interface ReferenceObject {
     // (undocumented)
     $ref: string;
@@ -1266,7 +1371,7 @@ export interface ReplyAddressState {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1319,7 +1424,37 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
     };
     "duplicate-message-headers": {
-        readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+        readonly default: "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.";
+    };
+    "duplicate-raw-payload-decorator": {
+        readonly default: "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.";
+    };
+    "duplicate-raw-headers-decorator": {
+        readonly default: "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.";
+    };
+    "empty-schema-format": {
+        readonly default: "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.";
+    };
+    "unknown-schema-format": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "invalid-raw-schema": {
+        readonly default: "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.";
+    };
+    "non-string-raw-schema": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "string-raw-schema": {
+        readonly default: CallableMessage<["format"]>;
+    };
+    "raw-schema-local-ref": {
+        readonly default: CallableMessage<["ref", "format"]>;
+    };
+    "unresolved-raw-schema-ref": {
+        readonly default: CallableMessage<["ref"]>;
+    };
+    "raw-payload-lifted-header": {
+        readonly default: CallableMessage<["name", "name"]>;
     };
     "headers-not-object": {
         readonly default: CallableMessage<["name"]>;
@@ -1579,7 +1714,37 @@ readonly default: "@contentType was given an empty media type. A blank media typ
 readonly default: "@headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.";
 };
 "duplicate-message-headers": {
-readonly default: "This message takes its headers from two sources: a field marked @header, and a model given to @headers. There is no rule that picks one over the other, so no `headers` were emitted at all. Keep one of the two sources.";
+readonly default: "This message takes its headers from more than one source. The three sources are a field marked @header, a model given to @headers, and a schema given to @rawHeaders. There is no rule that picks one over the others, so no `headers` were emitted at all. Keep one of the sources.";
+};
+"duplicate-raw-payload-decorator": {
+readonly default: "@rawPayload is applied to this model more than once. A message carries one payload, so only one application takes effect and the rest are discarded. Remove the extra @rawPayload.";
+};
+"duplicate-raw-headers-decorator": {
+readonly default: "@rawHeaders is applied to this model more than once. A message carries one headers schema, so only one application takes effect and the rest are discarded. Remove the extra @rawHeaders.";
+};
+"empty-schema-format": {
+readonly default: "This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.";
+};
+"unknown-schema-format": {
+readonly default: CallableMessage<["format"]>;
+};
+"invalid-raw-schema": {
+readonly default: "The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.";
+};
+"non-string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"string-raw-schema": {
+readonly default: CallableMessage<["format"]>;
+};
+"raw-schema-local-ref": {
+readonly default: CallableMessage<["ref", "format"]>;
+};
+"unresolved-raw-schema-ref": {
+readonly default: CallableMessage<["ref"]>;
+};
+"raw-payload-lifted-header": {
+readonly default: CallableMessage<["name", "name"]>;
 };
 "headers-not-object": {
 readonly default: CallableMessage<["name"]>;
