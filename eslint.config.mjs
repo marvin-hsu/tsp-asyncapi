@@ -26,6 +26,9 @@ export default tseslint.config(
       // branch, and linting them here type-checks them against this
       // checkout's tsconfig.
       ".claude/**",
+      // `.gemini` is a symlink to `.claude`, so it reaches the same worktrees
+      // by a second path that `.claude/**` does not match.
+      ".gemini/**",
       "dist/**",
       "node_modules/**",
       "coverage/**",
@@ -38,7 +41,9 @@ export default tseslint.config(
       // `plan/` is git-ignored and holds reference copies of other people's
       // emitters. They are not this project's code, they have their own
       // tsconfig, and linting them produced most of the errors in a run.
-      "plan/**",
+      // Matched at any depth. A worktree links `plan` back to this working
+      // tree, so the same files are reachable through the worktree path too.
+      "**/plan/**",
     ],
   },
 );

@@ -7,7 +7,14 @@ export default defineConfig({
     // the real result. `.claude/worktrees/` holds worktrees of this
     // repository. `plan/` is git-ignored and holds reference copies of other
     // people's emitters, which is why `git status` never showed them.
-    exclude: ["**/node_modules/**", "**/dist/**", ".claude/**", "plan/**"],
+    // `plan/` is matched at any depth, not just at the root. `.gemini` is a
+    // symlink to `.claude`, and `.claude/worktrees/` holds worktrees of this
+    // same repository. Each worktree links `plan` back here. So the competitor
+    // sources under `plan/otherproject/` are reachable as
+    // `.gemini/worktrees/<name>/plan/otherproject/`, which a root-anchored
+    // `plan/**` does not match. That path made this suite collect 232 MB of
+    // other people's tests.
+    exclude: ["**/node_modules/**", "**/dist/**", ".claude/**", ".gemini/**", "**/plan/**"],
     // Registers the AsyncAPI matchers before any test file runs.
     setupFiles: ["./test/setup.ts"],
     coverage: {
