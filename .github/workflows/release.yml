@@ -29,7 +29,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
@@ -46,19 +46,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # A tag that disagrees with package.json publishes a version nobody
-      # asked for, and npm does not allow the same version to be published
-      # twice. So the two are compared before anything is built.
-      - name: Check the tag against package.json
+      # The tag decides the version. package.json is written from it rather
+      # than checked against it, so releasing is one action instead of a bump,
+      # a commit, a tag and a push that all have to agree.
+      #
+      # The tag must still look like a version, because npm will not take
+      # anything else and the failure would arrive at the last step.
+      - name: Take the version from the tag
+        id: version
         run: |
           raw="${{ inputs.tag || github.ref_name }}"
-          tag="${raw#v}"
-          declared="$(node -p "require('./package.json').version")"
-          if [ "$tag" != "$declared" ]; then
-            echo "::error::Tag $raw says $tag, package.json says $declared. Bump one to match the other."
+          version="${raw#v}"
+          if ! printf '%s' "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Tag $raw does not name a version. Use something like v0.2.0."
             exit 1
           fi
-          echo "Publishing $declared"
+          # Written with node rather than `npm pkg set`. This package pins
+          # pnpm through devEngines, so every npm command exits with
+          # EBADDEVENGINES and changes nothing, while still reporting success.
+          VERSION="$version" node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          ' 
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing $version"
 
       # The same gate a change passes before it reaches main. A tag can be
       # placed on any commit, including one that predates a fix, so the gate
@@ -66,11 +79,22 @@ jobs:
       - name: Verify
         run: pnpm check
 
+      # The publish jobs take this rather than building again. Three builds of
+      # one tag could in principle differ, and only one of them was the one
+      # that passed the gate above. This makes the bytes that were verified
+      # the bytes that get published.
+      - name: Keep the verified build
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
   publish-npm:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
@@ -87,8 +111,28 @@ jobs:
           # NODE_AUTH_TOKEN, which the publish step supplies.
           registry-url: https://registry.npmjs.org
 
+      # Only what publishing itself needs. The package is already built.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Derived again rather than carried over. Each job checks out the tag,
+      # so each one starts from the package.json the tag points at.
+      - name: Take the version from the tag
+        run: |
+          VERSION="${RAW#v}" node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+        env:
+          RAW: ${{ inputs.tag || github.ref_name }}
+
+      - name: Take the verified build
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
 
       # `--provenance` is passed on the command line rather than left to
       # `publishConfig` in package.json, because pnpm reads the flag and not
@@ -114,7 +158,7 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
@@ -130,7 +174,26 @@ jobs:
           registry-url: "https://npm.pkg.github.com"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Derived again rather than carried over. Each job checks out the tag,
+      # so each one starts from the package.json the tag points at.
+      - name: Take the version from the tag
+        run: |
+          VERSION="${RAW#v}" node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          '
+        env:
+          RAW: ${{ inputs.tag || github.ref_name }}
+
+      - name: Take the verified build
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
 
       - name: Publish to GitHub Packages
         run: |
@@ -142,3 +205,41 @@ jobs:
           pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Without this, main keeps whatever version it had while npm moves on, and
+  # the next person to read package.json is told something false.
+  #
+  # It runs after the publish, because a version that failed to publish is not
+  # a version this repository released. The commit lands on main rather than on
+  # the tag: a tag names one state and must not gain another.
+  sync-version:
+    needs: [publish-npm, publish-github-packages]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Write the published version into main
+        run: |
+          version="${RAW#v}"
+          current="$(node -p "require('./package.json').version")"
+          if [ "$version" = "$current" ]; then
+            echo "main already says $version"
+            exit 0
+          fi
+          VERSION="$version" node -e '
+            const fs = require("fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            pkg.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+          ' 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          # `[skip ci]` keeps this from starting another run of the checks that
+          # just passed. GitHub reads it from the commit message.
+          git commit -m "chore: set version to $version [skip ci]"
+          git push origin main
+        env:
+          RAW: ${{ inputs.tag || github.ref_name }}
