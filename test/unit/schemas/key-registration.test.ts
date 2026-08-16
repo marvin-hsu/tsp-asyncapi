@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
+import { SchemaKeyRegistry } from "../../../src/builders/schemas/key-registration.js";
 import { t } from "@typespec/compiler/testing";
 
 describe("Unit: Schemas — schema keys and registration", () => {
@@ -510,6 +511,30 @@ describe("Unit: Schemas — schema keys and registration", () => {
 
     expect(props.order.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(components.EnvelopeOrder).toBeDefined();
+  });
+
+  it("should leave the owner in place when releasing a type that lost the key collision", async () => {
+    // Two declarations forced onto one candidate name collide. The first
+    // one becomes the owner and the second only records the key for
+    // itself. Releasing the loser must not evict the winner, so the
+    // ownership check takes its false side here.
+    const { program, First, Second } = await compileSchemas(t.code`
+      namespace NS {
+        @friendlyName("Shared")
+        model ${t.model("First")} { a: string; }
+        @friendlyName("Shared")
+        model ${t.model("Second")} { b: string; }
+      }
+    `);
+    const registry = new SchemaKeyRegistry(program);
+
+    expect(registry.keyFor(First)).toBe("Shared");
+    expect(registry.keyFor(Second)).toBe("Shared");
+    expect(registry.ownerOf("Shared")).toBe(First);
+
+    registry.release(Second);
+
+    expect(registry.ownerOf("Shared")).toBe(First);
   });
 
   it("should use @friendlyName's resolved name as the components.schemas key for an enum", async () => {

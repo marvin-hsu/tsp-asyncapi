@@ -2,6 +2,8 @@
 import { describe, expect, it } from "vitest";
 import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { AsyncAPITester } from "../../../src/testing/index.js";
+import { reportUnattachedBindings } from "../../../src/builders/bindings/builder.js";
 
 const KAFKA_CONTRACT = `
   @service(#{ title: "Orders" })
@@ -295,5 +297,41 @@ describe("Unit: which bindings count as having reached the document", () => {
     const reported = findDiagnostic(diagnostics, BINDING_OUTSIDE);
     expect(reported.message).toContain("no server, no channel, no operation and no message");
     expect(reported.message).not.toContain("any level");
+  });
+
+  it("picks the wording per binding when a level-less and a levelled binding are both stray", async () => {
+    // `reportUnattachedBindings` chooses between two wordings for each
+    // stray binding. The level-less `@binding` gets `anyLevel`, and a
+    // levelled one such as `@kafkaChannel` gets `default`. The tests above
+    // each drive one wording per compile, so neither shows the choice
+    // being made both ways over one list.
+    // The reporter runs on its own here, with no emit before it. Nothing
+    // consumed a binding, so both applications are stray at once.
+    const runner = await AsyncAPITester.createInstance();
+    const { program } = await runner.compile(`
+      @binding("mqtt", #{ qos: 1 })
+      model NoObject {
+        id: string;
+      }
+
+      @kafkaChannel(#{ topic: "orders" })
+      interface NotAChannel {
+        op publish(): void;
+      }
+    `);
+
+    reportUnattachedBindings(program);
+
+    const reported = program.diagnostics.filter(
+      (diagnostic) => diagnostic.code === BINDING_OUTSIDE,
+    );
+    expect(reported).toHaveLength(2);
+    const messages = reported.map((diagnostic) => diagnostic.message);
+    expect(messages.some((message) => message.includes("for the channel level"))).toBe(true);
+    expect(
+      messages.some((message) =>
+        message.includes("no server, no channel, no operation and no message"),
+      ),
+    ).toBe(true);
   });
 });

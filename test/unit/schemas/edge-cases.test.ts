@@ -98,6 +98,25 @@ describe("Unit: Schemas edge cases (regression)", () => {
     expect(diagnostic?.severity).toBe("error");
   });
 
+  it("registers a built-in model of the TypeSpec namespace that is neither an array nor a record", async () => {
+    // The early inline path asks two questions. First, does the model come
+    // from the TypeSpec namespace? Second, does it have a collection shape?
+    // `TypeSpec.ServiceOptions` answers yes and then no. So the build falls
+    // through to the named-declaration path and registers a component.
+    // Every other model of that namespace this suite reaches is an `Array`
+    // or a `Record` instantiation, which returns a shape and stops there.
+    const { builder, M } = await compileSchemas(t.code`
+      model ${t.model("M")} {
+        options: TypeSpec.ServiceOptions;
+      }
+    `);
+    builder.buildSchema(M);
+
+    const props = builder.getSchemas().M.properties as Record<string, any>;
+    expect(props.options.$ref).toBe("#/components/schemas/ServiceOptions");
+    expect(builder.getSchemas().ServiceOptions).toBeDefined();
+  });
+
   it("anonymous model keeps its properties", async () => {
     const { builder, Outer } = await compileSchemas(t.code`
       model ${t.model("Outer")} {

@@ -283,4 +283,70 @@ describe("Unit: Schemas — template instantiation naming", () => {
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeRecordString");
     expect(props.c.$ref).toBe("#/components/schemas/EnvelopeArrayString");
   });
+
+  it("names an instantiation after a named union argument (Envelope<Status> -> EnvelopeStatus)", async () => {
+    // A named union has a fixed identity, so the argument namer takes its
+    // declaration name. Every other union argument in this file is a
+    // template instantiation of a union, not a plain named union used as
+    // the argument. This input is the plain form.
+    const { builder, M } = await compileSchemas(t.code`
+      union Status { active: "active", closed: "closed" }
+      model Envelope<T> { body: T; }
+      @test("M")
+      model M { a: Envelope<Status>; }
+    `);
+    builder.buildSchema(M as Model);
+    const components = builder.getSchemas();
+    const props = components.M.properties as Record<string, any>;
+
+    expect(props.a.$ref).toBe("#/components/schemas/EnvelopeStatus");
+    expect((components.EnvelopeStatus as any).properties.body).toEqual({
+      $ref: "#/components/schemas/Status",
+    });
+  });
+
+  it("gives an anonymous union argument no name, so the instantiation inlines", async () => {
+    // An inline union such as `"a" | "b"` is an anonymous `Union`. Its
+    // `name` is `undefined`, so it has no fixed identity to name the
+    // instantiation after. The argument namer answers "unspeakable", and
+    // the whole instantiation then has no compact composed name. A `Model`
+    // argument can never reach this rule, because a model instantiation is
+    // always named. So only an inline union reaches it.
+    const { builder, M } = await compileSchemas(t.code`
+      model Envelope<T> { body: T; }
+      @test("M")
+      model M { a: Envelope<"a" | "b">; }
+    `);
+    builder.buildSchema(M as Model);
+    const components = builder.getSchemas();
+    const props = components.M.properties as Record<string, any>;
+
+    // The instantiation carries no `$ref`. It is written in place instead.
+    expect(props.a.$ref).toBeUndefined();
+    expect(props.a.properties.body).toEqual({ type: "string", enum: ["a", "b"] });
+    // No key was registered for it, under any name.
+    expect(Object.keys(components)).toEqual(["M"]);
+  });
+
+  it("keys a forced declaration of an anonymous-union instantiation by the per-argument fallback", async () => {
+    // The test above inlines, because a property use site prefers that for
+    // an instantiation with no compact composed name. A top-level
+    // declaration cannot inline. `buildDeclarationRef` turns the
+    // preference off, so the same unspeakable instantiation has to be
+    // keyed. The key then comes from the per-argument fallback text, with
+    // every character outside the AsyncAPI key charset Sep-encoded.
+    const { builder, M } = await compileSchemas(t.code`
+      model Envelope<T> { body: T; }
+      @test("M")
+      model M { a: Envelope<"a" | "b">; }
+    `);
+    const instantiation = (M as Model).properties.get("a")?.type as Model;
+    const ref = builder.buildDeclarationRef(instantiation) as any;
+
+    const key = "EnvelopeSep34ASep34Sep32Sep124Sep32Sep34BSep34";
+    expect(ref.$ref).toBe(`#/components/schemas/${key}`);
+    expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
+    const components = builder.getSchemas() as Record<string, any>;
+    expect(components[key].properties.body).toEqual({ type: "string", enum: ["a", "b"] });
+  });
 });

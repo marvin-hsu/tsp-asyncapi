@@ -79,10 +79,31 @@ export default defineConfig({
       // executes a decorator body. The readers that run only from `src`
       // stopped being counted, and that is where the points went.
       // Raise a floor as coverage grows; never lower one to fit a change.
+      //
+      // Measured on 2026-08-16, after the bindings phase and the
+      // coverage-debt pass. Before that pass, over 735 tests: statements
+      // 93.13, branches 85.69, functions 85.05, lines 92.34. After it, over
+      // 747 tests: statements 93.17, branches 86.91, functions 85.05, lines
+      // 92.40.
+      //
+      // The pass targeted branches alone, and branches carried the gain:
+      // 85.69 to 86.91, which is 17 more covered branches. Each of the
+      // twelve new tests was checked by mutation. The rule it covers was
+      // broken in the source, and the test had to turn red before it was
+      // kept.
+      //
+      // Only `functions` moves, from 83 to 84. Function coverage reads
+      // 85.05, so 84 still leaves about a point of headroom. The bindings
+      // phase earned that point, not this pass. The other three floors stay
+      // where they are. Each already sits one to two points under its
+      // measured value, which is the intended margin. Raising them further
+      // would leave no room for an ordinary refactor. Branches read 86.91
+      // against a floor of 85, and that margin is deliberate: the branch
+      // count is the number a refactor moves most.
       thresholds: {
         statements: 92,
         branches: 85,
-        functions: 83,
+        functions: 84,
         lines: 91,
       },
     },

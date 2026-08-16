@@ -300,6 +300,38 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { enum: ["eu"] } });
   });
 
+  it("rejects a parameter typed as a numeric enum member", async () => {
+    // A member whose value is a number names no string, so it is not a
+    // string type. `stringValuesOf` returns `undefined` for it, and the
+    // parameter is reported like any other non-string type. This is the
+    // same rule the whole-enum form follows. The existing member test uses
+    // a string-valued member, which takes the other side of the check.
+    const [, diagnostics] = await runner.compileAndDiagnose(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      enum Region {
+        one: 1,
+      }
+
+      @channel("orders.{region}")
+      interface OrderChannel {
+        publish(region: Region.one, event: OrderCreated): void;
+      }
+    `);
+
+    buildAsyncAPIDocument(runner.program, undefined, {});
+
+    expect([...diagnostics, ...runner.program.diagnostics].map((d) => d.code)).toContain(
+      "tsp-asyncapi/non-string-channel-param",
+    );
+  });
+
   it("names the values of a parameter typed as a union of enum members", async () => {
     await runner.compile(`
       @service(#{ title: "Orders" })

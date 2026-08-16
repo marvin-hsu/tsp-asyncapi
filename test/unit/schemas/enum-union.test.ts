@@ -192,6 +192,23 @@ describe("Unit: Schemas — enums and unions", () => {
     expect(props.c).toEqual({ type: "string", enum: ["Red"] });
   });
 
+  it("should build a number schema for a single numeric enum member reference", async () => {
+    // `buildEnumMemberSchema` reads the member's own value to decide the
+    // schema type. A member with a numeric value is a number, not a
+    // string. The other member tests use members whose value is a string,
+    // or members with no explicit value, which take their own name.
+    const { builder, M } = await compileSchemas(t.code`
+      enum Priority { Low: 1, High: 2 }
+      model ${t.model("M")} {
+        level: Priority.Low;
+      }
+    `);
+    builder.buildSchema(M);
+
+    const props = builder.getSchemas().M.properties as Record<string, any>;
+    expect(props.level).toEqual({ type: "number", enum: [1] });
+  });
+
   it("should build a schema for a union of enum members", async () => {
     const { builder, M } = await compileSchemas(t.code`
       enum Color { Red, Green }

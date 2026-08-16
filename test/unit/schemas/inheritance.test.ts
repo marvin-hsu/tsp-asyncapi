@@ -4,6 +4,7 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
+import { findNeverOverrideOfInheritedProperty } from "../../../src/builders/schemas/inheritance.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
   it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {
@@ -514,6 +515,19 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     expect(
       program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
     ).toBe(true);
+  });
+
+  it("should find no never-override when a never property matches no inherited name", async () => {
+    // A `never` property only matters when it hides a property the base
+    // declares. Here `extra` exists on the derived model alone, so the
+    // name lookup in the base finds nothing and the walk moves on. Every
+    // other case pins a `never` property that does hide an inherited one.
+    const { Derived } = await compileSchemas(t.code`
+      model Base { kept: string; }
+      model ${t.model("Derived")} extends Base { extra: never; }
+    `);
+
+    expect(findNeverOverrideOfInheritedProperty(Derived)).toBeUndefined();
   });
 
   it("should emit a plain anyOf for a @discriminated union, not yet reflecting its envelope semantics", async () => {

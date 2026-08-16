@@ -33,6 +33,22 @@ describe("Unit: Builders (Phase 1)", () => {
       expect(info.externalDocs?.url).toBe("https://example.com");
     });
 
+    it("should fall back to the default title when @service names none", async () => {
+      // `@service` takes its options as an optional argument, so a service
+      // can carry no title at all. `buildInfo` then reads `service.title`
+      // as `undefined` and falls back to `DEFAULT_DOCUMENT_TITLE`. Every
+      // other test names a title, so only this input reaches the fallback.
+      const { program } = await runner.compile(t.code`
+        @service
+        namespace ${t.namespace("Orders")} {}
+      `);
+      const services = listServices(program);
+      const info = buildInfo(program, services[0]);
+
+      expect(info.title).toBe("AsyncAPI Document");
+      expect(info.version).toBe("0.0.0");
+    });
+
     it("should extract full info from @info decorator", async () => {
       await runner.compile(`
         @service(#{ title: "My Service" })
@@ -68,6 +84,28 @@ describe("Unit: Builders (Phase 1)", () => {
       expect(tags).toHaveLength(2);
       expect(tags).toContainEqual({ name: "t1" });
       expect(tags).toContainEqual({ name: "t2" });
+    });
+
+    it("should take the description from the later @asyncTag when the first states none", async () => {
+      // The merge takes a field from whichever application states it, as
+      // long as the other one says nothing about it. Here the first
+      // application in source order carries no description and the second
+      // one does. So the second contributes it, and nothing conflicts.
+      // The existing merge tests all put the description on the first
+      // application, which leaves this direction untested.
+      const { TestTarget } = await runner.compile(t.code`
+        @asyncTag("orders")
+        @asyncTag("orders", #{ description: "Order events" })
+        namespace ${t.namespace("TestTarget")} {}
+      `);
+      const tags = buildTags(runner.program, TestTarget);
+
+      expect(tags).toEqual([{ name: "orders", description: "Order events" }]);
+      expect(
+        runner.program.diagnostics.filter(
+          (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
+        ),
+      ).toEqual([]);
     });
 
     it("should return undefined if no tags", async () => {

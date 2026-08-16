@@ -170,6 +170,39 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     });
   });
 
+  it("should hoist title, examples and format above the allOf when a validation keyword collides", async () => {
+    // The hoist carries every annotation above the `allOf`, not only the
+    // description. `@summary` becomes `title` and `@example` becomes
+    // `examples`. The other collision tests carry a description alone, so
+    // the title, examples and format sides of the hoist never ran. This
+    // input does not pin the order the wrapper merges `format` in. Only a
+    // base that carries its own `format` can tell that order apart, and
+    // this one does not. `@minLength` on the property collides with the
+    // scalar's own `@minLength`, which is what routes this through the
+    // hoist at all. The property's own `format` stays at the top level,
+    // above the `allOf`, rather than being left inside the branch.
+    const { builder } = await buildDocSchema(t.code`
+      @minLength(5)
+      scalar Key extends string;
+      model ${t.model("M")} {
+        @summary("The key")
+        @example("abcdef")
+        @format("uuid")
+        @minLength(8)
+        id: Key;
+      }
+    `);
+
+    const props = builder.getSchemas().M.properties as Record<string, any>;
+    expect(props.id).toEqual({
+      allOf: [{ type: "string", minLength: 5 }],
+      title: "The key",
+      examples: ["abcdef"],
+      minLength: 8,
+      format: "uuid",
+    });
+  });
+
   it("should keep an inherited scalar description at the top level when a derived scalar's own validation keyword collides", async () => {
     const { builder } = await buildDocSchema(t.code`
       @doc("Tight")
