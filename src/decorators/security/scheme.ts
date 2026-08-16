@@ -178,7 +178,7 @@ function normalizeScopes(
   const trimmed = scopes.map((scope) => scope.trim());
   // One diagnostic covers the whole list. Every blank entry is the same
   // mistake, so naming it once is enough.
-  if (trimmed.some((scope) => scope === "")) {
+  if (trimmed.includes("")) {
     reportDiagnostic(context.program, { code: "blank-security-scope-name", target });
   }
   return trimmed.filter((scope) => scope !== "");
