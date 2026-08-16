@@ -23,6 +23,7 @@ permissions:
   # enough for everything before it.
   contents: write
   id-token: write
+  packages: write
 
 jobs:
   publish:
@@ -75,6 +76,14 @@ jobs:
         run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        run: |
+          npm pkg set name="@${{ github.repository_owner }}/tsp-asyncapi"
+          pnpm publish --no-git-checks
+        env:
+          npm_config_registry: https://npm.pkg.github.com/
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The release notes are left for a person to write. This only records
       # that the version exists and points at the diff.

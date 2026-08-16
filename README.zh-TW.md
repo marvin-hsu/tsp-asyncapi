@@ -15,16 +15,11 @@
 
 ## 安裝
 
-尚未發佈到 npm。若要在本機試用：
+在你的 TypeSpec 專案中安裝這個 emitter：
 
 ```bash
-git clone <this repo>
-cd tsp-asyncapi
-pnpm install
-pnpm build
+pnpm add tsp-asyncapi
 ```
-
-接著在你的 TypeSpec 專案中引用，可以用 `file:` dependency 或 `pnpm link`。
 
 ## 使用方式
 

@@ -15,16 +15,11 @@ An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://type
 
 ## Installation
 
-This package is not yet published to npm. To try it locally:
+Install the emitter in your TypeSpec project:
 
 ```bash
-git clone <this repo>
-cd tsp-asyncapi
-pnpm install
-pnpm build
+pnpm add tsp-asyncapi
 ```
-
-Then reference it from your TypeSpec project, either as a local `file:` dependency or via `pnpm link`.
 
 ## Usage
 

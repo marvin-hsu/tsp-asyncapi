@@ -9,27 +9,11 @@
 
 ## 安裝
 
-這個套件尚未發佈到 npm。若要在本機試用：
+在你的 TypeSpec 專案中安裝這個套件：
 
 ```bash
-git clone https://github.com/marvin-hsu/tsp-asyncapi.git
-cd tsp-asyncapi
-pnpm install
-pnpm build
+pnpm add tsp-asyncapi
 ```
-
-接著在你的 TypeSpec 專案以本機依賴引用：
-
-```json
-// 你的 TypeSpec 專案的 package.json
-{
-  "dependencies": {
-    "tsp-asyncapi": "file:../tsp-asyncapi"
-  }
-}
-```
-
-（也可以用 `pnpm link`。）
 
 ## 產出第一份 AsyncAPI 文件
 
