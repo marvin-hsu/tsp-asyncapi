@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Lets a run be started by hand. Needed whenever the last push already
+  # happened and the result has to be produced again, such as after the
+  # workflow was disabled and re-enabled, or to redeploy the docs site
+  # without an empty commit.
+  workflow_dispatch:
 
 # A second push to the same branch makes the first run pointless. Without
 # this, both run to completion and compete for runners.
