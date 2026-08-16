@@ -141,6 +141,10 @@ export default defineConfig({
   themeConfig: {
     socialLinks: [
       {
+        icon: "npm",
+        link: "https://www.npmjs.com/package/tsp-asyncapi",
+      },
+      {
         icon: "github",
         link: "https://github.com/marvin-hsu/tsp-asyncapi",
       },
