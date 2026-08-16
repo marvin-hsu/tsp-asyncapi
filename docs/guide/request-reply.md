@@ -4,7 +4,7 @@ AsyncAPI 3 describes a request and reply exchange in two ways. This page shows b
 
 ## Operations come first
 
-An operation is what an application does over a channel. [`@send`](../reference/decorators#send) marks a message this application sends. [`@receive`](../reference/decorators#receive) marks a message it receives. Both actions are written from the point of view of this application, not from the point of view of the broker.
+An operation is what an application does over a channel. [`@send`](../reference/decorators/operations#send) marks a message this application sends. [`@receive`](../reference/decorators/operations#receive) marks a message it receives. Both actions are written from the point of view of this application, not from the point of view of the broker.
 
 ```typespec
 @message
@@ -75,7 +75,7 @@ operations:
 
 ### A reply over another channel
 
-Use [`@replyChannel`](../reference/decorators#replychannel) when the reply travels over a different channel. The argument is the interface or namespace that carries that channel, not the id of the channel.
+Use [`@replyChannel`](../reference/decorators/operations#replychannel) when the reply travels over a different channel. The argument is the interface or namespace that carries that channel, not the id of the channel.
 
 The reply message leaves the `messages` map of the request channel and joins the `messages` map of the reply channel. AsyncAPI reads that map as the messages that travel over that channel, and this reply travels over the reply channel.
 
@@ -83,9 +83,9 @@ So the reply channel needs no operation of its own. A channel that exists only t
 
 ### A reply address decided at runtime
 
-Use [`@replyAddress`](../reference/decorators#replyaddress) when the address of the reply is only known at runtime. The sender puts the address in the message, and the responder reads it from there.
+Use [`@replyAddress`](../reference/decorators/operations#replyaddress) when the address of the reply is only known at runtime. The sender puts the address in the message, and the responder reads it from there.
 
-AsyncAPI requires the address of the reply channel to be `null` in that case. So declare that channel with [`@dynamicChannel`](../reference/decorators#dynamicchannel).
+AsyncAPI requires the address of the reply channel to be `null` in that case. So declare that channel with [`@dynamicChannel`](../reference/decorators/channels#dynamicchannel).
 
 ```typespec
 @dynamicChannel
@@ -120,7 +120,7 @@ operations:
 
 ## The other style: two operations and a correlation id
 
-`reply` is not the only way to model request and reply. Two paired operations express the same exchange in a loosely coupled way. One application sends the request and receives the response. The other application does the inverse. A [`@correlationId`](../reference/decorators#correlationid) on each message tells a consumer which request a response answers.
+`reply` is not the only way to model request and reply. Two paired operations express the same exchange in a loosely coupled way. One application sends the request and receives the response. The other application does the inverse. A [`@correlationId`](../reference/decorators/messages#correlationid) on each message tells a consumer which request a response answers.
 
 ```typespec
 @message
@@ -164,5 +164,5 @@ The official `rpc-client` and `rpc-server` examples use this style. Both styles 
 
 ## Next steps
 
-- Browse the [Decorators](../reference/decorators) reference for exact signatures.
+- Browse the [Decorators](../reference/decorators/) reference for exact signatures.
 - When the emitter warns or errors, look it up in [Diagnostics](../reference/diagnostics).

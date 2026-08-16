@@ -1,3 +1,7 @@
+---
+outline: 2
+---
+
 # Diagnostics
 
 Every warning and error this emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `tsp-asyncapi/<code>`.
@@ -60,7 +64,7 @@ Two instantiations of one template that produce the same key are not reported â€
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-An application of [`@contentType`](./decorators#contenttype) passed the empty string. A blank media type names no format, so the emitter cannot write it into the message.
+An application of [`@contentType`](./decorators/messages#contenttype) passed the empty string. A blank media type names no format, so the emitter cannot write it into the message.
 
 The message falls back to the document `defaultContentType`, the same result an absent `@contentType` gives. The user typed the empty string on purpose, so that fallback is reported rather than silent.
 
@@ -102,7 +106,7 @@ A message declares headers from more than one source. The three sources are a fi
 
 > This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.
 
-An application of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) passed an empty string, or a string of whitespace only. A blank format names no schema language, so the emitter cannot write it into the message.
+An application of [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) passed an empty string, or a string of whitespace only. A blank format names no schema language, so the emitter cannot write it into the message.
 
 Nothing is recorded. The message falls back to the schema built from the model, the same result an absent decorator gives.
 
@@ -112,7 +116,7 @@ Nothing is recorded. The message falls back to the schema built from the model, 
 
 > The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.
 
-The `schema` argument of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) is a value the compiler cannot serialize to JSON. A custom scalar with its own `init` constructor is the usual cause.
+The `schema` argument of [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) is a value the compiler cannot serialize to JSON. A custom scalar with its own `init` constructor is the usual cause.
 
 This check does not require an object, unlike [`invalid-binding-config`](#invalid-binding-config). AsyncAPI types the `schema` field as `any`, so a string and an array are legal.
 
@@ -122,7 +126,7 @@ This check does not require an object, unlike [`invalid-binding-config`](#invali
 
 > '\<format\>' is not a JSON based schema language, so AsyncAPI requires its schema to be inlined as a string. This schema was given as an object, and it is emitted as written. Write the schema as a string, such as the text of the .proto definition, or name a format that is JSON based.
 
-The `schemaFormat` of [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) names a schema language that is not JSON based, and the `schema` argument is not a string. AsyncAPI states that such a schema must be inlined as a string. Protobuf is the example the specification gives, and the two Protobuf identifiers are the listed formats this rule covers.
+The `schemaFormat` of [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) names a schema language that is not JSON based, and the `schema` argument is not a string. AsyncAPI states that such a schema must be inlined as a string. Protobuf is the example the specification gives, and the two Protobuf identifiers are the listed formats this rule covers.
 
 The schema is emitted as written, the same choice [`unknown-schema-format`](#unknown-schema-format) makes. You decide which half to change.
 
@@ -132,7 +136,7 @@ The schema is emitted as written, the same choice [`unknown-schema-format`](#unk
 
 > This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
 
-The schema given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) carries a top-level `$ref` that starts with `#/`, and its `schemaFormat` is not the AsyncAPI Schema Object format. Such a reference points into the emitted document. Every schema this emitter writes there is an AsyncAPI Schema Object, so the target carries a different `schemaFormat` than the schema that refers to it.
+The schema given to [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) carries a top-level `$ref` that starts with `#/`, and its `schemaFormat` is not the AsyncAPI Schema Object format. Such a reference points into the emitted document. Every schema this emitter writes there is an AsyncAPI Schema Object, so the target carries a different `schemaFormat` than the schema that refers to it.
 
 Only the top level of the raw schema is read. A reference nested deeper is written in the schema language itself, and the emitter does not read that language.
 
@@ -142,7 +146,7 @@ Only the top level of the raw schema is read. A reference nested deeper is writt
 
 > This schema refers to '\<ref\>', and the emitted document holds nothing there. A reference that starts with '#/' points into this document, and the emitter writes every location it can reach. A parser rejects the document as written. Note that a model reaches components.schemas only when some message uses it, and a @rawPayload model is not such a message. Point at a location the document holds, or inline the definition instead of referring to it.
 
-The schema given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) carries a top-level `$ref` that starts with `#/`, and the finished document holds nothing at that location. The emitter copies a raw schema exactly as written, so the reference is yours. A `#/` reference points into the emitted document, and the emitter owns every location there. So it can say that this one is missing.
+The schema given to [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) carries a top-level `$ref` that starts with `#/`, and the finished document holds nothing at that location. The emitter copies a raw schema exactly as written, so the reference is yours. A `#/` reference points into the emitted document, and the emitter owns every location there. So it can say that this one is missing.
 
 The common cause is a reference to the raw model itself, such as `#/components/schemas/OrderCreated` on the model `OrderCreated`. A `@rawPayload` model claims no `components.schemas` key of its own, so that target only exists when another message reaches the same model.
 
@@ -212,7 +216,7 @@ An application of `@messageExample` gave an empty value, or gave only `name` and
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-An application of [`@asyncTag`](./decorators#asynctag) passed the empty string as the tag name. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
+An application of [`@asyncTag`](./decorators/document-info#asynctag) passed the empty string as the tag name. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
 
 **Fix:** give the tag a name.
 
@@ -220,7 +224,7 @@ An application of [`@asyncTag`](./decorators#asynctag) passed the empty string a
 
 > Tag '\<name\>' is declared more than once here, with a different '\<field\>'. AsyncAPI emits one Tag Object per name on an object, so only one of the two values can be kept. The first one in source order was kept. Merge the @asyncTag applications into one, or give them different names.
 
-Two applications of [`@asyncTag`](./decorators#asynctag) on one target name the same tag and give one of its fields two different values. AsyncAPI emits one Tag Object per name on an object, so one of the two values would have to be dropped. The emitter reports the ambiguity rather than choosing silently.
+Two applications of [`@asyncTag`](./decorators/document-info#asynctag) on one target name the same tag and give one of its fields two different values. AsyncAPI emits one Tag Object per name on an object, so one of the two values would have to be dropped. The emitter reports the ambiguity rather than choosing silently.
 
 Applications that set _different_ fields merge instead, and so do a built-in `@tag` and an `@asyncTag` of the same name. The same name on two _different_ targets is never a conflict: AsyncAPI gives every object its own independent `tags` array.
 
@@ -438,6 +442,32 @@ The runtime expression is outside the grammar. It must start with `$message.head
 
 **Fix:** write the expression in that form, such as `$message.header#/replyTo`.
 
+The five codes below come from the protocol bindings. See [Protocol Bindings](/reference/bindings) for the decorators that report them.
+
+### `duplicate-binding`
+
+> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
+
+One protocol is claimed twice at one level on one target. `@binding("kafka", ...)` next to `@kafkaChannel` is the same mistake, because both write the `kafka` member.
+
+**Fix:** keep one of the two decorators.
+
+### `empty-binding-protocol`
+
+> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
+
+The protocol name becomes a key in the emitted document. A blank key names nothing.
+
+**Fix:** name the protocol.
+
+### `invalid-binding-config`
+
+> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
+
+AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
+
+**Fix:** write the config as an object value.
+
 ## Warnings
 
 ### `channel-no-messages`
@@ -486,7 +516,7 @@ The named target carries no channel that reached the document. The whole `reply`
 
 A reply address is what the address of the reply channel is at runtime. A channel that already carries an address would then state two addresses, which AsyncAPI forbids.
 
-**Fix:** declare the reply channel with [`@dynamicChannel`](./decorators#dynamicchannel), or remove the `@replyAddress`.
+**Fix:** declare the reply channel with [`@dynamicChannel`](./decorators/channels#dynamicchannel), or remove the `@replyAddress`.
 
 ### `reply-without-action`
 
@@ -547,8 +577,6 @@ A URL field holds a value that is not an absolute URL. A relative reference such
 Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
-
-## Warnings
 
 ### `undeclared-server-variable`
 
@@ -628,7 +656,7 @@ The name given to `@message` falls outside the Components Object key charset, so
 
 > '\<format\>' is not one of the schemaFormat values AsyncAPI requires or recommends. A custom value is legal, so this one is still emitted. A custom value must not be one of the listed identifiers used with another meaning. Check the spelling, and note that every listed value carries a version, such as 'application/vnd.apache.avro;version=1.9.0'.
 
-The `schemaFormat` given to [`@rawPayload`](./decorators#rawpayload) or [`@rawHeaders`](./decorators#rawheaders) is outside the list AsyncAPI names. The list holds the values a tool must support and the values the specification recommends. A missing `;version=` part is the usual cause.
+The `schemaFormat` given to [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) is outside the list AsyncAPI names. The list holds the values a tool must support and the values the specification recommends. A missing `;version=` part is the usual cause.
 
 The value is still emitted, because the specification allows a custom value. The specification also states that a custom value must not collide with a listed one. The emitter cannot check that rule, because it cannot see that a listed identifier now carries another meaning. So the warning carries the rule.
 
@@ -723,36 +751,6 @@ An overriding property's `@encodedName` differs from the same-named ancestor pro
 A property is declared `never` to remove an inherited property, but the base's `$ref` branch would still require it. As above, the emitter flattens the schema (with the `never`-typed property omitted).
 
 **Fix:** none needed if flattening is acceptable â€” this warning documents the shape change. Otherwise restructure the hierarchy so the property isn't inherited in the first place.
-
-## Errors
-
-The five codes below come from the protocol bindings. See [Protocol Bindings](/reference/bindings) for the decorators that report them.
-
-### `duplicate-binding`
-
-> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
-
-One protocol is claimed twice at one level on one target. `@binding("kafka", ...)` next to `@kafkaChannel` is the same mistake, because both write the `kafka` member.
-
-**Fix:** keep one of the two decorators.
-
-### `empty-binding-protocol`
-
-> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
-
-The protocol name becomes a key in the emitted document. A blank key names nothing.
-
-**Fix:** name the protocol.
-
-### `invalid-binding-config`
-
-> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
-
-AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
-
-**Fix:** write the config as an object value.
-
-## Warnings
 
 ### `binding-outside-document`
 

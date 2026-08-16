@@ -2,15 +2,11 @@
 
 [English](./README.md) | 繁體中文
 
-[TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。用 TypeSpec 描述事件驅動 API，從單一事實來源（single source of truth）產出完整的 AsyncAPI 文件。
+[TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。用 TypeSpec 描述事件驅動 API，並產出完整的 AsyncAPI 文件。
 
-> **狀態：開發中。** 目前 emitter 產出文件骨架與 `info` 中繼資料（title、version、contact、license、tags、external docs）。TypeSpec → AsyncAPI schema 轉換層（model、scalar、array、record、enum、union、繼承、discriminator、驗證關鍵字）已實作並有單元測試，但尚未接進輸出檔，會與 message payload 一起接上。Channel、operation、message、server、security、protocol binding 仍在開發中。
+> **狀態：即將發佈初版 (M4)。** 產生器目前可輸出完整的 AsyncAPI 3.1 文件。Channels、operations、messages、schemas、servers、security schemes 以及 protocol bindings（包含 Kafka）皆已實作，並可通過官方的 AsyncAPI 驗證器檢查。多檔案輸出與跨檔案 `$ref` 的元件共用機制仍在開發中。
 
 📖 **文件請看 [docs 網站](https://marvin-hsu.github.io/tsp-asyncapi/)**：快速開始、經過驗證的 schema 轉換範例、完整的 decorator / 選項 / 診斷參考。提供英文與臺灣正體中文。
-
-## 為什麼做這個
-
-TypeSpec 對 OpenAPI 已有成熟的一級支援。事件驅動契約（message queue、streaming topic）這邊的 AsyncAPI 生態還很早期。這個專案實作這個 emitter，讓 HTTP API 跟非同步 API 可以共存在同一個 TypeSpec workspace。
 
 ## 環境需求
 
@@ -194,6 +190,11 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — 在 interface 或 namespace 上宣告一個 channel。
 - `@AsyncAPI.send` / `@AsyncAPI.receive` — 把一個 operation 標記成本應用送出或接收的 message。
 - `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — 描述 operation 的回覆。見文件站台的 Request 與 Reply 一章。
+- `@AsyncAPI.message` — 把 model 標記為一個 message。
+- `@AsyncAPI.server` / `@AsyncAPI.useServer` / `@AsyncAPI.serverVariable` — 宣告並參照 server 設定。
+- `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — 宣告並套用安全機制 (security schemes)。
+- `@AsyncAPI.binding` — 加上通用的 protocol binding 設定。
+- `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — 加上 Kafka 專屬的 binding 設定。
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
@@ -217,15 +218,6 @@ pnpm docs:build     # 建置文件站台。
 - **api-extractor** — 追蹤公開 API 介面（`pnpm api-extractor:local`）。
 - **knip** — 找出未使用的程式碼與依賴（`pnpm knip`）。
 - **husky + lint-staged** — 每次 commit 前執行 lint 與 format 檢查。
-
-## Roadmap
-
-- [x] 文件骨架、`info`、tags、external docs。
-- [x] TypeSpec → AsyncAPI schema 轉換（model、scalar、array、record、enum、union、繼承、驗證）。
-- [ ] Channel、operation（send/receive）、message 的 decorator。
-- [ ] 將 TypeSpec model 對應為 AsyncAPI message payload。
-- [ ] Server 與 protocol binding，優先支援 Kafka。
-- [ ] 發佈到 npm。
 
 ## 授權
 

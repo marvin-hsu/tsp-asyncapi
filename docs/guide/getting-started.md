@@ -1,20 +1,6 @@
 # Getting Started
 
-`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document from that one source of truth.
-
-## What the emitter produces today
-
-This project is a work in progress. Knowing exactly what you get — and what you don't get yet — is the first thing to understand.
-
-| Part of the AsyncAPI document                                                    | Status                                                                                                                                      |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Document skeleton (`asyncapi`, `id`, `defaultContentType`)                       | ✅ Emitted                                                                                                                                  |
-| `info` block: title, version, description, contact, license, tags, external docs | ✅ Emitted                                                                                                                                  |
-| `channels`, `operations`, `messages`                                             | ✅ Emitted — see [Request and Reply](./request-reply)                                                                                       |
-| `components.schemas` (model → schema conversion)                                 | 🚧 Conversion layer is implemented and fully unit-tested, but not yet wired into the emitted file. It lands together with message payloads. |
-| Servers, security, protocol bindings (Kafka first)                               | 🚧 Planned                                                                                                                                  |
-
-In short: today you can model your event contracts in TypeSpec, get a valid AsyncAPI 3.1.0 document with complete `info` metadata, and rely on the [schema conversion rules](./schema-conversion) when designing your models — those rules are stable and tested, and your models will flow into the document unchanged once message support lands.
+`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document.
 
 ## Requirements
 
@@ -127,7 +113,7 @@ Without `@service`, the document still emits, with the fallback `info: { title: 
 
 ## Next steps
 
-- Design your event payload models with the [Schema Conversion](./schema-conversion) rules — verified input/output pairs for every supported construct.
+- Design your event payload models with the [Schema Conversion](./schema-conversion/) rules — verified input/output pairs for every supported construct.
 - See all configuration knobs in [Emitter Options](../reference/emitter-options).
-- Browse the [Decorators](../reference/decorators) reference for exact signatures.
+- Browse the [Decorators](../reference/decorators/) reference for exact signatures.
 - When the emitter warns or errors, look it up in [Diagnostics](../reference/diagnostics).

@@ -1,20 +1,6 @@
 # 快速開始
 
-`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 從這份單一事實來源產出 AsyncAPI 文件。
-
-## emitter 現在產出什麼
-
-這個專案還在開發中。先弄清楚現在拿得到什麼、還拿不到什麼。
-
-| AsyncAPI 文件的部分                                                             | 狀態                                                                                 |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 文件骨架（`asyncapi`、`id`、`defaultContentType`）                              | ✅ 已輸出                                                                            |
-| `info` 區塊：title、version、description、contact、license、tags、external docs | ✅ 已輸出                                                                            |
-| `channels`、`operations`、`messages`                                            | ✅ 已輸出。見 [Request 與 Reply](./request-reply)。                                  |
-| `components.schemas`（model → schema 轉換）                                     | 🚧 轉換層已實作並有完整單元測試，但尚未接進輸出檔。它會和 message payload 一起接上。 |
-| server、security、protocol binding（Kafka 優先）                                | 🚧 規劃中                                                                            |
-
-簡言之：你現在就能用 TypeSpec 建模事件契約，拿到一份合規的 AsyncAPI 3.1.0 文件與完整的 `info` 中繼資料。設計 model 時可以依 [Schema 轉換](./schema-conversion) 的規則進行。這些規則穩定且有測試。message 支援接上後，你的 model 會原樣進入文件。
+`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 會為你產出 AsyncAPI 文件。
 
 ## 環境需求
 
@@ -127,7 +113,7 @@ components: {}
 
 ## 下一步
 
-- 依 [Schema 轉換](./schema-conversion) 的規則設計事件 payload model。每個構件都有驗證過的輸入輸出對照。
+- 依 [Schema 轉換](./schema-conversion/) 的規則設計事件 payload model。每個構件都有驗證過的輸入輸出對照。
 - 到 [Emitter 選項](../reference/emitter-options) 查看所有設定。
-- 到 [Decorator](../reference/decorators) 查看精確的簽章。
+- 到 [Decorator](../reference/decorators/) 查看精確的簽章。
 - 遇到警告或錯誤時，查 [診斷訊息](../reference/diagnostics)。

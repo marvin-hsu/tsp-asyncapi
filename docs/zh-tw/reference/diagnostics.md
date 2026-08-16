@@ -1,3 +1,7 @@
+---
+outline: 2
+---
+
 # 診斷訊息
 
 本頁列出 emitter 會回報的所有警告與錯誤，附原因與修法。診斷代碼在 compiler 輸出中顯示為 `tsp-asyncapi/<code>`。
@@ -60,7 +64,7 @@
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-[`@contentType`](./decorators#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
+[`@contentType`](./decorators/messages#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
 
 這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報出來，不會靜默發生。
 
@@ -102,7 +106,7 @@
 
 > This decorator was given an empty schemaFormat. A blank schemaFormat names no schema language, so it cannot reach the emitted message. This decorator was dropped, and the message falls back to the schema built from the model. Give it a format, such as 'application/vnd.apache.avro;version=1.9.0'.
 
-[`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 收到空字串，或只有空白字元的字串。空白的 `schemaFormat` 沒有指出任何 schema 語言，emitter 無法把它寫進 message。
+[`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 收到空字串，或只有空白字元的字串。空白的 `schemaFormat` 沒有指出任何 schema 語言，emitter 無法把它寫進 message。
 
 emitter 不會記錄任何東西。該 message 退回使用從 model 建出來的 schema，結果與沒有寫這個 decorator 相同。
 
@@ -112,7 +116,7 @@ emitter 不會記錄任何東西。該 message 退回使用從 model 建出來�
 
 > The schema given to this decorator cannot be represented as JSON, so it would write nothing into the document. This decorator was dropped, and the message falls back to the schema built from the model. Write the schema as a value the emitter can serialize, such as an object value or a string.
 
-傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schema` 引數，compiler 無法序列化成 JSON。常見原因是自訂 scalar 帶有自己的 `init` 建構式。
+傳給 [`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schema` 引數，compiler 無法序列化成 JSON。常見原因是自訂 scalar 帶有自己的 `init` 建構式。
 
 這個檢查不要求 object，與 [`invalid-binding-config`](#invalid-binding-config) 不同。AsyncAPI 把 `schema` 欄位定義為 `any`，所以字串與陣列都合法。
 
@@ -122,7 +126,7 @@ emitter 不會記錄任何東西。該 message 退回使用從 model 建出來�
 
 > '\<format\>' is not a JSON based schema language, so AsyncAPI requires its schema to be inlined as a string. This schema was given as an object, and it is emitted as written. Write the schema as a string, such as the text of the .proto definition, or name a format that is JSON based.
 
-[`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schemaFormat` 指的是非 JSON 基礎的 schema 語言，而 `schema` 引數不是字串。AsyncAPI 規定這種 schema 必須以字串內嵌。規格舉的例子是 Protobuf，表列格式中適用這條規則的就是兩個 Protobuf 識別字。
+[`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schemaFormat` 指的是非 JSON 基礎的 schema 語言，而 `schema` 引數不是字串。AsyncAPI 規定這種 schema 必須以字串內嵌。規格舉的例子是 Protobuf，表列格式中適用這條規則的就是兩個 Protobuf 識別字。
 
 schema 仍照原樣輸出，與 [`unknown-schema-format`](#unknown-schema-format) 的處理一致。要改哪一邊由你決定。
 
@@ -132,7 +136,7 @@ schema 仍照原樣輸出，與 [`unknown-schema-format`](#unknown-schema-format
 
 > This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
 
-傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，而它的 `schemaFormat` 不是 AsyncAPI Schema Object 格式。這種 reference 指向輸出的文件本身。emitter 寫進該文件的每一個 schema 都是 AsyncAPI Schema Object，所以被指向的一端與指向它的 schema 帶有不同的 `schemaFormat`。
+傳給 [`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，而它的 `schemaFormat` 不是 AsyncAPI Schema Object 格式。這種 reference 指向輸出的文件本身。emitter 寫進該文件的每一個 schema 都是 AsyncAPI Schema Object，所以被指向的一端與指向它的 schema 帶有不同的 `schemaFormat`。
 
 emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用該 schema 語言自己寫的，emitter 不讀那個語言。
 
@@ -142,7 +146,7 @@ emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用�
 
 > This schema refers to '\<ref\>', and the emitted document holds nothing there. A reference that starts with '#/' points into this document, and the emitter writes every location it can reach. A parser rejects the document as written. Note that a model reaches components.schemas only when some message uses it, and a @rawPayload model is not such a message. Point at a location the document holds, or inline the definition instead of referring to it.
 
-傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，但完成的文件在那個位置沒有任何內容。emitter 照原樣複製 raw schema，所以這個 reference 是你寫的。以 `#/` 開頭的 reference 指向輸出的文件本身，該文件的每個位置都由 emitter 產生。所以 emitter 可以判定這一個不存在。
+傳給 [`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 schema，最外層帶有以 `#/` 開頭的 `$ref`，但完成的文件在那個位置沒有任何內容。emitter 照原樣複製 raw schema，所以這個 reference 是你寫的。以 `#/` 開頭的 reference 指向輸出的文件本身，該文件的每個位置都由 emitter 產生。所以 emitter 可以判定這一個不存在。
 
 常見原因是指向 raw model 自己，例如在 model `OrderCreated` 上寫 `#/components/schemas/OrderCreated`。帶 `@rawPayload` 的 model 不會佔用自己的 `components.schemas` key。只有在另一個 message 也引用到同一個 model 時，那個位置才存在。
 
@@ -212,7 +216,7 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-某次 [`@asyncTag`](./decorators#asynctag) 套用把空字串當成 tag 名稱。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
+某次 [`@asyncTag`](./decorators/document-info#asynctag) 套用把空字串當成 tag 名稱。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
 
 **修法：** 為該 tag 補上名稱。
 
@@ -220,7 +224,7 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 > Tag '\<name\>' is declared more than once here, with a different '\<field\>'. AsyncAPI emits one Tag Object per name on an object, so only one of the two values can be kept. The first one in source order was kept. Merge the @asyncTag applications into one, or give them different names.
 
-同一個 target 上兩次套用 [`@asyncTag`](./decorators#asynctag) 指到同一個 tag 名稱，而且同一個欄位給了兩個不同的值。AsyncAPI 在一個物件上，同一個名字只輸出一個 Tag Object，兩個值必定有一個要被丟掉。emitter 回報這個歧義，不自行挑選。
+同一個 target 上兩次套用 [`@asyncTag`](./decorators/document-info#asynctag) 指到同一個 tag 名稱，而且同一個欄位給了兩個不同的值。AsyncAPI 在一個物件上，同一個名字只輸出一個 Tag Object，兩個值必定有一個要被丟掉。emitter 回報這個歧義，不自行挑選。
 
 若兩次套用設定的是*不同*欄位，則會合併；內建 `@tag` 與同名的 `@asyncTag` 也會合併。同一個名字出現在兩個*不同*的 target 上永遠不算衝突：AsyncAPI 讓每個物件各自持有獨立的 `tags` 陣列。
 
@@ -438,6 +442,32 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 
 **修法：** 照該格式撰寫，例如 `$message.header#/replyTo`。
 
+以下五個代碼來自通訊協定 binding。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings)。
+
+### `duplicate-binding`
+
+> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
+
+同一個 target 的同一層級上，一個通訊協定被宣告兩次。`@binding("kafka", ...)` 與 `@kafkaChannel` 並存也是同一個錯誤，因為兩者都寫 `kafka` 成員。
+
+**修法：** 兩個 decorator 只留一個。
+
+### `empty-binding-protocol`
+
+> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
+
+通訊協定名稱會成為輸出文件中的 key。空白的 key 沒有指到任何東西。
+
+**修法：** 填入通訊協定名稱。
+
+### `invalid-binding-config`
+
+> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
+
+AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
+
+**修法：** 把設定寫成物件值。
+
 ## 警告
 
 ### `channel-no-messages`
@@ -486,7 +516,7 @@ operation 一定要指向一個 channel。缺少 channel 可能是因為該 targ
 
 回覆位址就是回覆 channel 在執行期的位址。已經帶有 address 的 channel 會因此有兩個位址，AsyncAPI 不允許這種寫法。
 
-**修法：** 用 [`@dynamicChannel`](./decorators#dynamicchannel) 宣告回覆 channel，或移除 `@replyAddress`。
+**修法：** 用 [`@dynamicChannel`](./decorators/channels#dynamicchannel) 宣告回覆 channel，或移除 `@replyAddress`。
 
 ### `reply-without-action`
 
@@ -547,8 +577,6 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
 
 **修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
-
-## 警告
 
 ### `undeclared-server-variable`
 
@@ -628,7 +656,7 @@ server 變數的 `enum` 或 `examples` 有項目是空字串，或只有空白�
 
 > '\<format\>' is not one of the schemaFormat values AsyncAPI requires or recommends. A custom value is legal, so this one is still emitted. A custom value must not be one of the listed identifiers used with another meaning. Check the spelling, and note that every listed value carries a version, such as 'application/vnd.apache.avro;version=1.9.0'.
 
-傳給 [`@rawPayload`](./decorators#rawpayload) 或 [`@rawHeaders`](./decorators#rawheaders) 的 `schemaFormat` 不在 AsyncAPI 列出的值裡面。該清單包含工具必須支援的值，以及規格建議的值。常見原因是漏了 `;version=` 這一段。
+傳給 [`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schemaFormat` 不在 AsyncAPI 列出的值裡面。該清單包含工具必須支援的值，以及規格建議的值。常見原因是漏了 `;version=` 這一段。
 
 這個值仍然會輸出，因為規格允許自訂值。規格同時規定，自訂值不得與清單中的識別字撞名。emitter 無法檢查這條規則，因為它看不出清單中的識別字被賦予了另一種意義。所以這條規則寫在警告訊息裡。
 
@@ -723,36 +751,6 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 屬性宣告為 `never` 以移除繼承屬性，但基底的 `$ref` 分支仍會要求它。emitter 同樣改為攤平 schema（`never` 屬性省略）。
 
 **修法：** 若攤平可接受則不需處理，此警告只說明形狀改變。否則調整繼承結構，讓該屬性一開始就不被繼承。
-
-## 錯誤
-
-以下五個代碼來自通訊協定 binding。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings)。
-
-### `duplicate-binding`
-
-> The protocol '\<protocol\>' already has a binding at the \<level\> level on this target. A Bindings Object carries one member per protocol, and two configurations are neither merged nor allowed to overwrite each other. This binding was dropped, and the first one in source order was kept. Keep one of the two, and note that @binding("\<protocol\>", ...) claims the same member as the decorator named after that protocol.
-
-同一個 target 的同一層級上，一個通訊協定被宣告兩次。`@binding("kafka", ...)` 與 `@kafkaChannel` 並存也是同一個錯誤，因為兩者都寫 `kafka` 成員。
-
-**修法：** 兩個 decorator 只留一個。
-
-### `empty-binding-protocol`
-
-> The protocol name given to @binding is blank. The name becomes a member name of the emitted `bindings` object, and a blank member name is not legal. This binding was dropped. Name the protocol, such as `kafka` or `mqtt`.
-
-通訊協定名稱會成為輸出文件中的 key。空白的 key 沒有指到任何東西。
-
-**修法：** 填入通訊協定名稱。
-
-### `invalid-binding-config`
-
-> The config given to @binding("\<protocol\>", ...) is not an object. Every member of a Bindings Object is an object, so this binding was dropped. Write the config as an object value, such as #{ qos: 2 }.
-
-AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
-
-**修法：** 把設定寫成物件值。
-
-## 警告
 
 ### `binding-outside-document`
 

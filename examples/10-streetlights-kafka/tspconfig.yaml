@@ -1,0 +1,5 @@
+emit:
+  - "tsp-asyncapi"
+options:
+  tsp-asyncapi:
+    emitter-output-dir: "{project-root}"
