@@ -20,28 +20,22 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],
-      include: ["src/**/*.ts", "dist/src/**/*.js"],
-      // Both the sources and the build output are collected, and the
-      // report maps back to the sources through the source maps that
-      // `tsconfig.build.json` now emits. That is the only way the decorators
-      // are counted at all: `lib/main.tsp` imports `../dist/src/tsp-index.js`,
-      // so the compiler runs them from the build output while the tests drive
-      // them. Collecting the sources alone reported `server.ts` at 10%, with
-      // twenty tests exercising it.
+      include: ["src/**/*.ts", "dist/src/decorators/**/*.js"],
+      // The sources, plus the build output of the decorators only.
       //
-      // The source copy of every decorator module is left out again, and
-      // only the build output of those modules is counted. The builders
-      // import the decorator modules from `src`, so the source copy is
-      // loaded. Its decorator functions never run, because the compiler
-      // calls the build output instead. The source copy therefore reports
-      // an all-zero branch set for those functions. The two copies map onto
-      // one source path, and the merge does not combine their branch maps.
-      // The zeros survive in the denominator and are counted a second time.
-      // Measured: without this line branches read 84.59% (1131/1337), and
-      // with it they read 87.37% (1066/1220). No test changed between the
-      // two runs. The cost is that a decorator reader function called from
-      // `src` alone, such as `getServers`, is no longer counted, which is
-      // why lines and functions each fall about three points.
+      // A decorator module is live twice at run time. `lib/main.tsp` imports
+      // `../dist/src/tsp-index.js`, so the compiler runs decorator bodies from
+      // the build output, while a test that imports a builder loads the `src`
+      // copy of the same file. Collecting `dist/src/**` wholesale gave every
+      // builder a second entry on the same source path, and the two coverage
+      // maps are concatenated rather than merged: 225 functions were listed
+      // twice, 40 of them with a zero twin. That inflated both halves of the
+      // ratio and made added tests look like they changed nothing.
+      //
+      // So each file is collected from exactly one place. Decorators come from
+      // `dist`, because that is where their bodies run, and `src/decorators/**`
+      // is excluded below to keep the pair from returning. Everything else
+      // comes from `src`.
       exclude: [
         "src/decorators/**/*.ts",
         "src/index.ts",
@@ -49,62 +43,22 @@ export default defineConfig({
         "test/**",
         "src/testing/**/*.ts",
       ],
-      // A floor, not a target. Each number sits several points under what
-      // the suite reaches, because a refactor moves coverage in both
-      // directions at once: deleting well-tested code takes away covered
-      // lines while new branches arrive uncovered. Thresholds set just under
-      // the current value turn every such change into a failure that says
-      // nothing about quality. New code is held to a higher bar by the
-      // SonarCloud gate, which is where growth belongs.
+      // A floor, not a target, and set against the honest measurement taken
+      // on 2026-08-16 after the duplicate entries were removed: statements
+      // 91.03, branches 83.82, functions 87.34, lines 91.87.
       //
-      // Measured on 2026-08-16, over 603 tests: statements 94.23, branches
-      // 87.37, functions 85.44, lines 93.63.
+      // Branches cannot reach 100 here. v8-to-istanbul emits a second, empty
+      // location for every `if` that has no `else`, and that slot is never
+      // taken by anything. 94 of the 1212 branch slots are these phantoms, so
+      // the real ceiling is about 92 percent. Read 83.82 against 92, not
+      // against 100, before deciding a gap is worth chasing.
       //
-      // The branch floor was 83 for one phase. That phase landed with weaker
-      // branch coverage than the rest of this codebase, and the floor was
-      // lowered to let it land. That reason no longer holds. Two things
-      // closed the gap. The double counting described above left the report,
-      // and the server tests now cover the branches the phase left open.
-      // Branches read 87.37, so the floor moves to 85.
-      //
-      // Do not lower any of these again to make a change fit. Raise the
-      // floor instead, once a measured run stays several points above it.
-      // Measured with Phase 5 merged, 2026-08-16: statements 93.53,
-      // branches 87.10, functions 84.41, lines 92.93. `lines` and
-      // `functions` each sit about three points lower than before this
-      // file stopped collecting `src/decorators/**`. That is a change of
-      // measurement, not lost testing: a decorator module loads twice at
-      // run time, from `src` when a test imports a builder and from
-      // `dist` when the compiler runs it, and only the `dist` copy ever
-      // executes a decorator body. The readers that run only from `src`
-      // stopped being counted, and that is where the points went.
-      // Raise a floor as coverage grows; never lower one to fit a change.
-      //
-      // Measured on 2026-08-16, after the bindings phase and the
-      // coverage-debt pass. Before that pass, over 735 tests: statements
-      // 93.13, branches 85.69, functions 85.05, lines 92.34. After it, over
-      // 747 tests: statements 93.17, branches 86.91, functions 85.05, lines
-      // 92.40.
-      //
-      // The pass targeted branches alone, and branches carried the gain:
-      // 85.69 to 86.91, which is 17 more covered branches. Each of the
-      // twelve new tests was checked by mutation. The rule it covers was
-      // broken in the source, and the test had to turn red before it was
-      // kept.
-      //
-      // Only `functions` moves, from 83 to 84. Function coverage reads
-      // 85.05, so 84 still leaves about a point of headroom. The bindings
-      // phase earned that point, not this pass. The other three floors stay
-      // where they are. Each already sits one to two points under its
-      // measured value, which is the intended margin. Raising them further
-      // would leave no room for an ordinary refactor. Branches read 86.91
-      // against a floor of 85, and that margin is deliberate: the branch
-      // count is the number a refactor moves most.
+      // Raise a floor as coverage grows. Never lower one to make a change fit.
       thresholds: {
-        statements: 92,
-        branches: 85,
-        functions: 84,
-        lines: 91,
+        statements: 89,
+        branches: 82,
+        functions: 85,
+        lines: 90,
       },
     },
   },
