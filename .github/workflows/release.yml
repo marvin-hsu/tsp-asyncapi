@@ -26,14 +26,11 @@ permissions:
   packages: write
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
-          # On a tag push this is already the tag. On a manual run the
-          # workflow starts from the default branch, so the tag has to be
-          # asked for by name.
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
@@ -45,9 +42,6 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          # Points npm at the public registry and tells it to read
-          # NODE_AUTH_TOKEN, which the publish step supplies.
-          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,6 +66,30 @@ jobs:
       - name: Verify
         run: pnpm check
 
+  publish-npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          # Points npm at the public registry and tells it to read
+          # NODE_AUTH_TOKEN, which the publish step supplies.
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Publish to npm
         run: pnpm publish --access public --no-git-checks
         env:
@@ -85,6 +103,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   publish-github-packages:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
