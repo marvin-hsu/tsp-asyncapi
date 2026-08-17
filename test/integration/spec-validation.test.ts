@@ -40,16 +40,16 @@ describe("AsyncAPI emitted document", () => {
     expect(doc.operations).toEqual({
       sendOrderCreated: {
         action: "send",
-        channel: { $ref: "#/channels/OrderChannel" },
+        channel: { $ref: "#/channels/orders.created" },
         title: "Publish an order event",
         description: "Sends one event for every order a customer places.",
-        messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+        messages: [{ $ref: "#/channels/orders.created/messages/OrderCreated" }],
       },
       onOrderCreated: {
         action: "receive",
-        channel: { $ref: "#/channels/OrderChannel" },
+        channel: { $ref: "#/channels/orders.created" },
         title: "Consume an order event",
-        messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+        messages: [{ $ref: "#/channels/orders.created/messages/OrderCreated" }],
       },
     });
     await expect(doc).toBeValidAsyncAPI();
@@ -122,7 +122,7 @@ describe("AsyncAPI emitted document", () => {
     `);
 
     expect(doc.channels).toEqual({
-      OrderChannel: {
+      "orders.{region}.created": {
         address: "orders.{region}.created",
         title: "Order events",
         description: "Every order a customer places lands here.",
@@ -179,7 +179,7 @@ describe("AsyncAPI emitted document", () => {
         bindingVersion: "0.5.0",
       },
     });
-    expect(doc.channels.OrderChannel.bindings).toEqual({
+    expect(doc.channels["orders.created"].bindings).toEqual({
       kafka: {
         topic: "orders.created",
         partitions: 12,
@@ -233,7 +233,7 @@ describe("AsyncAPI emitted document", () => {
 
     // The member is `ws`. The official parser is the authority on that name,
     // so this test asserts the shape and then hands the document to it.
-    expect(doc.channels.TickStream.bindings).toEqual({
+    expect(doc.channels["/ticks"].bindings).toEqual({
       ws: {
         method: "GET",
         query: { type: "object", properties: { token: { type: "string" } } },
@@ -312,7 +312,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.EventChannel.bindings.amqp.exchange).toEqual({
+    expect(doc.channels["events.created"].bindings.amqp.exchange).toEqual({
       name: "events",
       type: "topic",
       durable: true,
@@ -380,7 +380,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.pulsar.namespace).toBe("orders");
+    expect(doc.channels["orders.created"].bindings.pulsar.namespace).toBe("orders");
     expect(doc.operations.onOrderCreated.bindings.nats.queue).toBe("orders-workers");
     await expect(doc).toBeValidAsyncAPI();
   });
@@ -415,7 +415,7 @@ describe("AsyncAPI emitted document", () => {
 
     // `schemaSettings` is required. The parser is the authority on that, so
     // the document goes to it rather than only to a shape assertion here.
-    expect(doc.channels.OrderChannel.bindings.googlepubsub.schemaSettings).toEqual({
+    expect(doc.channels["orders-created"].bindings.googlepubsub.schemaSettings).toEqual({
       encoding: "json",
       name: "projects/p/schemas/order",
     });
@@ -446,7 +446,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.sqs.queue.name).toBe("orders");
+    expect(doc.channels.orders.bindings.sqs.queue.name).toBe("orders");
     expect(doc.operations.publish.bindings.sqs.queues).toHaveLength(1);
     await expect(doc).toBeValidAsyncAPI();
   });
@@ -479,8 +479,8 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.ibmmq.destinationType).toBe("queue");
-    expect(doc.channels.OrderChannel.bindings.jms.destination).toBe("orders");
+    expect(doc.channels.orders.bindings.ibmmq.destinationType).toBe("queue");
+    expect(doc.channels.orders.bindings.jms.destination).toBe("orders");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -553,7 +553,7 @@ describe("AsyncAPI emitted document", () => {
     // document as a bare string, and the AsyncAPI JSON Schema is what
     // decides whether the '#' this emitter insists on is really required. A
     // regex of this emitter's own cannot answer that, so the parser does.
-    expect(doc.channels.OrderChannel.parameters).toEqual({
+    expect(doc.channels["orders.{region}.{tenant}.created"].parameters).toEqual({
       region: {
         default: "eu",
         description: "The region the order was placed in.",
@@ -562,8 +562,8 @@ describe("AsyncAPI emitted document", () => {
       },
       tenant: { location: "$message.payload#" },
     });
-    expect(doc.channels.OrderChannel.tags).toEqual([{ name: "orders" }]);
-    expect(doc.channels.OrderChannel.externalDocs).toEqual({
+    expect(doc.channels["orders.{region}.{tenant}.created"].tags).toEqual([{ name: "orders" }]);
+    expect(doc.channels["orders.{region}.{tenant}.created"].externalDocs).toEqual({
       url: "https://example.com/orders",
       description: "How order events are routed.",
     });

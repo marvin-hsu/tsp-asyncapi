@@ -79,7 +79,11 @@ export function resolveChannels(
   const emitted = new Map<ChannelTarget, EmittedChannel>();
 
   for (const { target, record } of listChannelsInternal(program)) {
-    const key = record.state.channelId ?? target.name;
+    // The address doubles as the default key. With a broker such as Kafka,
+    // the address is the topic name, and the topic name is what a reader
+    // looks the channel up by. Only a dynamic channel has no address, so
+    // only there the declaration name steps in.
+    const key = record.state.channelId ?? record.state.address ?? target.name;
     if (claimedBy.has(key)) {
       reportDiagnostic(program, { code: "duplicate-channel-id", format: { id: key }, target });
       // The repeated id is the mistake, and it is already reported. The

@@ -28,7 +28,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings).toEqual({ mqtt: { qos: 2, retain: true } });
+    expect(doc.channels["orders.created"].bindings).toEqual({ mqtt: { qos: 2, retain: true } });
   });
 
   it("reaches a server, an operation, and a message", async () => {
@@ -79,7 +79,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(Object.keys(doc.channels.OrderChannel.bindings)).toEqual(["mqtt", "amqp"]);
+    expect(Object.keys(doc.channels["orders.created"].bindings)).toEqual(["mqtt", "amqp"]);
   });
 
   it("gives every server of the namespace its own copy of the binding", async () => {
@@ -130,7 +130,7 @@ describe("Unit: the generic @binding decorator", () => {
     `);
 
     expect(doc.servers.prod.bindings).toEqual({ mqtt: { qos: 1 } });
-    expect(doc.channels.Test.bindings).toEqual({ mqtt: { qos: 1 } });
+    expect(doc.channels["orders.created"].bindings).toEqual({ mqtt: { qos: 1 } });
   });
 
   it("trims a padded protocol name before it becomes a member name", async () => {
@@ -153,7 +153,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(Object.keys(doc.channels.OrderChannel.bindings)).toEqual(["mqtt"]);
+    expect(Object.keys(doc.channels["orders.created"].bindings)).toEqual(["mqtt"]);
   });
 
   it("reports a blank protocol name and drops the binding", async () => {
@@ -253,7 +253,7 @@ describe("Unit: the generic @binding decorator", () => {
     // level, so the level the builder was asked for is the one to report.
     expect(reported.message).toContain("at the channel level");
     // The first application in source order keeps the member.
-    expect(doc.channels.OrderChannel.bindings.mqtt).toEqual({ qos: 1 });
+    expect(doc.channels["orders.created"].bindings.mqtt).toEqual({ qos: 1 });
   });
 
   it("reports the dropped duplicate once, and not again as unattached", async () => {
@@ -323,7 +323,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.mqtt.since).toBe("2026-01-01T00:00:00Z");
+    expect(doc.channels["orders.created"].bindings.mqtt.since).toBe("2026-01-01T00:00:00Z");
   });
   it("converts a nested object, a list, and a null through the same rule", async () => {
     const doc = await emitAsyncAPI(`
@@ -345,7 +345,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.mqtt).toEqual({
+    expect(doc.channels["orders.created"].bindings.mqtt).toEqual({
       will: { topic: "down", qos: 1 },
       hops: [1, 2, 3],
       lastSeen: null,
@@ -373,6 +373,6 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.mqtt.seen).toEqual(["2026-01-01T00:00:00Z"]);
+    expect(doc.channels["orders.created"].bindings.mqtt.seen).toEqual(["2026-01-01T00:00:00Z"]);
   });
 });

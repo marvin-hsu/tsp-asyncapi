@@ -174,7 +174,7 @@ readonly unbalanced: CallableMessage<["address"]>;
 readonly default: CallableMessage<["name"]>;
 };
 "empty-channel-id": {
-readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.";
 };
 "duplicate-channel-decorator": {
 readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
@@ -736,7 +736,7 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["name"]>;
     };
     "empty-channel-id": {
-        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.";
     };
     "duplicate-channel-decorator": {
         readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
@@ -1038,7 +1038,7 @@ readonly unbalanced: CallableMessage<["address"]>;
 readonly default: CallableMessage<["name"]>;
 };
 "empty-channel-id": {
-readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.";
 };
 "duplicate-channel-decorator": {
 readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
@@ -1936,7 +1936,7 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["name"]>;
     };
     "empty-channel-id": {
-        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+        readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.";
     };
     "duplicate-channel-decorator": {
         readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";
@@ -2238,7 +2238,7 @@ readonly unbalanced: CallableMessage<["address"]>;
 readonly default: CallableMessage<["name"]>;
 };
 "empty-channel-id": {
-readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.";
+readonly default: "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.";
 };
 "duplicate-channel-decorator": {
 readonly default: "@channel is applied to this interface or namespace more than once. A channel carries one address, so only one application takes effect and the rest are discarded. Remove the extra @channel.";

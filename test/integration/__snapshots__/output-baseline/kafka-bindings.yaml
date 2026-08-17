@@ -12,7 +12,7 @@ servers:
         schemaRegistryVendor: confluent
         bindingVersion: 0.5.0
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     messages:
       OrderCreated:
@@ -33,7 +33,7 @@ operations:
   publish:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     bindings:
       kafka:
         groupId:
@@ -42,7 +42,7 @@ operations:
           type: string
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 components:
   schemas:
     OrderCreated:

@@ -43,7 +43,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({
+    expect(doc.channels?.["orders.{region}.{orderId}.created"].parameters).toEqual({
       region: {
         enum: ["eu", "us"],
         default: "eu",
@@ -75,7 +75,9 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { enum: ["eu", "us"] } });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
+      region: { enum: ["eu", "us"] },
+    });
   });
 
   it("emits no enum for a plain string parameter", async () => {
@@ -96,7 +98,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ orderId: {} });
+    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
   });
 
   it("accepts a user scalar that extends string", async () => {
@@ -119,7 +121,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ id: {} });
+    expect(doc.channels?.["orders.{id}"].parameters).toEqual({ id: {} });
   });
 
   it("reports a parameter that is not a string", async () => {
@@ -143,7 +145,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // `default` is typed as a string in a Parameter Object, so a numeric
     // default is left out along with the rest of the declaration.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ orderId: {} });
+    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
   });
 
   it("reports an enum backed by numbers", async () => {
@@ -190,7 +192,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { default: "eu" } });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: { default: "eu" } });
   });
 
   it("takes the name of an enum member that carries no value", async () => {
@@ -216,7 +218,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
       region: { enum: ["eu", "us"], default: "eu" },
     });
   });
@@ -242,7 +244,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // The union is still a string type, so it is not reported. It no longer
     // names a limited set, so no `enum` describes it.
     expect(diagnostics.map((d) => d.code)).not.toContain("tsp-asyncapi/non-string-channel-param");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
   });
 
   it("rejects a union that mixes a non-string variant into its variants", async () => {
@@ -268,7 +270,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // union is rejected whole, rather than emitted as an `enum` that names
     // the string variants alone.
     expect(reported).toHaveLength(1);
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
   });
 
   it("names the values of a parameter typed as one enum member", async () => {
@@ -297,7 +299,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // A member names one string, so it names a set of one. The whole-enum
     // form already worked. The member form fell through to the default arm
     // and was reported as a non-string parameter.
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { enum: ["eu"] } });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: { enum: ["eu"] } });
   });
 
   it("rejects a parameter typed as a numeric enum member", async () => {
@@ -356,7 +358,9 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { enum: ["eu", "us"] } });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
+      region: { enum: ["eu", "us"] },
+    });
   });
 
   it("rejects a user scalar that is named string in its own namespace", async () => {
@@ -385,7 +389,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // declared and happened to call `string` is not the built-in one, and it
     // carries no promise of being a string at all.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
   });
 
   it("rejects a parameter typed as a model", async () => {
@@ -414,6 +418,6 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     // reaches the last arm of the value reader. Nothing else in this suite
     // gets there.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
   });
 });

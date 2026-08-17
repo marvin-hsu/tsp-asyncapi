@@ -36,7 +36,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.EventChannel.bindings).toEqual({
+      expect(doc.channels["events.created"].bindings).toEqual({
         amqp: {
           is: "routingKey",
           exchange: {
@@ -74,7 +74,7 @@ describe("Unit: the AMQP binding decorators", () => {
       expect(reported.message).toContain("topic or direct or fanout or default or headers");
       // The name is still what the author wrote, so losing it as well would
       // take away something correct.
-      expect(doc.channels.EventChannel.bindings.amqp.exchange).toEqual({ name: "events" });
+      expect(doc.channels["events.created"].bindings.amqp.exchange).toEqual({ name: "events" });
     });
 
     it("reports a name longer than AMQP allows", async () => {
@@ -112,7 +112,7 @@ describe("Unit: the AMQP binding decorators", () => {
       expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
         [],
       );
-      expect(doc.channels.EventChannel.bindings.amqp.queue.name).toBe(name);
+      expect(doc.channels["events.created"].bindings.amqp.queue.name).toBe(name);
     });
 
     it("drops an exchange that has nothing left in it", async () => {
@@ -129,7 +129,7 @@ describe("Unit: the AMQP binding decorators", () => {
       // The only field the exchange carried was rejected. An empty object
       // states no exchange at all.
       findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
-      expect(doc.channels.EventChannel.bindings.amqp).toEqual({
+      expect(doc.channels["events.created"].bindings.amqp).toEqual({
         is: "queue",
         bindingVersion: "0.3.0",
       });

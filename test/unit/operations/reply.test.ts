@@ -35,11 +35,11 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.createOrder.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/CreateOrder" },
+      { $ref: "#/channels/orders.create/messages/CreateOrder" },
     ]);
     expect(doc.operations?.createOrder.reply).toEqual({
-      channel: { $ref: "#/channels/OrderChannel" },
-      messages: [{ $ref: "#/channels/OrderChannel/messages/OrderAccepted" }],
+      channel: { $ref: "#/channels/orders.create" },
+      messages: [{ $ref: "#/channels/orders.create/messages/OrderAccepted" }],
     });
   });
 
@@ -67,10 +67,10 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.onCreateOrder.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/CreateOrder" },
+      { $ref: "#/channels/orders.create/messages/CreateOrder" },
     ]);
     expect(doc.operations?.onCreateOrder.reply?.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/OrderAccepted" },
+      { $ref: "#/channels/orders.create/messages/OrderAccepted" },
     ]);
   });
 
@@ -193,8 +193,8 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.createOrder.reply).toEqual({
-      channel: { $ref: "#/channels/ReplyChannel" },
-      messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
+      channel: { $ref: "#/channels/orders.reply" },
+      messages: [{ $ref: "#/channels/orders.reply/messages/OrderAccepted" }],
     });
   });
 
@@ -341,7 +341,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.["orders.create"].messages).toEqual({
       CreateOrder: { $ref: "#/components/messages/CreateOrder" },
     });
     expect(doc.channels?.ReplyChannel.messages).toEqual({
@@ -381,12 +381,12 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.["orders.create"].messages).toEqual({
       SubmitOrder: { $ref: "#/components/messages/SubmitOrder" },
       OrderAccepted: { $ref: "#/components/messages/OrderAccepted" },
     });
     // `toEqual` ignores key order, so the order is pinned on its own.
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual([
+    expect(Object.keys(doc.channels?.["orders.create"].messages ?? {})).toEqual([
       "SubmitOrder",
       "OrderAccepted",
     ]);
@@ -425,8 +425,8 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
     expect(targetText(diagnostic)).toBe(`"$message.header#/replyTo"`);
     // The address goes, and the rest of the reply stays.
     expect(doc.operations?.createOrder.reply).toEqual({
-      channel: { $ref: "#/channels/OrderChannel" },
-      messages: [{ $ref: "#/channels/OrderChannel/messages/OrderAccepted" }],
+      channel: { $ref: "#/channels/orders.create" },
+      messages: [{ $ref: "#/channels/orders.create/messages/OrderAccepted" }],
     });
   });
 
@@ -467,13 +467,13 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.ReplyChannel.messages ?? {})).toEqual([
+    expect(Object.keys(doc.channels?.["orders.reply"].messages ?? {})).toEqual([
       "Ack",
       "OrderAccepted",
     ]);
     expect(doc.operations?.createOrder.reply).toEqual({
-      channel: { $ref: "#/channels/ReplyChannel" },
-      messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
+      channel: { $ref: "#/channels/orders.reply" },
+      messages: [{ $ref: "#/channels/orders.reply/messages/OrderAccepted" }],
     });
   });
 
@@ -699,7 +699,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
     const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/reply-without-action");
     expect(targetText(diagnostic)).toBe("ReplyChannel");
     expect(doc.operations).not.toHaveProperty("createOrder");
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual([
+    expect(Object.keys(doc.channels?.["orders.create"].messages ?? {})).toEqual([
       "SubmitOrder",
       "OrderAccepted",
     ]);

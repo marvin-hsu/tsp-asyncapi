@@ -49,7 +49,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.OrderChannel.bindings).toEqual({
+      expect(doc.channels.orders.bindings).toEqual({
         sqs: {
           queue: {
             name: "orders",
@@ -82,7 +82,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("queue");
       expect(reported.severity).toBe("error");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.orders.bindings).toBeUndefined();
     });
 
     it("requires both a name and a FIFO flag on a channel queue", async () => {
@@ -101,7 +101,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       const joined = missing.map((d) => d.message).join(" ");
       expect(joined).toContain("queue.name");
       expect(joined).toContain("queue.fifoQueue");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.orders.bindings).toBeUndefined();
     });
 
     it("keeps a fifoQueue of false", async () => {
@@ -117,7 +117,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // `false` says the queue is a standard queue. AsyncAPI requires the
       // field, so treating it as absent would drop the whole binding.
-      expect(doc.channels.OrderChannel.bindings.sqs.queue).toEqual({
+      expect(doc.channels.orders.bindings.sqs.queue).toEqual({
         name: "orders",
         fifoQueue: false,
       });
@@ -141,7 +141,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       // names the queue it is.
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("deadLetterQueue.name");
-      expect(doc.channels?.OrderChannel.bindings).toEqual({
+      expect(doc.channels?.orders.bindings).toEqual({
         sqs: { queue: { name: "orders", fifoQueue: false }, bindingVersion: "0.2.0" },
       });
     });
@@ -163,7 +163,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(reported.message).toContain("queue.deduplicationScope");
       expect(reported.message).toContain("queue or messageGroup");
       // The two required fields are still there, so the binding survives.
-      expect(doc.channels.OrderChannel.bindings.sqs.queue).toEqual({
+      expect(doc.channels.orders.bindings.sqs.queue).toEqual({
         name: "orders",
         fifoQueue: true,
       });
@@ -202,7 +202,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // Zero turns the delay off, which is a setting rather than an absent
       // field.
-      expect(doc.channels.OrderChannel.bindings.sqs.queue.deliveryDelay).toBe(0);
+      expect(doc.channels.orders.bindings.sqs.queue.deliveryDelay).toBe(0);
     });
   });
 

@@ -44,7 +44,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.OrderChannel.bindings).toEqual({
+      expect(doc.channels["orders-created"].bindings).toEqual({
         googlepubsub: {
           schemaSettings: {
             encoding: "json",
@@ -74,7 +74,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("schemaSettings");
       expect(reported.severity).toBe("error");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
     });
 
     it("names both fields the schema settings require when neither is given", async () => {
@@ -93,7 +93,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       expect(missing).toHaveLength(2);
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.encoding");
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.name");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
     });
 
     it("treats a blank required field as absent", async () => {
@@ -126,7 +126,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.OrderChannel.bindings.googlepubsub).toEqual({
+      expect(doc.channels["orders-created"].bindings.googlepubsub).toEqual({
         schemaSettings: { encoding: "json", name: "projects/p/schemas/order" },
         bindingVersion: "0.2.0",
       });
@@ -148,7 +148,9 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
       // An empty policy states no restriction, which is what an absent field
       // already says.
-      expect("messageStoragePolicy" in doc.channels.OrderChannel.bindings.googlepubsub).toBe(false);
+      expect("messageStoragePolicy" in doc.channels["orders-created"].bindings.googlepubsub).toBe(
+        false,
+      );
     });
   });
 

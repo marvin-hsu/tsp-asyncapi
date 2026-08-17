@@ -35,7 +35,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
 
     expect(reported).toHaveLength(1);
     expect(reported[0].severity).toBe("warning");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ source: {} });
+    expect(doc.channels?.["orders.{source}"].parameters).toEqual({ source: {} });
   });
 
   it("leaves out an example that does not serialize to a string", async () => {
@@ -59,7 +59,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     // AsyncAPI types `examples` as strings, so the number has no place in it.
     // The type itself is the mistake the author is told about.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ orderId: {} });
+    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
   });
 
   it("reports an unserializable example once when two operations declare the parameter", async () => {
@@ -91,7 +91,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     // reader keeps what it has already read, so the one mistake is reported
     // once. Without that, the author sees the same warning twice.
     expect(reported).toHaveLength(1);
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ source: {} });
+    expect(doc.channels?.["orders.{source}"].parameters).toEqual({ source: {} });
   });
 
   it("keeps two examples of one parameter in source order", async () => {
@@ -114,6 +114,8 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
 
     // Stacked decorators run bottom-up, so the recorded order is `us` then
     // `eu`. The emitted array is sorted back into source order.
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: { examples: ["eu", "us"] } });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
+      region: { examples: ["eu", "us"] },
+    });
   });
 });

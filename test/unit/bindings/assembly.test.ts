@@ -41,7 +41,7 @@ describe("Unit: assembling a Bindings Object", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const bindings = doc.channels?.OrderChannel.bindings as Record<string, unknown>;
+    const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
     // The members read in the order the author wrote the decorators, so the
     // emitted document is the same on every run.
     expect(Object.keys(bindings)).toEqual(["mqtt", "amqp", "kafka"]);
@@ -75,7 +75,7 @@ describe("Unit: assembling a Bindings Object", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     // An empty Bindings Object states nothing, so the field is left out.
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("bindings");
+    expect(doc.channels?.["orders.created"]).not.toHaveProperty("bindings");
     expect(doc.operations?.publish).not.toHaveProperty("bindings");
   });
 
@@ -101,7 +101,7 @@ describe("Unit: assembling a Bindings Object", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     // The two are never merged, and the later one never wins.
-    const bindings = doc.channels?.OrderChannel.bindings as Record<string, unknown>;
+    const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
     expect(bindings.kafka).toEqual({ topic: "first" });
     expect(
       runner.program.diagnostics.some((d) => d.code === "tsp-asyncapi/duplicate-binding"),
@@ -208,7 +208,7 @@ describe("Unit: assembling a Bindings Object", () => {
     const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
     const server = doc.servers?.prod.bindings ?? {};
-    const channel = doc.channels?.OrderChannel.bindings ?? {};
+    const channel = doc.channels?.["orders.created"].bindings ?? {};
     const operation = doc.operations?.publish.bindings ?? {};
     const message = doc.components?.messages?.OrderCreated.bindings ?? {};
 

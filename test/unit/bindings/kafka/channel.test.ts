@@ -32,7 +32,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings).toEqual({
+    expect(doc.channels["orders.created"].bindings).toEqual({
       kafka: {
         topic: "orders.created.v2",
         partitions: 12,
@@ -57,7 +57,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topicConfiguration).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
       "confluent.value.schema.validation": true,
     });
   });
@@ -74,7 +74,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topic).toBe("orders.created");
+    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
   });
 
   it("reports a partition count that is not positive, and keeps the rest", async () => {
@@ -94,7 +94,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     expect(reported.message).toContain("a positive integer");
     // The message promises the rest of the binding survives, so the document
     // has to be there to show it. The rejected field is the only loss.
-    expect(doc.channels.OrderChannel.bindings.kafka).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
       topic: "orders.created",
       replicas: 3,
       bindingVersion: "0.5.0",
@@ -115,7 +115,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
 
     // A blank topic names nothing, and emitting it would claim the channel
     // uses a topic whose name is spaces.
-    expect(doc.channels.OrderChannel.bindings.kafka).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
       partitions: 3,
       bindingVersion: "0.5.0",
     });
@@ -133,7 +133,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topic).toBe("orders.created");
+    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
   });
 
   it("reports a replica count that is negative", async () => {
@@ -200,7 +200,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     // away keys the author wrote correctly, including a vendor key this
     // emitter has never heard of.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-binding-field");
-    expect(doc?.channels?.OrderChannel?.bindings?.kafka).toEqual({
+    expect(doc?.channels?.["orders.created"]?.bindings?.kafka).toEqual({
       topic: "orders",
       topicConfiguration: {
         "retention.ms": 604800000,
@@ -222,7 +222,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topicConfiguration).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
       "cleanup.policy": ["delete", "compact"],
     });
   });
@@ -280,7 +280,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     `);
 
     expect(
-      Object.keys(doc.channels.OrderChannel.bindings).sort((a: string, b: string) =>
+      Object.keys(doc.channels["orders.created"].bindings).sort((a: string, b: string) =>
         a.localeCompare(b),
       ),
     ).toEqual(["kafka", "mqtt"]);
@@ -297,7 +297,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
+    expect(doc.channels["orders.created"].bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
   });
 
   it("emits a cleanup policy written as one value as a one-entry list", async () => {
@@ -314,7 +314,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topicConfiguration).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
       "cleanup.policy": ["compact"],
     });
   });
@@ -363,7 +363,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
+    expect(doc.channels["orders.created"].bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
   });
 
   it("records one augment decorator once, however often the namespace reopens", async () => {
@@ -385,7 +385,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       @@kafkaChannel(Test.OrderChannel, #{ topic: "orders.created" });
     `);
 
-    expect(doc.channels.OrderChannel.bindings.kafka.topic).toBe("orders.created");
+    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
   });
 
   it("keeps a server binding and a channel binding apart on one namespace", async () => {
@@ -414,7 +414,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       schemaRegistryUrl: "https://registry.example.com",
       bindingVersion: "0.5.0",
     });
-    expect(doc.channels.Test.bindings.kafka).toEqual({
+    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
       topic: "orders.created",
       bindingVersion: "0.5.0",
     });

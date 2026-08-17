@@ -31,8 +31,8 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     expect(doc.operations?.sendOrderCreated).toEqual({
       action: "send",
-      channel: { $ref: "#/channels/OrderChannel" },
-      messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+      channel: { $ref: "#/channels/orders.created" },
+      messages: [{ $ref: "#/channels/orders.created/messages/OrderCreated" }],
     });
   });
 
@@ -56,8 +56,8 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     expect(doc.operations?.onOrderCreated).toEqual({
       action: "receive",
-      channel: { $ref: "#/channels/OrderChannel" },
-      messages: [{ $ref: "#/channels/OrderChannel/messages/OrderCreated" }],
+      channel: { $ref: "#/channels/orders.created" },
+      messages: [{ $ref: "#/channels/orders.created/messages/OrderCreated" }],
     });
   });
 
@@ -79,7 +79,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/Orders" });
+    expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.created" });
   });
 
   it("lets the interface win over the namespace around it", async () => {
@@ -105,7 +105,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/Inner" });
+    expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.inner" });
   });
 
   it("drops an operation in an interface with no channel inside a namespace with one", async () => {
@@ -137,7 +137,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       "'publish'",
     );
     expect(doc.operations).toEqual({});
-    expect(doc.channels?.Outer.messages).toBeUndefined();
+    expect(doc.channels?.["orders.outer"].messages).toBeUndefined();
   });
 
   it("keys the operation by the explicit id argument", async () => {
@@ -216,7 +216,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     // The operation still contributes its message to the channel.
     expect(doc.operations).toEqual({});
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });
@@ -273,7 +273,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
     );
     expect(Object.keys(doc.operations ?? {})).toEqual(["publish"]);
     expect(doc.operations?.publish.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/OrderCreated" },
+      { $ref: "#/channels/orders.created/messages/OrderCreated" },
     ]);
   });
 
@@ -321,8 +321,10 @@ describe("Unit: Operations (Phase 5.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["dup"]);
-    expect(doc.operations?.dup.channel).toEqual({ $ref: "#/channels/B" });
-    expect(doc.operations?.dup.messages).toEqual([{ $ref: "#/channels/B/messages/OrderShipped" }]);
+    expect(doc.operations?.dup.channel).toEqual({ $ref: "#/channels/orders.b" });
+    expect(doc.operations?.dup.messages).toEqual([
+      { $ref: "#/channels/orders.b/messages/OrderShipped" },
+    ]);
     expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id").message).toContain(
       "'dup'",
     );
@@ -379,8 +381,8 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     expect(diagnostics).toEqual([]);
     expect(Object.keys(doc.operations ?? {})).toEqual(["Eu_publish", "Us_publish"]);
-    expect(doc.operations?.Eu_publish.channel).toEqual({ $ref: "#/channels/Eu" });
-    expect(doc.operations?.Us_publish.channel).toEqual({ $ref: "#/channels/Us" });
+    expect(doc.operations?.Eu_publish.channel).toEqual({ $ref: "#/channels/orders.eu" });
+    expect(doc.operations?.Us_publish.channel).toEqual({ $ref: "#/channels/orders.us" });
   });
 
   it("keys an operation declared with `is` by its own name", async () => {

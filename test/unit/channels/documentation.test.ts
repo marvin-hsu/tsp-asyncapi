@@ -33,7 +33,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel).toEqual({
+    expect(doc.channels?.["orders.created"]).toEqual({
       address: "orders.created",
       title: "Order events",
       description: "Every event about the life of an order.",
@@ -63,7 +63,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("summary");
+    expect(doc.channels?.["orders.created"]).not.toHaveProperty("summary");
   });
 
   it("leaves out a descriptive field the channel does not carry", async () => {
@@ -83,7 +83,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
     `);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const channel = doc.channels?.OrderChannel;
+    const channel = doc.channels?.["orders.created"];
 
     expect(channel).not.toHaveProperty("title");
     expect(channel).not.toHaveProperty("description");
@@ -111,7 +111,9 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.Orders.description).toBe("Every event about the life of an order.");
-    expect(doc.channels?.Orders.tags).toEqual([{ name: "public" }]);
+    expect(doc.channels?.["orders.created"].description).toBe(
+      "Every event about the life of an order.",
+    );
+    expect(doc.channels?.["orders.created"].tags).toEqual([{ name: "public" }]);
   });
 });

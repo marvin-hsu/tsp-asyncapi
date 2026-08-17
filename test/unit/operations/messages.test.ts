@@ -34,7 +34,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
 
     expect(messages).toHaveLength(1);
     expect(messages[0].$ref.startsWith("#/channels/")).toBe(true);
-    expect(messages[0].$ref).toBe("#/channels/OrderChannel/messages/OrderCreated");
+    expect(messages[0].$ref).toBe("#/channels/orders.created/messages/OrderCreated");
   });
 
   it("emits one entry per variant of a union return type", async () => {
@@ -61,8 +61,8 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.consume.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/OrderCreated" },
-      { $ref: "#/channels/OrderChannel/messages/OrderShipped" },
+      { $ref: "#/channels/orders.events/messages/OrderCreated" },
+      { $ref: "#/channels/orders.events/messages/OrderShipped" },
     ]);
   });
 
@@ -97,9 +97,9 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.publish.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/First" },
-      { $ref: "#/channels/OrderChannel/messages/Second" },
-      { $ref: "#/channels/OrderChannel/messages/Third" },
+      { $ref: "#/channels/orders.events/messages/First" },
+      { $ref: "#/channels/orders.events/messages/Second" },
+      { $ref: "#/channels/orders.events/messages/Third" },
     ]);
   });
 
@@ -127,8 +127,8 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.publish.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/First" },
-      { $ref: "#/channels/OrderChannel/messages/Second" },
+      { $ref: "#/channels/orders.events/messages/First" },
+      { $ref: "#/channels/orders.events/messages/Second" },
     ]);
   });
 
@@ -151,7 +151,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.consume.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/OrderCreated" },
+      { $ref: "#/channels/orders.created/messages/OrderCreated" },
     ]);
   });
 
@@ -200,7 +200,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.publish.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/OrderCreated" },
+      { $ref: "#/channels/orders.{region}.created/messages/OrderCreated" },
     ]);
   });
 
@@ -229,10 +229,10 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.operations?.push.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/Command" },
+      { $ref: "#/channels/orders.events/messages/Command" },
     ]);
     expect(doc.operations?.pull.messages).toEqual([
-      { $ref: "#/channels/OrderChannel/messages/Event" },
+      { $ref: "#/channels/orders.events/messages/Event" },
     ]);
   });
 });

@@ -61,7 +61,7 @@ function recordChannel(
  * may hold `{name}` expressions, and an operation of the channel then
  * declares each name as a parameter.
  * @param channelId - Overrides the key of this channel in the emitted
- * `channels` map. Without it, the key is the declaration name of the target.
+ * `channels` map. Without it, the key is the address itself.
  *
  * @example
  * ```typespec

@@ -64,7 +64,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       heartBeatInterval: 300,
       bindingVersion: "0.1.0",
     });
-    expect(doc.channels.OrderChannel.bindings.ibmmq.queue).toEqual({
+    expect(doc.channels.orders.bindings.ibmmq.queue).toEqual({
       objectName: "ORDERS.QUEUE",
       exclusive: true,
     });
@@ -115,7 +115,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
         [],
       );
-      expect(doc.channels.OrderChannel.bindings.ibmmq.maxMsgLength).toBe(length);
+      expect(doc.channels.orders.bindings.ibmmq.maxMsgLength).toBe(length);
     }
   });
 
@@ -249,7 +249,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.ibmmq).toEqual({
+    expect(doc.channels.orders.bindings.ibmmq).toEqual({
       destinationType: "queue",
       bindingVersion: "0.1.0",
     });

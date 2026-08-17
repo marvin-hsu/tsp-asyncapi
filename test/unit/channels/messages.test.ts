@@ -33,7 +33,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
       OrderAccepted: { $ref: "#/components/messages/OrderAccepted" },
     });
@@ -62,7 +62,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual([
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual([
       "OrderCreated",
       "OrderCancelled",
     ]);
@@ -86,7 +86,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["OrderCreated"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
 
   it("collects the element type of a record parameter", async () => {
@@ -107,7 +107,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["OrderCreated"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
 
   it("keeps a model that carries an indexer of its own", async () => {
@@ -132,7 +132,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     // The model has properties, so it is a payload with an indexer, not an
     // `Array<T>` or a `Record<T>`. Unwrapping it would replace the message
     // with its element type.
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["Bag"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Bag"]);
   });
 
   it("leaves the indexer of a model that carries no message alone", async () => {
@@ -168,7 +168,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     // `Record<T>` and its element type is not a message of this channel.
     // The test above cannot show this: its `Bag` is a message, so the walk
     // returns before the check runs.
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["Shown"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Shown"]);
   });
 
   it("emits one entry for a message one operation names twice", async () => {
@@ -189,7 +189,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["Envelope"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Envelope"]);
   });
 
   it("keeps a message key such as __proto__ as an own key of the map", async () => {
@@ -208,8 +208,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const messages = buildAsyncAPIDocument(runner.program, undefined, {}).channels?.OrderChannel
-      .messages;
+    const messages = buildAsyncAPIDocument(runner.program, undefined, {}).channels?.orders.messages;
 
     // The map is built with `Object.fromEntries`, so the key becomes an own
     // property instead of a write to the prototype.
@@ -236,7 +235,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["OrderCreated"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
 
   it("uses the explicit @message key in the reference", async () => {
@@ -257,7 +256,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.orders.messages).toEqual({
       "order-created": { $ref: "#/components/messages/order-created" },
     });
   });
@@ -284,7 +283,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toBeUndefined();
+    expect(doc.channels?.orders.messages).toBeUndefined();
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/channel-no-messages");
   });
 
@@ -307,8 +306,8 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     const warning = diagnostics.find((d) => d.code === "tsp-asyncapi/channel-no-messages");
 
     expect(warning?.severity).toBe("warning");
-    expect(warning?.message).toMatch(/OrderChannel/);
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("messages");
+    expect(warning?.message).toMatch(/'orders'/);
+    expect(doc.channels?.orders).not.toHaveProperty("messages");
   });
 
   it("contributes no entry for a message a key collision dropped", async () => {
@@ -335,7 +334,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-message-key");
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("messages");
+    expect(doc.channels?.orders).not.toHaveProperty("messages");
   });
 
   it("keeps the messages of two operations in the source order of the operations", async () => {
@@ -365,7 +364,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     // The compiler hands back the members of an interface in a map whose
     // order is not promised to be source order, so the builder sorts them.
     // The keys of the emitted map are what that sort decides.
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["First", "Second"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["First", "Second"]);
   });
 
   it("orders an inherited operation by where its interface is declared", async () => {
@@ -401,7 +400,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     // one that tells the two apart: without the sort the keys come out as
     // Inherited then Own. The test above cannot show that, because there the
     // two orders agree.
-    expect(Object.keys(doc.channels?.OrderChannel.messages ?? {})).toEqual(["Own", "Inherited"]);
+    expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Own", "Inherited"]);
   });
 
   it("keeps a message that is declared as a record", async () => {
@@ -424,7 +423,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     // Unwrapping this one to its `string` element would drop the message
     // from the channel, and would then read the payload parameter as a
     // channel address parameter.
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.orders.messages).toEqual({
       Bag: { $ref: "#/components/messages/Bag" },
     });
     expect(diagnostics).toEqual([]);
@@ -450,7 +449,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.orders.messages).toEqual({
       Items: { $ref: "#/components/messages/Items" },
     });
     expect(diagnostics).toEqual([]);
@@ -478,7 +477,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     // `model Tree is Array<Tree>` is legal TypeSpec. The walk must end on
     // the second visit rather than recurse until the stack runs out.
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.orders.messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });
@@ -506,7 +505,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.messages).toEqual({
+    expect(doc.channels?.orders.messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });

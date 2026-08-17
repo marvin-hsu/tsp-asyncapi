@@ -34,7 +34,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     // The member is `ws`. AsyncAPI names the binding folder `websockets` and
     // the decorator `websocketChannel`, and neither of those is the member
     // name a reader of the document sees.
-    expect(doc.channels.TickStream.bindings).toEqual({
+    expect(doc.channels["/ticks"].bindings).toEqual({
       ws: {
         method: "GET",
         query: { type: "object", properties: { token: { type: "string" } } },
@@ -56,7 +56,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.TickStream.bindings.ws.method).toBe("POST");
+    expect(doc.channels["/ticks"].bindings.ws.method).toBe("POST");
   });
 
   it("reaches a namespace channel as well as an interface channel", async () => {
@@ -71,7 +71,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels.TickStream.bindings.ws.method).toBe("GET");
+    expect(doc.channels["/ticks"].bindings.ws.method).toBe("GET");
   });
 
   it("emits the binding version on its own when no field was written", async () => {
@@ -88,7 +88,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // The author asked for the binding, so the member is emitted. An absent
     // member would say the channel uses no WebSocket binding at all.
-    expect(doc.channels.TickStream.bindings.ws).toEqual({ bindingVersion: "0.1.0" });
+    expect(doc.channels["/ticks"].bindings.ws).toEqual({ bindingVersion: "0.1.0" });
   });
 
   it("reports a method outside the two the binding allows, and keeps the rest", async () => {
@@ -112,7 +112,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     // The message names the protocol as well as the field. One code covers
     // every binding, so the protocol is the half that says which one.
     expect(reported.message).toContain("ws binding field");
-    expect(doc.channels.TickStream.bindings.ws).toEqual({
+    expect(doc.channels["/ticks"].bindings.ws).toEqual({
       query: { type: "object", properties: { token: { type: "string" } } },
       bindingVersion: "0.1.0",
     });
@@ -132,7 +132,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // The spacing is not what the author meant to say, so it is not a reason
     // to reject a method the binding allows.
-    expect(doc.channels.TickStream.bindings.ws.method).toBe("GET");
+    expect(doc.channels["/ticks"].bindings.ws.method).toBe("GET");
   });
 
   it("reports a query that is not an object at all", async () => {
@@ -172,7 +172,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain(`an object schema with a "properties" key`);
-    expect(doc.channels.TickStream.bindings.ws).toEqual({
+    expect(doc.channels["/ticks"].bindings.ws).toEqual({
       method: "GET",
       bindingVersion: "0.1.0",
     });
@@ -209,7 +209,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // A reference names a schema that lives elsewhere. This emitter does not
     // follow it, so it cannot say whether the schema behind it is an object.
-    expect(doc.channels.TickStream.bindings.ws.query).toEqual({
+    expect(doc.channels["/ticks"].bindings.ws.query).toEqual({
       $ref: "#/components/schemas/Handshake",
     });
   });

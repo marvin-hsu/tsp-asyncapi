@@ -60,7 +60,7 @@ describe("Unit: the JMS binding decorators", () => {
       clientID: "order-service",
       bindingVersion: "0.0.1",
     });
-    expect(doc.channels.OrderChannel.bindings.jms.destinationType).toBe("queue");
+    expect(doc.channels.orders.bindings.jms.destinationType).toBe("queue");
     expect(doc.components.messages.OrderCreated.bindings.jms.headers).toEqual({
       type: "object",
     });

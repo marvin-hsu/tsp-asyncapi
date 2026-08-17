@@ -29,7 +29,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ orderId: {} });
+    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
   });
 
   it("accepts a header location and an empty pointer", async () => {
@@ -55,7 +55,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.OrderChannel.parameters).toEqual({
+    expect(doc.channels?.["orders.{region}.{tenant}"].parameters).toEqual({
       region: { location: "$message.header#/region" },
       tenant: { location: "$message.header#" },
     });
@@ -82,7 +82,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     // The normative JSON Schema of AsyncAPI requires the `#`, and the
     // official parser rejects a document without it.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
   });
 
   it("reports a second @parameterLocation on one property", async () => {

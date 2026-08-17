@@ -16,7 +16,7 @@ channels:
     messages:
       OrderAccepted:
         $ref: "#/components/messages/OrderAccepted"
-  OrderCommands:
+  orders.{region}.{tenant}.create:
     address: orders.{region}.{tenant}.create
     servers:
       - $ref: "#/servers/primary"
@@ -49,11 +49,11 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderCommands"
+      $ref: "#/channels/orders.{region}.{tenant}.create"
     security:
       - $ref: "#/components/securitySchemes/kafka-scram"
     messages:
-      - $ref: "#/channels/OrderCommands/messages/CreateOrder"
+      - $ref: "#/channels/orders.{region}.{tenant}.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

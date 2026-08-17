@@ -13,7 +13,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     runner = await AsyncAPITester.createInstance();
   });
 
-  it("keys the channel by the interface name and emits the address", async () => {
+  it("keys the channel by its address and emits the address", async () => {
     await runner.compile(`
       @service(#{ title: "Orders" })
       namespace Test;
@@ -31,7 +31,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel).toEqual({
+    expect(doc.channels?.["orders.created"]).toEqual({
       address: "orders.created",
       messages: { OrderCreated: { $ref: "#/components/messages/OrderCreated" } },
     });
@@ -76,8 +76,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.Orders.address).toBe("orders.created");
-    expect(doc.channels?.Orders.messages).toEqual({
+    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
+    expect(doc.channels?.["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });
@@ -102,7 +102,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.Orders.messages).toBeUndefined();
+    expect(doc.channels?.["orders.created"].messages).toBeUndefined();
     expect(diagnostics.some((d) => d.code === "tsp-asyncapi/channel-no-messages")).toBe(true);
   });
 
@@ -178,7 +178,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.Socket.address).toBe("wss://example.com/socket");
+    expect(doc.channels?.["wss://example.com/socket"].address).toBe("wss://example.com/socket");
   });
 
   it("trims the address before it is stored", async () => {
@@ -199,7 +199,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.Ticks.address).toBe("orders.created");
+    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
   });
 
   it("rejects a blank address", async () => {
@@ -349,8 +349,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // One application still wins, so the channel is emitted. Decorators on
     // one declaration run bottom-up, and the first to run claims the target,
     // so the application written last in the source is the one that wins.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["Broken"]);
-    expect(doc.channels?.Broken.address).toBe("orders.updated");
+    expect(Object.keys(doc.channels ?? {})).toEqual(["orders.updated"]);
+    expect(doc.channels?.["orders.updated"].address).toBe("orders.updated");
   });
 
   it("reports a second @dynamicChannel on one interface", async () => {
@@ -659,7 +659,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // The ids run against the alphabet, so this input fails if the map is
     // ever sorted by name. It fails too if the entries are reversed. Every
     // other test here declares one channel, where no order is visible.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["Zeta", "Alpha"]);
+    expect(Object.keys(doc.channels ?? {})).toEqual(["zzz.first", "aaa.second"]);
   });
 });
 
@@ -669,6 +669,9 @@ describe("Unit: Channels — one address on two channels", () => {
    * differ. The document stays valid. What a reader cannot tell is which set
    * of messages that one address carries, because the address is what exists
    * at run time and the id is not.
+   *
+   * The address is the default key, so one channel needs an explicit id.
+   * Without it, the two collide on the key and the second one is dropped.
    */
   it("warns when two channels carry the same address", async () => {
     const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
@@ -681,7 +684,7 @@ describe("Unit: Channels — one address on two channels", () => {
       @channel("orders") interface Publishing {
         @send op publish(m: Placed): void;
       }
-      @channel("orders") interface Watching {
+      @channel("orders", "watching") interface Watching {
         @receive op watch(): Shipped;
       }
     `);

@@ -45,7 +45,7 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.channels.OrderChannel.bindings.anypointmq).toEqual({
+    expect(doc.channels.orders.bindings.anypointmq).toEqual({
       destination: "orders",
       destinationType: "fifo-queue",
       bindingVersion: "0.0.1",

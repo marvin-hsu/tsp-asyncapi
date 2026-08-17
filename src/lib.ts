@@ -401,7 +401,7 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default:
-          "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.",
+          "The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.",
       },
     },
     "duplicate-channel-decorator": {

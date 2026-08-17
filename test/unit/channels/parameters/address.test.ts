@@ -29,7 +29,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("parameters");
+    expect(doc.channels?.["orders.created"]).not.toHaveProperty("parameters");
   });
 
   it("reports a parameter the address never uses", async () => {
@@ -160,7 +160,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.OrderChannel.parameters).toEqual({ region: {} });
+    expect(doc.channels?.["orders.{region}.created.{region}"].parameters).toEqual({ region: {} });
   });
 
   it("reports one missing parameter for a name the address writes twice", async () => {
@@ -207,10 +207,8 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     // The operation declares the three in the opposite order to the address.
     // The address decides the emitted order, so this input fails if the map
     // is ever built from the declarations instead.
-    expect(Object.keys(doc.channels?.OrderChannel.parameters ?? {})).toEqual([
-      "region",
-      "tenant",
-      "orderId",
-    ]);
+    expect(
+      Object.keys(doc.channels?.["orders.{region}.{tenant}.{orderId}"].parameters ?? {}),
+    ).toEqual(["region", "tenant", "orderId"]);
   });
 });

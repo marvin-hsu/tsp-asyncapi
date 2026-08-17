@@ -153,7 +153,7 @@ extern dec messageExample(
 // binding instead. The scheme and the host are not checked, so a full URL is
 // a legal address.
 // `channelId` overrides the key of this channel in the emitted `channels`
-// map. Without it, the key is the declaration name of the target.
+// map. Without it, the key is the address itself.
 // Apply it only once per target, and never together with `@dynamicChannel`.
 extern dec channel(
   target: Interface | Namespace,

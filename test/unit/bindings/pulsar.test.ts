@@ -69,7 +69,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.OrderChannel.bindings).toEqual({
+      expect(doc.channels["orders.created"].bindings).toEqual({
         pulsar: {
           namespace: "orders",
           persistence: "persistent",
@@ -101,7 +101,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("namespace");
       expect(reported.severity).toBe("error");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
     });
 
     it("drops the whole binding when the persistence is missing", async () => {
@@ -117,7 +117,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("persistence");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
     });
 
     it("drops the whole binding when the persistence is not one Pulsar defines", async () => {
@@ -137,7 +137,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       const invalid = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
       expect(invalid.message).toContain("persistent or non-persistent");
       findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
-      expect(doc.channels?.OrderChannel.bindings).toBeUndefined();
+      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
     });
 
     it("names both required fields when both are missing", async () => {
@@ -173,7 +173,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       // Zero disables retention on that measure, which is a statement rather
       // than an absent field.
-      expect(doc.channels.OrderChannel.bindings.pulsar.retention).toEqual({ time: 0 });
+      expect(doc.channels["orders.created"].bindings.pulsar.retention).toEqual({ time: 0 });
     });
 
     it("reports a negative retention and keeps the binding", async () => {
@@ -194,7 +194,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
       expect(reported.message).toContain("retention.time");
       // The two required fields are still there, so the binding survives.
-      expect(doc.channels.OrderChannel.bindings.pulsar.retention).toEqual({ size: 1000 });
+      expect(doc.channels["orders.created"].bindings.pulsar.retention).toEqual({ size: 1000 });
     });
 
     it("drops a retention policy left with nothing in it", async () => {
@@ -213,7 +213,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       `);
 
       findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
-      expect(doc.channels.OrderChannel.bindings.pulsar).toEqual({
+      expect(doc.channels["orders.created"].bindings.pulsar).toEqual({
         namespace: "orders",
         persistence: "persistent",
         bindingVersion: "0.1.0",
@@ -235,7 +235,9 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(doc.channels.OrderChannel.bindings.pulsar["geo-replication"]).toEqual(["us-east"]);
+      expect(doc.channels["orders.created"].bindings.pulsar["geo-replication"]).toEqual([
+        "us-east",
+      ]);
     });
 
     it("reports a negative compaction threshold", async () => {

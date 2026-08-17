@@ -29,7 +29,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
+    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
 
   it("keeps two stacked applications in source order", async () => {
@@ -52,7 +52,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel.servers).toEqual([
+    expect(doc.channels?.["orders.created"].servers).toEqual([
       { $ref: "#/servers/kafka-prod" },
       { $ref: "#/servers/kafka-dr" },
     ]);
@@ -76,7 +76,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.OrderChannel).not.toHaveProperty("servers");
+    expect(doc.channels?.["orders.created"]).not.toHaveProperty("servers");
   });
 
   it("emits one reference and warns when a name is given twice", async () => {
@@ -101,7 +101,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     const warning = diagnostics.find((d) => d.code === "tsp-asyncapi/duplicate-use-server");
 
     expect(warning?.severity).toBe("warning");
-    expect(doc.channels?.OrderChannel.servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
+    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
 
   it("warns about a @useServer on a target with no channel", async () => {
@@ -178,7 +178,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.OrderChannel.servers).toEqual([{ $ref: "#/servers/typo" }]);
+    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/typo" }]);
   });
 
   it("escapes a server name for the JSON Pointer of the reference", async () => {
@@ -203,7 +203,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     // `@useServer` takes a bare string and checks no character in it, unlike
     // `@server`. A raw `/` or `~` would make every conforming resolver read
     // the pointer as a path through nested objects.
-    expect(doc.channels?.OrderChannel.servers).toEqual([{ $ref: "#/servers/a~1b~0c" }]);
+    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/a~1b~0c" }]);
   });
 
   it("accepts every channel decorator in its augment form", async () => {
@@ -240,15 +240,15 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.OrderChannel.address).toBe("orders.{region}.created");
+    expect(doc.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");
     expect(doc.channels?.ReplyChannel.address).toBeNull();
-    expect(doc.channels?.OrderChannel.parameters).toEqual({
+    expect(doc.channels?.["orders.{region}.created"].parameters).toEqual({
       region: { enum: ["eu", "us"], location: "$message.payload#/region" },
     });
     // The checker splices augment applications in before the inline ones, so
     // the recorded order starts with the two augments. Sorting by source
     // position puts the inline application back in front of them.
-    expect(doc.channels?.OrderChannel.servers).toEqual([
+    expect(doc.channels?.["orders.{region}.created"].servers).toEqual([
       { $ref: "#/servers/inline-a" },
       { $ref: "#/servers/augment-b" },
       { $ref: "#/servers/augment-c" },
