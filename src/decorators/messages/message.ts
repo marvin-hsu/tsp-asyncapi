@@ -1,4 +1,5 @@
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
+import { bySourcePosition, sourcePositionOf } from "../../source-order.js";
 import { useStateMap } from "@typespec/compiler/utils";
 import { singleApplication } from "../single-application.js";
 
@@ -68,15 +69,29 @@ export function $message(context: DecoratorContext, target: Model, name?: string
 }
 
 /**
- * Lists every model that `@message` marks, in the order the decorator ran.
+ * Lists every model that `@message` marks, in source order.
  * The emitter drives both `components.messages` and the schema collection
- * from this list.
+ * from this list, so this order is the order they appear in the document.
+ *
+ * The state map alone cannot supply that order. Its keys arrive in the order
+ * the decorator ran, and a decorator runs when the compiler checks its
+ * model. A model reached through another model's property is checked first,
+ * so `@message model A { c: C; }` records `C` before `A` even though `A` is
+ * written first. Adding one reference would then reorder the whole of
+ * `components.messages`, which is a diff no author asked for.
+ *
+ * Sorting here matches every other program-wide list the emitter reads, such
+ * as the servers, the channels, and the security schemes.
  *
  * @param program - The program to read the state from
- * @returns A map from each marked model to its recorded state
+ * @returns A map from each marked model to its recorded state, in source
+ * order
  *
  * @public
  */
 export function listMessages(program: Program): Map<Model, MessageState> {
-  return getMessageStateMap(program);
+  const entries = [...getMessageStateMap(program)];
+  const compare = bySourcePosition(program);
+  entries.sort(([a], [b]) => compare(sourcePositionOf(a), sourcePositionOf(b)));
+  return new Map(entries);
 }

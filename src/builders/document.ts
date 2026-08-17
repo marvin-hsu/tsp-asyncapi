@@ -2,6 +2,7 @@ import { Model, Program, Service } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import { reportUnattachedBindings } from "./bindings/builder.js";
+import { resetBindingConsumption } from "../decorators/bindings/state.js";
 import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
@@ -58,6 +59,11 @@ export function buildAsyncAPIDocument(
   service: Service | undefined,
   options: AsyncAPIEmitterOptions,
 ): AsyncAPIDocument {
+  // The consumption marks live on the program, so a previous build's marks
+  // would still be set here. Clear them, or a binding this build places
+  // nowhere reads as already placed and goes unreported.
+  resetBindingConsumption(program);
+
   const { components, messageKeys } = buildComponents(program);
 
   // The channels are built after the components, because a channel refers to

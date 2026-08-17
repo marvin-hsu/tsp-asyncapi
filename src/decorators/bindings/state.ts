@@ -171,3 +171,29 @@ export function listAllBindings(program: Program): BindingEntry[] {
 export function markBindingConsumed(entry: BindingEntry): void {
   entry.consumed = true;
 }
+
+/**
+ * Clears every consumption mark, so one build cannot see another's.
+ *
+ * The mark lives on the entry, which lives in program state, so it outlives
+ * the build that set it. One build per program hides that. Building a second
+ * document from the same program does not: every binding the first build
+ * placed still reads as placed, so a binding that reaches nothing the second
+ * time is never reported.
+ *
+ * A second build is not hypothetical. Emitting one document per version, or
+ * one per service, means resolving the same program more than once.
+ *
+ * This is a stopgap. The mark should be a collector the build owns and passes
+ * explicitly, not state on the program. That change alters the signature of
+ * every builder that renders a binding, and those builders are the ones the
+ * pipeline refactor splits, so it belongs to that step rather than ahead of it.
+ *
+ * @param program - The program whose entries are cleared
+ * @internal
+ */
+export function resetBindingConsumption(program: Program): void {
+  for (const entry of listAllBindings(program)) {
+    entry.consumed = false;
+  }
+}

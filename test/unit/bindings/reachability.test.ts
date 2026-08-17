@@ -4,6 +4,8 @@ import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { reportUnattachedBindings } from "../../../src/builders/bindings/builder.js";
+import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
+import { listAllBindings, markBindingConsumed } from "../../../src/decorators/bindings/state.js";
 
 const KAFKA_CONTRACT = `
   @service(#{ title: "Orders" })
@@ -333,5 +335,81 @@ describe("Unit: which bindings count as having reached the document", () => {
         message.includes("no server, no channel, no operation and no message"),
       ),
     ).toBe(true);
+  });
+});
+
+describe("Unit: Bindings — consumption marks do not leak between builds", () => {
+  /**
+   * A binding records whether it reached an emitted object. That mark lives on
+   * the entry, and the entry lives in program state, so it outlives the build
+   * that set it.
+   *
+   * One build per program hides the problem. Emitting one document per
+   * version, or one per service, resolves the same program more than once, and
+   * a mark left by an earlier build would then answer for the current one.
+   */
+  it("still reports a stray binding when an earlier build left a mark on it", async () => {
+    const runner = await AsyncAPITester.createInstance();
+    await runner.compileAndDiagnose(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message model Order { id: string; }
+      @channel("orders") interface Ordering {
+        @send op publish(m: Order): void;
+      }
+
+      // This binding names a model no channel, message, or operation emits,
+      // so every build must report it.
+      @binding("kafka", #{ topic: "nowhere" })
+      model Orphan { id: string; }
+    `);
+
+    // Stand in for a previous build over the same program: mark every entry
+    // as placed, including the stray one. Without a reset, the stray now
+    // reads as placed and no build reports it again.
+    for (const entry of listAllBindings(runner.program)) {
+      markBindingConsumed(entry);
+    }
+
+    const before = runner.program.diagnostics.length;
+    buildAsyncAPIDocument(runner.program, undefined, {});
+    const reported = runner.program.diagnostics
+      .slice(before)
+      .filter((diagnostic) => diagnostic.code === BINDING_OUTSIDE);
+
+    expect(reported).toHaveLength(1);
+  });
+
+  it("reports the same strays on a second build of the same program", async () => {
+    const runner = await AsyncAPITester.createInstance();
+    await runner.compileAndDiagnose(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message model Order { id: string; }
+      @channel("orders") interface Ordering {
+        @send op publish(m: Order): void;
+      }
+
+      @binding("kafka", #{ topic: "nowhere" })
+      model Orphan { id: string; }
+    `);
+
+    // Count within one build's own slice. Counting to the end of the list
+    // instead would fold the second build's reports into the first's.
+    const straysBetween = (from: number, to: number): number =>
+      runner.program.diagnostics.slice(from, to).filter((d) => d.code === BINDING_OUTSIDE).length;
+
+    const start = runner.program.diagnostics.length;
+    buildAsyncAPIDocument(runner.program, undefined, {});
+    const afterFirst = runner.program.diagnostics.length;
+    buildAsyncAPIDocument(runner.program, undefined, {});
+    const afterSecond = runner.program.diagnostics.length;
+
+    // Two builds of one program describe the same program, so they have to
+    // agree about which bindings reached nothing.
+    expect(straysBetween(start, afterFirst)).toBe(1);
+    expect(straysBetween(afterFirst, afterSecond)).toBe(1);
   });
 });
