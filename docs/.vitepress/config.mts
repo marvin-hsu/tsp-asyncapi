@@ -1,5 +1,22 @@
 import { defineConfig } from "vitepress";
 
+/**
+ * The Ko-fi entry in `socialLinks`, drawn as a coffee mug.
+ *
+ * VitePress ships no Ko-fi icon. Naming one as a string would make the page
+ * fetch it from `api.iconify.design` at runtime, so the icon is inlined here
+ * instead and the site keeps its one less external dependency.
+ *
+ * The theme sizes it to 20px and paints it with `fill: currentColor`, so the
+ * paths carry no colour of their own and follow the light and dark themes.
+ */
+const KOFI_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <path d="M6.7 2.9a1.1 1.1 0 0 1 1.1 1.1v2.8a1.1 1.1 0 0 1-2.2 0V4a1.1 1.1 0 0 1 1.1-1.1Z"/>
+  <path d="M11.3 2.9a1.1 1.1 0 0 1 1.1 1.1v2.8a1.1 1.1 0 0 1-2.2 0V4a1.1 1.1 0 0 1 1.1-1.1Z"/>
+  <path d="M2.7 9h13.2v7.4a4.6 4.6 0 0 1-4.6 4.6H7.3a4.6 4.6 0 0 1-4.6-4.6V9Z"/>
+  <path d="M15.9 10.6H18a3.6 3.6 0 0 1 0 7.2h-2.1v-2.4H18a1.2 1.2 0 0 0 0-2.4h-2.1v-2.4Z"/>
+</svg>`;
+
 export default defineConfig({
   title: "TypeSpec AsyncAPI",
   description: "An AsyncAPI 3.1 emitter for TypeSpec",
@@ -158,6 +175,13 @@ export default defineConfig({
       {
         icon: "github",
         link: "https://github.com/marvin-hsu/tsp-asyncapi",
+      },
+      // `socialLinks` sits outside `locales`, so this one entry serves both
+      // the English and the Traditional Chinese site.
+      {
+        icon: { svg: KOFI_ICON },
+        link: "https://ko-fi.com/N4R6257TGG",
+        ariaLabel: "Support on Ko-fi",
       },
     ],
     search: { provider: "local" },
