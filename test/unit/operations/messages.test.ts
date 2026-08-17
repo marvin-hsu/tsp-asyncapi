@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
+import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 
 describe("Unit: Operation messages (Phase 5.2)", () => {
   let runner: TesterInstance;

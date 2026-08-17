@@ -4,7 +4,7 @@ import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
-import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
+import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
 
 const KAFKA_CONTRACT = `

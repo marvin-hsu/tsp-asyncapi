@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildSecuritySchemes } from "../../../../src/builders/security-schemes.js";
+import { builtSecuritySchemes } from "../../../utils/security-schemes.js";
 import { getSecuritySchemes } from "../../../../src/decorators/index.js";
 import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
 
@@ -91,7 +91,7 @@ describe("Unit: security schemes", () => {
     `);
 
     expectDiagnostics(diagnostics, [{ code: "invalid-argument" }]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("emits a scheme description and drops a blank bearer format", async () => {
@@ -216,7 +216,7 @@ describe("Unit: security schemes", () => {
     `);
 
     expectDiagnostics(diagnostics, [{ code: "invalid-argument" }]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("drops a blank refresh url without reporting a missing one", async () => {
@@ -488,7 +488,7 @@ describe("Unit: security schemes", () => {
     `);
 
     expectDiagnosticEmpty(diagnostics);
-    const schemes = buildSecuritySchemes(runner.program) ?? {};
+    const schemes = builtSecuritySchemes(runner.program) ?? {};
     expect(Object.keys(schemes)).toEqual(["__proto__", "ok"]);
     expect(Object.getOwnPropertyDescriptor(schemes, "__proto__")?.value).toEqual({ type: "plain" });
     expect(JSON.stringify(schemes)).toContain('"__proto__":{"type":"plain"}');
@@ -551,7 +551,7 @@ describe("Unit: security schemes", () => {
         message: /Invalid security scheme name: 'has space'/,
       },
     ]);
-    expect(Object.keys(buildSecuritySchemes(runner.program) ?? {})).toEqual(["dots.are.fine"]);
+    expect(Object.keys(builtSecuritySchemes(runner.program) ?? {})).toEqual(["dots.are.fine"]);
   });
 
   it("reports two schemes that share a name and keeps the first in source order", async () => {
@@ -570,7 +570,7 @@ describe("Unit: security schemes", () => {
         message: /Duplicate security scheme name: 'dup'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toEqual({
+    expect(builtSecuritySchemes(runner.program)).toEqual({
       dup: { type: "plain", description: "first" },
     });
   });
@@ -593,7 +593,7 @@ describe("Unit: security schemes", () => {
         message: /Duplicate security scheme name: 'dup'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toEqual({
+    expect(builtSecuritySchemes(runner.program)).toEqual({
       dup: { type: "plain", description: "first" },
     });
   });
@@ -618,7 +618,7 @@ describe("Unit: security schemes", () => {
         message: /Duplicate security scheme name: 'dup'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toEqual({
+    expect(builtSecuritySchemes(runner.program)).toEqual({
       dup: { type: "plain", description: "stacked" },
     });
   });
@@ -645,7 +645,7 @@ describe("Unit: security schemes", () => {
         message: /Duplicate security scheme name: 'dup'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toEqual({
+    expect(builtSecuritySchemes(runner.program)).toEqual({
       dup: { type: "plain", description: "first" },
     });
   });
@@ -679,7 +679,7 @@ describe("Unit: security schemes", () => {
         message: /Empty security scheme field: 'name'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports an oauth2 scheme that declares no flow", async () => {
@@ -693,7 +693,7 @@ describe("Unit: security schemes", () => {
     expectDiagnostics(diagnostics, [
       { code: "tsp-asyncapi/empty-oauth-flows", severity: "error", message: /declares no flow/ },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports a flow that is missing an authorization url", async () => {
@@ -714,7 +714,7 @@ describe("Unit: security schemes", () => {
         message: /The 'implicit' OAuth flow needs a 'authorizationUrl'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports a blank token url the same way as a missing one", async () => {
@@ -735,7 +735,7 @@ describe("Unit: security schemes", () => {
         message: /The 'clientCredentials' OAuth flow needs a 'tokenUrl'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("drops the whole scheme when one flow of several is unusable", async () => {
@@ -766,7 +766,7 @@ describe("Unit: security schemes", () => {
         message: /The 'password' OAuth flow needs a 'tokenUrl'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports both urls the authorization code flow needs", async () => {
@@ -792,7 +792,7 @@ describe("Unit: security schemes", () => {
         message: /The 'authorizationCode' OAuth flow needs a 'tokenUrl'/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports a flow url that is not an absolute url", async () => {
@@ -821,7 +821,7 @@ describe("Unit: security schemes", () => {
         message: /The 'implicit.authorizationUrl' value '\/authorize' is not an absolute URL/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports a refresh url that is not an absolute url", async () => {
@@ -851,7 +851,7 @@ describe("Unit: security schemes", () => {
         message: /The 'clientCredentials.refreshUrl' value '\/refresh' is not an absolute URL/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("reports an openIdConnectUrl that is not an absolute url", async () => {
@@ -869,7 +869,7 @@ describe("Unit: security schemes", () => {
         message: /The 'openIdConnectUrl' value 'not a url' is not an absolute URL/,
       },
     ]);
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
   });
 
   it("emits the schemes of a parent and a nested namespace in source order", async () => {

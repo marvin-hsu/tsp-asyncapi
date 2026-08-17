@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildSecuritySchemes } from "../../../../src/builders/security-schemes.js";
+import { builtSecuritySchemes } from "../../../utils/security-schemes.js";
 import { reportSecurityUsesWithoutServer } from "../../../../src/resolve/servers.js";
 import { getUsedSecuritySchemes } from "../../../../src/decorators/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
@@ -228,7 +228,7 @@ describe("Unit: server security", () => {
     ]);
     // Both applications are dropped, so neither the key nor the reference
     // reaches the document.
-    expect(buildSecuritySchemes(runner.program)).toBeUndefined();
+    expect(builtSecuritySchemes(runner.program)).toBeUndefined();
     expect(getUsedSecuritySchemes(runner.program, Test)).toEqual([]);
   });
 

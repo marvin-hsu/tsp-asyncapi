@@ -48,12 +48,27 @@ export { getSecuritySchemesInternal, setSecuritySchemes };
  * declares none.
  */
 export function listSecuritySchemes(program: Program): AsyncAPISecuritySchemeState[] {
+  return listSecuritySchemeRecords(program).map((record) => record.state);
+}
+
+/**
+ * Lists every declared scheme with the target a problem about it is reported
+ * on, in source order.
+ *
+ * The resolver needs the target as well as the scheme. Everything else only
+ * needs the scheme, so `listSecuritySchemes` drops it.
+ *
+ * @param program - The program to read the state from
+ * @returns The records. The list is empty when the program declares none.
+ * @internal
+ */
+export function listSecuritySchemeRecords(program: Program): SecuritySchemeRecord[] {
   const records: SecuritySchemeRecord[] = [];
   for (const [, namespaceRecords] of getSecuritySchemeStateMap(program)) {
     records.push(...namespaceRecords);
   }
   records.sort(bySourcePosition(program));
-  return records.map((record) => record.state);
+  return records;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Enum, Model, ModelProperty, Namespace, Operation, Union } from "@typespec/compiler";
+import type { Model, ModelProperty, Namespace, Operation } from "@typespec/compiler";
 import type {
   AsyncAPIService,
   BindingNode,
@@ -39,8 +39,6 @@ const namespace = stub("Service") as Namespace;
 const model = stub("Order") as Model;
 const property = stub("orderId") as ModelProperty;
 const operation = stub("publishOrder") as Operation;
-const union = stub("OrderEvent") as Union;
-const enumType = stub("OrderState") as Enum;
 
 const externalDocs: ExternalDocsNode = { url: "https://example.com" };
 const tag: TagNode = { name: "orders", description: "Order traffic", externalDocs };
@@ -137,8 +135,6 @@ const service: AsyncAPIService = {
   messageKeys: new Map([[model, "Order"]]),
   channels: [channel],
   operations: [operationNode],
-  oneOfUnions: new Set([union]),
-  jsonSchemaExtensions: new Map([[model, { "x-id": enumType.name }]]),
 };
 
 describe("AsyncAPIService", () => {

@@ -1,10 +1,22 @@
+import { Program, Service } from "@typespec/compiler";
+import { BindingPlacements, reportUnattachedBindings } from "./bindings.js";
+import { resolveChannels } from "./channels.js";
+import { resolveInfo } from "./info.js";
+import { resolveMessages } from "./messages.js";
+import { resolveOperations } from "./operations.js";
+import { resolveSecuritySchemes } from "./security-schemes.js";
+import {
+  reportSecurityUsesWithoutServer,
+  reportServersOutsideService,
+  resolveServers,
+} from "./servers.js";
+
 import type {
   DiagnosticTarget,
   Model,
   ModelProperty,
   Namespace,
   Operation,
-  Union,
 } from "@typespec/compiler";
 import type {
   CorrelationIdState,
@@ -57,8 +69,12 @@ export interface AsyncAPIService {
   /**
    * The service namespace. It anchors any report about the document as a
    * whole, and it is the target the info node describes.
+   *
+   * It is absent when the program declares no `@service`. Such a program
+   * still emits a document: AsyncAPI requires `channels` and `operations`,
+   * and a channel is declared program-wide rather than under a service.
    */
-  readonly target: Namespace;
+  readonly target?: Namespace;
   /** The document head, with every default already applied. */
   readonly info: InfoNode;
   /** The servers of the application, in source order. */
@@ -91,23 +107,6 @@ export interface AsyncAPIService {
   // builder owns it end to end, and the lower stage is where it lives.
   // Keys that a single declaration fixes, such as a message key or a channel
   // parameter key, are different and are assigned here.
-  /**
-   * The unions `@oneOf` marks. The schema builder chooses the `oneOf`
-   * keyword over `anyOf` for a member of this set.
-   *
-   * This is the whole state set, not the reachable part of it. Resolve can
-   * read the state map without walking the type graph, so the schema builder
-   * needs no state read for this decision.
-   */
-  readonly oneOfUnions: ReadonlySet<Union>;
-  /**
-   * The fields `@jsonSchemaExtension` adds, per type.
-   *
-   * The values are plain JSON. The marshalled decorator values are converted
-   * once, in resolve. This is the whole state map, for the same reason
-   * `oneOfUnions` is.
-   */
-  readonly jsonSchemaExtensions: ReadonlyMap<Model | ModelProperty, JsonObject>;
 }
 
 /**
@@ -200,8 +199,13 @@ export interface BindingNode {
  * @internal
  */
 export interface InfoNode {
-  /** The service namespace, for a report about the document head. */
-  readonly target: Namespace;
+  /**
+   * The service namespace, for a report about the document head.
+   *
+   * It is absent when the program declares no `@service`, in which case the
+   * title and version are the emitter's defaults.
+   */
+  readonly target?: Namespace;
   /** The title of the document. */
   readonly title: string;
   /** The version of the application the document describes. */
@@ -595,4 +599,65 @@ export interface OperationReplyNode {
   readonly address?: ReplyAddressState;
   /** The messages of the reply side, in signature order. */
   readonly messages: readonly MessageRefNode[];
+}
+
+/**
+ * Resolves one program into the semantic model the rest of the pipeline
+ * reads.
+ *
+ * This is the whole of stage one. Every decorator state read, every source
+ * ordering, and every semantic diagnostic happens inside this call. What it
+ * returns is immutable and complete, so the lower stage needs the program
+ * only to expand schemas.
+ *
+ * The order inside matters, and it is the order of what depends on what.
+ * The security schemes come first, because a server and an operation both
+ * drop a `@useSecurity` naming a scheme the document does not carry, and
+ * that check needs the full set. The messages come next, because a channel
+ * names its messages by the key they claimed. The channels come before the
+ * operations for the same reason.
+ *
+ * The unattached-binding report runs last. Every stage that places a binding
+ * runs before it, so anything the record still does not hold reached nothing.
+ *
+ * @param program - The compiled program
+ * @param service - The service the document describes, if the program has one
+ * @param placements - Where the binding applications this build placed are
+ * recorded
+ * @returns The semantic model, or `undefined` when the program declares no
+ * service
+ * @internal
+ */
+export function resolveService(
+  program: Program,
+  service: Service | undefined,
+  placements: BindingPlacements,
+): AsyncAPIService {
+  const securitySchemes = resolveSecuritySchemes(program);
+  const declaredSchemes = new Set(securitySchemes.map((scheme) => scheme.name));
+
+  const { messages, keys } = resolveMessages(program, placements);
+  const { channels, emitted } = resolveChannels(program, keys, placements);
+
+  // A server on any namespace other than the service's never reaches the
+  // document, and a `@useSecurity` beside it has just as little to attach to.
+  reportServersOutsideService(program, service?.type);
+  reportSecurityUsesWithoutServer(program, service?.type);
+
+  const servers =
+    service !== undefined ? resolveServers(program, service.type, declaredSchemes, placements) : [];
+  const operations = resolveOperations(program, emitted, keys, declaredSchemes, placements);
+
+  reportUnattachedBindings(program, placements);
+
+  return {
+    ...(service !== undefined ? { target: service.type } : {}),
+    info: resolveInfo(program, service),
+    servers,
+    securitySchemes,
+    messages,
+    messageKeys: keys,
+    channels,
+    operations,
+  };
 }

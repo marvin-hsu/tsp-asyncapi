@@ -1,6 +1,6 @@
 import { Namespace, Program } from "@typespec/compiler";
 import { ServerObject } from "../../src/types.js";
-import { buildSecuritySchemes } from "../../src/builders/security-schemes.js";
+import { builtSecuritySchemes } from "./security-schemes.js";
 import { BindingPlacements } from "../../src/resolve/bindings.js";
 import { resolveServers } from "../../src/resolve/servers.js";
 import { lowerServers } from "../../src/lower/servers.js";
@@ -23,6 +23,6 @@ export function buildServersFrom(
   program: Program,
   namespace: Namespace,
 ): Record<string, ServerObject> | undefined {
-  const declaredSchemes = new Set(Object.keys(buildSecuritySchemes(program) ?? {}));
+  const declaredSchemes = new Set(Object.keys(builtSecuritySchemes(program) ?? {}));
   return lowerServers(resolveServers(program, namespace, declaredSchemes, new BindingPlacements()));
 }

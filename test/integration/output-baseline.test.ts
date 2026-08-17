@@ -122,6 +122,28 @@ describe("Output baseline", () => {
     });
   });
 
+  it("pins info when @info names its fields out of table order", async () => {
+    // The emitted order is the Info Object table of the specification, not
+    // the order the author happened to type inside `#{ ... }`. Two documents
+    // describing one service must not differ by how a literal was written.
+    await expectBaseline(
+      "info-shuffled",
+      `
+        @service(#{ title: "Order Events" })
+        @info(#{
+          license: #{ name: "MIT" },
+          description: "Every event the order system publishes.",
+          version: "1.4.2",
+          contact: #{ name: "API Team" },
+          termsOfService: "https://example.com/terms"
+        })
+        namespace Orders;
+
+        @message model Order { id: string; }
+      `,
+    );
+  });
+
   it("pins servers, server variables, and securitySchemes", async () => {
     await expectBaseline(
       "servers-security",

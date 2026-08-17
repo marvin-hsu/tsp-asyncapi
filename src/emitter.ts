@@ -1,6 +1,6 @@
 import { EmitContext, emitFile, resolvePath, listServices, Service } from "@typespec/compiler";
 import { AsyncAPIEmitterOptions, reportDiagnostic } from "./lib.js";
-import { buildAsyncAPIDocument } from "./builders/document.js";
+import { buildAsyncAPIDocument } from "./pipeline.js";
 import yaml from "yaml";
 
 /**

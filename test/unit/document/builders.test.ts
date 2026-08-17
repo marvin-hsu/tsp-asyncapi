@@ -2,10 +2,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t, TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
-import { buildInfo } from "../../../src/builders/info.js";
+import { resolveInfo } from "../../../src/resolve/info.js";
+import { lowerInfo } from "../../../src/lower/info.js";
 import { buildTags } from "../../../src/builders/tags.js";
 import { buildExternalDocs } from "../../../src/builders/external-docs.js";
-import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
+import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;
@@ -14,7 +15,7 @@ describe("Unit: Builders (Phase 1)", () => {
     runner = await AsyncAPITester.createInstance();
   });
 
-  describe("buildInfo", () => {
+  describe("info", () => {
     it("should extract title from @service and default version", async () => {
       const { program } = await runner.compile(t.code`
         @doc("Standard Doc Description")
@@ -24,7 +25,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace ${t.namespace("TestService")} {}
       `);
       const services = listServices(program);
-      const info = buildInfo(program, services[0]);
+      const info = lowerInfo(resolveInfo(program, services[0]));
 
       expect(info.title).toBe("My Service");
       expect(info.version).toBe("0.0.0");
@@ -35,7 +36,7 @@ describe("Unit: Builders (Phase 1)", () => {
 
     it("should fall back to the default title when @service names none", async () => {
       // `@service` takes its options as an optional argument, so a service
-      // can carry no title at all. `buildInfo` then reads `service.title`
+      // can carry no title at all. the resolver then reads `service.title`
       // as `undefined` and falls back to `DEFAULT_DOCUMENT_TITLE`. Every
       // other test names a title, so only this input reaches the fallback.
       const { program } = await runner.compile(t.code`
@@ -43,7 +44,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace ${t.namespace("Orders")} {}
       `);
       const services = listServices(program);
-      const info = buildInfo(program, services[0]);
+      const info = lowerInfo(resolveInfo(program, services[0]));
 
       expect(info.title).toBe("AsyncAPI Document");
       expect(info.version).toBe("0.0.0");
@@ -61,7 +62,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace TestService {}
       `);
       const services = listServices(runner.program);
-      const info = buildInfo(runner.program, services[0]);
+      const info = lowerInfo(resolveInfo(runner.program, services[0]));
 
       expect(info.title).toBe("My Service");
       expect(info.version).toBe("1.2.3");

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/builders/document.js";
+import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
