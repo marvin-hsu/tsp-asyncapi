@@ -42,7 +42,10 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
   if (fileType === "json") {
     outputContent = JSON.stringify(doc, null, 2);
   } else {
-    outputContent = yaml.stringify(doc);
+    // `lineWidth: 0` turns line wrapping off. The default width of 80 folds
+    // a long scalar such as a `$ref` across two lines. A folded `$ref` is
+    // legal YAML, but a plain-text search for the pointer no longer finds it.
+    outputContent = yaml.stringify(doc, { lineWidth: 0 });
   }
 
   if (!context.program.compilerOptions.noEmit) {
