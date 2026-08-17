@@ -7,7 +7,8 @@ import {
 import { listUseServerTargets } from "../../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { ChannelObject, ReferenceObject } from "../../types.js";
-import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
+import { buildBindings } from "../bindings/builder.js";
+import { BindingPlacements, markBindingsPlaced } from "../../resolve/bindings.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { present, text } from "../../optional-fields.js";
 import { buildTags } from "../tags.js";
@@ -42,6 +43,7 @@ import { buildChannelServers } from "./servers.js";
 export function buildChannels(
   program: Program,
   messageKeys: ReadonlyMap<Model, string>,
+  placements: BindingPlacements,
 ): ChannelsResult {
   const entries: [string, ChannelObject][] = [];
   const claimedBy = new Set<string>();
@@ -53,12 +55,12 @@ export function buildChannels(
       reportDiagnostic(program, { code: "duplicate-channel-id", format: { id }, target });
       // The repeated id is the mistake, and it is already reported. The
       // bindings of this channel are not a second one.
-      markBindingsPlaced(program, "channel", target);
+      markBindingsPlaced(program, "channel", target, placements);
       continue;
     }
     claimedBy.add(id);
     const messages = buildChannelMessages(program, target, id, messageKeys);
-    entries.push([id, buildChannel(program, target, record, id, messages.messages)]);
+    entries.push([id, buildChannel(program, target, record, id, messages.messages, placements)]);
     emitted.set(target, { id, address: record.state.address, messageKeys: messages.keys });
   }
 
@@ -119,6 +121,7 @@ function buildChannel(
   record: ChannelRecord,
   id: string,
   messages: Record<string, ReferenceObject> | undefined,
+  placements: BindingPlacements,
 ): ChannelObject {
   return {
     address: record.state.address,
@@ -127,7 +130,7 @@ function buildChannel(
     ...present("servers", buildChannelServers(program, target)),
     ...present("parameters", buildChannelParameters(program, target, record, id)),
     ...present("messages", messages),
-    ...present("bindings", buildBindings(program, "channel", target)),
+    ...present("bindings", buildBindings(program, "channel", target, placements)),
     ...present("tags", buildTags(program, target)),
     ...present("externalDocs", buildExternalDocs(program, target)),
   };

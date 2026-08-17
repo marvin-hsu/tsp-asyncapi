@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { reportUnattachedBindings } from "../../../src/builders/bindings/builder.js";
+import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
 import { buildAsyncAPIDocument } from "../../../src/builders/document.js";
-import { listAllBindings, markBindingConsumed } from "../../../src/decorators/bindings/state.js";
+import { listAllBindings } from "../../../src/decorators/bindings/state.js";
 
 const KAFKA_CONTRACT = `
   @service(#{ title: "Orders" })
@@ -322,7 +322,8 @@ describe("Unit: which bindings count as having reached the document", () => {
       }
     `);
 
-    reportUnattachedBindings(program);
+    // Nothing was built, so this build placed nothing.
+    reportUnattachedBindings(program, new BindingPlacements());
 
     const reported = program.diagnostics.filter(
       (diagnostic) => diagnostic.code === BINDING_OUTSIDE,
@@ -365,11 +366,12 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
       model Orphan { id: string; }
     `);
 
-    // Stand in for a previous build over the same program: mark every entry
-    // as placed, including the stray one. Without a reset, the stray now
-    // reads as placed and no build reports it again.
+    // Stand in for a previous build over the same program: place every entry,
+    // including the stray one, in a record of that build's own. A record the
+    // build owns cannot reach the next build, so the stray is still reported.
+    const earlierBuild = new BindingPlacements();
     for (const entry of listAllBindings(runner.program)) {
-      markBindingConsumed(entry);
+      earlierBuild.place(entry);
     }
 
     const before = runner.program.diagnostics.length;

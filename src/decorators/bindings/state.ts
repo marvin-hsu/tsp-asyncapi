@@ -69,18 +69,6 @@ export interface BindingEntry extends SourcePosition {
   config: unknown;
   /** Where a problem with this application is reported. */
   node: DiagnosticTarget;
-  /**
-   * Whether this entry reached an emitted object.
-   *
-   * The builder sets it while it assembles. It sets it for a binding it
-   * dropped as a repeated protocol too. Such a binding did reach the object,
-   * and it was already reported as a clash. Leaving it unset would report it
-   * a second time, as a binding that reaches nothing, which is untrue.
-   *
-   * Everything still unset once the whole document is built reached no
-   * object at all, and is reported once.
-   */
-  consumed: boolean;
 }
 
 const [getEntries, setEntries, getEntryMap] = useStateMap<Type, BindingEntry[]>(bindingStateKey);
@@ -112,12 +100,11 @@ const [getEntries, setEntries, getEntryMap] = useStateMap<Type, BindingEntry[]>(
  */
 export function claimBinding(
   context: DecoratorContext,
-  entry: Omit<BindingEntry, "consumed" | keyof SourcePosition>,
+  entry: Omit<BindingEntry, keyof SourcePosition>,
 ): void {
   const recorded: BindingEntry = {
     ...entry,
     ...sourcePositionOf(context.decoratorTarget),
-    consumed: false,
   };
   const existing = getEntries(context.program, entry.target) ?? [];
   // One decorator application calls this function once, so the position is
@@ -160,40 +147,4 @@ export function listAllBindings(program: Program): BindingEntry[] {
     all.push(...entries);
   }
   return all;
-}
-
-/**
- * Marks one entry as having reached an emitted object.
- *
- * @param entry - The entry the builder just rendered
- * @internal
- */
-export function markBindingConsumed(entry: BindingEntry): void {
-  entry.consumed = true;
-}
-
-/**
- * Clears every consumption mark, so one build cannot see another's.
- *
- * The mark lives on the entry, which lives in program state, so it outlives
- * the build that set it. One build per program hides that. Building a second
- * document from the same program does not: every binding the first build
- * placed still reads as placed, so a binding that reaches nothing the second
- * time is never reported.
- *
- * A second build is not hypothetical. Emitting one document per version, or
- * one per service, means resolving the same program more than once.
- *
- * This is a stopgap. The mark should be a collector the build owns and passes
- * explicitly, not state on the program. That change alters the signature of
- * every builder that renders a binding, and those builders are the ones the
- * pipeline refactor splits, so it belongs to that step rather than ahead of it.
- *
- * @param program - The program whose entries are cleared
- * @internal
- */
-export function resetBindingConsumption(program: Program): void {
-  for (const entry of listAllBindings(program)) {
-    entry.consumed = false;
-  }
 }

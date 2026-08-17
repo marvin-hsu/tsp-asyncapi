@@ -279,7 +279,14 @@ export interface ServerNode {
    * Every variable is already normalized. The enum repeats are gone, the
    * blanks are gone, and the default was checked against the enum.
    */
-  readonly variables: ReadonlyMap<string, ServerVariableNode>;
+  /**
+   * The `{var}` templates of `host` and `pathname`, keyed by the name inside
+   * the braces.
+   *
+   * Absent and empty are different. The author who writes no variables gets
+   * no field, and the author who writes an empty set gets an empty one.
+   */
+  readonly variables?: ReadonlyMap<string, ServerVariableNode>;
   /**
    * The security schemes this server requires, in source order.
    *

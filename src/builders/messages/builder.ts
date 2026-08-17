@@ -8,7 +8,8 @@ import {
   MessageState,
 } from "../../decorators/index.js";
 import { SchemaBuilder } from "../schemas/builder.js";
-import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
+import { buildBindings } from "../bindings/builder.js";
+import { BindingPlacements, markBindingsPlaced } from "../../resolve/bindings.js";
 import { present, text } from "../../optional-fields.js";
 import {
   buildMessageHeaders,
@@ -163,6 +164,7 @@ function buildMessage(
   headerPlan: MessageHeaderPlan,
   model: Model,
   key: string,
+  placements: BindingPlacements,
 ): MessageObject {
   const title = getSummary(program, model);
   const description = getDoc(program, model);
@@ -181,7 +183,7 @@ function buildMessage(
     ...present("headers", headers),
     payload: buildMessagePayload(program, schemas, headerPlan, model),
     ...present("correlationId", correlationId),
-    ...present("bindings", buildBindings(program, "message", model)),
+    ...present("bindings", buildBindings(program, "message", model, placements)),
     ...present("tags", tags),
     ...present("externalDocs", externalDocs),
     ...present("examples", examples),
@@ -217,7 +219,11 @@ function buildMessage(
  * put the key rule in two places. So the one place that resolves a message
  * key hands the answer on.
  */
-export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMessages {
+export function buildMessages(
+  program: Program,
+  schemas: SchemaBuilder,
+  placements: BindingPlacements,
+): BuiltMessages {
   // A null prototype keeps a key such as `__proto__` an ordinary own
   // property. A plain object literal would run the inherited setter instead,
   // dropping the message and replacing the map's prototype. This matches
@@ -245,7 +251,7 @@ export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMe
       // no report of its own, and leaving the marking to the reporting branch
       // made every second instantiation warn that its binding reaches
       // nothing.
-      markBindingsPlaced(program, "message", model);
+      markBindingsPlaced(program, "message", model, placements);
       if (!isSameDeclaration(schemas, owner, model)) {
         reportDiagnostic(program, {
           code: "duplicate-message-key",
@@ -257,7 +263,7 @@ export function buildMessages(program: Program, schemas: SchemaBuilder): BuiltMe
       continue;
     }
     claimedBy.set(key, model);
-    messages[key] = buildMessage(program, schemas, headerPlan, model, key);
+    messages[key] = buildMessage(program, schemas, headerPlan, model, key, placements);
   }
 
   // The schema keys must all be claimed before the shadow check reads them.

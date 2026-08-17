@@ -5,15 +5,17 @@ import { getOperationAction } from "../../decorators/operations/action.js";
 import { listReplyDeclarations } from "../../decorators/operations/reply-state.js";
 import { OperationActionState, listOperationActions } from "../../decorators/operations/state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { OperationObject } from "../../types.js";
-import { buildBindings, markBindingsPlaced } from "../bindings/builder.js";
+import { OperationObject, ReferenceObject } from "../../types.js";
+import { buildBindings } from "../bindings/builder.js";
+import { BindingPlacements, markBindingsPlaced } from "../../resolve/bindings.js";
 import { EmittedChannel } from "../channels/builder.js";
 import { owningChannelTarget } from "../channels/scope.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { channelRef } from "../json-pointer.js";
 import { operationSides } from "../operation-models.js";
 import { present, text } from "../../optional-fields.js";
-import { buildSecurityRequirements } from "../security-requirements.js";
+import { resolveSecuritySchemeNames } from "../../resolve/servers.js";
+import { securitySchemeRef } from "../json-pointer.js";
 import { buildTags } from "../tags.js";
 import { operationId } from "./id.js";
 import { buildMessageReferences } from "./messages.js";
@@ -48,6 +50,7 @@ export function buildOperations(
   channels: ReadonlyMap<ChannelTarget, EmittedChannel>,
   messageKeys: ReadonlyMap<Model, string>,
   declaredSchemes: ReadonlySet<string>,
+  placements: BindingPlacements,
 ): Record<string, OperationObject> {
   const entries: [string, OperationObject][] = [];
   const claimed = new Set<string>();
@@ -67,7 +70,7 @@ export function buildOperations(
       if (target.node !== undefined && emittedNodes.has(target.node)) {
         // The copies carry this declaration into the document, so its
         // bindings reached an object too.
-        markBindingsPlaced(program, "operation", target);
+        markBindingsPlaced(program, "operation", target, placements);
         continue;
       }
       reportDiagnostic(program, {
@@ -83,7 +86,7 @@ export function buildOperations(
       reportDiagnostic(program, { code: "duplicate-operation-id", format: { id }, target });
       // The repeated id is the mistake, and it is already reported. The
       // bindings of this operation are not a second one.
-      markBindingsPlaced(program, "operation", target);
+      markBindingsPlaced(program, "operation", target, placements);
       continue;
     }
     claimed.add(id);
@@ -96,6 +99,7 @@ export function buildOperations(
         channels,
         messageKeys,
         declaredSchemes,
+        placements,
       }),
     ]);
   }
@@ -144,6 +148,7 @@ interface OperationContext {
   channels: ReadonlyMap<ChannelTarget, EmittedChannel>;
   messageKeys: ReadonlyMap<Model, string>;
   declaredSchemes: ReadonlySet<string>;
+  placements: BindingPlacements;
 }
 
 /**
@@ -160,6 +165,21 @@ interface OperationContext {
  *
  * A field with nothing to say is left out.
  */
+/**
+ * The `security` array of one operation, or `undefined` when none survives.
+ *
+ * Resolve settles which names are real. Turning a name into a reference is a
+ * document detail, so it happens here.
+ */
+function securityReferences(
+  program: Program,
+  operation: Operation,
+  declaredSchemes: ReadonlySet<string>,
+): ReferenceObject[] | undefined {
+  const names = resolveSecuritySchemeNames(program, operation, declaredSchemes);
+  return names.length > 0 ? names.map((name) => ({ $ref: securitySchemeRef(name) })) : undefined;
+}
+
 function buildOperation(program: Program, context: OperationContext): OperationObject {
   const { operation, record, channel, channels, messageKeys, declaredSchemes } = context;
   const { request, reply } = operationSides(program, operation, record.action);
@@ -169,10 +189,10 @@ function buildOperation(program: Program, context: OperationContext): OperationO
     channel: { $ref: channelRef(channel.id) },
     ...text("title", getSummary(program, operation)),
     ...text("description", getDoc(program, operation)),
-    ...present("security", buildSecurityRequirements(program, operation, declaredSchemes)),
+    ...present("security", securityReferences(program, operation, declaredSchemes)),
     ...present("tags", buildTags(program, operation)),
     ...present("externalDocs", buildExternalDocs(program, operation)),
-    ...present("bindings", buildBindings(program, "operation", operation)),
+    ...present("bindings", buildBindings(program, "operation", operation, context.placements)),
     ...present("messages", buildMessageReferences(request, channel, messageKeys)),
     ...present(
       "reply",

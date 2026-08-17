@@ -1,0 +1,212 @@
+/**
+ * The resolve half of the servers.
+ *
+ * It reads the `@server` state of the service namespace, together with the
+ * three things that namespace contributes to every server it declares:
+ * the security scheme names, the external documentation, and the tags. It
+ * also reports the two mistakes that are about placement rather than about
+ * one server's fields.
+ *
+ * What it produces is a list of `ServerNode`, already in source order. The
+ * project half turns those into Server Objects and reads no state.
+ */
+
+import { getNamespaceFullName, Namespace, Program } from "@typespec/compiler";
+import { getServers } from "../decorators/index.js";
+import {
+  AsyncAPIServerVariableState,
+  listServersOutsideService,
+  namespaceHasServers,
+} from "../decorators/servers/state.js";
+import {
+  listSecurityUsesWithoutServer,
+  listUsedSecuritySchemes,
+  UseSecurityTarget,
+} from "../decorators/security/use-security-state.js";
+import { reportDiagnostic } from "../lib.js";
+import { BindingPlacements, resolveBindings } from "./bindings.js";
+import { buildExternalDocs } from "../builders/external-docs.js";
+import { buildTags } from "../builders/tags.js";
+import { ServerNode, ServerVariableNode } from "./service.js";
+
+/**
+ * Resolves the security scheme names of one namespace or operation.
+ *
+ * A name no `@securityScheme` defines is reported and dropped here. The
+ * reference the project half writes would otherwise address a key the
+ * document does not carry, and a parser rejects the whole document for it.
+ * `@useSecurity` cannot make this check itself, because a `@securityScheme`
+ * anywhere in the program can still arrive after it runs. Here the full set
+ * is known.
+ *
+ * Only the names are carried. Turning a name into a reference is a document
+ * detail, and it belongs to the project half.
+ *
+ * @param program - The program to read the applications from
+ * @param target - The namespace or operation that carries the `@useSecurity`
+ * @param declaredSchemes - The keys of `components.securitySchemes`
+ * @returns The surviving names, in source order
+ * @internal
+ */
+export function resolveSecuritySchemeNames(
+  program: Program,
+  target: UseSecurityTarget,
+  declaredSchemes: ReadonlySet<string>,
+): readonly string[] {
+  const names: string[] = [];
+  for (const { schemeName, target: applicationTarget } of listUsedSecuritySchemes(
+    program,
+    target,
+  )) {
+    if (!declaredSchemes.has(schemeName)) {
+      reportDiagnostic(program, {
+        code: "undeclared-security-scheme",
+        format: { schemeName },
+        target: applicationTarget,
+      });
+      continue;
+    }
+    names.push(schemeName);
+  }
+  return names;
+}
+
+/** Turns the recorded variables of one server into resolved nodes. */
+function resolveServerVariables(
+  variables: Record<string, AsyncAPIServerVariableState>,
+): ReadonlyMap<string, ServerVariableNode> {
+  const resolved = new Map<string, ServerVariableNode>();
+  for (const [name, state] of Object.entries(variables)) {
+    // The decorator stores a field only when it holds a value, so an absent
+    // field stays absent rather than becoming an empty one.
+    resolved.set(name, {
+      ...(state.enum !== undefined ? { enum: state.enum } : {}),
+      ...(state.default !== undefined ? { default: state.default } : {}),
+      ...(state.description !== undefined ? { description: state.description } : {}),
+      ...(state.examples !== undefined ? { examples: state.examples } : {}),
+    });
+  }
+  return resolved;
+}
+
+/**
+ * Resolves the servers of the service namespace.
+ *
+ * The decorator already checked each server. It reported a diagnostic and
+ * dropped any server with a bad or repeated name, or with a blank required
+ * field. So every record here is safe to use as a key.
+ *
+ * `security`, `externalDocs`, and `tags` come from the namespace rather than
+ * from one server, so every server the namespace declares carries the same
+ * value for all three. They are read once and shared here. The project half
+ * gives each server its own copy, because that is where a shared value would
+ * turn into a shared object in the output.
+ *
+ * The `externalDocs` and `tags` of the namespace also reach `info`, because
+ * the servers are read from the service namespace and `info` reads that same
+ * namespace. The duplication is intended. AsyncAPI defines both fields on
+ * both objects, and a reader of a server should not have to look at `info`.
+ *
+ * @param program - The program to read the servers from
+ * @param namespace - The service namespace
+ * @param declaredSchemes - The keys of `components.securitySchemes`
+ * @param placements - Where the binding applications this build placed are
+ * recorded
+ * @returns The servers, in source order. An empty list means the namespace
+ * declares none.
+ * @internal
+ */
+export function resolveServers(
+  program: Program,
+  namespace: Namespace,
+  declaredSchemes: ReadonlySet<string>,
+  placements: BindingPlacements,
+): readonly ServerNode[] {
+  const declared = getServers(program, namespace);
+  if (declared.length === 0) return [];
+
+  const security = resolveSecuritySchemeNames(program, namespace, declaredSchemes);
+  const externalDocs = buildExternalDocs(program, namespace);
+  const tags = buildTags(program, namespace) ?? [];
+  const bindings = resolveBindings(program, "server", namespace, placements);
+
+  return declared.map((state) => ({
+    target: namespace,
+    name: state.name,
+    host: state.host,
+    protocol: state.protocol,
+    ...(state.protocolVersion !== undefined ? { protocolVersion: state.protocolVersion } : {}),
+    ...(state.pathname !== undefined ? { pathname: state.pathname } : {}),
+    ...(state.title !== undefined ? { title: state.title } : {}),
+    ...(state.summary !== undefined ? { summary: state.summary } : {}),
+    ...(state.description !== undefined ? { description: state.description } : {}),
+    ...(state.variables !== undefined
+      ? { variables: resolveServerVariables(state.variables) }
+      : {}),
+    security,
+    ...(externalDocs !== undefined ? { externalDocs } : {}),
+    tags,
+    bindings,
+  }));
+}
+
+/**
+ * Reports every `@server` that sits outside the service namespace.
+ *
+ * Such a server never reaches the document. Dropping it in silence hides an
+ * author mistake, so each one gets a warning that names the namespace it sits
+ * on.
+ *
+ * @param program - The program to read the servers from
+ * @param service - The service namespace, or `undefined` when the program
+ * declares no service
+ * @internal
+ */
+export function reportServersOutsideService(
+  program: Program,
+  service: Namespace | undefined,
+): void {
+  for (const { namespace, name, target } of listServersOutsideService(program, service)) {
+    reportDiagnostic(program, {
+      code: "server-outside-service",
+      format: { name, namespace: getNamespaceFullName(namespace) },
+      target,
+    });
+  }
+}
+
+/**
+ * Reports every `@useSecurity` on a namespace whose servers never reach the
+ * document.
+ *
+ * The `security` array sits on a server object, so such an application has
+ * nowhere to go and changes nothing. This is the same silent failure that
+ * `server-outside-service` was added for.
+ *
+ * A namespace that declares a server is not enough. Only the service
+ * namespace's servers are emitted, so a `@server` elsewhere is dropped and
+ * reported, and the `@useSecurity` beside it has just as little to attach to.
+ * Reading the recorded state alone would call that namespace served and let
+ * the second mistake pass without a word.
+ *
+ * @param program - The program to read the applications from
+ * @param service - The namespace the document is emitted from, if there is one
+ * @internal
+ */
+export function reportSecurityUsesWithoutServer(
+  program: Program,
+  service: Namespace | undefined,
+): void {
+  const stray = listSecurityUsesWithoutServer(
+    program,
+    (namespace) =>
+      service !== undefined && namespace === service && namespaceHasServers(program, namespace),
+  );
+  for (const { namespace, schemeName, target } of stray) {
+    reportDiagnostic(program, {
+      code: "use-security-outside-server",
+      format: { schemeName, namespace: getNamespaceFullName(namespace) },
+      target,
+    });
+  }
+}

@@ -1,12 +1,14 @@
 import { Namespace, Program } from "@typespec/compiler";
 import { ServerObject } from "../../src/types.js";
 import { buildSecuritySchemes } from "../../src/builders/security-schemes.js";
-import { buildServers } from "../../src/builders/servers.js";
+import { BindingPlacements } from "../../src/resolve/bindings.js";
+import { resolveServers } from "../../src/resolve/servers.js";
+import { projectServers } from "../../src/project/servers.js";
 
 /**
  * Builds the `servers` map the way the document builder does.
  *
- * `buildServers` needs the keys of `components.securitySchemes`, because a
+ * `resolveServers` needs the keys of `components.securitySchemes`, because a
  * `@useSecurity` naming anything else is dropped. The document builder reads
  * that set from the components it has just built. A test that wrote the set
  * by hand could hand the builder a scheme the document does not carry, and
@@ -22,5 +24,7 @@ export function buildServersFrom(
   namespace: Namespace,
 ): Record<string, ServerObject> | undefined {
   const declaredSchemes = new Set(Object.keys(buildSecuritySchemes(program) ?? {}));
-  return buildServers(program, namespace, declaredSchemes);
+  return projectServers(
+    resolveServers(program, namespace, declaredSchemes, new BindingPlacements()),
+  );
 }

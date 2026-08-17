@@ -19,7 +19,7 @@
  */
 
 import { KAFKA_BINDING_VERSION } from "../../constants.js";
-import {
+import type {
   KafkaChannelBindingState,
   KafkaMessageBindingState,
   KafkaOperationBindingState,

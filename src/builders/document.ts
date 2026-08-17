@@ -1,19 +1,19 @@
 import { Model, Program, Service } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
-import { reportUnattachedBindings } from "./bindings/builder.js";
-import { resetBindingConsumption } from "../decorators/bindings/state.js";
+import { BindingPlacements, reportUnattachedBindings } from "../resolve/bindings.js";
+import {
+  reportSecurityUsesWithoutServer,
+  reportServersOutsideService,
+  resolveServers,
+} from "../resolve/servers.js";
+import { projectServers } from "../project/servers.js";
 import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
 import { buildMessages } from "./messages/builder.js";
 import { reportUnresolvedRawSchemaRefs } from "./messages/raw-schema-refs.js";
 import { SchemaBuilder } from "./schemas/builder.js";
-import {
-  buildServers,
-  reportSecurityUsesWithoutServer,
-  reportServersOutsideService,
-} from "./servers.js";
 import { buildSecuritySchemes } from "./security-schemes.js";
 import { ASYNCAPI_VERSION, DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
@@ -28,12 +28,15 @@ import { ASYNCAPI_VERSION, DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "
  * message by the key that `components.messages` gave it, and only the
  * message builder resolves that key.
  */
-function buildComponents(program: Program): {
+function buildComponents(
+  program: Program,
+  placements: BindingPlacements,
+): {
   components: ComponentsObject | undefined;
   messageKeys: Map<Model, string>;
 } {
   const schemaBuilder = new SchemaBuilder(program);
-  const { messages, keys } = buildMessages(program, schemaBuilder);
+  const { messages, keys } = buildMessages(program, schemaBuilder, placements);
   const schemas = schemaBuilder.getSchemas();
   // The security schemes come from the whole program, not from the service
   // namespace. `components` is a document-wide registry, and a scheme is
@@ -59,16 +62,15 @@ export function buildAsyncAPIDocument(
   service: Service | undefined,
   options: AsyncAPIEmitterOptions,
 ): AsyncAPIDocument {
-  // The consumption marks live on the program, so a previous build's marks
-  // would still be set here. Clear them, or a binding this build places
-  // nowhere reads as already placed and goes unreported.
-  resetBindingConsumption(program);
+  // One build owns one record of which binding applications it placed. It is
+  // passed explicitly, so two builds of one program cannot see each other's.
+  const placements = new BindingPlacements();
 
-  const { components, messageKeys } = buildComponents(program);
+  const { components, messageKeys } = buildComponents(program, placements);
 
   // The channels are built after the components, because a channel refers to
   // its messages by the key `components.messages` gave them.
-  const { channels, emitted } = buildChannels(program, messageKeys);
+  const { channels, emitted } = buildChannels(program, messageKeys, placements);
 
   // Servers come from the service namespace, the same source as `info`. A
   // server on any other namespace is reported, then left out.
@@ -80,17 +82,19 @@ export function buildAsyncAPIDocument(
   // keys is known here. A `@useSecurity` naming anything else would emit a
   // reference no parser can resolve, so the builder needs this set.
   const declaredSchemes = new Set(Object.keys(components?.securitySchemes ?? {}));
-  const servers = service ? buildServers(program, service.type, declaredSchemes) : undefined;
+  const servers = service
+    ? projectServers(resolveServers(program, service.type, declaredSchemes, placements))
+    : undefined;
 
   // The operations are built after the channels. An operation refers to its
   // channel and to one message of that channel, so it needs the id and the
   // message keys of every channel that reached the document.
-  const operations = buildOperations(program, emitted, messageKeys, declaredSchemes);
+  const operations = buildOperations(program, emitted, messageKeys, declaredSchemes, placements);
 
   // The bindings are checked last. A binding reaches its object through
   // whichever builder emits that object, and the four builders have all run
   // by now. Anything still unplaced had every chance to be placed.
-  reportUnattachedBindings(program);
+  reportUnattachedBindings(program, placements);
 
   // The root document. Its version comes from `ASYNCAPI_VERSION`.
   const document: AsyncAPIDocument = {
