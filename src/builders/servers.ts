@@ -10,6 +10,7 @@ import {
 import { listSecurityUsesWithoutServer } from "../decorators/security/use-security-state.js";
 import { buildBindings } from "./bindings/builder.js";
 import { buildExternalDocs } from "./external-docs.js";
+import { buildTags } from "./tags.js";
 import { buildSecurityRequirements } from "./security-requirements.js";
 import { reportDiagnostic } from "../lib.js";
 
@@ -101,6 +102,7 @@ export function buildServers(
 
   const security = buildSecurityRequirements(program, namespace, declaredSchemes);
   const externalDocs = buildExternalDocs(program, namespace);
+  const tags = buildTags(program, namespace);
   const bindings = buildBindings(program, "server", namespace);
 
   const entries: [string, ServerObject][] = declared.map((state) => {
@@ -113,6 +115,9 @@ export function buildServers(
     // A spread would leave every server pointing at one protocol member.
     if (security !== undefined) server.security = security.map((ref) => ({ ...ref }));
     if (externalDocs !== undefined) server.externalDocs = { ...externalDocs };
+    // A Tag Object holds an External Documentation Object of its own, so its
+    // copy has to be deep for the same reason a binding's does.
+    if (tags !== undefined) server.tags = structuredClone(tags);
     if (bindings !== undefined) server.bindings = structuredClone(bindings);
     return [state.name, server];
   });

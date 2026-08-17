@@ -630,3 +630,55 @@ describe("Unit: source order keys", () => {
     );
   });
 });
+
+describe("Unit: servers — tags", () => {
+  // AsyncAPI defines `tags` on the Server Object. They come from the service
+  // namespace, which is where `security` and `externalDocs` already come
+  // from, so every server that namespace declares carries the same set.
+  it("emits the namespace's tags on every server it declares", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @tag("edge")
+      @asyncTag("region", #{ description: "Where the broker runs." })
+      @server("production", #{ host: "a.example.com", protocol: "kafka" })
+      @server("failover", #{ host: "b.example.com", protocol: "kafka" })
+      namespace Test;
+
+      @message model Order { id: string; }
+    `);
+
+    const expected = [{ name: "edge" }, { name: "region", description: "Where the broker runs." }];
+    expect(doc.servers?.production.tags).toEqual(expected);
+    expect(doc.servers?.failover.tags).toEqual(expected);
+  });
+
+  it("gives each server its own copy of the tags", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @asyncTag("region", #{ description: "Where the broker runs." })
+      @server("production", #{ host: "a.example.com", protocol: "kafka" })
+      @server("failover", #{ host: "b.example.com", protocol: "kafka" })
+      namespace Test;
+
+      @message model Order { id: string; }
+    `);
+
+    // A Tag Object holds an External Documentation Object of its own, so a
+    // shallow copy would leave both servers pointing at one nested object.
+    // Editing one server's tag would then edit the other's.
+    expect(doc.servers?.production.tags).not.toBe(doc.servers?.failover.tags);
+    expect(doc.servers?.production.tags?.[0]).not.toBe(doc.servers?.failover.tags?.[0]);
+  });
+
+  it("emits no tags field when the namespace carries none", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("production", #{ host: "a.example.com", protocol: "kafka" })
+      namespace Test;
+
+      @message model Order { id: string; }
+    `);
+
+    expect("tags" in (doc.servers?.production ?? {})).toBe(false);
+  });
+});

@@ -68,6 +68,7 @@ const server: ServerNode = {
   protocol: "kafka",
   variables: new Map([["stage", variable]]),
   security: ["apiKey"],
+  tags: [tag],
   bindings: [binding],
 };
 

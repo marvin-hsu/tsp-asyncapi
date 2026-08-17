@@ -82,6 +82,13 @@ export interface ServerObject {
   security?: ReferenceObject[];
   /** The protocol-specific settings of this server, keyed by protocol name. */
   bindings?: BindingsObject;
+  /**
+   * The tags of this server, each a full Tag Object.
+   * The tags come from the service namespace, the same source `security` and
+   * `externalDocs` come from, so every server the namespace declares carries
+   * the same set.
+   */
+  tags?: TagObject[];
   /** Additional external documentation for this server. */
   externalDocs?: ExternalDocumentationObject;
 }

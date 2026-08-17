@@ -2,6 +2,10 @@ asyncapi: 3.1.0
 info:
   title: Order Events
   version: 0.0.0
+  tags:
+    - name: edge
+    - name: region
+      description: Where the broker runs.
 servers:
   production:
     host: "{tenant}.kafka.example.com:9092"
@@ -25,12 +29,20 @@ servers:
     security:
       - $ref: "#/components/securitySchemes/kafka-scram"
       - $ref: "#/components/securitySchemes/oauth"
+    tags:
+      - name: edge
+      - name: region
+        description: Where the broker runs.
   sit:
     host: kafka.sit.example.com:9092
     protocol: kafka
     security:
       - $ref: "#/components/securitySchemes/kafka-scram"
       - $ref: "#/components/securitySchemes/oauth"
+    tags:
+      - name: edge
+      - name: region
+        description: Where the broker runs.
 channels: {}
 operations: {}
 components:

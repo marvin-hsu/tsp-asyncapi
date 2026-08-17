@@ -154,7 +154,17 @@ components:
         $ref: "#/components/schemas/OrderCreated"
 ```
 
-The emitter reads it on the service namespace (`info.tags`) and on a message. Applying it elsewhere records the tag but emits nothing yet.
+The emitter reads it at five places:
+
+| Applied to                     | Emitted on               |
+| ------------------------------ | ------------------------ |
+| The service namespace          | `info.tags`              |
+| A namespace carrying `@server` | every server it declares |
+| A `@message` model             | that message's `tags`    |
+| A `@channel` interface         | that channel's `tags`    |
+| A `@send`/`@receive` operation | that operation's `tags`  |
+
+The servers come from the service namespace, and `info` reads that same namespace, so one tag on that namespace appears in both places. AsyncAPI defines `tags` on both objects. Each server gets its own copy, so editing one server's tag cannot reach another's.
 
 The name must not be empty. `name` is required on an AsyncAPI Tag Object, and a blank one names nothing a consumer can match, so `@asyncTag("")` is reported as [`empty-tag-name`](../diagnostics#empty-tag-name) and the tag is dropped.
 

@@ -127,6 +127,8 @@ describe("Output baseline", () => {
       "servers-security",
       `
         @service(#{ title: "Order Events" })
+        @tag("edge")
+        @asyncTag("region", #{ description: "Where the broker runs." })
         @securityScheme("kafka-scram", #{
           type: "scramSha512",
           description: "SASL/SCRAM over TLS."

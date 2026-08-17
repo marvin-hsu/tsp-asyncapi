@@ -2058,6 +2058,7 @@ export interface ServerObject {
     protocolVersion?: string;
     security?: ReferenceObject[];
     summary?: string;
+    tags?: TagObject[];
     title?: string;
     variables?: Record<string, ServerVariableObject>;
 }

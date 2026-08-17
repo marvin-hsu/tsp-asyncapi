@@ -154,7 +154,17 @@ components:
         $ref: "#/components/schemas/OrderCreated"
 ```
 
-emitter 目前會在 service namespace（輸出到 `info.tags`）與 message 上讀取它。標在其他位置會記錄下來，但還不會輸出。
+emitter 會在五個位置讀取它：
+
+| 標在哪裡                      | 輸出到哪裡             |
+| ----------------------------- | ---------------------- |
+| service namespace             | `info.tags`            |
+| 標有 `@server` 的 namespace   | 它宣告的每一個 server  |
+| `@message` model              | 該 message 的 `tags`   |
+| `@channel` interface          | 該 channel 的 `tags`   |
+| `@send`／`@receive` operation | 該 operation 的 `tags` |
+
+server 來自 service namespace，而 `info` 讀的是同一個 namespace，所以標在該 namespace 的一個 tag 會出現在兩處。AsyncAPI 在兩種物件上都定義了 `tags`。每個 server 各持一份副本，所以改動其中一個 server 的 tag 不會影響另一個。
 
 名稱不可為空字串。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。所以 `@asyncTag("")` 回報 [`empty-tag-name`](../diagnostics#empty-tag-name)，該 tag 被丟棄。
 

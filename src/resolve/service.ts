@@ -291,6 +291,14 @@ export interface ServerNode {
   /** Further reading about the server. */
   readonly externalDocs?: ExternalDocsNode;
   /** The protocol bindings of the server, in source order. */
+  /**
+   * The tags of this server, in source order.
+   *
+   * They come from the service namespace, the same source `security` and
+   * `externalDocs` come from, so every server the namespace declares carries
+   * the same set.
+   */
+  readonly tags: readonly TagNode[];
   readonly bindings: readonly BindingNode[];
 }
 
