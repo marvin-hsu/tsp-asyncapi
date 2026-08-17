@@ -18,6 +18,16 @@ outline: 2
 
 **修法：** 改掉其中一個宣告的名稱，或給其中一個不同的 `@friendlyName`。emitter 絕不自動改名。
 
+### `payload-schema-key-taken`
+
+> Schema key '\<name\>' is claimed twice. Message '\<message\>' lifts @header fields into its `headers`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '\<name\>', or describe the headers of '\<message\>' with @headers so its payload keeps every field.
+
+會提取 `@header` 欄位的 message 不能沿用 model 自己的 schema。那份 schema 仍然描述被提取的欄位，而那些欄位已經歸入 `headers`。所以 payload 會另外取得一份 component，key 以 message model 為基底加上 `Payload` 後綴。現在有另一個宣告先佔走了那把 key。
+
+payload 的形狀改為就地輸出。若改為引用 model 自己的 component，等於把被提取的欄位描述成 payload 資料，message 會自相矛盾。
+
+**修法：** 改名另一個型別；或改用 [`@headers`](./decorators/messages#headers) 描述 headers，讓 payload 保留所有欄位，就不需要額外的 schema。
+
 ### `unsupported-payload-type`
 
 > This emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.
@@ -132,6 +142,18 @@ schema 仍照原樣輸出，與 [`unknown-schema-format`](#unknown-schema-format
 
 **修法：** 把 schema 寫成字串，例如 `.proto` 定義的內容；或改用 JSON 基礎的格式。
 
+### `string-raw-schema`
+
+> '\<format\>' is a JSON based schema language, so AsyncAPI requires its schema to be inlined rather than given as text to be parsed. This schema is a string that opens a JSON object or array, and the official parser rejects a document that carries one. Write the schema as an object value. Note that a bare JSON string is still allowed, because a format such as Avro names its primitive types that way.
+
+[`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schemaFormat` 指定了以 JSON 為基礎的 schema 語言，而 `schema` 參數是字串，且第一個非空白字元是物件或陣列的開頭。AsyncAPI 要求這種 schema 直接以值的形式內嵌，不是交出一段文字讓讀取端自行解析。
+
+不是以物件或陣列開頭的字串不受影響。例如 Avro 就是用 `"long"` 這種單純字串命名它的原始型別。
+
+這一條與 [`non-string-raw-schema`](#non-string-raw-schema) 互為鏡像，後者處理非 JSON 為基礎的格式卻收到物件的情況。
+
+**修法：** 把 schema 寫成物件值，不要寫成加引號的字串。
+
 ### `raw-schema-local-ref`
 
 > This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
@@ -173,6 +195,16 @@ emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用�
 傳給 `@headers` 的 model 會輸出 `type: "array"`。它以 array 為底（`is` 一個 array，或繼承自 array）。AsyncAPI 要求 `headers` schema 描述一組 key/value map。
 
 **修法：** 改傳一個有屬性的 model，或以 `Record<T>` 為底的 model。兩者都輸出 object schema。
+
+### `discriminated-lifted-header`
+
+> The message model '\<name\>' lifts @header fields into its `headers` and also carries @discriminator. The discriminator names the subtype schemas, and those describe the lifted fields as payload data, so no payload could satisfy the message. The emitter leaves the discriminator off the payload schema. Describe the headers of '\<name\>' with @headers instead, so its payload keeps every field.
+
+message model 同時帶了 [`@discriminator`](./decorators/schemas#discriminator) 並提取 `@header` 欄位。discriminator 會把讀取端導向各個子型別的 schema，而每個子型別仍然把被提取的欄位描述成 payload 資料。這個 message 的任何 payload 都無法滿足它們。
+
+該關鍵字不會寫進 payload schema。多型仍然透過 model 自己的 component 呈現，那份 component 描述所有欄位。
+
+**修法：** 改用 [`@headers`](./decorators/messages#headers) 描述 headers，讓 payload 保留所有欄位。
 
 ### `content-type-header-conflict`
 
@@ -594,6 +626,16 @@ server 的 `host` 或 `pathname` 含 `{var}` 模板，但同一個 server 的 `v
 
 **修法：** 在兩個欄位其中之一使用該名稱，或刪除該項目。
 
+### `duplicate-server-variable-value`
+
+> The `enum` of the server variable '\<name\>' names '\<value\>' more than once. AsyncAPI requires the entries to be unique, so a repeat makes the whole document fail validation. The repeat was dropped.
+
+server variable 的 `enum` 列出同一個值兩次。AsyncAPI 要求這些項目互不重複，重複會讓整份文件驗證失敗。
+
+重複的項目被丟棄，該變數本身保留。若發成 error，emitter 會在寫出這份文件之前就停下來。
+
+**修法：** 移除重複的項目。
+
 ### `server-variable-default-not-in-enum`
 
 > The variable '\<name\>' has the default '\<default\>', which is not one of its `enum` values. A client that takes the default then holds a value the same variable forbids. Both values are still emitted.
@@ -704,6 +746,16 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 
 **修法：** 把 example 值簡化成 JSON 可表示的內容。
 
+### `inherited-header-overridden`
+
+> The field '\<field\>' is lifted into the `headers` of message '\<base\>'. Message '\<message\>' extends '\<base\>' and describes its own headers with @headers or @rawHeaders, so the lift is cancelled and the field stays in the payload of '\<message\>'.
+
+基底 message 用 `@header` 把某個欄位提取進它的 `headers`。衍生的 message 改用 [`@headers`](./decorators/messages#headers) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 描述自己的 headers，這會整份取代原本的提取。該欄位於是同時是基底的 header，又是衍生 message 的 payload 資料。
+
+emitter 採用衍生 message 自己的宣告。兩種解讀都說得通，所以這個衝突會回報，而不是靜默決定。
+
+**修法：** 把該欄位加進衍生 message 的 headers schema；或移除那個 decorator，讓衍生 message 沿用原本的提取。
+
 ### `unserializable-message-example`
 
 > This @messageExample could not be serialized to JSON and was dropped from the emitted message.
@@ -711,6 +763,24 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 `@messageExample` 的值含有 compiler 無法序列化為純 JSON 的內容（不支援的 scalar 建構式、格式錯誤的 `duration.fromISO(...)` 值等）。該筆整筆捨棄，連同其中本來可以序列化的欄位。只保留一半 payload 的範例會描述出應用程式從不發送的 message。
 
 **修法：** 把範例值改寫成可用 JSON 表示的部分。
+
+### `unserializable-default`
+
+> This property's default value could not be serialized to JSON and was omitted from the emitted schema.
+
+屬性的預設值（寫法是 `name?: T = value`）含有 compiler 無法序列化成純 JSON 的內容。`default` 關鍵字被省略，schema 其餘部分不受影響。只序列化一半的預設值，等於把 schema 自己會拒絕的值寫進 schema。
+
+**修法：** 把預設值簡化成 JSON 可表示的內容。
+
+### `visibility-not-applied`
+
+> @visibility does not change an AsyncAPI message. A message has one shape, not a shape per lifecycle phase, so this property is emitted in full. Use @invisible to leave a property out of the document.
+
+[`@visibility`](https://typespec.io/docs/language-basics/visibility/) 讓一個 model 依生命週期階段有多種形狀。AsyncAPI message 沒有階段之分，它只有一種形狀、只送出一次。emitter 因此沒有階段可挑，會完整輸出該屬性。
+
+`@invisible(Lifecycle)` 不同。它表示該屬性不屬於任何階段，這句話不需要挑階段就能解讀，所以 emitter 會照做，把該屬性排除在外，這種情況不會回報任何訊息。
+
+**修法：** 要讓屬性不出現在文件裡，改用 `@invisible(Lifecycle)`；若該屬性本來就該出現在 message 裡，移除 `@visibility`。
 
 ### `unrepresentable-numeric-constraint`
 

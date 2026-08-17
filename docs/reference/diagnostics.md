@@ -18,6 +18,16 @@ Two declarations resolved to the same `components.schemas` key. Typical causes: 
 
 **Fix:** rename one declaration, or give one of them a distinct `@friendlyName`. The emitter never renames either side automatically.
 
+### `payload-schema-key-taken`
+
+> Schema key '\<name\>' is claimed twice. Message '\<message\>' lifts @header fields into its `headers`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '\<name\>', or describe the headers of '\<message\>' with @headers so its payload keeps every field.
+
+A message that lifts `@header` fields cannot reuse the model's own schema: that schema still describes the lifted fields, which now belong to `headers`. So the payload gets a component of its own, keyed after the message model with a `Payload` suffix. Another declaration already claims that key.
+
+The payload shape is emitted inline instead. A reference to the model's own component would describe the lifted fields as payload data, so the message would contradict its own `headers`.
+
+**Fix:** rename the other type, or describe the headers with [`@headers`](./decorators/messages#headers) so the payload keeps every field and needs no separate schema.
+
 ### `unsupported-payload-type`
 
 > This emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.
@@ -132,6 +142,18 @@ The schema is emitted as written, the same choice [`unknown-schema-format`](#unk
 
 **Fix:** write the schema as a string, such as the text of the `.proto` definition, or name a format that is JSON based.
 
+### `string-raw-schema`
+
+> '\<format\>' is a JSON based schema language, so AsyncAPI requires its schema to be inlined rather than given as text to be parsed. This schema is a string that opens a JSON object or array, and the official parser rejects a document that carries one. Write the schema as an object value. Note that a bare JSON string is still allowed, because a format such as Avro names its primitive types that way.
+
+The `schemaFormat` of [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) names a JSON based schema language, and the `schema` argument is a string whose first non-blank character opens an object or an array. AsyncAPI requires such a schema to be inlined as a value, not handed over as text for a reader to parse.
+
+A string that does not open an object or an array is left alone. Avro, for one, names its primitive types with a bare string such as `"long"`.
+
+This is the mirror of [`non-string-raw-schema`](#non-string-raw-schema), which covers a format that is not JSON based being given an object.
+
+**Fix:** write the schema as an object value rather than as a quoted string.
+
 ### `raw-schema-local-ref`
 
 > This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
@@ -173,6 +195,16 @@ The message is reported as well when the lifted fields come from a base message 
 The model given to `@headers` emits `type: "array"` — it `is` an array, or it extends one. AsyncAPI requires the `headers` schema to describe a key/value map.
 
 **Fix:** pass a model with properties, or a `Record<T>`-backed model. Both emit an object schema.
+
+### `discriminated-lifted-header`
+
+> The message model '\<name\>' lifts @header fields into its `headers` and also carries @discriminator. The discriminator names the subtype schemas, and those describe the lifted fields as payload data, so no payload could satisfy the message. The emitter leaves the discriminator off the payload schema. Describe the headers of '\<name\>' with @headers instead, so its payload keeps every field.
+
+A message model carries [`@discriminator`](./decorators/schemas#discriminator) and also lifts `@header` fields. The discriminator sends a reader to the subtype schemas, and every subtype still describes the lifted fields as payload data. No payload of this message could satisfy any of them.
+
+The keyword is left off the payload schema. The polymorphism still reaches the document through the model's own component, which describes every field.
+
+**Fix:** describe the headers with [`@headers`](./decorators/messages#headers) instead, so the payload keeps every field.
 
 ### `content-type-header-conflict`
 
@@ -594,6 +626,16 @@ The `variables` field declares an entry that no template refers to. AsyncAPI sub
 
 **Fix:** Use the name in one of the two fields, or drop the entry.
 
+### `duplicate-server-variable-value`
+
+> The `enum` of the server variable '\<name\>' names '\<value\>' more than once. AsyncAPI requires the entries to be unique, so a repeat makes the whole document fail validation. The repeat was dropped.
+
+A server variable's `enum` lists the same value twice. AsyncAPI requires the entries to be unique, and a repeat makes the whole document fail validation.
+
+The repeat is dropped and the variable survives. An error would stop the emitter before it could write the document this message describes.
+
+**Fix:** remove the repeated entry.
+
 ### `server-variable-default-not-in-enum`
 
 > The variable '\<name\>' has the default '\<default\>', which is not one of its `enum` values. A client that takes the default then holds a value the same variable forbids. Both values are still emitted.
@@ -704,6 +746,16 @@ An `@example` value contains something the compiler cannot serialize to plain JS
 
 **Fix:** simplify the example value to JSON-representable parts.
 
+### `inherited-header-overridden`
+
+> The field '\<field\>' is lifted into the `headers` of message '\<base\>'. Message '\<message\>' extends '\<base\>' and describes its own headers with @headers or @rawHeaders, so the lift is cancelled and the field stays in the payload of '\<message\>'.
+
+A base message lifts a field into its `headers` with `@header`. A derived message describes its own headers with [`@headers`](./decorators/messages#headers) or [`@rawHeaders`](./decorators/messages#rawheaders), which replaces the lift wholesale. The field then travels as a header of the base and as payload data of the derived message.
+
+The emitter follows the derived message's own declaration. Both readings are defensible, so the conflict is reported rather than resolved silently.
+
+**Fix:** add the field to the headers schema of the derived message, or drop that decorator so the derived message inherits the lift.
+
 ### `unserializable-message-example`
 
 > This @messageExample could not be serialized to JSON and was dropped from the emitted message.
@@ -711,6 +763,24 @@ An `@example` value contains something the compiler cannot serialize to plain JS
 A `@messageExample` value contains something the compiler cannot serialize to plain JSON (an unsupported scalar constructor, a malformed `duration.fromISO(...)` value, ...). The whole entry is dropped, including its serializable sibling fields. An entry that kept half its payload would show a message the application never sends.
 
 **Fix:** simplify the example value to JSON-representable parts.
+
+### `unserializable-default`
+
+> This property's default value could not be serialized to JSON and was omitted from the emitted schema.
+
+A property's default value, written as `name?: T = value`, contains something the compiler cannot serialize to plain JSON. The `default` keyword is omitted and the rest of the schema is unaffected. A half-serialized default would put a value in the schema that the schema itself rejects.
+
+**Fix:** simplify the default value to JSON-representable parts.
+
+### `visibility-not-applied`
+
+> @visibility does not change an AsyncAPI message. A message has one shape, not a shape per lifecycle phase, so this property is emitted in full. Use @invisible to leave a property out of the document.
+
+[`@visibility`](https://typespec.io/docs/language-basics/visibility/) gives one model several shapes, one per lifecycle phase. An AsyncAPI message has no phases: it is one shape, sent once. So there is no phase for the emitter to select, and the property is emitted in full.
+
+`@invisible(Lifecycle)` is different. It places the property in no phase at all, which needs no phase to interpret, so the emitter honours it and leaves the property out. Nothing is reported for that case.
+
+**Fix:** use `@invisible(Lifecycle)` to keep a property out of the document, or remove the `@visibility` if the property does belong in the message.
 
 ### `unrepresentable-numeric-constraint`
 
