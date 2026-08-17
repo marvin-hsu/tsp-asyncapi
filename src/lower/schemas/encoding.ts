@@ -9,6 +9,7 @@
 
 import { ModelProperty, Program, Scalar, getEncode } from "@typespec/compiler";
 import { SchemaObject } from "../../types/index.js";
+import { SCHEMA_FORMAT } from "../../constants.js";
 import { SCALAR_SCHEMAS, isBuiltinScalar } from "./scalars.js";
 
 /**
@@ -37,22 +38,22 @@ function mergeFormatAndEncoding(
   switch (format) {
     case undefined:
       return encodeAsFormat ?? encoding;
-    case "date-time":
+    case SCHEMA_FORMAT.dateTime:
       switch (encoding) {
         case "rfc3339":
-          return "date-time";
+          return SCHEMA_FORMAT.dateTime;
         case "unixTimestamp":
-          return "unixtime";
+          return SCHEMA_FORMAT.unixTime;
         case "rfc7231":
-          return "http-date";
+          return SCHEMA_FORMAT.httpDate;
         default:
           return encoding;
       }
-    case "duration":
+    case SCHEMA_FORMAT.duration:
       // ISO 8601 is how an un-encoded duration already travels, so it keeps
       // the `duration` format. Any other encoding, such as a seconds count,
       // has no format of its own and takes the encode target's.
-      return encoding === "ISO8601" ? "duration" : (encodeAsFormat ?? encoding);
+      return encoding === "ISO8601" ? SCHEMA_FORMAT.duration : (encodeAsFormat ?? encoding);
     default:
       return encodeAsFormat ?? encoding ?? format;
   }

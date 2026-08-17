@@ -1,6 +1,6 @@
 import { Model, Scalar, IntrinsicType, Enum, EnumMember, ModelProperty } from "@typespec/compiler";
 import { SchemaObject } from "../../types/index.js";
-import { JSON_SCHEMA_TYPE, isGlobalTypeSpecNamespace } from "../../constants.js";
+import { JSON_SCHEMA_TYPE, SCHEMA_FORMAT, isGlobalTypeSpecNamespace } from "../../constants.js";
 
 /**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
@@ -40,13 +40,13 @@ export const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
     decimal128: "decimal128",
   }),
   ...withFormat(JSON_SCHEMA_TYPE.string, {
-    bytes: "byte",
-    plainDate: "date",
-    plainTime: "time",
-    utcDateTime: "date-time",
-    offsetDateTime: "date-time",
-    duration: "duration",
-    url: "uri",
+    bytes: SCHEMA_FORMAT.byte,
+    plainDate: SCHEMA_FORMAT.date,
+    plainTime: SCHEMA_FORMAT.time,
+    utcDateTime: SCHEMA_FORMAT.dateTime,
+    offsetDateTime: SCHEMA_FORMAT.dateTime,
+    duration: SCHEMA_FORMAT.duration,
+    url: SCHEMA_FORMAT.uri,
   }),
 };
 

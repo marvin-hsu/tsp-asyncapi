@@ -27,6 +27,7 @@ import {
   isSecret,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
+import { SCHEMA_FORMAT } from "../../constants.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { serializeExamples, serializeDefaultValue } from "../../example-serialization.js";
@@ -292,7 +293,8 @@ export function buildValidationKeywords(
   // sensitive, while `@format` says what the value actually is, which is the
   // more specific statement. This is the same precedence the official
   // emitter applies: it sets `password` first and lets `@format` overwrite it.
-  const format = getFormat(program, target) ?? (isSecret(program, target) ? "password" : undefined);
+  const format =
+    getFormat(program, target) ?? (isSecret(program, target) ? SCHEMA_FORMAT.password : undefined);
   const minimum = resolveRangeBound(
     program,
     target,

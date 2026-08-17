@@ -261,3 +261,36 @@ export const DEFAULT_INFO_VERSION = "0.0.0";
  * serialization it keeps in sync with, instead of assuming JSON everywhere.
  */
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
+
+/**
+ * The JSON Schema `format` values this emitter writes.
+ *
+ * Two modules decide a format, and they have to agree. `schemas/scalars.ts`
+ * maps a TypeSpec scalar onto its format, and `schemas/encoding.ts` reads
+ * that format back to decide what `@encode` turns it into. A literal in one
+ * and a different literal in the other would not fail the build. It would
+ * quietly stop `@encode` from recognising a date, and the document would
+ * describe the wrong type.
+ *
+ * So the two share this one table.
+ */
+export const SCHEMA_FORMAT = {
+  /** RFC 3339 date and time, the shape `utcDateTime` travels in. */
+  dateTime: "date-time",
+  /** RFC 3339 full date, with no time. */
+  date: "date",
+  /** RFC 3339 time, with no date. */
+  time: "time",
+  /** ISO 8601 duration, the shape `duration` travels in. */
+  duration: "duration",
+  /** Base64 text, the shape `bytes` travels in. */
+  byte: "byte",
+  /** A URI. */
+  uri: "uri",
+  /** Seconds since the epoch, what `@encode("unixTimestamp")` produces. */
+  unixTime: "unixtime",
+  /** RFC 7231 date, what `@encode(rfc7231)` produces. */
+  httpDate: "http-date",
+  /** A sensitive string, what `@secret` produces. */
+  password: "password",
+} as const;
