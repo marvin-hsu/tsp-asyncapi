@@ -7,7 +7,6 @@ import {
   resolveEncodedName,
   walkPropertiesInherited,
 } from "@typespec/compiler";
-import { MultiFormatSchemaObject, SchemaObject, ReferenceObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import {
   getContentType,
@@ -17,9 +16,7 @@ import {
   isHeader,
   RawSchemaState,
 } from "../../decorators/index.js";
-import { SchemaBuilder } from "../schemas/builder.js";
 import { SCHEMA_ENCODING_MIME_TYPE } from "../schemas/annotations.js";
-import { buildRawSchema } from "./payload.js";
 
 /** The `contentType` of a message has its own field, so it is never a header. */
 const CONTENT_TYPE_HEADER = "content-type";
@@ -33,7 +30,7 @@ const CONTENT_TYPE_HEADER = "content-type";
  * `fields` is empty on the other two routes, because neither of them lifts a
  * field out of the payload.
  */
-interface HeaderSource {
+export interface HeaderSource {
   readonly fields: readonly ModelProperty[];
   readonly model?: Model;
   readonly raw?: RawSchemaState;
@@ -328,43 +325,6 @@ function reportOverriddenInheritedHeaders(
 }
 
 /**
- * Builds the `headers` schema of one message, or returns `undefined` when
- * the message declares none.
- *
- * A `@headers` model is emitted as a `components.schemas` declaration and
- * referenced, the same treatment a payload model gets. Headers are usually
- * shared by several messages, so one component and several `$ref`s beats one
- * copy per message that can drift.
- *
- * Fields marked `@header` have no model of their own. They are a subset of
- * the message model's fields, so they are assembled into an inline object
- * schema. Each field keeps the wire name, documentation, and validation
- * keywords it would have had in the payload.
- *
- * A `@rawHeaders` schema is written into the message as a Multi Format Schema
- * Object. It is never emitted as a component, for the reason a raw payload is
- * never emitted as one. `buildRawSchema` shapes the object, so both slots of
- * the Message Object share one definition of it.
- */
-export function buildMessageHeaders(
-  schemas: SchemaBuilder,
-  plan: MessageHeaderPlan,
-  message: Model,
-): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
-  const source = plan.sources.get(message);
-  if (source === undefined) {
-    return undefined;
-  }
-  if (source.raw !== undefined) {
-    return buildRawSchema(source.raw);
-  }
-  if (source.model !== undefined) {
-    return schemas.buildDeclarationRef(source.model);
-  }
-  return schemas.buildPropertiesSchema(source.fields);
-}
-
-/**
  * Reports every `@header` that the emitter cannot honour.
  *
  * A mark is honoured on a top-level field of a message model only. The
@@ -530,4 +490,39 @@ function isObjectBacked(model: Model): boolean {
     }
   }
   return true;
+}
+
+/**
+ * The header source recorded for one message, if it declares headers.
+ *
+ * The plan is built for the whole program, so reading one message out of it
+ * is the only thing a caller ever needs. Exposing the map itself would let a
+ * caller ask a question the plan does not answer.
+ *
+ * @param plan - The plan for the whole program
+ * @param message - The message model to look up
+ * @returns The source, or `undefined` when the message declares no header
+ * @internal
+ */
+export function headerSourceOf(plan: MessageHeaderPlan, message: Model): HeaderSource | undefined {
+  return plan.sources.get(message);
+}
+
+/**
+ * The fields one message lifted out of its own payload.
+ *
+ * The plan records a header source per message, so the answer is local to one
+ * message rather than shared across every message that reaches the same
+ * model. A message that lifts nothing gets an empty set, and its payload stays
+ * a reference to the model's own component. A message whose headers come from
+ * `@headers` or `@rawHeaders` lifts no field, so its source carries an empty
+ * field list.
+ *
+ * @param plan - The plan for the whole program
+ * @param model - The message model to look up
+ * @returns The lifted fields, empty when the message lifts none
+ * @internal
+ */
+export function liftedOf(plan: MessageHeaderPlan, model: Model): ReadonlySet<ModelProperty> {
+  return new Set(plan.sources.get(model)?.fields ?? []);
 }

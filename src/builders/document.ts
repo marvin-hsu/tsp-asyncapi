@@ -11,7 +11,8 @@ import { projectServers } from "../project/servers.js";
 import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
-import { buildMessages } from "./messages/builder.js";
+import { resolveMessages } from "../resolve/messages.js";
+import { projectMessages, reportShadowedSchemaKeys } from "../project/messages.js";
 import { reportUnresolvedRawSchemaRefs } from "./messages/raw-schema-refs.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import { buildSecuritySchemes } from "./security-schemes.js";
@@ -36,7 +37,16 @@ function buildComponents(
   messageKeys: Map<Model, string>;
 } {
   const schemaBuilder = new SchemaBuilder(program);
-  const { messages, keys } = buildMessages(program, schemaBuilder, placements);
+  // Resolving every message before any of them is projected is what lets the
+  // header plan be made once, for the whole program. A field that leaves a
+  // payload changes that payload's shape, a payload schema is built once and
+  // then cached, and one message model is reachable through another's payload.
+  const { messages: messageNodes, keys } = resolveMessages(program, placements);
+  const messages = projectMessages(schemaBuilder, messageNodes);
+  // The shadow check reads the schema key owners, so it runs once every key
+  // is claimed. A discriminated subtype claims its own only when the pending
+  // queue drains, which this call does first.
+  reportShadowedSchemaKeys(program, schemaBuilder, messageNodes);
   const schemas = schemaBuilder.getSchemas();
   // The security schemes come from the whole program, not from the service
   // namespace. `components` is a document-wide registry, and a scheme is
