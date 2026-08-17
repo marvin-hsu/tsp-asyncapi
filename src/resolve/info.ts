@@ -7,8 +7,8 @@
 
 import { Namespace, Program, Service, getDoc } from "@typespec/compiler";
 import { getInfo } from "../decorators/index.js";
-import { buildTags } from "../builders/tags.js";
-import { buildExternalDocs } from "../builders/external-docs.js";
+import { buildTags } from "./tags.js";
+import { buildExternalDocs } from "../external-docs.js";
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 import { InfoNode } from "./service.js";
 

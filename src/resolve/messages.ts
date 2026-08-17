@@ -26,18 +26,18 @@ import {
   planMessageHeaders,
   reportIgnoredNestedHeaders,
   headerSourceOf,
-} from "../builders/messages/headers.js";
-import { buildRawSchema } from "../builders/messages/payload.js";
-import { buildMessageExamples } from "../builders/messages/examples.js";
-import { buildTags } from "../builders/tags.js";
-import { buildExternalDocs } from "../builders/external-docs.js";
+} from "./messages/headers.js";
+import { buildRawSchema } from "./messages/payload.js";
+import { buildMessageExamples } from "./messages/examples.js";
+import { buildTags } from "./tags.js";
+import { buildExternalDocs } from "../external-docs.js";
 import {
   declarationNameFor,
   fallbackDeclarationName,
   isSafeComponentsKey,
   sanitizeDeclarationName,
   unqualifiedDeclarationName,
-} from "../builders/schemas/naming.js";
+} from "../naming.js";
 import { BindingPlacements, markBindingsPlaced, resolveBindings } from "./bindings.js";
 import { MessageHeadersNode, MessageNode, MessagePayloadNode } from "./service.js";
 

@@ -1,6 +1,6 @@
 import { Type, Model, Enum, Union, Program, compilerAssert } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
-import { declarationNameFor, fallbackDeclarationName } from "./naming.js";
+import { declarationNameFor, fallbackDeclarationName } from "../../naming.js";
 
 /**
  * Key-collision policy for `components.schemas`. A name collision reports

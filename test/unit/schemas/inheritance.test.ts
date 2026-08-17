@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
-import { findNeverOverrideOfInheritedProperty } from "../../../src/builders/schemas/inheritance.js";
+import { SchemaBuilder } from "../../../src/lower/schemas/builder.js";
+import { findNeverOverrideOfInheritedProperty } from "../../../src/lower/schemas/inheritance.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
   it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {

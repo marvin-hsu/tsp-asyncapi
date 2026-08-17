@@ -4,8 +4,8 @@ import { t, TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
 import { resolveInfo } from "../../../src/resolve/info.js";
 import { lowerInfo } from "../../../src/lower/info.js";
-import { buildTags } from "../../../src/builders/tags.js";
-import { buildExternalDocs } from "../../../src/builders/external-docs.js";
+import { buildTags } from "../../../src/resolve/tags.js";
+import { buildExternalDocs } from "../../../src/external-docs.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 
 describe("Unit: Builders (Phase 1)", () => {

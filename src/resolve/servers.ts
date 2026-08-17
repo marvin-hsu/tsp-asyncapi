@@ -25,8 +25,8 @@ import {
 } from "../decorators/security/use-security-state.js";
 import { reportDiagnostic } from "../lib.js";
 import { BindingPlacements, resolveBindings } from "./bindings.js";
-import { buildExternalDocs } from "../builders/external-docs.js";
-import { buildTags } from "../builders/tags.js";
+import { buildExternalDocs } from "../external-docs.js";
+import { buildTags } from "./tags.js";
 import { ServerNode, ServerVariableNode } from "./service.js";
 
 /**

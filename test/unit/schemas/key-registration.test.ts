@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
-import { SchemaKeyRegistry } from "../../../src/builders/schemas/key-registration.js";
+import { SchemaKeyRegistry } from "../../../src/lower/schemas/key-registration.js";
 import { t } from "@typespec/compiler/testing";
 
 describe("Unit: Schemas — schema keys and registration", () => {

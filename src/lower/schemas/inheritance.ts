@@ -1,6 +1,6 @@
 import { Model, ModelProperty, Program, resolveEncodedName } from "@typespec/compiler";
 import { isNeverTypedProperty } from "./scalars.js";
-import { SCHEMA_ENCODING_MIME_TYPE } from "./annotations.js";
+import { SCHEMA_ENCODING_MIME_TYPE } from "../../constants.js";
 
 /**
  * Finds the property named `name` on `model` or any ancestor.

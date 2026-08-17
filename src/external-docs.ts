@@ -1,6 +1,6 @@
 import { Program, Type } from "@typespec/compiler";
-import { ExternalDocumentationObject } from "../types.js";
-import { getExternalDocs } from "../decorators/index.js";
+import { ExternalDocumentationObject } from "./types.js";
+import { getExternalDocs } from "./decorators/index.js";
 
 /**
  * Extracts external documentation from a TypeSpec type.

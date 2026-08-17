@@ -5,7 +5,7 @@ import { ChannelParameterNode } from "../service.js";
 import { ChannelRecord, ChannelTarget } from "../../decorators/channels/state.js";
 import { getParameterLocation, listMessages } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { serializeExamples } from "../../builders/example-serialization.js";
+import { serializeExamples } from "../../example-serialization.js";
 import { present, text } from "../../optional-fields.js";
 import { unwrapModels } from "../operation-models.js";
 import { channelOperations } from "./scope.js";

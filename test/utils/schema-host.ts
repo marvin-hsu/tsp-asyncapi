@@ -1,7 +1,7 @@
 import { Model } from "@typespec/compiler";
 import { TemplateWithMarkers } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../src/testing/index.js";
-import { SchemaBuilder } from "../../src/builders/schemas/builder.js";
+import { SchemaBuilder } from "../../src/lower/schemas/builder.js";
 
 /**
  * A `t.code` template, whatever types it marks. The argument has to be

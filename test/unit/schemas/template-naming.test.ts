@@ -4,7 +4,7 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
+import { SchemaBuilder } from "../../../src/lower/schemas/builder.js";
 
 describe("Unit: Schemas — template instantiation naming", () => {
   it("should name a template model instantiation from the template name plus its type argument (Envelope<Order> -> EnvelopeOrder)", async () => {

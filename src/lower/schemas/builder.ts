@@ -19,7 +19,7 @@ import { SchemaObject, ReferenceObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";
-import { refFor, isUninstantiatedTemplateDeclaration } from "./naming.js";
+import { refFor, isUninstantiatedTemplateDeclaration } from "../../naming.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { SchemaKeyRegistry } from "./key-registration.js";
 import {
@@ -27,12 +27,8 @@ import {
   findEncodedNameOverrideConflict,
   findNeverOverrideOfInheritedProperty,
 } from "./inheritance.js";
-import {
-  withDocs,
-  withPropertyDocs,
-  buildValidationKeywords,
-  SCHEMA_ENCODING_MIME_TYPE,
-} from "./annotations.js";
+import { withDocs, withPropertyDocs, buildValidationKeywords } from "./annotations.js";
+import { SCHEMA_ENCODING_MIME_TYPE } from "../../constants.js";
 import {
   isBuiltinScalar,
   isBuiltinCollectionInstantiation,

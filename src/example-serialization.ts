@@ -21,7 +21,7 @@ import {
   getExamples,
   serializeValueAsJson,
 } from "@typespec/compiler";
-import { orderBySourceNodes } from "../source-order.js";
+import { orderBySourceNodes } from "./source-order.js";
 
 /**
  * Builds `serializeValueAsJson`'s handlers hook.

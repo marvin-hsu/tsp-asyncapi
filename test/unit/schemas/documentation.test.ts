@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/builders/schemas/builder.js";
+import { SchemaBuilder } from "../../../src/lower/schemas/builder.js";
 import { buildDocSchema, compileSchemas } from "../../utils/schema-host.js";
 
 describe("Unit: Schemas — documentation and examples", () => {

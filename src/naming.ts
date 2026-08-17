@@ -12,9 +12,9 @@ import {
   getFriendlyName,
   isService,
 } from "@typespec/compiler";
-import { ReferenceObject } from "../../types.js";
-import { isGlobalTypeSpecNamespace } from "../../constants.js";
-import { componentsSchemaRef } from "../json-pointer.js";
+import { ReferenceObject } from "./types.js";
+import { isGlobalTypeSpecNamespace } from "./constants.js";
+import { componentsSchemaRef } from "./lower/json-pointer.js";
 
 /** Upper-cases just the first character, leaving the rest of `text` as-is. */
 function capitalizeFirst(text: string): string {

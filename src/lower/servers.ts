@@ -14,7 +14,7 @@
 import type { ServerNode, ServerVariableNode } from "../resolve/service.js";
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types.js";
 import { lowerBindings } from "./bindings.js";
-import { securitySchemeRef } from "../builders/json-pointer.js";
+import { securitySchemeRef } from "./json-pointer.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
 function lowerServerVariables(

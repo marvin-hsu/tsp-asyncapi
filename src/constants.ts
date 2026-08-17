@@ -244,3 +244,20 @@ export const MULTI_FORMAT_SCHEMA_FORMATS: readonly string[] = [
  * absent, and when `@info` carries no version.
  */
 export const DEFAULT_INFO_VERSION = "0.0.0";
+
+/**
+ * The mime type a schema's own property keys are resolved against through
+ * `@encodedName`.
+ * An `@example`'s object keys are resolved against it too, via the
+ * compiler's own `serializeObjectValueAsJson`.
+ * This value is hardcoded because 2.7 has no notion yet of a message's
+ * actual wire `contentType`. A model with both
+ * `@encodedName("application/json", ...)` and
+ * `@encodedName("application/xml", ...)`, for example, always emits the
+ * JSON name. It does this regardless of which content type a message
+ * actually declares.
+ * Phase 3 adds per-message content types. It must thread the real
+ * `contentType` through to both this constant's use site and the example
+ * serialization it keeps in sync with, instead of assuming JSON everywhere.
+ */
+export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
