@@ -2,6 +2,7 @@
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { LIBRARY_NAME } from "../../src/lib.js";
+import { buildAsyncAPIDocument } from "../../src/pipeline.js";
 import yaml from "yaml";
 
 /**
@@ -82,4 +83,28 @@ export async function emitAsyncAPI(code: TestSource, options: Record<string, unk
   const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(code, options);
   expectDiagnosticEmpty(diagnostics);
   return doc;
+}
+
+/**
+ * Builds a document from source without writing a file.
+ *
+ * `emitAsyncAPIWithDiagnostics` goes through the emitter, and the emitter
+ * writes nothing once an error is reported. So a test about an error cannot
+ * use it to look at what the document still holds.
+ *
+ * A binding that leaves out a field its specification requires is exactly
+ * that case. The diagnostic promises the one binding was dropped and the rest
+ * of the document survived, and only the document itself can show that.
+ *
+ * The pipeline is called directly, so this is the `src` copy of the builder
+ * rather than the build output. The decorators still run from `dist`, which
+ * is where the compiler loads them from.
+ *
+ * @param code - The source of the compilation
+ * @returns The built document and every diagnostic the compilation reported
+ */
+export async function buildAsyncAPIWithDiagnostics(code: string) {
+  const runner = await AsyncAPITester.createInstance();
+  const [, diagnostics] = await runner.compileAndDiagnose(code);
+  return { doc: buildAsyncAPIDocument(runner.program, undefined, {}), diagnostics };
 }

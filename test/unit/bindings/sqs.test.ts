@@ -1,22 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import {
+  buildAsyncAPIWithDiagnostics,
+  emitAsyncAPI,
+  emitAsyncAPIWithDiagnostics,
+} from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
-import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-
-/**
- * Builds a document from source, ignoring the error severity.
- *
- * A missing required field is an error, and the emitter writes no file once
- * one is reported. The message promises the binding alone was dropped, so a
- * test has to look at the document to show that the rest survived.
- */
-async function buildWithDiagnostics(code: string) {
-  const runner = await AsyncAPITester.createInstance();
-  const [, diagnostics] = await runner.compileAndDiagnose(code);
-  return { doc: buildAsyncAPIDocument(runner.program, undefined, {}), diagnostics };
-}
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -80,7 +69,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("drops the whole binding when the queue is missing", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @sqsChannel(#{})
@@ -97,7 +86,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("requires both a name and a FIFO flag on a channel queue", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @sqsChannel(#{ queue: #{ visibilityTimeout: 30 } })
@@ -135,7 +124,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("drops an incomplete dead letter queue and keeps the rest", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @sqsChannel(#{
@@ -264,7 +253,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("drops the whole binding when the queue list is missing", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @channel("orders")
@@ -281,7 +270,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("drops the whole binding when every entry was rejected", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @channel("orders")
@@ -301,7 +290,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
     });
 
     it("keeps the entries that survived when one was rejected", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @channel("orders")

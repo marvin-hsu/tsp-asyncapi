@@ -1,22 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import {
+  buildAsyncAPIWithDiagnostics,
+  emitAsyncAPI,
+  emitAsyncAPIWithDiagnostics,
+} from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
-import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-
-/**
- * Builds a document from source, ignoring the error severity.
- *
- * A missing required field is an error, and the emitter writes no file once
- * one is reported. The message promises the binding alone was dropped, so a
- * test has to look at the document to show that the rest survived.
- */
-async function buildWithDiagnostics(code: string) {
-  const runner = await AsyncAPITester.createInstance();
-  const [, diagnostics] = await runner.compileAndDiagnose(code);
-  return { doc: buildAsyncAPIDocument(runner.program, undefined, {}), diagnostics };
-}
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -97,7 +86,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("drops the whole binding when the namespace is missing", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{ persistence: "persistent" })
@@ -116,7 +105,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("drops the whole binding when the persistence is missing", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{ \`namespace\`: "orders" })
@@ -132,7 +121,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("drops the whole binding when the persistence is not one Pulsar defines", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{ \`namespace\`: "orders", persistence: "durable" })
@@ -152,7 +141,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("names both required fields when both are missing", async () => {
-      const { diagnostics } = await buildWithDiagnostics(`
+      const { diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{ ttl: 3600 })

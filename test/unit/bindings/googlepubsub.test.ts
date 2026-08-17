@@ -1,22 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI } from "../../utils/test-host.js";
+import { buildAsyncAPIWithDiagnostics, emitAsyncAPI } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
-import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-
-/**
- * Builds a document from source, ignoring the error severity.
- *
- * A missing required field is an error, and the emitter writes no file once
- * one is reported. The message promises the binding alone was dropped, so a
- * test has to look at the document to show that the rest survived.
- */
-async function buildWithDiagnostics(code: string) {
-  const runner = await AsyncAPITester.createInstance();
-  const [, diagnostics] = await runner.compileAndDiagnose(code);
-  return { doc: buildAsyncAPIDocument(runner.program, undefined, {}), diagnostics };
-}
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -76,7 +61,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("drops the whole binding when the schema settings are missing", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @googlePubSubChannel(#{ messageRetentionDuration: "86400s" })
@@ -93,7 +78,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("names both fields the schema settings require when neither is given", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @googlePubSubChannel(#{ schemaSettings: #{ firstRevisionId: "rev-1" } })
@@ -112,7 +97,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("treats a blank required field as absent", async () => {
-      const { diagnostics } = await buildWithDiagnostics(`
+      const { diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @googlePubSubChannel(#{
@@ -201,7 +186,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("reports a schema written without a name, and keeps the rest", async () => {
-      const { doc, diagnostics } = await buildWithDiagnostics(`
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
         namespace Test;
