@@ -258,7 +258,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     expect(props.field).toEqual({ type: "string" });
   });
 
-  it("should not apply a property's own @encode when serializing its @example", async () => {
+  it("should encode a property's schema and its @example the same way", async () => {
     const { builder } = await buildDocSchema(t.code`
       model ${t.model("M")} {
         @encode("unixTimestamp", int32)
@@ -268,12 +268,13 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
-    // The schema's type/format do not yet reflect @encode. So the example
-    // must not be encoded either. Otherwise, the example value would not
-    // validate against its own property's schema.
-    expect(props.ts.type).toBe("string");
-    expect(props.ts.format).toBe("date-time");
-    expect(props.ts.examples).toEqual(["2020-01-01T00:00:00Z"]);
+    // `@encode` says this moment travels as an integer count of seconds. The
+    // schema has to say so, or a valid message fails to validate against it.
+    expect(props.ts.type).toBe("integer");
+    expect(props.ts.format).toBe("unixtime");
+    // The example has to be encoded the same way. An example encoded one way
+    // and described the other would not validate against its own schema.
+    expect(props.ts.examples).toEqual([1577836800]);
   });
 
   it("should keep an inherited scalar's title/description when a property only adds its own @example", async () => {
@@ -325,7 +326,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     expect(props.a.examples).toEqual(["aug1", "aug2"]);
   });
 
-  it("should not apply @encode to a model-level @example's nested property (2.7 does not map @encode into type/format)", async () => {
+  it("should encode a nested property inside a model-level @example", async () => {
     const { builder } = await buildDocSchema(t.code`
       @example(#{ ts: utcDateTime.fromISO("2020-01-01T00:00:00Z") })
       model ${t.model("M")} {
@@ -335,11 +336,14 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     const schema = builder.getSchemas().M as any;
-    expect(schema.properties.ts).toEqual({ type: "string", format: "date-time" });
-    expect(schema.examples).toEqual([{ ts: "2020-01-01T00:00:00Z" }]);
+    expect(schema.properties.ts).toEqual({ type: "integer", format: "unixtime" });
+    // The example is one level up from the encoded property, so this proves
+    // the encoding is applied while walking into an object value, not only
+    // at the top of one.
+    expect(schema.examples).toEqual([{ ts: 1577836800 }]);
   });
 
-  it("should not apply @encode to an @example on a property whose type is a model with an encoded nested property", async () => {
+  it("should encode an @example on a property whose type is a model with an encoded nested property", async () => {
     const { builder } = await buildDocSchema(t.code`
       model Inner {
         @encode("unixTimestamp", int32)
@@ -352,12 +356,12 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.p.examples).toEqual([{ ts: "2020-01-01T00:00:00Z" }]);
+    expect(props.p.examples).toEqual([{ ts: 1577836800 }]);
     const inner = builder.getSchemas().Inner as any;
-    expect(inner.properties.ts).toEqual({ type: "string", format: "date-time" });
+    expect(inner.properties.ts).toEqual({ type: "integer", format: "unixtime" });
   });
 
-  it("should not apply a scalar's own @encode when serializing its @example (2.7 does not map @encode into type/format)", async () => {
+  it("should encode a scalar's own @encode in both its schema and its @example", async () => {
     const { builder } = await buildDocSchema(t.code`
       @encode("unixTimestamp", int32)
       scalar MyTs extends utcDateTime;
@@ -368,9 +372,11 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.a.type).toBe("string");
-    expect(props.a.format).toBe("date-time");
-    expect(props.a.examples).toEqual(["2020-01-01T00:00:00Z"]);
+    // The encoding is declared on the scalar, not on the property. It has to
+    // reach the use site through the `baseScalar` chain.
+    expect(props.a.type).toBe("integer");
+    expect(props.a.format).toBe("unixtime");
+    expect(props.a.examples).toEqual([1577836800]);
   });
 
   it("should not let unrelated edits in a different file reorder cross-file @@example augment decorators", async () => {

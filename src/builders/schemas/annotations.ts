@@ -23,12 +23,15 @@ import {
   getMaxLengthAsNumeric,
   getMinItemsAsNumeric,
   getMaxItemsAsNumeric,
+  getDeprecated,
+  isSecret,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
-import { serializeExamples } from "../example-serialization.js";
+import { serializeExamples, serializeDefaultValue } from "../example-serialization.js";
 import { toPlainValue } from "../../marshalled-values.js";
+import { applyEncoding } from "./encoding.js";
 
 /**
  * The mime type a schema's own property keys are resolved against through
@@ -48,8 +51,16 @@ import { toPlainValue } from "../../marshalled-values.js";
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
 
 /**
- * Builds `title`/`description`/`examples` from a declaration's own
- * documentation decorators.
+ * The annotation keywords a declaration or a use site contributes.
+ * These describe the value for a reader. None of them changes whether a
+ * value validates. That distinction is what lets them be hoisted out of an
+ * `allOf` branch, which `hoistAnnotationsAboveAllOf` relies on.
+ */
+type DocFields = Pick<SchemaObject, "title" | "description" | "examples" | "deprecated">;
+
+/**
+ * Builds `title`/`description`/`examples`/`deprecated` from a declaration's
+ * own documentation decorators.
  * `@summary` maps to `title`. `@doc`, or a plain doc comment that `getDoc`
  * already resolves to the same thing, maps to `description`. TypeSpec's
  * built-in `@example` maps to `examples`.
@@ -79,15 +90,22 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * to hang a per-entry title or description, so this phase has no field to
  * put them in. Phase 3 adds message-level examples, which have their own
  * `name`/`summary` fields. That is where they get picked up.
+ *
+ * `#deprecated` maps to the `deprecated` annotation. The compiler stores a
+ * message with it, such as `#deprecated "use v2 instead"`. JSON Schema's
+ * `deprecated` is a bare boolean with nowhere to carry that message, so only
+ * its presence is emitted. The compiler already reports the message itself
+ * at every use site, so it does not go unseen.
  */
 function buildDocFields(
   program: Program,
   target: Model | Scalar | Enum | Union | ModelProperty | UnionVariant,
   exampleValueType: Type,
   diagnostics: SchemaDiagnostics,
-): Pick<SchemaObject, "title" | "description" | "examples"> {
+): DocFields {
   const title = getSummary(program, target);
   const description = getDoc(program, target);
+  const deprecated = getDeprecated(program, target) !== undefined ? true : undefined;
   // A dropped example still surfaces as a diagnostic, rather than being
   // dropped in total silence. Each example is its own drop, so the
   // source-order index separates them. Two bad examples on one target are
@@ -99,6 +117,7 @@ function buildDocFields(
     ...(title !== undefined ? { title } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(examples.length > 0 ? { examples } : {}),
+    ...(deprecated !== undefined ? { deprecated } : {}),
   };
 }
 
@@ -272,7 +291,14 @@ export function buildValidationKeywords(
     getMaxLengthAsNumeric(program, target),
   );
   const pattern = getPattern(program, target);
-  const format = getFormat(program, target);
+  // `@secret` marks a string as sensitive. JSON Schema has no keyword of its
+  // own for that, so it maps to the `password` format, the same spelling
+  // `@typespec/openapi3` uses.
+  // An explicit `@format` wins over it. `@secret` only says the value is
+  // sensitive, while `@format` says what the value actually is, which is the
+  // more specific statement. This is the same precedence the official
+  // emitter applies: it sets `password` first and lets `@format` overwrite it.
+  const format = getFormat(program, target) ?? (isSecret(program, target) ? "password" : undefined);
   const minimum = resolveRangeBound(
     program,
     target,
@@ -334,6 +360,33 @@ export function buildValidationKeywords(
 }
 
 /**
+ * Builds the `default` keyword from a property's own default value, written
+ * as `name?: T = value`.
+ *
+ * The value is serialized against the property's own type, through the same
+ * path an `@example` value takes. So a default and an example of one property
+ * always agree on how a value of that type reaches JSON.
+ *
+ * A value the serializer cannot represent reports `unserializable-default`
+ * and contributes no keyword. Emitting a partially-serialized default would
+ * put a value in the schema that the schema itself rejects. Dropping it
+ * silently would leave the user with no way to find out.
+ *
+ * A property with no default contributes `{}`, so merging this in is a no-op
+ * for the common case.
+ */
+function buildDefaultField(
+  program: Program,
+  prop: ModelProperty,
+  diagnostics: SchemaDiagnostics,
+): Pick<SchemaObject, "default"> {
+  const value = serializeDefaultValue(program, prop, () =>
+    diagnostics.reportOnce({ code: "unserializable-default", target: prop }, "default"),
+  );
+  return value !== undefined ? { default: value } : {};
+}
+
+/**
  * Turns `@jsonSchemaExtension`'s accumulated `{ key, value }` records into a
  * plain object of top-level schema keywords, one property per record.
  * A target with no `@jsonSchemaExtension` application returns `{}`, so
@@ -369,7 +422,7 @@ function buildJsonSchemaExtensionFields(
  */
 function hoistAnnotationsAboveAllOf(
   schema: SchemaObject,
-  docs: Pick<SchemaObject, "title" | "description" | "examples">,
+  docs: DocFields,
   restValidation: SchemaObject,
   format: string | undefined,
 ): SchemaObject {
@@ -377,14 +430,20 @@ function hoistAnnotationsAboveAllOf(
   const title = docs.title ?? inner.title;
   const description = docs.description ?? inner.description;
   const examples = docs.examples ?? inner.examples;
+  // `deprecated` is an annotation, exactly like `title`/`description`. Left
+  // inside the `allOf` branch, a reader looking at this level would not see
+  // it. So it is hoisted with the rest of them.
+  const deprecated = docs.deprecated ?? inner.deprecated;
   delete inner.title;
   delete inner.description;
   delete inner.examples;
+  delete inner.deprecated;
   return {
     allOf: [inner],
     ...(title !== undefined ? { title } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(examples !== undefined ? { examples } : {}),
+    ...(deprecated !== undefined ? { deprecated } : {}),
     ...restValidation,
     ...(format !== undefined ? { format } : {}),
   };
@@ -516,7 +575,19 @@ export function withPropertyDocs(
   schema: SchemaObject | ReferenceObject,
   diagnostics: SchemaDiagnostics,
 ): SchemaObject | ReferenceObject {
-  const docs = buildDocFields(program, prop, prop.type, diagnostics);
+  // The property's own `@encode` rewrites the `type`/`format` it got from its
+  // declared type, so it is applied before anything below. An explicit
+  // `@format` on the property still wins, being merged in afterwards.
+  // A `$ref` is never reached here: a property typed as a named scalar is
+  // inlined rather than referenced.
+  const encoded =
+    prop.kind === "ModelProperty" && !("$ref" in schema)
+      ? applyEncoding(program, prop, schema)
+      : schema;
+  // The example is serialized against `prop`, not `prop.type`, so the compiler
+  // applies the same `@encode` to it. An example encoded differently from the
+  // schema describing it would fail to validate against that schema.
+  const docs = buildDocFields(program, prop, prop, diagnostics);
   const validation = buildValidationKeywords(program, prop, diagnostics);
   // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
   // `lib/main.tsp`); a `UnionVariant` never carries one, so this is always
@@ -527,12 +598,16 @@ export function withPropertyDocs(
     prop.kind === "ModelProperty"
       ? buildJsonSchemaExtensionFields(program, getJsonSchemaExtensions(program, prop))
       : {};
-  const extra = { ...docs, ...validation, ...extensionFields };
+  // A `UnionVariant` has no default value to read; only a `ModelProperty`
+  // carries one, written as `name?: T = value`.
+  const defaultFields =
+    prop.kind === "ModelProperty" ? buildDefaultField(program, prop, diagnostics) : {};
+  const extra = { ...docs, ...validation, ...extensionFields, ...defaultFields };
   if (Object.keys(extra).length === 0) {
-    return schema;
+    return encoded;
   }
-  if ("$ref" in schema) {
-    return { allOf: [schema], ...extra };
+  if ("$ref" in encoded) {
+    return { allOf: [encoded], ...extra };
   }
   // `format` is a draft-07 *annotation*, not a keyword that can be
   // intersected. Two different `format`s on the same value are a
@@ -543,7 +618,7 @@ export function withPropertyDocs(
   // level's `format`, if any, wins.
   const { format, ...restValidation } = validation;
   const collidesWithOwnShape = Object.keys(restValidation).some(
-    (key) => key in (schema as Record<string, unknown>),
+    (key) => key in (encoded as Record<string, unknown>),
   );
   if (collidesWithOwnShape) {
     // Same annotation-hoisting rule as `withDocs`. `title`/`description`/
@@ -551,9 +626,12 @@ export function withPropertyDocs(
     // parent schema. A property that only adds a colliding validation
     // keyword, with no `@doc` of its own, must not lose the scalar's
     // inherited description.
+    // `default` is an annotation as well, so it belongs beside the `allOf`,
+    // not inside its branch, for the same reason.
     return {
-      ...hoistAnnotationsAboveAllOf(schema, docs, restValidation, format),
+      ...hoistAnnotationsAboveAllOf(encoded, docs, restValidation, format),
       ...extensionFields,
+      ...defaultFields,
     };
   }
   // The property has its own title and/or description here. It fully
@@ -566,7 +644,7 @@ export function withPropertyDocs(
   // its own `@example` must not strip the scalar's inherited
   // `title`/`description`. Gate the deletion only on the fields actually
   // being overridden.
-  const rest: SchemaObject = { ...schema };
+  const rest: SchemaObject = { ...encoded };
   if (docs.title !== undefined || docs.description !== undefined) {
     delete rest.title;
     delete rest.description;

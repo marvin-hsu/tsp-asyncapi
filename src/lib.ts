@@ -90,6 +90,20 @@ export const $lib = createTypeSpecLibrary({
           "This @example could not be serialized to JSON and was omitted from the emitted schema.",
       },
     },
+    "visibility-not-applied": {
+      severity: "warning",
+      messages: {
+        default:
+          "@visibility does not change an AsyncAPI message. A message has one shape, not a shape per lifecycle phase, so this property is emitted in full. Use @invisible to leave a property out of the document.",
+      },
+    },
+    "unserializable-default": {
+      severity: "warning",
+      messages: {
+        default:
+          "This property's default value could not be serialized to JSON and was omitted from the emitted schema.",
+      },
+    },
     "unrepresentable-numeric-constraint": {
       severity: "warning",
       messages: {

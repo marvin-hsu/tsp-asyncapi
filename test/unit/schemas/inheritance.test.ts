@@ -529,27 +529,4 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
 
     expect(findNeverOverrideOfInheritedProperty(Derived)).toBeUndefined();
   });
-
-  it("should emit a plain anyOf for a @discriminated union, not yet reflecting its envelope semantics", async () => {
-    // This is a known, documented gap. The newer `@discriminated` union
-    // decorator defaults to `envelope: "object"`, but this emitter does
-    // not yet support that envelope shape. This test pins the current,
-    // incomplete `anyOf` output. That way the gap cannot silently regress
-    // into looking "supported" without anyone noticing. The real wire
-    // shape for `envelope: "object"` is `{ "kind": "a", "value": { ... } }`.
-    // That shape does NOT validate against this schema. Full envelope
-    // support is deferred to a future phase.
-    const { builder, U } = await compileSchemas(t.code`
-      model A { kind: "a"; }
-      model B { kind: "b"; }
-      @discriminated
-      union ${t.union("U")} { a: A, b: B }
-    `);
-    builder.buildSchema(U);
-
-    const components = builder.getSchemas();
-    expect(components.U).toEqual({
-      anyOf: [{ $ref: "#/components/schemas/A" }, { $ref: "#/components/schemas/B" }],
-    });
-  });
 });

@@ -611,6 +611,12 @@ export interface SchemaObject {
   enum?: unknown[];
   default?: unknown;
   examples?: unknown[];
+  /**
+   * Marks the value as deprecated (`#deprecated`). JSON Schema draft-07
+   * onwards defines this as an annotation. It never changes whether a value
+   * validates. It only tells a reader to stop using the value.
+   */
+  deprecated?: boolean;
   anyOf?: (SchemaObject | ReferenceObject)[];
   allOf?: (SchemaObject | ReferenceObject)[];
   oneOf?: (SchemaObject | ReferenceObject)[];

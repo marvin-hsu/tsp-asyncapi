@@ -12,6 +12,8 @@ import {
   walkPropertiesInherited,
   resolveEncodedName,
   getDiscriminator,
+  getDiscriminatedUnion,
+  ignoreDiagnostics,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types.js";
 import { reportDiagnostic } from "../../lib.js";
@@ -40,6 +42,8 @@ import {
   buildEnumMemberSchema,
   SCALAR_SCHEMAS,
 } from "./scalars.js";
+import { applyEncoding } from "./encoding.js";
+import { shouldEmitProperty } from "./visibility.js";
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
@@ -728,6 +732,10 @@ export class SchemaBuilder {
    * no single variant left to hang per-branch documentation off of.
    */
   private buildUnionSchemaBody(type: Union): SchemaObject {
+    const discriminated = this.buildDiscriminatedUnionBody(type);
+    if (discriminated !== undefined) {
+      return discriminated;
+    }
     const variants = [...type.variants.values()];
     if (variants.length === 0) {
       return { not: {} };
@@ -742,6 +750,68 @@ export class SchemaBuilder {
       withPropertyDocs(this.program, variant, this.buildSchema(variant.type), this.diagnostics),
     );
     return isOneOf(this.program, type) ? { oneOf: variantSchemas } : { anyOf: variantSchemas };
+  }
+
+  /**
+   * Builds the body of a `@discriminated` union, or returns `undefined` when
+   * `type` does not carry the decorator.
+   *
+   * `@discriminated` states how the union travels, not only what it can hold.
+   * The default `envelope: "object"` wraps every variant in a two-property
+   * object: one property naming the variant, one holding it. So
+   * `@discriminated union Pet { cat: Cat, dog: Dog }` puts
+   * `{ "kind": "cat", "value": { ... } }` on the wire, not a bare `Cat`.
+   * Emitting the variants as a plain union would describe a shape one level
+   * flatter than the one that actually travels, and every real message would
+   * fail to validate against it.
+   *
+   * `envelope: "none"` puts the discriminating property inside each variant
+   * instead, so the variants are referenced directly.
+   *
+   * Each envelope is written inline rather than registered as its own named
+   * component. The official emitter synthesizes a model per variant, named by
+   * concatenating the union and variant names, and that synthesized name can
+   * collide with a name the user already declared. An inline envelope has no
+   * name to collide with. Nothing else refers to these shapes, so there is
+   * nothing for a component entry to save.
+   *
+   * `discriminator` is the bare property-name string AsyncAPI defines, the
+   * same spelling the model-level `@discriminator` already emits.
+   */
+  private buildDiscriminatedUnionBody(type: Union): SchemaObject | undefined {
+    // The diagnostics this reports are the decorator's own validation, such
+    // as a variant that is not a model. The compiler already surfaces them
+    // from the checker, so re-reporting them here would double every message.
+    const discriminated = ignoreDiagnostics(getDiscriminatedUnion(this.program, type));
+    if (discriminated === undefined) {
+      return undefined;
+    }
+    const { discriminatorPropertyName, envelopePropertyName, envelope } = discriminated.options;
+    const variants = [...discriminated.variants.entries()];
+    const branches = variants.map(([variantName, variantType]) => {
+      const variantSchema = this.buildSchema(variantType);
+      if (envelope === "none") {
+        return variantSchema;
+      }
+      return {
+        type: JSON_SCHEMA_TYPE.object,
+        properties: {
+          [discriminatorPropertyName]: {
+            type: JSON_SCHEMA_TYPE.string,
+            enum: [variantName],
+          },
+          [envelopePropertyName]: variantSchema,
+        },
+        required: [discriminatorPropertyName, envelopePropertyName],
+      } satisfies SchemaObject;
+    });
+    return {
+      type: JSON_SCHEMA_TYPE.object,
+      // `oneOf`, not `anyOf`: the discriminating property makes exactly one
+      // branch match, and saying so lets a validator report which one failed.
+      oneOf: branches,
+      discriminator: discriminatorPropertyName,
+    };
   }
 
   /**
@@ -1114,6 +1184,12 @@ export class SchemaBuilder {
       if (isNeverTypedProperty(prop)) {
         continue;
       }
+      // `@invisible` says this property is in no lifecycle phase, so it is
+      // left out entirely. A partial `@visibility` is emitted in full and
+      // reported, because a message has only one shape to emit it into.
+      if (!shouldEmitProperty(this.program, prop, this.diagnostics)) {
+        continue;
+      }
       // The compiler's own example serializer, `serializeValueAsJson`, used
       // by `buildDocFields` below, resolves each nested object property
       // name through `@encodedName` for `SCHEMA_ENCODING_MIME_TYPE`.
@@ -1189,7 +1265,14 @@ export class SchemaBuilder {
       // a 2.8 validation decorator to a built-in scalar. It is real user
       // intent, not library noise. So it must still be read back here,
       // rather than silently discarded.
-      return { ...shape, ...buildValidationKeywords(this.program, scalar, this.diagnostics) };
+      // `@@encode` reaches a built-in the same way, and changes the very
+      // `type`/`format` this shape is made of, so it is applied first. An
+      // explicit `@format` merged in afterwards still wins over the format
+      // the encoding resolved to.
+      return {
+        ...applyEncoding(this.program, scalar, shape),
+        ...buildValidationKeywords(this.program, scalar, this.diagnostics),
+      };
     }
     // This is a derived, user-declared scalar. Start from its base
     // scalar's shape, recursing all the way to a built-in ancestor, or to
@@ -1208,7 +1291,14 @@ export class SchemaBuilder {
     // On collision, `base` is wrapped whole in `allOf`, the same wrap
     // `withPropertyDocs` uses, so both levels' keywords hold
     // simultaneously. Otherwise, keywords are merged in directly as before.
-    const base = scalar.baseScalar ? this.buildScalarSchemaShapeWithDocs(scalar.baseScalar) : {};
+    // This level's own `@encode` changes the `type`/`format` it inherited
+    // from the base. It is applied before `withDocs`, so an explicit
+    // `@format` on this same scalar still wins over the encoding's format.
+    const base = applyEncoding(
+      this.program,
+      scalar,
+      scalar.baseScalar ? this.buildScalarSchemaShapeWithDocs(scalar.baseScalar) : {},
+    );
     return withDocs(this.program, scalar, base, this.diagnostics);
   }
 }

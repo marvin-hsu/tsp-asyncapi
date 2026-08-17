@@ -31,6 +31,23 @@ export async function compileSchemas<T extends MarkedTemplate>(code: T) {
 }
 
 /**
+ * Compiles `code` and hands back its diagnostics instead of asserting there
+ * are none. Use it when the source under test is expected to produce one.
+ *
+ * `#deprecated` is the case this exists for. The compiler reports a warning
+ * at every use site of a deprecated declaration, so a test that emits one
+ * cannot go through `compileSchemas`.
+ *
+ * @param code - The TypeSpec source, with a marker per type to return
+ * @returns The builder and the compile result, plus the diagnostics
+ */
+export async function compileSchemasWithDiagnostics<T extends MarkedTemplate>(code: T) {
+  const runner = await AsyncAPITester.createInstance();
+  const [result, diagnostics] = await runner.compileAndDiagnose(code);
+  return { builder: new SchemaBuilder(runner.program), diagnostics, ...result };
+}
+
+/**
  * Compiles `code` (which must mark a model named `M`) and immediately
  * builds the schema of `M`. Use it when a test only needs the schema of
  * one model, which is the common case in the documentation and validation

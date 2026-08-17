@@ -93,6 +93,6 @@ function serializeExampleValue(program: Program, value: Value | undefined): unkn
     value,
     $(program).intrinsic.any,
     undefined,
-    makeSerializeHandlers(program),
+    makeSerializeHandlers(),
   );
 }

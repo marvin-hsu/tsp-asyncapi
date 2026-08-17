@@ -127,17 +127,37 @@ describe("Unit: Schemas — scalars", () => {
     expect(props.u).toEqual({ type: "integer", format: "int64" });
   });
 
-  it("falls back to the unconstrained schema for a scalar derived from a built-in that has no dedicated table entry", async () => {
-    // `unixTimestamp32` is a real TypeSpec standard-library scalar (it
-    // extends `utcDateTime`), but `SCALAR_SCHEMAS` carries no entry for
-    // it. A built-in scalar is always looked up by its own name; it never
-    // falls through to its `baseScalar`'s mapping. So a user scalar
-    // derived from it bottoms out at the unconstrained `{}` shape, the
-    // same as a user scalar derived from no built-in at all.
+  it("resolves a built-in with no table entry through its own @encode", async () => {
+    // `unixTimestamp32` is a real TypeSpec standard-library scalar and
+    // `SCALAR_SCHEMAS` carries no entry for it. A built-in scalar is always
+    // looked up by its own name; it never falls through to its
+    // `baseScalar`'s mapping. So the table alone yields the unconstrained
+    // `{}` shape.
+    // The standard library declares it as
+    // `@encode("unixTimestamp", int32) scalar unixTimestamp32 extends
+    // utcDateTime;`. That encoding is what says the value travels as an
+    // integer, so the shape comes from the encode target instead of the
+    // table. A user scalar derived from it inherits the same shape.
     const { builder, M } = await compileSchemas(t.code`
       scalar Foo extends unixTimestamp32;
       model ${t.model("M")} {
         a: Foo;
+      }
+    `);
+    builder.buildSchema(M);
+
+    const props = builder.getSchemas().M.properties as Record<string, any>;
+    expect(props.a).toEqual({ type: "integer", format: "int32" });
+  });
+
+  it("falls back to the unconstrained schema for a scalar derived from no built-in", async () => {
+    // A root scalar has no `baseScalar` to walk and no table entry of its
+    // own, so there is nothing to say about the value's shape.
+    const { builder, M } = await compileSchemas(t.code`
+      scalar Root;
+      scalar Derived extends Root;
+      model ${t.model("M")} {
+        a: Derived;
       }
     `);
     builder.buildSchema(M);
