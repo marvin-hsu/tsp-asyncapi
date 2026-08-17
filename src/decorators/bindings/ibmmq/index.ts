@@ -26,14 +26,11 @@ import {
 import { enumeratedField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
-/** @internal */
-export type IbmMqServerBindingState = Omit<IbmMqServerBindingObject, "bindingVersion">;
+type IbmMqServerBindingState = Omit<IbmMqServerBindingObject, "bindingVersion">;
 
-/** @internal */
-export type IbmMqChannelBindingState = Omit<IbmMqChannelBindingObject, "bindingVersion">;
+type IbmMqChannelBindingState = Omit<IbmMqChannelBindingObject, "bindingVersion">;
 
-/** @internal */
-export type IbmMqMessageBindingState = Omit<IbmMqMessageBindingObject, "bindingVersion">;
+type IbmMqMessageBindingState = Omit<IbmMqMessageBindingObject, "bindingVersion">;
 
 /** The two kinds of destination IBM MQ defines. */
 const DESTINATION_TYPES = ["topic", "queue"];

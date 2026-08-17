@@ -8,88 +8,90 @@
  * This half reads no decorator state and reports no diagnostic. Which
  * applications reach one object, and which of two claims on one protocol
  * wins, were both settled in resolve.
+ *
+ * Rendering a binding is one step: write the version of the specification
+ * its fields follow. Every decorator records its fields under the names the
+ * document uses, and drops a field that carried nothing or failed a check.
+ * So what a decorator stored is what the document carries, apart from
+ * `bindingVersion`.
+ *
+ * That is why this file holds a table of versions rather than a table of
+ * functions. Twelve protocols each had a renderer that spread the recorded
+ * config and appended one constant. Twelve copies of one decision meant
+ * twelve places to look when the decision changed.
  */
 
-// A type, never a state read. The lower half names the renderer the state
+// A type, never a state read. The lower half names the protocol the state
 // layer recorded, so a name added to the union without an entry below is a
 // compile error. `import type` keeps it a type: this half cannot call into
 // the state layer even by accident.
 import type { BindingRenderer } from "../decorators/bindings/state.js";
 import type { BindingNode } from "../resolve/service.js";
+import {
+  AMQP_BINDING_VERSION,
+  ANYPOINT_MQ_BINDING_VERSION,
+  GOOGLE_PUB_SUB_BINDING_VERSION,
+  HTTP_BINDING_VERSION,
+  IBM_MQ_BINDING_VERSION,
+  JMS_BINDING_VERSION,
+  KAFKA_BINDING_VERSION,
+  MQTT_BINDING_VERSION,
+  NATS_BINDING_VERSION,
+  PULSAR_BINDING_VERSION,
+  SOLACE_BINDING_VERSION,
+  SQS_BINDING_VERSION,
+  WEBSOCKET_BINDING_VERSION,
+} from "../constants.js";
 import { BindingObject, BindingsObject } from "../types/index.js";
-import { renderKafkaBinding } from "./bindings/kafka.js";
-import { renderAmqpBinding } from "./bindings/amqp.js";
-import { renderAnypointMqBinding } from "./bindings/anypointmq.js";
-import { renderIbmMqBinding } from "./bindings/ibmmq.js";
-import { renderJmsBinding } from "./bindings/jms.js";
-import { renderSolaceBinding } from "./bindings/solace.js";
-import { renderGooglePubSubBinding } from "./bindings/googlepubsub.js";
-import { renderNatsBinding } from "./bindings/nats.js";
-import { renderPulsarBinding } from "./bindings/pulsar.js";
-import { renderSqsBinding } from "./bindings/sqs.js";
-import { renderHttpBinding } from "./bindings/http.js";
-import { renderMqttBinding } from "./bindings/mqtt.js";
-import { renderWebSocketBinding } from "./bindings/websocket.js";
 
 /**
- * The renderer of each resolved binding, by name.
+ * The specification version each protocol's fields follow.
  *
- * The decorators record a renderer name rather than a function, so the state
- * layer never imports a builder. This map is the other half of that split.
- * A new protocol adds a file under this folder and an entry here. It changes
- * no builder.
+ * The decorators record a protocol name rather than a version, so the state
+ * layer never imports this table. That keeps raising a version to one edit
+ * here, whatever number of levels the protocol covers. One entry serves all
+ * four Kafka levels, because each Kafka decorator already records its fields
+ * under the names the document uses.
  *
- * Each renderer returns the object of its own protocol. Those types are
- * interfaces, and an interface carries no index signature, so the value type
- * stays the wider `object` and `render` narrows the result once.
+ * `verbatim` is `null` rather than a version. The generic `@binding` holds
+ * plain JSON and is emitted as written, because it never reads the shape of
+ * what it was given. A version it did not ask for would be a claim about
+ * fields this emitter never checked.
  *
- * The key type is the `BindingRenderer` union itself. So a name added to the
- * union and forgotten here fails the build, rather than reaching `render` as
- * an undefined function and throwing while a document is emitted.
+ * The key type is the `BindingRenderer` union itself. So a protocol added to
+ * the union and forgotten here fails the build, rather than reaching `render`
+ * as an undefined value and emitting a binding with no version.
  */
-const RENDERERS: Record<BindingRenderer, (config: unknown) => object> = {
-  // The generic `@binding` already holds plain JSON, and it is emitted as
-  // written. Nothing is added to it, `bindingVersion` included.
-  verbatim: (config) => config as BindingObject,
-  // One name covers all four Kafka levels. Each decorator records its fields
-  // under the names the document uses, so the rendering is the same at every
-  // level.
-  kafka: renderKafkaBinding,
-  // The WebSocket binding covers one level, so its renderer covers one
-  // level too. The member it lands under is `ws`, which the decorator
-  // records as the protocol name.
-  websocket: renderWebSocketBinding,
-  // One name covers all three MQTT levels, for the same reason it covers
-  // all four Kafka levels. There is no channel level: the MQTT binding
-  // says a channel object must carry no property.
-  mqtt: renderMqttBinding,
-  // HTTP covers an operation and a message. AsyncAPI defines no HTTP
-  // server or channel object with fields of its own.
-  http: renderHttpBinding,
-  // AMQP covers a channel, an operation and a message. Its server object
-  // carries no property.
-  amqp: renderAmqpBinding,
-  // NATS defines one object, on an operation.
-  nats: renderNatsBinding,
-  // Pulsar covers a server and a channel.
-  pulsar: renderPulsarBinding,
-  // Google Cloud Pub/Sub covers a channel and a message.
-  googlepubsub: renderGooglePubSubBinding,
-  // Amazon SQS covers a channel and an operation.
-  sqs: renderSqsBinding,
-  // Anypoint MQ covers a channel and a message.
-  anypointmq: renderAnypointMqBinding,
-  // JMS covers a server, a channel and a message.
-  jms: renderJmsBinding,
-  // IBM MQ covers a server, a channel and a message.
-  ibmmq: renderIbmMqBinding,
-  // Solace covers a server and an operation.
-  solace: renderSolaceBinding,
+const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
+  verbatim: null,
+  kafka: KAFKA_BINDING_VERSION,
+  // The member is `ws`, which the decorator records as the protocol name.
+  websocket: WEBSOCKET_BINDING_VERSION,
+  mqtt: MQTT_BINDING_VERSION,
+  http: HTTP_BINDING_VERSION,
+  amqp: AMQP_BINDING_VERSION,
+  nats: NATS_BINDING_VERSION,
+  pulsar: PULSAR_BINDING_VERSION,
+  googlepubsub: GOOGLE_PUB_SUB_BINDING_VERSION,
+  sqs: SQS_BINDING_VERSION,
+  anypointmq: ANYPOINT_MQ_BINDING_VERSION,
+  jms: JMS_BINDING_VERSION,
+  ibmmq: IBM_MQ_BINDING_VERSION,
+  solace: SOLACE_BINDING_VERSION,
 };
 
-/** Runs the renderer one node names. */
+/**
+ * Renders one binding.
+ *
+ * The version is appended rather than prepended, so it is the last key of the
+ * emitted member. That is the order the specification lists it in, and the
+ * order every example in the AsyncAPI binding repository shows.
+ */
 function render(node: BindingNode): BindingObject {
-  return RENDERERS[node.renderer](node.config) as BindingObject;
+  const config = node.config as BindingObject;
+  const version = BINDING_VERSIONS[node.renderer];
+  if (version === null) return config;
+  return { ...config, bindingVersion: version };
 }
 
 /**

@@ -17,14 +17,11 @@ import {
 import { enumeratedField, reportBindingField, reportMissingField, schemaField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
-/** @internal */
-export type JmsServerBindingState = Omit<JmsServerBindingObject, "bindingVersion">;
+type JmsServerBindingState = Omit<JmsServerBindingObject, "bindingVersion">;
 
-/** @internal */
-export type JmsChannelBindingState = Omit<JmsChannelBindingObject, "bindingVersion">;
+type JmsChannelBindingState = Omit<JmsChannelBindingObject, "bindingVersion">;
 
-/** @internal */
-export type JmsMessageBindingState = Omit<JmsMessageBindingObject, "bindingVersion">;
+type JmsMessageBindingState = Omit<JmsMessageBindingObject, "bindingVersion">;
 
 /** The two kinds of destination JMS defines. */
 const DESTINATION_TYPES = ["queue", "fifo-queue"];

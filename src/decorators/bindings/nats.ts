@@ -17,9 +17,8 @@ import { claimBinding } from "./state.js";
  *
  * It is the emitted object without `bindingVersion`. The renderer adds that
  * field.
- * @internal
  */
-export type NatsOperationBindingState = Omit<NatsOperationBindingObject, "bindingVersion">;
+type NatsOperationBindingState = Omit<NatsOperationBindingObject, "bindingVersion">;
 
 /** The longest queue group name NATS allows. */
 const MAX_QUEUE_LENGTH = 255;

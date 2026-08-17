@@ -24,9 +24,8 @@ import { claimBinding } from "./state.js";
  * It is the emitted object without `bindingVersion`. The renderer adds that
  * field. Deriving the shape rather than writing it out again keeps the two
  * from drifting.
- * @internal
  */
-export type WebSocketChannelBindingState = Omit<WebSocketChannelBindingObject, "bindingVersion">;
+type WebSocketChannelBindingState = Omit<WebSocketChannelBindingObject, "bindingVersion">;
 
 /** The two methods the WebSocket binding allows a handshake to use. */
 const HANDSHAKE_METHODS = ["GET", "POST"];

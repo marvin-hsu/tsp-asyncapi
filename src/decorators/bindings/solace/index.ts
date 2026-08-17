@@ -19,11 +19,9 @@ import { SolaceOperationBindingObject, SolaceServerBindingObject } from "../../.
 import { enumeratedField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
-/** @internal */
-export type SolaceServerBindingState = Omit<SolaceServerBindingObject, "bindingVersion">;
+type SolaceServerBindingState = Omit<SolaceServerBindingObject, "bindingVersion">;
 
-/** @internal */
-export type SolaceOperationBindingState = Omit<SolaceOperationBindingObject, "bindingVersion">;
+type SolaceOperationBindingState = Omit<SolaceOperationBindingObject, "bindingVersion">;
 
 /** The two ways Solace delivers a message. */
 const DELIVERY_MODES = ["direct", "persistent"];

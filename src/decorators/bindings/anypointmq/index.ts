@@ -15,11 +15,9 @@ import {
 import { enumeratedField, schemaField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
-/** @internal */
-export type AnypointMqChannelBindingState = Omit<AnypointMqChannelBindingObject, "bindingVersion">;
+type AnypointMqChannelBindingState = Omit<AnypointMqChannelBindingObject, "bindingVersion">;
 
-/** @internal */
-export type AnypointMqMessageBindingState = Omit<AnypointMqMessageBindingObject, "bindingVersion">;
+type AnypointMqMessageBindingState = Omit<AnypointMqMessageBindingObject, "bindingVersion">;
 
 /** The three kinds of destination Anypoint MQ defines. */
 const DESTINATION_TYPES = ["exchange", "queue", "fifo-queue"];

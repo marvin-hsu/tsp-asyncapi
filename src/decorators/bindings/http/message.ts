@@ -10,9 +10,8 @@ import { claimBinding } from "../state.js";
  *
  * It is the emitted object without `bindingVersion`. The renderer adds that
  * field.
- * @internal
  */
-export type HttpMessageBindingState = Omit<HttpMessageBindingObject, "bindingVersion">;
+type HttpMessageBindingState = Omit<HttpMessageBindingObject, "bindingVersion">;
 
 /** The lowest and highest status code RFC 9110 defines. */
 const STATUS_CODE_RANGE = { lowest: 100, highest: 599 };

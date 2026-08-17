@@ -10,9 +10,8 @@ import { claimBinding } from "../state.js";
  *
  * It is the emitted object without `bindingVersion`. The renderer adds that
  * field.
- * @internal
  */
-export type HttpOperationBindingState = Omit<HttpOperationBindingObject, "bindingVersion">;
+type HttpOperationBindingState = Omit<HttpOperationBindingObject, "bindingVersion">;
 
 /** The nine methods the HTTP binding allows. */
 const HTTP_METHODS = [
