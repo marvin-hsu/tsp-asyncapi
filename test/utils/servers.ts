@@ -3,7 +3,7 @@ import { ServerObject } from "../../src/types.js";
 import { buildSecuritySchemes } from "../../src/builders/security-schemes.js";
 import { BindingPlacements } from "../../src/resolve/bindings.js";
 import { resolveServers } from "../../src/resolve/servers.js";
-import { projectServers } from "../../src/project/servers.js";
+import { lowerServers } from "../../src/lower/servers.js";
 
 /**
  * Builds the `servers` map the way the document builder does.
@@ -24,7 +24,5 @@ export function buildServersFrom(
   namespace: Namespace,
 ): Record<string, ServerObject> | undefined {
   const declaredSchemes = new Set(Object.keys(buildSecuritySchemes(program) ?? {}));
-  return projectServers(
-    resolveServers(program, namespace, declaredSchemes, new BindingPlacements()),
-  );
+  return lowerServers(resolveServers(program, namespace, declaredSchemes, new BindingPlacements()));
 }

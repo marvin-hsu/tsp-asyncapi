@@ -21,7 +21,7 @@ import type {
 /**
  * The semantic model of one AsyncAPI service.
  *
- * This is the only product of the resolve stage. The project stage turns it
+ * This is the only product of the resolve stage. The lower stage turns it
  * into an `AsyncAPIDocument`, and needs nothing else except `program` for
  * schema expansion and type lookup.
  *
@@ -38,12 +38,12 @@ import type {
  * 5. A payload holds a `Model` reference. It never holds an expanded schema.
  *
  * Every node carries its own `target`. That target is the only source
- * location the project stage may report an expansion-time diagnostic
+ * location the lower stage may report an expansion-time diagnostic
  * against.
  *
  * Two conventions apply to absent values, and they are used everywhere in
  * this file. A list that has no members is an empty array, never
- * `undefined`. The project stage omits the output field when the array is
+ * `undefined`. The lower stage omits the output field when the array is
  * empty. A single value that has no answer is `undefined`.
  *
  * This type is not part of the public API. The shape of the model will
@@ -88,7 +88,7 @@ export interface AsyncAPIService {
   // and a build that then fails gives it back.
   //
   // So the key set is an output of expansion, not an input to it. The schema
-  // builder owns it end to end, and the project stage is where it lives.
+  // builder owns it end to end, and the lower stage is where it lives.
   // Keys that a single declaration fixes, such as a message key or a channel
   // parameter key, are different and are assigned here.
   /**
@@ -115,7 +115,7 @@ export interface AsyncAPIService {
  *
  * A marshalled decorator value is converted once, in resolve. Every config
  * and extension value in the model has passed that conversion, so the
- * project stage never marshals anything.
+ * lower stage never marshals anything.
  *
  * @internal
  */
@@ -126,7 +126,7 @@ export type JsonObject = Readonly<Record<string, unknown>>;
  *
  * The AsyncAPI External Documentation Object allows an absent `url`. The
  * decorator rejects that case, so the model states `url` as required and the
- * project stage needs no check.
+ * lower stage needs no check.
  *
  * @internal
  */
@@ -141,7 +141,7 @@ export interface ExternalDocsNode {
  * One tag, after `@tag` and `@asyncTag` were merged.
  *
  * Resolve merges the two sources, removes the repeats, applies source order,
- * and reports the metadata conflicts. The project stage only shapes the
+ * and reports the metadata conflicts. The lower stage only shapes the
  * optional fields. Every section that carries tags carries this same node.
  *
  * @internal
@@ -160,7 +160,7 @@ export interface TagNode {
  *
  * Resolve reads the binding state, merges the level of the object with the
  * `any` level, applies source order, and drops the repeated protocol. The
- * project stage renders the surviving entries and reports nothing.
+ * lower stage renders the surviving entries and reports nothing.
  *
  * The node does not name its level. The position of the array in the model
  * already states it.
@@ -192,7 +192,7 @@ export interface BindingNode {
 /**
  * The document head.
  *
- * Resolve applies the title and version defaults, so the project stage has
+ * Resolve applies the title and version defaults, so the lower stage has
  * no fallback of its own. The default was written in two places before the
  * split, because one copy covered a program with no service. Resolve always
  * produces this node, so one copy is now enough.
@@ -291,7 +291,7 @@ export interface ServerNode {
    * The security schemes this server requires, in source order.
    *
    * The names are already deduplicated. They are also already filtered to
-   * the schemes `components.securitySchemes` declares, so the project stage
+   * the schemes `components.securitySchemes` declares, so the lower stage
    * builds a `$ref` that always resolves.
    */
   readonly security: readonly string[];
@@ -357,8 +357,8 @@ export interface MessageNode {
   /**
    * The message model.
    *
-   * It is the payload source the project stage expands. It is also the
-   * target of every message diagnostic the project stage still reports.
+   * It is the payload source the lower stage expands. It is also the
+   * target of every message diagnostic the lower stage still reports.
    */
   readonly target: Model;
   /** The key of this message in `components.messages`. Already sanitized. */
@@ -386,7 +386,7 @@ export interface MessageNode {
   /**
    * The local reference the raw payload schema points at.
    *
-   * Resolve extracts it from the raw schema. The project stage then only
+   * Resolve extracts it from the raw schema. The lower stage then only
    * asks whether the reference resolves in the finished document. It never
    * inspects a built slot to find the reference again.
    *
@@ -403,7 +403,7 @@ export interface MessageNode {
  *
  * The four cases are the resolved answer to the header question. Resolve
  * counts the header sources, reports the conflicts, and adopts the fields a
- * base message lifts. The project stage switches on `kind` and reads no
+ * base message lifts. The lower stage switches on `kind` and reads no
  * state.
  *
  * @internal
@@ -452,7 +452,7 @@ export interface ChannelNode {
    * The parameters of the address, in the order they appear in it.
    *
    * The list covers the whole address. A declaration resolve found unusable
-   * still produces a node, with every field absent. The project stage
+   * still produces a node, with every field absent. The lower stage
    * therefore needs no usable flag and never parses the address again.
    */
   readonly parameters: readonly ChannelParameterNode[];
@@ -490,7 +490,7 @@ export interface ChannelMessageNode {
  * One parameter of a channel address.
  *
  * Every field comes from the declaration that wins in source order. The
- * values are already strings, so the project stage serializes nothing.
+ * values are already strings, so the lower stage serializes nothing.
  *
  * @internal
  */
@@ -520,7 +520,7 @@ export interface ChannelParameterNode {
  * One entry of the root `operations` map.
  *
  * The node names its messages by key pair, not by model. That is what lets
- * the operations half of the project stage work without `program`.
+ * the operations half of the lower stage work without `program`.
  *
  * @internal
  */

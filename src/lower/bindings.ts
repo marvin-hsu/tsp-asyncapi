@@ -1,5 +1,5 @@
 /**
- * The project half of the bindings.
+ * The lower half of the bindings.
  *
  * It turns resolved nodes into the Bindings Object AsyncAPI puts on a server,
  * a channel, an operation, and a message. All four hold the same shape: one
@@ -10,7 +10,7 @@
  * wins, were both settled in resolve.
  */
 
-// A type, never a state read. The project half names the renderer the state
+// A type, never a state read. The lower half names the renderer the state
 // layer recorded, so a name added to the union without an entry below is a
 // compile error. `import type` keeps it a type: this half cannot call into
 // the state layer even by accident.
@@ -59,7 +59,7 @@ function render(node: BindingNode): BindingObject {
  * nothing.
  * @internal
  */
-export function projectBindings(nodes: readonly BindingNode[]): BindingsObject | undefined {
+export function lowerBindings(nodes: readonly BindingNode[]): BindingsObject | undefined {
   if (nodes.length === 0) return undefined;
   // The object is built from entries. A protocol name is written by the
   // author, so a name such as `__proto__` becomes an own key instead of a

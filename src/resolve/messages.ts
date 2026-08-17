@@ -8,7 +8,7 @@
  *
  * What it does not do is expand a schema. A payload node carries the model
  * and the set of fields that left it for the headers. Turning that into a
- * schema needs the whole type graph, and that is the project half's work.
+ * schema needs the whole type graph, and that is the lower half's work.
  */
 
 import { Model, Program, getDoc, getFriendlyName, getSummary } from "@typespec/compiler";
@@ -60,7 +60,7 @@ export interface ResolvedMessages {
  *
  * The decorator argument wins. Without it, the key is the model's own
  * declaration name, built the same way a `components.schemas` key is, minus
- * the namespace prefix. A template instantiation therefore composes its
+ * the namespace prefix. A template instantiation therefore builds its
  * argument names, so `Envelope<string>` and `Envelope<int32>` claim two
  * distinct keys instead of both claiming the bare template name.
  *
@@ -77,7 +77,7 @@ export interface ResolvedMessages {
  * the user with a key they never asked for.
  *
  * A plain TypeSpec identifier is already inside the charset, so an ordinary
- * model reports nothing. The composed segments of a template instantiation
+ * model reports nothing. The derived segments of a template instantiation
  * report nothing either: the user did not write that text.
  */
 function messageKeyFor(program: Program, model: Model, state: MessageState): string {
@@ -125,7 +125,7 @@ function derivedMessageKey(program: Program, model: Model): string {
  * The `components.schemas` key a model would claim, without claiming it.
  *
  * Whether a model earns a schema key at all is decided while the type graph
- * is walked, and that happens in the project half. What the key would be is a
+ * is walked, and that happens in the lower half. What the key would be is a
  * property of the model, so it can be computed here.
  */
 function schemaKeyCandidate(program: Program, model: Model): string {
@@ -196,7 +196,7 @@ function resolvePayload(
  * that leaves the payload for the headers changes the payload's shape, a
  * payload schema is built once and then cached, and one message model can be
  * reached through another message's payload. So the plan cannot be made one
- * message at a time. Resolving the whole program before the project half runs
+ * message at a time. Resolving the whole program before the lower half runs
  * gives that ordering for free.
  *
  * A template declaration never reaches this loop. The compiler runs a

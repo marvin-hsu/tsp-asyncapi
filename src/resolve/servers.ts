@@ -8,7 +8,7 @@
  * one server's fields.
  *
  * What it produces is a list of `ServerNode`, already in source order. The
- * project half turns those into Server Objects and reads no state.
+ * lower half turns those into Server Objects and reads no state.
  */
 
 import { getNamespaceFullName, Namespace, Program } from "@typespec/compiler";
@@ -33,14 +33,14 @@ import { ServerNode, ServerVariableNode } from "./service.js";
  * Resolves the security scheme names of one namespace or operation.
  *
  * A name no `@securityScheme` defines is reported and dropped here. The
- * reference the project half writes would otherwise address a key the
+ * reference the lower half writes would otherwise address a key the
  * document does not carry, and a parser rejects the whole document for it.
  * `@useSecurity` cannot make this check itself, because a `@securityScheme`
  * anywhere in the program can still arrive after it runs. Here the full set
  * is known.
  *
  * Only the names are carried. Turning a name into a reference is a document
- * detail, and it belongs to the project half.
+ * detail, and it belongs to the lower half.
  *
  * @param program - The program to read the applications from
  * @param target - The namespace or operation that carries the `@useSecurity`
@@ -98,7 +98,7 @@ function resolveServerVariables(
  *
  * `security`, `externalDocs`, and `tags` come from the namespace rather than
  * from one server, so every server the namespace declares carries the same
- * value for all three. They are read once and shared here. The project half
+ * value for all three. They are read once and shared here. The lower half
  * gives each server its own copy, because that is where a shared value would
  * turn into a shared object in the output.
  *

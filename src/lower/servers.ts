@@ -1,18 +1,23 @@
 /**
- * The project half of the servers.
+ * The lower half of the servers.
  *
- * It turns resolved nodes into the root `servers` map. It reads no decorator
- * state and reports no diagnostic. Which servers reach the document, and
- * which security scheme names survived, were both settled in resolve.
+ * `lower` is LLVM's word. It means turning a target-neutral intermediate
+ * representation into one target's own. Here the IR is `AsyncAPIService`, and
+ * the target is the AsyncAPI document. A second target, such as generated
+ * source code, would be a sibling of this folder reading the same IR.
+ *
+ * This half turns resolved nodes into the root `servers` map. It reads no
+ * decorator state and reports no diagnostic. Which servers reach the document,
+ * and which security scheme names survived, were both settled in resolve.
  */
 
 import type { ServerNode, ServerVariableNode } from "../resolve/service.js";
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types.js";
-import { projectBindings } from "./bindings.js";
+import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "../builders/json-pointer.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
-function projectServerVariables(
+function lowerServerVariables(
   variables: ReadonlyMap<string, ServerVariableNode>,
 ): Record<string, ServerVariableObject> {
   const entries: [string, ServerVariableObject][] = [];
@@ -31,7 +36,7 @@ function projectServerVariables(
 }
 
 /** Turns one resolved server into a Server Object. */
-function projectServer(node: ServerNode): ServerObject {
+function lowerServer(node: ServerNode): ServerObject {
   const server: ServerObject = { host: node.host, protocol: node.protocol };
   // The field order follows the Server Object table of the specification.
   if (node.protocolVersion !== undefined) server.protocolVersion = node.protocolVersion;
@@ -39,7 +44,7 @@ function projectServer(node: ServerNode): ServerObject {
   if (node.title !== undefined) server.title = node.title;
   if (node.summary !== undefined) server.summary = node.summary;
   if (node.description !== undefined) server.description = node.description;
-  if (node.variables !== undefined) server.variables = projectServerVariables(node.variables);
+  if (node.variables !== undefined) server.variables = lowerServerVariables(node.variables);
 
   // Each server gets its own objects, so a later change to one server cannot
   // reach another. The three fields below come from the namespace, so one
@@ -56,7 +61,7 @@ function projectServer(node: ServerNode): ServerObject {
   }
   if (node.externalDocs !== undefined) server.externalDocs = { ...node.externalDocs };
   if (node.tags.length > 0) server.tags = structuredClone([...node.tags]);
-  const bindings = projectBindings(node.bindings);
+  const bindings = lowerBindings(node.bindings);
   if (bindings !== undefined) server.bindings = structuredClone(bindings);
   return server;
 }
@@ -69,12 +74,12 @@ function projectServer(node: ServerNode): ServerObject {
  * then omits the field.
  * @internal
  */
-export function projectServers(
+export function lowerServers(
   nodes: readonly ServerNode[],
 ): Record<string, ServerObject> | undefined {
   if (nodes.length === 0) return undefined;
   // The map is built from entries. A name such as `__proto__` is a legal
   // AsyncAPI key, and this way it becomes an own key instead of a write to
   // the prototype. A plain assignment would drop such a server.
-  return Object.fromEntries(nodes.map((node) => [node.name, projectServer(node)]));
+  return Object.fromEntries(nodes.map((node) => [node.name, lowerServer(node)]));
 }

@@ -2,7 +2,7 @@
  * The bindings seam the builders that are not split yet still call.
  *
  * The bindings themselves are already split: `resolve/bindings.ts` decides
- * which applications reach one object, and `project/bindings.ts` renders
+ * which applications reach one object, and `lower/bindings.ts` renders
  * them. The message, channel, and operation builders still do both halves in
  * one pass, so they call this instead of the two directly.
  *
@@ -11,7 +11,7 @@
 
 import { Program, Type } from "@typespec/compiler";
 import { EmittedBindingLevel } from "../../decorators/bindings/state.js";
-import { projectBindings } from "../../project/bindings.js";
+import { lowerBindings } from "../../lower/bindings.js";
 import { BindingPlacements, resolveBindings } from "../../resolve/bindings.js";
 import { BindingsObject } from "../../types.js";
 
@@ -31,5 +31,5 @@ export function buildBindings(
   target: Type,
   placements: BindingPlacements,
 ): BindingsObject | undefined {
-  return projectBindings(resolveBindings(program, level, target, placements));
+  return lowerBindings(resolveBindings(program, level, target, placements));
 }

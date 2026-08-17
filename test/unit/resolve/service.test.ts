@@ -148,7 +148,7 @@ describe("AsyncAPIService", () => {
     expect(service.operations[0].reply?.channelKey).toBe("orders");
     // There is no schema key table to assert on. A schema key is decided
     // while the type graph is walked, so the schema builder owns it and the
-    // project stage is where it lives.
+    // lower stage is where it lives.
     expect(service.messageKeys.get(model)).toBe("Order");
   });
 

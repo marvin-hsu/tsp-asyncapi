@@ -1,5 +1,5 @@
 /**
- * The project half of the messages.
+ * The lower half of the messages.
  *
  * It turns resolved nodes into the `components.messages` map. The one thing
  * it still needs beyond the nodes is the schema builder: a payload and a
@@ -16,10 +16,10 @@ import { present, text } from "../optional-fields.js";
 import { SchemaBuilder } from "../builders/schemas/builder.js";
 import { reportDiagnostic } from "../lib.js";
 import { MessageObject, MultiFormatSchemaObject, ReferenceObject, SchemaObject } from "../types.js";
-import { projectBindings } from "./bindings.js";
+import { lowerBindings } from "./bindings.js";
 
 /** Builds the `headers` of one Message Object. */
-function projectHeaders(
+function lowerHeaders(
   schemas: SchemaBuilder,
   node: MessageHeadersNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
@@ -36,7 +36,7 @@ function projectHeaders(
 }
 
 /** Builds the `payload` of one Message Object. */
-function projectPayload(
+function lowerPayload(
   schemas: SchemaBuilder,
   node: MessagePayloadNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject {
@@ -53,16 +53,16 @@ function projectPayload(
  *
  * The field order follows the Message Object table of the specification.
  */
-function projectMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject {
+function lowerMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject {
   return {
     name: node.key,
     ...text("title", node.title),
     ...text("description", node.description),
     ...text("contentType", node.contentType),
-    ...present("headers", projectHeaders(schemas, node.headers)),
-    payload: projectPayload(schemas, node.payload),
+    ...present("headers", lowerHeaders(schemas, node.headers)),
+    payload: lowerPayload(schemas, node.payload),
     ...present("correlationId", node.correlationId),
-    ...present("bindings", projectBindings(node.bindings)),
+    ...present("bindings", lowerBindings(node.bindings)),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
     ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),
@@ -83,7 +83,7 @@ function projectMessage(schemas: SchemaBuilder, node: MessageNode): MessageObjec
  * message. An empty map is never emitted.
  * @internal
  */
-export function projectMessages(
+export function lowerMessages(
   schemas: SchemaBuilder,
   nodes: readonly MessageNode[],
 ): Record<string, MessageObject> | undefined {
@@ -94,7 +94,7 @@ export function projectMessages(
   // `SchemaBuilder.getSchemas`.
   const messages = Object.create(null) as Record<string, MessageObject>;
   for (const node of nodes) {
-    messages[node.key] = projectMessage(schemas, node);
+    messages[node.key] = lowerMessage(schemas, node);
   }
   return messages;
 }
@@ -111,7 +111,7 @@ export function projectMessages(
  * `duplicate-message-key` never fires and the output stays valid. It is only
  * misleading, so this is a warning.
  *
- * This has to run in the project half, and it has to run last. A schema key
+ * This has to run in the lower half, and it has to run last. A schema key
  * is claimed while the type graph is walked, and a discriminated subtype
  * claims its own only once the pending queue is drained. A check that read
  * the owner table any earlier would miss exactly the keys it exists to find.

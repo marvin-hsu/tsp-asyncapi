@@ -7,12 +7,12 @@ import {
   reportServersOutsideService,
   resolveServers,
 } from "../resolve/servers.js";
-import { projectServers } from "../project/servers.js";
+import { lowerServers } from "../lower/servers.js";
 import { buildChannels } from "./channels/builder.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
 import { resolveMessages } from "../resolve/messages.js";
-import { projectMessages, reportShadowedSchemaKeys } from "../project/messages.js";
+import { lowerMessages, reportShadowedSchemaKeys } from "../lower/messages.js";
 import { reportUnresolvedRawSchemaRefs } from "./messages/raw-schema-refs.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import { buildSecuritySchemes } from "./security-schemes.js";
@@ -37,12 +37,12 @@ function buildComponents(
   messageKeys: Map<Model, string>;
 } {
   const schemaBuilder = new SchemaBuilder(program);
-  // Resolving every message before any of them is projected is what lets the
+  // Resolving every message before any of them is lowered is what lets the
   // header plan be made once, for the whole program. A field that leaves a
   // payload changes that payload's shape, a payload schema is built once and
   // then cached, and one message model is reachable through another's payload.
   const { messages: messageNodes, keys } = resolveMessages(program, placements);
-  const messages = projectMessages(schemaBuilder, messageNodes);
+  const messages = lowerMessages(schemaBuilder, messageNodes);
   // The shadow check reads the schema key owners, so it runs once every key
   // is claimed. A discriminated subtype claims its own only when the pending
   // queue drains, which this call does first.
@@ -93,7 +93,7 @@ export function buildAsyncAPIDocument(
   // reference no parser can resolve, so the builder needs this set.
   const declaredSchemes = new Set(Object.keys(components?.securitySchemes ?? {}));
   const servers = service
-    ? projectServers(resolveServers(program, service.type, declaredSchemes, placements))
+    ? lowerServers(resolveServers(program, service.type, declaredSchemes, placements))
     : undefined;
 
   // The operations are built after the channels. An operation refers to its

@@ -6,7 +6,7 @@
  * nothing. What it produces is a list of `BindingNode`, which says which
  * protocol the member is named after and what the renderer will be given.
  *
- * The project half turns those nodes into the Bindings Object. It names no
+ * The lower half turns those nodes into the Bindings Object. It names no
  * decorator and reads no state.
  */
 
@@ -132,7 +132,7 @@ export function resolveBindings(
       protocol: entry.protocol,
       renderer: entry.renderer,
       // The state value is handed on as it stands. The renderers treat it as
-      // read-only, and the project half copies whatever it writes into the
+      // read-only, and the lower half copies whatever it writes into the
       // document.
       config: entry.config as JsonObject,
     });
