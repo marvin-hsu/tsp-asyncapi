@@ -2,7 +2,7 @@
 
 AsyncAPI 用 Bindings Object 描述特定通訊協定的設定。規格把它放在四種物件上：server、channel、operation 與 message。該物件的每一個成員各代表一個通訊協定，例如 `kafka`。
 
-本 library 提供 Kafka binding 的 decorator。另外提供一個通用 decorator，供其他通訊協定使用。
+本 library 提供 Kafka 與 WebSocket binding 的 decorator。另外提供一個通用 decorator，供其他通訊協定使用。
 
 一個通訊協定在一個物件上只佔一個成員。兩個 decorator 在同一個物件上宣告同一個成員是錯誤。emitter 不會合併兩份設定，後寫的那份也不會取代先寫的那份。
 
@@ -219,6 +219,58 @@ components:
           bindingVersion: 0.5.0
 ```
 
+## `@websocketChannel`
+
+```typespec
+extern dec websocketChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIWebSocketChannelBinding
+);
+```
+
+| 欄位      | 型別      | 必填 |
+| --------- | --------- | ---- |
+| `method`  | `string`  | 否   |
+| `query`   | `unknown` | 否   |
+| `headers` | `unknown` | 否   |
+
+套用在帶有 `@channel` 或 `@dynamicChannel` 的 interface 或 namespace 上。
+
+輸出的成員名稱是 `ws`。AsyncAPI 的 binding 目錄叫 `websockets`，成員叫 `ws`。讀文件的人看到的是成員名稱。
+
+`method` 是開啟連線的 HTTP method。AsyncAPI 只允許 `GET` 與 `POST`。其他值會透過 `invalid-binding-field` 回報。該欄位被丟棄，binding 的其餘部分保留。
+
+`query` 與 `headers` 描述交握。兩者都是 Schema Object。寫成物件字面值，型別為 `object`，並帶 `properties` 鍵。這兩項都是 AsyncAPI 的規定。兩者皆不符的 schema 沒有描述任何參數，emitter 會回報並丟棄該欄位。`$ref` 不需要這兩個鍵，因為它指向的 schema 在別處。
+
+WebSocket binding 沒有 server、operation 與 message 物件。規格明訂這三者不得帶任何屬性。所以 `@websocketChannel` 就是這個通訊協定的全部。
+
+```typespec
+@websocketChannel(#{
+  method: "GET",
+  query: #{ type: "object", properties: #{ token: #{ type: "string" } } }
+})
+@channel("/ticks")
+interface TickStream {
+  @send
+  op publish(event: Tick): void;
+}
+```
+
+```yaml
+channels:
+  TickStream:
+    address: /ticks
+    bindings:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            token:
+              type: string
+        bindingVersion: 0.1.0
+```
+
 ## 跨物件的規則
 
 ::: warning
@@ -234,7 +286,9 @@ emitter 不檢查這些規則。每一條都橫跨文件的兩個物件。使用
 
 ## binding 版本
 
-每個 Kafka binding 都帶有 `bindingVersion: 0.5.0`。emitter 一律寫入這個值，也無法透過 decorator 更改。
+每個具名 binding 都帶有它所依循的規格版本。Kafka binding 帶 `bindingVersion: 0.5.0`，WebSocket binding 帶 `bindingVersion: 0.1.0`。emitter 一律寫入這個欄位，也無法透過 decorator 更改。
+
+AsyncAPI 規定，欄位不存在時讀取端必須當成 `latest`。`latest` 的內容會隨時間改變，所以版本一律寫出。
 
 `@binding` 完全不寫版本。需要版本時，自行加進設定裡。
 

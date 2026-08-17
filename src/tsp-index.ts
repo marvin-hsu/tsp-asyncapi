@@ -5,6 +5,7 @@ import {
   $kafkaMessage,
   $kafkaOperation,
   $kafkaServer,
+  $websocketChannel,
   $channel,
   $contentType,
   $correlationId,
@@ -74,5 +75,6 @@ export const $decorators = {
     kafkaChannel: $kafkaChannel,
     kafkaOperation: $kafkaOperation,
     kafkaMessage: $kafkaMessage,
+    websocketChannel: $websocketChannel,
   },
 };

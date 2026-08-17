@@ -85,6 +85,7 @@ export { $kafkaChannel, type KafkaChannelBindingConfig } from "./bindings/kafka/
 export { $kafkaMessage, type KafkaMessageBindingConfig } from "./bindings/kafka/message.js";
 export { $kafkaOperation, type KafkaOperationBindingConfig } from "./bindings/kafka/operation.js";
 export { $kafkaServer, type KafkaServerBindingConfig } from "./bindings/kafka/server.js";
+export { $websocketChannel, type WebSocketChannelBindingConfig } from "./bindings/websocket.js";
 export {
   $messageExample,
   getMessageExamples,

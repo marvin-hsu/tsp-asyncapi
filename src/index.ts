@@ -52,6 +52,7 @@ export type {
   ServerObject,
   ServerVariableObject,
   TagObject,
+  WebSocketChannelBindingObject,
 } from "./types/index.js";
 
 // Readers for the state the decorators record. A tool built on top of this
@@ -105,4 +106,5 @@ export {
   type ReplyAddressState,
   type UseSecurityTarget,
   type UseServerState,
+  type WebSocketChannelBindingConfig,
 } from "./decorators/index.js";

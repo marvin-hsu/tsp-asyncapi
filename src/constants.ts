@@ -168,6 +168,24 @@ export const KAFKA_BINDING_PROTOCOL = "kafka";
 export const KAFKA_BINDING_VERSION = "0.5.0";
 
 /**
+ * The member name the WebSocket binding claims inside a Bindings Object.
+ *
+ * The member is `ws`, not `websocket`. AsyncAPI names the binding folder
+ * `websockets` and the member `ws`, and the member name is the one a reader
+ * of the document sees.
+ */
+export const WEBSOCKET_BINDING_PROTOCOL = "ws";
+
+/**
+ * The version of the WebSocket binding specification this library emits.
+ *
+ * It is written for the same reason the Kafka version is. A document that
+ * leaves the field out means `latest`, and what `latest` holds changes over
+ * time.
+ */
+export const WEBSOCKET_BINDING_VERSION = "0.1.0";
+
+/**
  * The `schemaFormat` values that name the AsyncAPI Schema Object itself.
  *
  * Every schema this emitter writes into `components.schemas` is an AsyncAPI

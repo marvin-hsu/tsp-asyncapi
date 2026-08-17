@@ -2102,6 +2102,21 @@ export interface UseServerState {
     node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
 }
 
+// @public
+export interface WebSocketChannelBindingConfig {
+    headers?: unknown;
+    method?: string;
+    query?: unknown;
+}
+
+// @public
+export interface WebSocketChannelBindingObject {
+    bindingVersion: string;
+    headers?: SchemaObject;
+    method?: string;
+    query?: SchemaObject;
+}
+
 // (No @packageDocumentation comment for this package)
 
 ```

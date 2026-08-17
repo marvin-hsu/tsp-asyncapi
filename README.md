@@ -205,6 +205,7 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — Declares and applies security schemes.
 - `@AsyncAPI.binding` — Adds generic protocol binding configurations.
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — Adds Kafka-specific binding configurations.
+- `@AsyncAPI.websocketChannel` — Adds the WebSocket channel binding.
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 

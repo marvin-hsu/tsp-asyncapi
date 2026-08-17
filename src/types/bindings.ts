@@ -84,3 +84,23 @@ export interface KafkaMessageBindingObject {
   /** The version of the Kafka binding specification these fields follow. */
   bindingVersion: string;
 }
+
+/**
+ * The WebSocket settings of one channel.
+ *
+ * The WebSocket binding defines this one object and nothing else. Its own
+ * text says the server, operation and message bindings must carry no
+ * property at all. A WebSocket connection is opened once, so everything the
+ * binding has to say is said about the channel.
+ * @public
+ */
+export interface WebSocketChannelBindingObject {
+  /** The HTTP method that opens the connection: `GET` or `POST`. */
+  method?: string;
+  /** The query parameters of the handshake, as a Schema Object. */
+  query?: SchemaObject;
+  /** The headers of the handshake, as a Schema Object. */
+  headers?: SchemaObject;
+  /** The version of the WebSocket binding specification these fields follow. */
+  bindingVersion: string;
+}

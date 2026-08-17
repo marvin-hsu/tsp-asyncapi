@@ -18,6 +18,7 @@ import type { BindingRenderer } from "../decorators/bindings/state.js";
 import type { BindingNode } from "../resolve/service.js";
 import { BindingObject, BindingsObject } from "../types/index.js";
 import { renderKafkaBinding } from "./bindings/kafka.js";
+import { renderWebSocketBinding } from "./bindings/websocket.js";
 
 /**
  * The renderer of each resolved binding, by name.
@@ -43,6 +44,10 @@ const RENDERERS: Record<BindingRenderer, (config: unknown) => object> = {
   // under the names the document uses, so the rendering is the same at every
   // level.
   kafka: renderKafkaBinding,
+  // The WebSocket binding covers one level, so its renderer covers one
+  // level too. The member it lands under is `ws`, which the decorator
+  // records as the protocol name.
+  websocket: renderWebSocketBinding,
 };
 
 /** Runs the renderer one node names. */

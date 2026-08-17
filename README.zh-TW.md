@@ -205,6 +205,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — 宣告並套用安全機制 (security schemes)。
 - `@AsyncAPI.binding` — 加上通用的 protocol binding 設定。
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — 加上 Kafka 專屬的 binding 設定。
+- `@AsyncAPI.websocketChannel` — 加上 WebSocket channel binding。
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 

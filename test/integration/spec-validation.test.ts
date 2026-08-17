@@ -207,6 +207,43 @@ describe("AsyncAPI emitted document", () => {
     await expect(doc).toBeValidAsyncAPI();
   });
 
+  it("should describe a WebSocket handshake end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Events" })
+      @server("ws-prod", #{ host: "events.example.com", protocol: "ws" })
+      namespace TestService;
+
+      @message
+      model Tick {
+        at: utcDateTime;
+      }
+
+      @websocketChannel(#{
+        method: "GET",
+        query: #{ type: "object", properties: #{ token: #{ type: "string" } } },
+        headers: #{ type: "object", properties: #{ \`X-Api-Key\`: #{ type: "string" } } },
+      })
+      @channel("/ticks")
+      @useServer("ws-prod")
+      interface TickStream {
+        @send
+        op publish(event: Tick): void;
+      }
+    `);
+
+    // The member is `ws`. The official parser is the authority on that name,
+    // so this test asserts the shape and then hands the document to it.
+    expect(doc.channels.TickStream.bindings).toEqual({
+      ws: {
+        method: "GET",
+        query: { type: "object", properties: { token: { type: "string" } } },
+        headers: { type: "object", properties: { "X-Api-Key": { type: "string" } } },
+        bindingVersion: "0.1.0",
+      },
+    });
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
   it("should validate a channel that carries every optional field", async () => {
     const doc = await emitAsyncAPI(`
       @service(#{ title: "Orders" })

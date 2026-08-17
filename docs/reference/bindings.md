@@ -2,7 +2,7 @@
 
 AsyncAPI describes protocol-specific settings in a Bindings Object. The specification puts one on four objects: a server, a channel, an operation, and a message. Each member of that object names a protocol, such as `kafka`.
 
-This library ships decorators for the Kafka bindings. It also ships a generic decorator for every other protocol.
+This library ships decorators for the Kafka and WebSocket bindings. It also ships a generic decorator for every other protocol.
 
 One protocol claims one member per object. Two decorators that claim the same member on the same object are an error. The emitter never merges the two configurations, and the later one never replaces the earlier one.
 
@@ -219,6 +219,58 @@ components:
           bindingVersion: 0.5.0
 ```
 
+## `@websocketChannel`
+
+```typespec
+extern dec websocketChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIWebSocketChannelBinding
+);
+```
+
+| Field     | Type      | Required |
+| --------- | --------- | -------- |
+| `method`  | `string`  | no       |
+| `query`   | `unknown` | no       |
+| `headers` | `unknown` | no       |
+
+Apply it to the interface or namespace that carries `@channel` or `@dynamicChannel`.
+
+The emitted member is `ws`. AsyncAPI names the binding folder `websockets`, and it names the member `ws`. The member name is what a reader of the document sees.
+
+`method` is the HTTP method that opens the connection. AsyncAPI allows `GET` and `POST`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
+
+`query` and `headers` describe the handshake. Each one is a Schema Object. Write it as an object literal of type `object` with a `properties` key. AsyncAPI states both requirements. A schema that meets neither describes no parameter, so the emitter reports it and drops the field. A `$ref` passes without either key, because the schema behind it lives elsewhere.
+
+The WebSocket binding has no server, operation or message object. The specification states that all three must carry no property. So `@websocketChannel` is the whole protocol.
+
+```typespec
+@websocketChannel(#{
+  method: "GET",
+  query: #{ type: "object", properties: #{ token: #{ type: "string" } } }
+})
+@channel("/ticks")
+interface TickStream {
+  @send
+  op publish(event: Tick): void;
+}
+```
+
+```yaml
+channels:
+  TickStream:
+    address: /ticks
+    bindings:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            token:
+              type: string
+        bindingVersion: 0.1.0
+```
+
 ## Rules that span two objects
 
 ::: warning
@@ -234,7 +286,9 @@ The emitter does not check these rules. Each one spans two objects of the docume
 
 ## The binding version
 
-Every Kafka binding carries `bindingVersion: 0.5.0`. The emitter always writes it, and the value cannot be changed through a decorator.
+Every named binding carries the version of the specification its fields follow. A Kafka binding carries `bindingVersion: 0.5.0`, and a WebSocket binding carries `bindingVersion: 0.1.0`. The emitter always writes the field, and the value cannot be changed through a decorator.
+
+AsyncAPI states that a reader must assume `latest` when the field is absent. What `latest` holds changes over time, so the version is always written.
 
 `@binding` writes no version at all. Add the field to the config when you need one.
 

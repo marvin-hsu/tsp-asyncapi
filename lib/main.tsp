@@ -258,6 +258,17 @@ extern dec kafkaOperation(target: Operation, config: valueof AsyncAPIKafkaOperat
 // Apply it to a model that carries `@message`.
 extern dec kafkaMessage(target: Model, config: valueof AsyncAPIKafkaMessageBinding);
 
+// Adds the WebSocket binding to one channel.
+// Apply it to the interface or namespace that carries `@channel` or
+// `@dynamicChannel`. The emitted member is `ws`.
+// The WebSocket binding defines no server, operation or message object. Its
+// own text says those three must carry no property, so this decorator is the
+// whole protocol.
+extern dec websocketChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIWebSocketChannelBinding
+);
+
 // The Kafka server binding fields.
 // AsyncAPI says the three schema-registry fields of the channel and message
 // bindings only apply when `schemaRegistryUrl` is set here. The emitter does
@@ -295,6 +306,17 @@ model AsyncAPIKafkaMessageBinding {
   schemaIdLocation?: string;
   schemaIdPayloadEncoding?: string;
   schemaLookupStrategy?: string;
+}
+
+// The WebSocket channel binding fields.
+// `method` is `GET` or `POST`.
+// `query` and `headers` are Schema Objects. Write each one as an object
+// literal of type `object` with a `properties` key, such as
+// `#{ type: "object", properties: #{ token: #{ type: "string" } } }`.
+model AsyncAPIWebSocketChannelBinding {
+  method?: string;
+  query?: unknown;
+  headers?: unknown;
 }
 
 model AsyncAPIInfo {
