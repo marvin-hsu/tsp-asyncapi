@@ -13,7 +13,7 @@
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=bugs)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<a href="https://www.buymeacoffee.com/2wytm9xsqfr"><img src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=2wytm9xsqfr&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+<a href='https://ko-fi.com/N4R6257TGG' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
 [English](./README.md) | [繁體中文](./README.zh-TW.md)
 
