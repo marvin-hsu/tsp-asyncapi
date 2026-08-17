@@ -18,7 +18,7 @@ import { AsyncAPIEmitterOptions } from "./lib.js";
 import { BindingPlacements } from "./resolve/bindings.js";
 import { resolveService } from "./resolve/service.js";
 import { lowerDocument } from "./lower/document.js";
-import { AsyncAPIDocument } from "./types.js";
+import { AsyncAPIDocument } from "./types/index.js";
 
 /**
  * Runs resolve and lower over one program.

@@ -1,5 +1,5 @@
 import { Namespace, Program } from "@typespec/compiler";
-import { ServerObject } from "../../src/types.js";
+import { ServerObject } from "../../src/types/index.js";
 import { builtSecuritySchemes } from "./security-schemes.js";
 import { BindingPlacements } from "../../src/resolve/bindings.js";
 import { resolveServers } from "../../src/resolve/servers.js";

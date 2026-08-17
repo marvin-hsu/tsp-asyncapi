@@ -12,7 +12,7 @@
  */
 
 import type { ServerNode, ServerVariableNode } from "../resolve/service.js";
-import { ReferenceObject, ServerObject, ServerVariableObject } from "../types.js";
+import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";
 

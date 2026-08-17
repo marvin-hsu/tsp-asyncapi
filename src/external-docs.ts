@@ -1,5 +1,5 @@
 import { Program, Type } from "@typespec/compiler";
-import { ExternalDocumentationObject } from "./types.js";
+import { ExternalDocumentationObject } from "./types/index.js";
 import { getExternalDocs } from "./decorators/index.js";
 
 /**

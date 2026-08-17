@@ -52,7 +52,7 @@ export type {
   ServerObject,
   ServerVariableObject,
   TagObject,
-} from "./types.js";
+} from "./types/index.js";
 
 // Readers for the state the decorators record. A tool built on top of this
 // emitter uses these; applying a decorator is the compiler's job.

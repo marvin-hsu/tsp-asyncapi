@@ -28,7 +28,7 @@ import type {
   MessageExampleObject,
   MultiFormatSchemaObject,
   SecuritySchemeObject,
-} from "../types.js";
+} from "../types/index.js";
 
 /**
  * The semantic model of one AsyncAPI service.

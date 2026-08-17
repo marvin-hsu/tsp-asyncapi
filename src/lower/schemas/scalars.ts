@@ -1,5 +1,5 @@
 import { Model, Scalar, IntrinsicType, Enum, EnumMember, ModelProperty } from "@typespec/compiler";
-import { SchemaObject } from "../../types.js";
+import { SchemaObject } from "../../types/index.js";
 import { JSON_SCHEMA_TYPE, isGlobalTypeSpecNamespace } from "../../constants.js";
 
 /**

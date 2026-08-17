@@ -15,7 +15,7 @@ import {
   getDiscriminatedUnion,
   ignoreDiagnostics,
 } from "@typespec/compiler";
-import { SchemaObject, ReferenceObject } from "../../types.js";
+import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isOneOf } from "../../decorators/index.js";
 import { JSON_SCHEMA_TYPE } from "../../constants.js";

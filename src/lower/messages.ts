@@ -15,7 +15,12 @@ import type { MessageHeadersNode, MessageNode, MessagePayloadNode } from "../res
 import { present, text } from "../optional-fields.js";
 import { SchemaBuilder } from "./schemas/builder.js";
 import { reportDiagnostic } from "../lib.js";
-import { MessageObject, MultiFormatSchemaObject, ReferenceObject, SchemaObject } from "../types.js";
+import {
+  MessageObject,
+  MultiFormatSchemaObject,
+  ReferenceObject,
+  SchemaObject,
+} from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 
 /** Builds the `headers` of one Message Object. */

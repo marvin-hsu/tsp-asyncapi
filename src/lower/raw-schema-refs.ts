@@ -1,9 +1,9 @@
 import { Model, Program } from "@typespec/compiler";
-import { AsyncAPIDocument } from "../../types.js";
-import { reportDiagnostic } from "../../lib.js";
-import { localRef } from "../../decorators/index.js";
-import { isPlainObject } from "../../marshalled-values.js";
-import { resolvesInDocument } from "../json-pointer.js";
+import { AsyncAPIDocument } from "../types/index.js";
+import { reportDiagnostic } from "../lib.js";
+import { localRef } from "../decorators/index.js";
+import { isPlainObject } from "../marshalled-values.js";
+import { resolvesInDocument } from "./json-pointer.js";
 
 /** The field of a Multi Format Schema Object that carries the schema. */
 const SCHEMA_KEY = "schema";

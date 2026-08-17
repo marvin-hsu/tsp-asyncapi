@@ -3,7 +3,7 @@
  */
 
 import type { SecuritySchemeNode } from "../resolve/service.js";
-import { SecuritySchemeObject } from "../types.js";
+import { SecuritySchemeObject } from "../types/index.js";
 
 /**
  * Builds the `components.securitySchemes` map from resolved nodes.

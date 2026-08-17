@@ -12,7 +12,7 @@
 import type { ChannelNode, ChannelParameterNode } from "../resolve/service.js";
 import { present, text } from "../optional-fields.js";
 import { componentsMessageRef, serverRef } from "./json-pointer.js";
-import { ChannelObject, ParameterObject, ReferenceObject } from "../types.js";
+import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 
 /** Turns one resolved parameter into a Parameter Object. */

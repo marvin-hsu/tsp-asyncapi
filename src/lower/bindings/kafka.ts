@@ -30,7 +30,7 @@ import {
   KafkaMessageBindingObject,
   KafkaOperationBindingObject,
   KafkaServerBindingObject,
-} from "../../types.js";
+} from "../../types/index.js";
 
 /**
  * The emitted Kafka object of any one level.

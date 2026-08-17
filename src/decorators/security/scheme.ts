@@ -1,6 +1,6 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
-import { OAuthFlowObject, OAuthFlowsObject, SecuritySchemeObject } from "../../types.js";
+import { OAuthFlowObject, OAuthFlowsObject, SecuritySchemeObject } from "../../types/index.js";
 import {
   AsyncAPISecuritySchemeState,
   findSecuritySchemeByName,

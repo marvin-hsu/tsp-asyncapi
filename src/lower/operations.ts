@@ -13,7 +13,7 @@
 import type { MessageRefNode, OperationNode, OperationReplyNode } from "../resolve/service.js";
 import { present, text } from "../optional-fields.js";
 import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer.js";
-import { OperationObject, OperationReplyObject, ReferenceObject } from "../types.js";
+import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 
 /** Turns resolved message keys into references into a channel's `messages`. */

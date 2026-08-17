@@ -16,7 +16,7 @@
 // the state layer even by accident.
 import type { BindingRenderer } from "../decorators/bindings/state.js";
 import type { BindingNode } from "../resolve/service.js";
-import { BindingObject, BindingsObject } from "../types.js";
+import { BindingObject, BindingsObject } from "../types/index.js";
 import { renderKafkaBinding } from "./bindings/kafka.js";
 
 /**

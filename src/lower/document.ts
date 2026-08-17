@@ -8,11 +8,11 @@
  */
 
 import { Program } from "@typespec/compiler";
-import { AsyncAPIDocument, ComponentsObject } from "../types.js";
+import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import { AsyncAPIEmitterOptions } from "../lib.js";
 import type { AsyncAPIService } from "../resolve/service.js";
 import { SchemaBuilder } from "./schemas/builder.js";
-import { reportUnresolvedRawSchemaRefs } from "./messages/raw-schema-refs.js";
+import { reportUnresolvedRawSchemaRefs } from "./raw-schema-refs.js";
 import { ASYNCAPI_VERSION } from "../constants.js";
 import { lowerChannels } from "./channels.js";
 import { lowerInfo } from "./info.js";

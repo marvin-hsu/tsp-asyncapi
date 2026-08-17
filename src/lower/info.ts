@@ -8,7 +8,7 @@
 
 import type { InfoNode } from "../resolve/service.js";
 import { present, text } from "../optional-fields.js";
-import { InfoObject } from "../types.js";
+import { InfoObject } from "../types/index.js";
 
 /**
  * Builds the Info Object from its resolved node.

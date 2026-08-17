@@ -8,7 +8,7 @@
  */
 
 import { ModelProperty, Program, Scalar, getEncode } from "@typespec/compiler";
-import { SchemaObject } from "../../types.js";
+import { SchemaObject } from "../../types/index.js";
 import { SCALAR_SCHEMAS, isBuiltinScalar } from "./scalars.js";
 
 /**
