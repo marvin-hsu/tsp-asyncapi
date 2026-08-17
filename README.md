@@ -19,7 +19,7 @@
 
 An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). Describe an event-driven API in TypeSpec and emit a full AsyncAPI document.
 
-> **Status: nearing initial release (M4).** The emitter generates a complete AsyncAPI 3.1 document. Channels, operations, messages, schemas, servers, security schemes, and protocol bindings (including Kafka) are implemented and pass the official AsyncAPI validation. Multi-file output and component reuse via `$ref` across files are still in development.
+> **Status: released on npm.** The emitter generates a complete AsyncAPI 3.1 document. Channels, operations, messages, schemas, servers, security schemes, and protocol bindings (including Kafka) are implemented and pass the official AsyncAPI validation. The current focus is test quality: a re-evaluation of the existing test cases, and more property-based test scenarios.
 
 📖 **Documentation: see the [docs site](https://marvin-hsu.github.io/tsp-asyncapi/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
 
@@ -230,16 +230,32 @@ A name collision between two declarations reports a diagnostic error. It does no
 
 Measured against the AsyncAPI 3.0 JSON schema on 2026-08-17. The `channel`,
 `server` and `info` objects carry every field the specification defines.
-These are the gaps, and each one is a decision rather than an oversight.
+Each remaining gap is a decision rather than an oversight. The gaps fall
+into three groups: planned, waiting for a use case, and will not do.
 
-| Missing                                | What it means today                                                                                                                                | Why it is not there                                                                                                                                |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `traits` on a message and an operation | The only specification field absent from the four core objects. Write the fields on the object itself.                                             | A trait is a reusable fragment merged into an object. It needs the reuse machinery in the row below.                                               |
-| Reusable `components` sections         | `components` carries `schemas`, `messages` and `securitySchemes`. The rest of the document is emitted in place.                                    | Everything else has exactly one use site, so a `$ref` would add a hop without saving anything. This changes when traits arrive.                    |
-| `x-` specification extensions          | No decorator writes one. `@jsonSchemaExtension` is a different thing: it adds a keyword to a JSON Schema, not an `x-` field to an AsyncAPI object. | Waiting for a use case that the existing decorators cannot express.                                                                                |
-| More than one `@service`               | The first service is emitted and `multiple-services` reports the rest.                                                                             | AsyncAPI describes one application per document. Emitting several means choosing file names and cross-document references, which is the row below. |
-| Cross-file `$ref`                      | Every reference points inside the one emitted document.                                                                                            | It only becomes useful once one program emits several documents.                                                                                   |
-| `@typespec/versioning`                 | Not read. A versioned program emits the document its current state describes.                                                                      | The three-stage pipeline was built so that this becomes resolve-then-lower once per version. The plumbing is ready; the feature is not written.    |
+### Planned
+
+The rows appear in priority order.
+
+| Planned work                                                    | What it means today                                                                                                                                | Notes                                                                                                                                  |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Test-case re-evaluation, and more property-based test scenarios | The suite carries about 986 example-based cases and 15 fast-check properties.                                                                      | This is the current highest priority. It comes before the two features below.                                                          |
+| `@typespec/versioning`                                          | Not read. A versioned program emits the document its current state describes.                                                                      | The three-stage pipeline was built for this: resolve, then lower, once per version. The plumbing is ready; the feature is not written. |
+| `x-` specification extensions                                   | No decorator writes one. `@jsonSchemaExtension` is a different thing: it adds a keyword to a JSON Schema, not an `x-` field to an AsyncAPI object. | It needs a new decorator that targets an AsyncAPI object rather than a schema. The decorator is not designed yet.                      |
+
+### Waiting for a use case
+
+| Missing                        | What it means today                                                                                             | What would change the decision                                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reusable `components` sections | `components` carries `schemas`, `messages` and `securitySchemes`. The rest of the document is emitted in place. | Every other field has exactly one use site, so a `$ref` would add a hop without saving anything. A document that repeats the same inline fragment would change this. |
+
+### Will not do
+
+| Missing                                 | Why not                                                                                                                                                                                                                                               |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `traits` on a message and an operation  | A trait deduplicates the emitted document, not the source. TypeSpec already provides reuse at the source level with `extends`, `is`, and spread. The emitter writes the merged result, so a reader never resolves a trait chain.                      |
+| More than one `@service`                | An AsyncAPI document describes one application. To describe several applications, give each one its own entry-point project and share the TypeSpec sources between them. Today the first service is emitted and `multiple-services` reports the rest. |
+| Multi-file output and cross-file `$ref` | One compilation produces one document, and every reference points inside it. There is no need to split the output.                                                                                                                                    |
 
 The [diagnostics reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/diagnostics) lists every code the emitter reports, so anything it cannot represent is reported rather than dropped in silence.
 
