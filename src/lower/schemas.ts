@@ -18,7 +18,7 @@ import {
 import { SchemaObject, ReferenceObject } from "../types/index.js";
 import { reportDiagnostic } from "../lib.js";
 import { isOneOf } from "../decorators/index.js";
-import { JSON_SCHEMA_TYPE } from "../constants.js";
+import { JSON_SCHEMA_TYPE, SCHEMA_ENCODING_MIME_TYPE } from "../constants.js";
 import { refFor, isUninstantiatedTemplateDeclaration } from "../naming.js";
 import { SchemaDiagnostics } from "./schemas/diagnostics.js";
 import { DeclarationRegistry } from "./schemas/declarations.js";
@@ -28,7 +28,6 @@ import {
   findNeverOverrideOfInheritedProperty,
 } from "./schemas/inheritance.js";
 import { withDocs, withPropertyDocs, buildValidationKeywords } from "./schemas/annotations.js";
-import { SCHEMA_ENCODING_MIME_TYPE } from "../constants.js";
 import {
   isBuiltinScalar,
   isBuiltinCollectionInstantiation,
