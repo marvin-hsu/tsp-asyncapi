@@ -474,7 +474,7 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 
 **修法：** 照該格式撰寫，例如 `$message.header#/replyTo`。
 
-以下五個代碼來自通訊協定 binding。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings)。
+以下四個代碼來自通訊協定 binding，另有兩個列在「警告」章節。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings/)。
 
 ### `duplicate-binding`
 
@@ -499,6 +499,72 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
 
 **修法：** 把設定寫成物件值。
+
+### `missing-binding-field`
+
+> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
+
+有幾個 binding 規定了作者必須給的欄位。Pulsar channel 需要 `namespace` 與 `persistence`。Google Cloud Pub/Sub channel 需要 `schemaSettings`，而該物件又需要 `encoding` 與 `name`。Amazon SQS channel 需要 `queue`，而該 queue 又需要 `name` 與 `fifoQueue`。SQS operation 需要至少有一筆的 `queues` 清單。JMS server 需要 `jmsConnectionFactory`。
+
+空白字串等同於沒寫。全是空格的名稱沒有指名任何東西，價值不高於完全不寫該欄位。
+
+這是 error 而不是 warning。缺了該欄位，emitter 無法寫出這個 binding，作者也就沒有任何殘留可以檢查。只輸出一部分，會交給作者一份驗證失敗的文件，而失敗訊息講的是這個 emitter，不是原始碼。
+
+同一個物件缺的每個欄位都會回報，不是只報第一個。一次只報一個會讓作者多跑一輪。
+
+**修法：** 依訊息指名的欄位，補進 decorator 的設定裡。
+
+### `duplicate-security-scheme-name`
+
+> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
+
+兩個 `@securityScheme` 用了同一個名稱。名稱就是 `components.securitySchemes` map 的 key，兩者會相撞。scheme 是跨整個程式收集的，因此標在不同 namespace 上也算重名。
+
+**修法：** 其中一個改名。
+
+### `invalid-security-scheme-name`
+
+> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
+
+名稱超出 AsyncAPI 允許的 Components Object key 字元集。此處允許點號，根層 `servers` map 的 key 則不允許。
+
+有兩個 decorator 會發出這條診斷。`@securityScheme` 把名稱寫成 `components.securitySchemes` 的 key。`@useSecurity` 把名稱寫進指向該 key 的 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。
+
+**修法：** 改用只含英文字母、數字、`.`、`-`、`_` 的名稱。emitter 絕不自動改名。
+
+### `empty-security-scheme-field`
+
+> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
+
+scheme 的必填字串欄位是空字串，或只有空白字元。涵蓋 `httpApiKey` 的 `name`、`http` 的 `scheme`、`openIdConnect` 的 `openIdConnectUrl`。空白值可以通過型別檢查，卻讓文件不合規格。
+
+**修法：** 給該欄位一個值。
+
+### `missing-oauth-flow-url`
+
+> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
+
+OAuth flow 缺少該 flow 必填的 URL。`implicit` 與 `authorizationCode` 需要 `authorizationUrl`。`password`、`clientCredentials`、`authorizationCode` 需要 `tokenUrl`。
+
+**修法：** 補上該 flow 需要的 URL。
+
+### `empty-oauth-flows`
+
+> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
+
+`oauth2` scheme 的 `flows` 是空物件。
+
+**修法：** 至少宣告一個 flow。
+
+### `invalid-url`
+
+> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
+
+URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，純文字也不合格。AsyncAPI 對這些欄位標了 `uri` 格式。值不合格時，parser 會拒絕整份文件。
+
+兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
+
+**修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
 
 ## 警告
 
@@ -571,58 +637,6 @@ operation 一定要指向一個 channel。缺少 channel 可能是因為該 targ
 reply 掛在輸出的 operation 上，而只有 `@send` 或 `@receive` 才會輸出 operation。
 
 **修法：** 為該 operation 加上 `@send` 或 `@receive`，或移除 reply 的 decorator。
-
-### `duplicate-security-scheme-name`
-
-> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
-
-兩個 `@securityScheme` 用了同一個名稱。名稱就是 `components.securitySchemes` map 的 key，兩者會相撞。scheme 是跨整個程式收集的，因此標在不同 namespace 上也算重名。
-
-**修法：** 其中一個改名。
-
-### `invalid-security-scheme-name`
-
-> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
-
-名稱超出 AsyncAPI 允許的 Components Object key 字元集。此處允許點號，根層 `servers` map 的 key 則不允許。
-
-有兩個 decorator 會發出這條診斷。`@securityScheme` 把名稱寫成 `components.securitySchemes` 的 key。`@useSecurity` 把名稱寫進指向該 key 的 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。
-
-**修法：** 改用只含英文字母、數字、`.`、`-`、`_` 的名稱。emitter 絕不自動改名。
-
-### `empty-security-scheme-field`
-
-> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
-
-scheme 的必填字串欄位是空字串，或只有空白字元。涵蓋 `httpApiKey` 的 `name`、`http` 的 `scheme`、`openIdConnect` 的 `openIdConnectUrl`。空白值可以通過型別檢查，卻讓文件不合規格。
-
-**修法：** 給該欄位一個值。
-
-### `missing-oauth-flow-url`
-
-> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
-
-OAuth flow 缺少該 flow 必填的 URL。`implicit` 與 `authorizationCode` 需要 `authorizationUrl`。`password`、`clientCredentials`、`authorizationCode` 需要 `tokenUrl`。
-
-**修法：** 補上該 flow 需要的 URL。
-
-### `empty-oauth-flows`
-
-> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
-
-`oauth2` scheme 的 `flows` 是空物件。
-
-**修法：** 至少宣告一個 flow。
-
-### `invalid-url`
-
-> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
-
-URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，純文字也不合格。AsyncAPI 對這些欄位標了 `uri` 格式。值不合格時，parser 會拒絕整份文件。
-
-兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
-
-**修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
 
 ### `undeclared-server-variable`
 
@@ -845,20 +859,6 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 `@binding` 沒有指定層級，因此它回報另一段訊息。那段訊息列出四種物件，不指名單一層級。
 
 **修法：** 補上會產生該物件的 decorator，或移除該 binding。
-
-### `missing-binding-field`
-
-> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
-
-有幾個 binding 規定了作者必須給的欄位。Pulsar channel 需要 `namespace` 與 `persistence`。Google Cloud Pub/Sub channel 需要 `schemaSettings`，而該物件又需要 `encoding` 與 `name`。Amazon SQS channel 需要 `queue`，而該 queue 又需要 `name` 與 `fifoQueue`。SQS operation 需要至少有一筆的 `queues` 清單。JMS server 需要 `jmsConnectionFactory`。
-
-空白字串等同於沒寫。全是空格的名稱沒有指名任何東西，價值不高於完全不寫該欄位。
-
-這是 error 而不是 warning。缺了該欄位，emitter 無法寫出這個 binding，作者也就沒有任何殘留可以檢查。只輸出一部分，會交給作者一份驗證失敗的文件，而失敗訊息講的是這個 emitter，不是原始碼。
-
-同一個物件缺的每個欄位都會回報，不是只報第一個。一次只報一個會讓作者多跑一輪。
-
-**修法：** 依訊息指名的欄位，補進 decorator 的設定裡。
 
 ### `invalid-binding-field`
 

@@ -474,7 +474,7 @@ The runtime expression is outside the grammar. It must start with `$message.head
 
 **Fix:** write the expression in that form, such as `$message.header#/replyTo`.
 
-The five codes below come from the protocol bindings. See [Protocol Bindings](/reference/bindings) for the decorators that report them.
+The four codes below come from the protocol bindings, and two more appear under Warnings. See [Protocol Bindings](/reference/bindings/) for the decorators that report them.
 
 ### `duplicate-binding`
 
@@ -499,6 +499,72 @@ The protocol name becomes a key in the emitted document. A blank key names nothi
 AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
 
 **Fix:** write the config as an object value.
+
+### `missing-binding-field`
+
+> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
+
+Several bindings state fields the author has to give. A Pulsar channel needs a `namespace` and a `persistence`. A Google Cloud Pub/Sub channel needs `schemaSettings`, and that object needs an `encoding` and a `name`. An Amazon SQS channel needs a `queue`, and that queue needs a `name` and a `fifoQueue`. An SQS operation needs a `queues` list with at least one entry. A JMS server needs a `jmsConnectionFactory`.
+
+A blank string counts as absent. A name of spaces names nothing, so it is worth no more than no field at all.
+
+This is an error rather than a warning. The emitter cannot write the binding without the field, so nothing of it survives for the author to inspect. Emitting it in part would hand back a document that fails validation with a message about this emitter rather than about the source.
+
+Every missing field of one object is reported, not only the first. Reporting one at a time would send the author round the loop twice.
+
+**Fix:** add the field the message names to the decorator config.
+
+### `duplicate-security-scheme-name`
+
+> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
+
+Two `@securityScheme` applications share a name. The name is the key of the `components.securitySchemes` map, so the two would collide. The schemes are collected across the whole program, so two applications on different namespaces clash as well.
+
+**Fix:** Give one of them a different name.
+
+### `invalid-security-scheme-name`
+
+> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
+
+The name is outside the character set AsyncAPI allows for a key of the Components Object. A dot is allowed here, unlike in a key of the root `servers` map.
+
+Two decorators report this. `@securityScheme` writes the name as a key of `components.securitySchemes`. `@useSecurity` writes it into a JSON Pointer that addresses such a key, and a character outside the set makes the pointer malformed.
+
+**Fix:** Use a name that only holds letters, digits, `.`, `-`, and `_`. The emitter never rewrites the name.
+
+### `empty-security-scheme-field`
+
+> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
+
+A required string field of the scheme is empty, or holds whitespace only. This covers `name` on `httpApiKey`, `scheme` on `http`, and `openIdConnectUrl` on `openIdConnect`. A blank value passes the type check and then makes the document invalid.
+
+**Fix:** Give the field a value.
+
+### `missing-oauth-flow-url`
+
+> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
+
+An OAuth flow leaves out a URL that AsyncAPI requires for that flow. `implicit` and `authorizationCode` need an `authorizationUrl`. `password`, `clientCredentials`, and `authorizationCode` need a `tokenUrl`.
+
+**Fix:** Give the flow the URL it needs.
+
+### `empty-oauth-flows`
+
+> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
+
+The `flows` field of an `oauth2` scheme is an empty object.
+
+**Fix:** Declare at least one flow.
+
+### `invalid-url`
+
+> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
+
+A URL field holds a value that is not an absolute URL. A relative reference such as `/token` fails, and so does free text. AsyncAPI marks these fields with the `uri` format, and a parser rejects the document over a value that fails it.
+
+Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
+
+**Fix:** Write the URL with a scheme, such as `https://example.com/token`.
 
 ## Warnings
 
@@ -571,58 +637,6 @@ A reply address is what the address of the reply channel is at runtime. A channe
 A reply sits on an emitted operation, and only `@send` or `@receive` emits one.
 
 **Fix:** add `@send` or `@receive` to the operation, or remove the reply decorator.
-
-### `duplicate-security-scheme-name`
-
-> Duplicate security scheme name: '\<name\>'. Each @securityScheme needs its own name, because the name is the key of that scheme in components.securitySchemes. This @securityScheme was dropped, and the first one with this name in source order was kept.
-
-Two `@securityScheme` applications share a name. The name is the key of the `components.securitySchemes` map, so the two would collide. The schemes are collected across the whole program, so two applications on different namespaces clash as well.
-
-**Fix:** Give one of them a different name.
-
-### `invalid-security-scheme-name`
-
-> Invalid security scheme name: '\<name\>'. AsyncAPI only allows letters, digits, '.', '-', and '_' in a components key. This decorator was dropped.
-
-The name is outside the character set AsyncAPI allows for a key of the Components Object. A dot is allowed here, unlike in a key of the root `servers` map.
-
-Two decorators report this. `@securityScheme` writes the name as a key of `components.securitySchemes`. `@useSecurity` writes it into a JSON Pointer that addresses such a key, and a character outside the set makes the pointer malformed.
-
-**Fix:** Use a name that only holds letters, digits, `.`, `-`, and `_`. The emitter never rewrites the name.
-
-### `empty-security-scheme-field`
-
-> Empty security scheme field: '\<field\>'. AsyncAPI requires a value for this field on this kind of scheme. This @securityScheme was dropped.
-
-A required string field of the scheme is empty, or holds whitespace only. This covers `name` on `httpApiKey`, `scheme` on `http`, and `openIdConnectUrl` on `openIdConnect`. A blank value passes the type check and then makes the document invalid.
-
-**Fix:** Give the field a value.
-
-### `missing-oauth-flow-url`
-
-> The '\<flow\>' OAuth flow needs a '\<field\>'. A blank value counts as a missing one, because no client can call it. This @securityScheme was dropped.
-
-An OAuth flow leaves out a URL that AsyncAPI requires for that flow. `implicit` and `authorizationCode` need an `authorizationUrl`. `password`, `clientCredentials`, and `authorizationCode` need a `tokenUrl`.
-
-**Fix:** Give the flow the URL it needs.
-
-### `empty-oauth-flows`
-
-> This oauth2 scheme declares no flow. A client then has no way to obtain a token. This @securityScheme was dropped. Declare at least one of `implicit`, `password`, `clientCredentials`, and `authorizationCode`.
-
-The `flows` field of an `oauth2` scheme is an empty object.
-
-**Fix:** Declare at least one flow.
-
-### `invalid-url`
-
-> The '\<field\>' value '\<url\>' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.
-
-A URL field holds a value that is not an absolute URL. A relative reference such as `/token` fails, and so does free text. AsyncAPI marks these fields with the `uri` format, and a parser rejects the document over a value that fails it.
-
-Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
-
-**Fix:** Write the URL with a scheme, such as `https://example.com/token`.
 
 ### `undeclared-server-variable`
 
@@ -845,20 +859,6 @@ A binding sits on the object its target emits. A target that emits no object car
 `@binding` names no level, so it reports a second wording. That message names all four objects rather than one level.
 
 **Fix:** add the decorator that emits the object, or remove the binding.
-
-### `missing-binding-field`
-
-> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
-
-Several bindings state fields the author has to give. A Pulsar channel needs a `namespace` and a `persistence`. A Google Cloud Pub/Sub channel needs `schemaSettings`, and that object needs an `encoding` and a `name`. An Amazon SQS channel needs a `queue`, and that queue needs a `name` and a `fifoQueue`. An SQS operation needs a `queues` list with at least one entry. A JMS server needs a `jmsConnectionFactory`.
-
-A blank string counts as absent. A name of spaces names nothing, so it is worth no more than no field at all.
-
-This is an error rather than a warning. The emitter cannot write the binding without the field, so nothing of it survives for the author to inspect. Emitting it in part would hand back a document that fails validation with a message about this emitter rather than about the source.
-
-Every missing field of one object is reported, not only the first. Reporting one at a time would send the author round the loop twice.
-
-**Fix:** add the field the message names to the decorator config.
 
 ### `invalid-binding-field`
 
