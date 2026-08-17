@@ -116,7 +116,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     servers:
       - $ref: "#/servers/kafka-prod"

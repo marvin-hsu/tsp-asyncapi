@@ -27,14 +27,52 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 每個 message 參照都指向 channel 的 `messages` map。這是 AsyncAPI 的規定。直接指向 `components.messages` 在此處不合法。
 
 簽章沒有指出任何 message 的 operation 不輸出 `messages` 欄位。AsyncAPI 把這讀作「channel 上任何 message 皆可」。emitter 絕不輸出空陣列，因為空陣列會讓所有 message 都不合法。
+
+### 一個 operation、多則 message
+
+一個 broker topic 常常承載多種事件變體。每個 message 宣告一個參數，operation 就會全部列出：
+
+```typespec
+@message
+model WithdrawCompleted {
+  transactionId: string;
+}
+
+@message
+model WithdrawFailed {
+  transactionId: string;
+  reason: string;
+}
+
+@channel("transaction_history")
+interface TransactionHistory {
+  @send op publishTransactionHistory(
+    completed: WithdrawCompleted,
+    failed: WithdrawFailed,
+  ): void;
+}
+```
+
+```yaml
+operations:
+  publishTransactionHistory:
+    action: send
+    channel:
+      $ref: "#/channels/transaction_history"
+    messages:
+      - $ref: "#/channels/transaction_history/messages/WithdrawCompleted"
+      - $ref: "#/channels/transaction_history/messages/WithdrawFailed"
+```
+
+參照保持簽章的順序，重複的 message 只出現一次。用 union 參數也能表達同一份清單：`event: WithdrawCompleted | WithdrawFailed` 會列出兩個成員。
 
 `operationId` 覆寫這個 operation 在輸出 `operations` map 中的 key。不給時，key 是 operation 的名稱。空白的 id 回報 [`empty-operation-id`](../diagnostics#empty-operation-id)。兩個 operation 對應到同一個 key 時回報 [`duplicate-operation-id`](../diagnostics#duplicate-operation-id)，原始碼順序在前的保留該 key。
 
@@ -64,9 +102,9 @@ operations:
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 一個 operation 只能套用一次，也不能與 `@send` 併用。兩種錯誤分別回報 [`duplicate-receive-decorator`](../diagnostics#duplicate-receive-decorator) 與 [`conflicting-operation-actions`](../diagnostics#conflicting-operation-actions)。
@@ -110,14 +148,14 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       channel:
-        $ref: "#/channels/ReplyChannel"
+        $ref: "#/channels/orders.accepted"
       messages:
-        - $ref: "#/channels/ReplyChannel/messages/OrderAccepted"
+        - $ref: "#/channels/orders.accepted/messages/OrderAccepted"
 ```
 
 不寫任何 decorator 時 emitter 也可能輸出 `reply`。條件是簽章兩側都指出該 channel 的 message。這就是同一個 channel 上的 request 與 reply 形狀。
@@ -160,9 +198,9 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

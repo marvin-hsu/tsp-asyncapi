@@ -49,6 +49,31 @@ Strict:
   unevaluatedProperties: false
 ```
 
+## How a schema key is built
+
+Every named model, enum, and union that a message reaches gets one entry in `components.schemas`. Its key is decided in this order:
+
+1. A `@friendlyName` wins outright. The resolved text is the whole key. No namespace prefix is added.
+2. Without one, the key is the declaration name, qualified by its namespace chain. The segments are joined with `.`. For example, `model WithdrawCompleted` inside `namespace Contracts.TransactionHistory` gets the key `Contracts.TransactionHistory.WithdrawCompleted`.
+
+The service namespace and the compiler's built-in `TypeSpec` namespace are dropped from the chain. Nearly every declaration in a single-service spec lives under the service namespace, so that segment carries no distinguishing information. `@typespec/openapi3` drops it the same way.
+
+A declaration in a library namespace outside the service namespace keeps that namespace as its prefix. Apply `@friendlyName` to shorten such a key.
+
+Keys in `components.messages` follow the same rules, with two differences. A message key never carries a namespace prefix. And the argument of [`@message`](./messages#message) overrides a message key the way `@friendlyName` overrides a schema key.
+
+### Key sanitization
+
+A Components Object key must match `^[a-zA-Z0-9.\-_]+$`. AsyncAPI allows no other character in a member name.
+
+A plain TypeSpec identifier already lies inside that charset. It becomes the key unchanged, case included. A `@friendlyName` text or a backtick-quoted name can carry other characters, and the emitter rewrites those:
+
+- `.`, `-`, and `_` stay as they are.
+- The first letter of each alphanumeric segment is upper-cased.
+- Every other character becomes `Sep` followed by its code point. For example, `has space` becomes `HasSep32Space`.
+
+The rewrite of a schema key is silent. The rewrite of a message key reports [`sanitized-message-key`](../diagnostics#sanitized-message-key). Keep every `@friendlyName` and `@message` argument inside the charset, and no rewrite ever happens.
+
 ## Built-in decorators the emitter reads
 
 These come from `@typespec/compiler` — no import needed:

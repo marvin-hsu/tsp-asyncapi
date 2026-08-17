@@ -24,15 +24,15 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 The parameter types of a `@send` operation name the messages it sends. Its return type names the messages of the reply. A `@receive` operation reads the two sides the other way round.
@@ -63,14 +63,14 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       channel:
-        $ref: "#/channels/OrderChannel"
+        $ref: "#/channels/orders.create"
       messages:
-        - $ref: "#/channels/OrderChannel/messages/OrderAccepted"
+        - $ref: "#/channels/orders.create/messages/OrderAccepted"
 ```
 
 ### A reply over another channel
@@ -105,9 +105,9 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

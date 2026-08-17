@@ -314,11 +314,11 @@ A `{name}` in the address falls outside the character set. The name is also the 
 
 ### `empty-channel-id`
 
-> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.
+> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.
 
 The explicit channel id argument is empty, or it only holds whitespace.
 
-**Fix:** give the channel an id, or leave the argument out. Without it, the key is the declaration name of the interface or namespace.
+**Fix:** give the channel an id, or leave the argument out. Without it, the address is the key. A dynamic channel has no address, so its key is the declaration name of the interface or namespace.
 
 ### `duplicate-channel-decorator`
 
@@ -348,7 +348,7 @@ Both channel decorators reached one target. One states an address, and the other
 
 > Duplicate channel id: '\<id\>'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.
 
-Two channels resolved to one key of the `channels` map. Two interfaces of one name in different namespaces do this, because a channel key drops the namespace prefix. Two explicit ids that hold one string do it as well.
+Two channels resolved to one key of the `channels` map. Two channels that share an address do this, because the address is the default key. Two dynamic channels of one name in different namespaces do this as well, because a channel key drops the namespace prefix. Two explicit ids that hold one string do it too.
 
 **Fix:** pass an explicit id to `@channel` or `@dynamicChannel` on one of them.
 

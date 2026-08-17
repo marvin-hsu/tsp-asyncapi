@@ -27,14 +27,52 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 Every message reference addresses the `messages` map of the channel. AsyncAPI requires that, and a reference straight into `components.messages` is invalid there.
 
 An operation whose signature names no message carries no `messages` field. AsyncAPI reads that as "every message of the channel". The emitter never writes an empty array, because an empty array makes every message invalid.
+
+### One operation, several messages
+
+A broker topic often carries several event variants. Declare one parameter per message, and the operation lists them all:
+
+```typespec
+@message
+model WithdrawCompleted {
+  transactionId: string;
+}
+
+@message
+model WithdrawFailed {
+  transactionId: string;
+  reason: string;
+}
+
+@channel("transaction_history")
+interface TransactionHistory {
+  @send op publishTransactionHistory(
+    completed: WithdrawCompleted,
+    failed: WithdrawFailed,
+  ): void;
+}
+```
+
+```yaml
+operations:
+  publishTransactionHistory:
+    action: send
+    channel:
+      $ref: "#/channels/transaction_history"
+    messages:
+      - $ref: "#/channels/transaction_history/messages/WithdrawCompleted"
+      - $ref: "#/channels/transaction_history/messages/WithdrawFailed"
+```
+
+The references keep the order of the signature, and a repeated message appears once. A union parameter expresses the same list: `event: WithdrawCompleted | WithdrawFailed` names both variants.
 
 `operationId` overrides the key of this operation in the emitted `operations` map. Without it, the key is the name of the operation. A blank id reports [`empty-operation-id`](../diagnostics#empty-operation-id). Two operations that resolve to one key report [`duplicate-operation-id`](../diagnostics#duplicate-operation-id), and the first one in source order keeps the key.
 
@@ -64,9 +102,9 @@ operations:
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 Apply the decorator once per operation, and never together with `@send`. The two mistakes report [`duplicate-receive-decorator`](../diagnostics#duplicate-receive-decorator) and [`conflicting-operation-actions`](../diagnostics#conflicting-operation-actions).
@@ -110,14 +148,14 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       channel:
-        $ref: "#/channels/ReplyChannel"
+        $ref: "#/channels/orders.accepted"
       messages:
-        - $ref: "#/channels/ReplyChannel/messages/OrderAccepted"
+        - $ref: "#/channels/orders.accepted/messages/OrderAccepted"
 ```
 
 The emitter also writes a reply with no decorator at all. That happens when both sides of the signature name a message of the channel, which is the same-channel request and reply shape.
@@ -160,9 +198,9 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

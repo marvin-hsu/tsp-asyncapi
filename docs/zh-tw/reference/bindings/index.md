@@ -51,7 +51,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     bindings:
       mqtt:

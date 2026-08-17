@@ -8,7 +8,7 @@ extern dec channel(target: Interface | Namespace, address: valueof string, chann
 
 宣告一個 channel。這個 channel 擁有直接寫在該 interface 或 namespace 裡的 operation。巢狀的 interface 與巢狀的 namespace 是各自獨立的範圍。它們可以各自帶自己的 channel。
 
-`address` 是必填。沒給 `channelId` 時，`channels` map 的 key 用該 target 的宣告名稱。
+`address` 是必填。沒給 `channelId` 時，`channels` map 的 key 就是 address 本身。用 Kafka 這類 broker 時，address 是 topic 名稱，讀者也是用 topic 名稱找 channel。要用別的名稱當 key 時，傳 `channelId`。
 
 ```typespec
 @service(#{ title: "Orders" })
@@ -27,7 +27,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     messages:
       OrderCreated:
@@ -66,7 +66,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.{region}.created:
     address: orders.{region}.created
     parameters:
       region:
@@ -104,6 +104,8 @@ extern dec dynamicChannel(target: Interface | Namespace, channelId?: valueof str
 ```
 
 宣告一個位址只有在執行期才決定的 channel。輸出的 channel 帶字面值 `address: null`，AsyncAPI 把它讀作「未知」。
+
+沒給 `channelId` 時，`channels` map 的 key 用該 target 的宣告名稱。dynamic channel 沒有 address 可以當 key。
 
 ```typespec
 @message
@@ -154,7 +156,7 @@ interface UserChannel {
 
 ```yaml
 channels:
-  UserChannel:
+  users.{userId}.signedup:
     address: users.{userId}.signedup
     parameters:
       userId:

@@ -79,7 +79,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     bindings:
       kafka:
@@ -121,7 +121,7 @@ operations:
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     bindings:
       kafka:
         groupId:

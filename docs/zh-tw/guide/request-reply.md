@@ -24,15 +24,15 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
 `@send` operation 的參數型別指出它送出哪些 message。回傳型別指出回覆的 message。`@receive` operation 的兩側則相反。
@@ -63,14 +63,14 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       channel:
-        $ref: "#/channels/OrderChannel"
+        $ref: "#/channels/orders.create"
       messages:
-        - $ref: "#/channels/OrderChannel/messages/OrderAccepted"
+        - $ref: "#/channels/orders.create/messages/OrderAccepted"
 ```
 
 ### 回覆走另一個 channel
@@ -105,9 +105,9 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderChannel/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

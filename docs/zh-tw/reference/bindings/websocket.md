@@ -41,7 +41,7 @@ interface TickStream {
 
 ```yaml
 channels:
-  TickStream:
+  /ticks:
     address: /ticks
     bindings:
       ws:

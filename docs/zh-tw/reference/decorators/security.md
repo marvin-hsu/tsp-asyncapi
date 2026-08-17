@@ -186,7 +186,7 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     security:
       - $ref: "#/components/securitySchemes/op-token"
 ```

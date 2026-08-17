@@ -108,7 +108,7 @@ servers:
     security:
       - $ref: "#/components/securitySchemes/kafka-scram"
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     description: Every order a customer places lands here.
     servers:
@@ -120,17 +120,17 @@ operations:
   sendOrderCreated:
     action: send
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     title: Publish an order event
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
   onOrderCreated:
     action: receive
     channel:
-      $ref: "#/channels/OrderChannel"
+      $ref: "#/channels/orders.created"
     title: Consume an order event
     messages:
-      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 components:
   schemas:
     OrderCreatedPayload:

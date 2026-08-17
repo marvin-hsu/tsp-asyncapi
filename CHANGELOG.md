@@ -4,6 +4,35 @@ This project follows [semantic versioning](https://semver.org/). It is still
 in `0.x`, so a minor release may carry a breaking change. Any that does says
 so at the top of its entry.
 
+## 0.2.1
+
+**Breaking change.** Without an explicit `channelId`, `@channel` now keys the
+channel by its address instead of the declaration name of the target. With a
+broker such as Kafka, the address is the topic name, and the topic name is
+what a reader looks the channel up by. `@dynamicChannel` still keys by the
+declaration name, because it has no address. To keep an old key, pass it as
+`channelId`. Every `$ref` that points into a channel follows the key, so
+regenerate and read the diff.
+
+Two channels without explicit ids that share one address now collide on the
+key and report `duplicate-channel-id`. Before, they were both emitted and
+only warned through `duplicate-channel-address`. Declare the operations of
+one address inside one scope, or give each channel its own `channelId`.
+
+### Fixes
+
+- A `$ref` longer than 80 columns is no longer wrapped across two lines in
+  the emitted YAML. A wrapped `$ref` is legal YAML, but a plain-text search
+  for the pointer does not find it.
+
+### Documentation
+
+- The rules for `components.schemas` and `components.messages` keys are now
+  written down: namespace qualification, what `@friendlyName` overrides, and
+  how a character outside the key charset is rewritten.
+- The operations page shows one operation that carries several messages, the
+  usual shape of a topic with several event variants.
+
 ## 0.2.0
 
 Twelve more protocols, and the emitter now checks the field rules of each one

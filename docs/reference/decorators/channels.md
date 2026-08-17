@@ -8,7 +8,7 @@ extern dec channel(target: Interface | Namespace, address: valueof string, chann
 
 Declares one channel. The channel owns the operations declared directly inside the interface or namespace. A nested interface, and a namespace nested inside a namespace, are separate scopes. Each of them may carry a channel of its own.
 
-`address` is required. Without `channelId`, the key in the `channels` map is the declaration name of the target.
+`address` is required. Without `channelId`, the key in the `channels` map is the address itself. With a broker such as Kafka, the address is the topic name, and the topic name is what a reader looks the channel up by. Pass a `channelId` to key the channel by another name.
 
 ```typespec
 @service(#{ title: "Orders" })
@@ -27,7 +27,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.created:
     address: orders.created
     messages:
       OrderCreated:
@@ -66,7 +66,7 @@ interface OrderChannel {
 
 ```yaml
 channels:
-  OrderChannel:
+  orders.{region}.created:
     address: orders.{region}.created
     parameters:
       region:
@@ -104,6 +104,8 @@ extern dec dynamicChannel(target: Interface | Namespace, channelId?: valueof str
 ```
 
 Declares one channel whose address is only known at runtime. The emitted channel carries the literal `address: null`, which AsyncAPI reads as "unknown".
+
+Without `channelId`, the key in the `channels` map is the declaration name of the target. A dynamic channel has no address to key it by.
 
 ```typespec
 @message
@@ -154,7 +156,7 @@ interface UserChannel {
 
 ```yaml
 channels:
-  UserChannel:
+  users.{userId}.signedup:
     address: users.{userId}.signedup
     parameters:
       userId:

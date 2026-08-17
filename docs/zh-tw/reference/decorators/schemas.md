@@ -49,6 +49,31 @@ Strict:
   unevaluatedProperties: false
 ```
 
+## schema key 怎麼決定
+
+被 message 觸及的每個具名 model、enum 與 union，都在 `components.schemas` 得到一筆項目。key 依這個順序決定：
+
+1. 有 `@friendlyName` 時，解析後的文字直接是整個 key。不加 namespace 前綴。
+2. 沒有時，key 是宣告名稱，前面加上 namespace 鏈。各段用 `.` 連接。例如 `namespace Contracts.TransactionHistory` 裡的 `model WithdrawCompleted`，key 是 `Contracts.TransactionHistory.WithdrawCompleted`。
+
+service namespace 與 compiler 內建的 `TypeSpec` namespace 會從鏈中剔除。單一 service 的 spec 裡幾乎每個宣告都住在 service namespace 底下，這一段沒有區別資訊。`@typespec/openapi3` 也是同樣剔除。
+
+住在 service namespace 之外的 library namespace 的宣告，會保留那段 namespace 當前綴。要縮短這種 key，套 `@friendlyName`。
+
+`components.messages` 的 key 遵循同一套規則，只有兩個差異。message key 一律不帶 namespace 前綴。而 [`@message`](./messages#message) 的引數覆寫 message key，作用等同 `@friendlyName` 覆寫 schema key。
+
+### key 的字元清理
+
+Components Object 的 key 必須符合 `^[a-zA-Z0-9.\-_]+$`。AsyncAPI 不允許成員名稱帶其他字元。
+
+一般的 TypeSpec 識別字本來就落在這個字元集內。它原樣成為 key，大小寫不變。`@friendlyName` 的文字與反引號括起的名稱可以帶其他字元，emitter 會改寫這些字元：
+
+- `.`、`-`、`_` 原樣保留。
+- 每個英數字片段的第一個字母改成大寫。
+- 其他字元一律改寫成 `Sep` 加上該字元的 code point。例如 `has space` 變成 `HasSep32Space`。
+
+schema key 被改寫時不回報。message key 被改寫時回報 [`sanitized-message-key`](../diagnostics#sanitized-message-key)。讓每個 `@friendlyName` 與 `@message` 引數都落在字元集內，改寫就不會發生。
+
 ## emitter 會讀的內建 decorator
 
 以下來自 `@typespec/compiler`，不需要 import：

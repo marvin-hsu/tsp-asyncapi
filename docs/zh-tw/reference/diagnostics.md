@@ -314,11 +314,11 @@ address 裡的某個 `{name}` 超出字元集。這個名稱同時也是宣告�
 
 ### `empty-channel-id`
 
-> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the interface or namespace name is used.
+> The channel id given to this decorator is blank. The id is the key of this channel in the emitted `channels` map, and a blank key names nothing. This channel was dropped. Give it an id, or leave the argument out so the address, or the interface or namespace name for a dynamic channel, is used.
 
 明確指定的 channel id 引數是空字串，或只有空白字元。
 
-**修法：** 給一個 id，或直接省略該引數。省略時 key 用 interface 或 namespace 的宣告名稱。
+**修法：** 給一個 id，或直接省略該引數。省略時 key 用 address。dynamic channel 沒有 address，key 用 interface 或 namespace 的宣告名稱。
 
 ### `duplicate-channel-decorator`
 
@@ -348,7 +348,7 @@ address 裡的某個 `{name}` 超出字元集。這個名稱同時也是宣告�
 
 > Duplicate channel id: '\<id\>'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.
 
-兩個 channel 對應到同一個 `channels` map 的 key。常見成因：不同 namespace 下兩個同名 interface，因為 channel key 會去掉 namespace 前綴；或兩個明確指定的 id 是同一個字串。
+兩個 channel 對應到同一個 `channels` map 的 key。常見成因：兩個 channel 共用同一個 address，因為 address 是預設的 key；不同 namespace 下兩個同名的 dynamic channel，因為 channel key 會去掉 namespace 前綴；或兩個明確指定的 id 是同一個字串。
 
 **修法：** 對其中一個的 `@channel` 或 `@dynamicChannel` 傳入明確的 id。
 
@@ -703,8 +703,6 @@ server 變數的 `enum` 或 `examples` 有項目是空字串，或只有空白�
 `@useSecurity` 指定的名稱，程式中沒有任何 `@securityScheme` 定義。server 上的項目是指向 `components.securitySchemes` 的 `$ref`，這個 `$ref` 會指到文件中不存在的 key。
 
 **修法：** 新增同名的 `@securityScheme`，或修正 `@useSecurity` 的名稱。
-
-> > > > > > > d5286af (feat(servers): add server variables, security schemes and externalDocs)
 
 ### `message-key-shadows-schema-key`
 
