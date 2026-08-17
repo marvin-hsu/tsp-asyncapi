@@ -21,8 +21,8 @@ import { claimBinding } from "./state.js";
 /**
  * What `@websocketChannel` records.
  *
- * It is the emitted object without `bindingVersion`. The renderer adds that
- * field. Deriving the shape rather than writing it out again keeps the two
+ * It is the emitted object without `bindingVersion`. That field is appended
+ * when the document is built. Deriving the shape rather than writing it out again keeps the two
  * from drifting.
  */
 type WebSocketChannelBindingState = Omit<WebSocketChannelBindingObject, "bindingVersion">;

@@ -1,10 +1,6 @@
 /**
  * The recorded shape of every Kafka binding, and the field checks the four
  * decorators share.
- *
- * A decorator records only the fields that survived its checks. A field the
- * author left out, or one that a check rejected, is stored as absent. So the
- * renderer never has to ask a second time whether a field is usable.
  */
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
@@ -21,15 +17,15 @@ import {
 /**
  * What one Kafka decorator records, for each of the four levels.
  *
- * Each one is the emitted object without `bindingVersion`. The renderer adds
- * that field, and it is the only difference between what a decorator stores
- * and what the document carries.
+ * Each one is the emitted object without `bindingVersion`. That field is
+ * appended when the document is built, and it is the only difference between
+ * what a decorator stores and what the document carries.
  *
  * Deriving these rather than writing them out twice is what keeps the two
  * from drifting. The field list of a Kafka binding is already spelled out in
- * `lib/main.tsp` for the author and in `src/types.ts` for the emitted
- * document. A third hand-written copy here would compile happily while the
- * public type said something the emitter no longer does.
+ * `lib/main.tsp` for the author and in `src/types/bindings.ts` for the
+ * emitted document. A third hand-written copy here would compile happily
+ * while the public type said something the emitter no longer does.
  *
  * @internal
  */

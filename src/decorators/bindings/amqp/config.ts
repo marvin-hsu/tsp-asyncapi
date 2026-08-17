@@ -2,10 +2,6 @@
  * The recorded shape of every AMQP binding, and the field checks the three
  * decorators share.
  *
- * A decorator records only the fields that survived its checks. A field the
- * author left out, or one that a check rejected, is stored as absent. So the
- * renderer never has to ask a second time whether a field is usable.
- *
  * The member is `amqp`, which covers AMQP 0-9-1. AsyncAPI defines a separate
  * `amqp1` binding for AMQP 1.0, and this library does not emit it.
  */
@@ -26,8 +22,8 @@ import { enumeratedField, numericField, reportBindingField } from "../fields.js"
 /**
  * What one AMQP decorator records, for each of the three levels.
  *
- * Each one is the emitted object without `bindingVersion`. The renderer adds
- * that field.
+ * Each one is the emitted object without `bindingVersion`. That field is
+ * appended when the document is built.
  *
  * There is no server level. The AMQP binding defines a server object that its
  * own text says must carry no property.

@@ -8,8 +8,8 @@ import { claimBinding } from "../state.js";
 /**
  * What `@httpOperation` records.
  *
- * It is the emitted object without `bindingVersion`. The renderer adds that
- * field.
+ * It is the emitted object without `bindingVersion`. That field is appended
+ * when the document is built.
  */
 type HttpOperationBindingState = Omit<HttpOperationBindingObject, "bindingVersion">;
 

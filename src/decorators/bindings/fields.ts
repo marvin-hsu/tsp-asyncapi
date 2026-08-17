@@ -1,14 +1,21 @@
 /**
  * The field checks every protocol binding shares.
  *
- * A binding specification states rules about its own fields. Two rules recur
- * across protocols: a field must hold one of a fixed set of values, and a
- * field must hold a Schema Object. Both are checked here, and the protocol
- * name arrives as an argument.
+ * A binding specification states rules about its own fields. Several rules
+ * recur across protocols: a field must hold one of a fixed set of values or
+ * numbers, a field must hold a Schema Object, and a field the specification
+ * requires must be there at all. Each is checked here, and the protocol name
+ * arrives as an argument.
  *
- * One diagnostic code covers all of them. The code carries the protocol, the
- * field and what the field expects, so a new rule adds a call rather than a
- * code.
+ * Two diagnostic codes cover all of them. `invalid-binding-field` carries the
+ * protocol, the field and what the field expects, so a new rule adds a call
+ * rather than a code. `missing-binding-field` is the second, and it is an
+ * error rather than a warning.
+ *
+ * Every check here follows one rule, which is why no decorator repeats it: a
+ * decorator records only the fields that survived. A field the author left
+ * out, or one a check rejected, is stored as absent. So nothing downstream
+ * has to ask a second time whether a field is usable.
  */
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";

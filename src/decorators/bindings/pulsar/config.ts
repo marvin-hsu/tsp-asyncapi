@@ -2,12 +2,9 @@
  * The recorded shape of both Pulsar bindings, and the field checks they
  * share.
  *
- * A decorator records only the fields that survived its checks. A field the
- * author left out, or one that a check rejected, is stored as absent.
- *
- * The channel binding is the first in this emitter with required fields. A
- * binding missing one of them cannot be written as a valid document, so the
- * whole binding is dropped rather than emitted in part.
+ * The channel binding carries required fields. A binding missing one of them
+ * cannot be written as a valid document, so the whole binding is dropped
+ * rather than emitted in part.
  */
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
@@ -24,8 +21,8 @@ import { enumeratedField, reportBindingField } from "../fields.js";
 /**
  * What each Pulsar decorator records.
  *
- * Each one is the emitted object without `bindingVersion`. The renderer adds
- * that field.
+ * Each one is the emitted object without `bindingVersion`. That field is
+ * appended when the document is built.
  * @internal
  */
 export type PulsarServerBindingState = Omit<PulsarServerBindingObject, "bindingVersion">;

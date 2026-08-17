@@ -2,10 +2,6 @@
  * The recorded shape of every MQTT binding, and the field checks the three
  * decorators share.
  *
- * A decorator records only the fields that survived its checks. A field the
- * author left out, or one that a check rejected, is stored as absent. So the
- * renderer never has to ask a second time whether a field is usable.
- *
  * One binding covers MQTT 3 and MQTT 5. The fields only MQTT 5 defines are
  * optional, so a document for MQTT 3 leaves them out. This emitter does not
  * ask which version a server speaks, because the binding itself does not.
@@ -26,8 +22,8 @@ import { numericField, reportBindingField } from "../fields.js";
 /**
  * What one MQTT decorator records, for each of the three levels.
  *
- * Each one is the emitted object without `bindingVersion`. The renderer adds
- * that field. Deriving these rather than writing them out again keeps the
+ * Each one is the emitted object without `bindingVersion`. That field is
+ * appended when the document is built. Deriving these rather than writing them out again keeps the
  * recorded shape and the emitted shape from drifting.
  *
  * There is no channel level. The MQTT binding defines a channel object that

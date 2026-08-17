@@ -23,8 +23,8 @@ import { missingFields, reportBindingField, reportMissingField } from "../fields
 /**
  * What each Google Cloud Pub/Sub decorator records.
  *
- * Each one is the emitted object without `bindingVersion`. The renderer adds
- * that field.
+ * Each one is the emitted object without `bindingVersion`. That field is
+ * appended when the document is built.
  * @internal
  */
 export type GooglePubSubChannelBindingState = Omit<

@@ -35,19 +35,20 @@ type BindingLevel = "any" | "server" | "channel" | "operation" | "message";
 export type EmittedBindingLevel = Exclude<BindingLevel, "any">;
 
 /**
- * Which function turns a recorded config into the emitted object.
+ * The protocol whose specification a recorded config follows.
  *
- * The decorators record data, and the builders render it. A renderer name
- * keeps those two apart. The state layer never imports a builder, and the
- * builder never has to know which decorator wrote an entry.
+ * The decorators record this name, and the lower half looks up the version
+ * that goes with it. A name keeps the two apart: the state layer never
+ * imports the lower half, and the lower half never has to know which
+ * decorator wrote an entry.
  *
- * One protocol needs one name, however many levels it covers. The four Kafka
- * decorators record their fields under the names the document uses, so the
- * level changes the fields and not the rendering. The level is already stored
- * in `level`, and that is the field every reader of it uses.
+ * One protocol needs one name, however many levels it covers. Every decorator
+ * records its fields under the names the document uses, so the level changes
+ * the fields and not what is done with them. The level is already stored in
+ * `level`, and that is the field every reader of it uses.
  *
- * The builder maps this union to functions, so a new name here without a new
- * entry there is a compile error.
+ * The lower half keys its version table by this union, so a name added here
+ * without an entry there is a compile error.
  * @internal
  */
 export type BindingRenderer =
@@ -77,9 +78,9 @@ export interface BindingEntry extends SourcePosition {
   target: Type;
   /** The member name inside the emitted Bindings Object, such as `kafka`. */
   protocol: string;
-  /** The function that renders `config`. */
+  /** The protocol whose binding version `config` follows. */
   renderer: BindingRenderer;
-  /** The recorded configuration, in the shape the renderer expects. */
+  /** The recorded configuration, in the shape the document carries. */
   config: unknown;
   /** Where a problem with this application is reported. */
   node: DiagnosticTarget;
