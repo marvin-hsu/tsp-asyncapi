@@ -294,19 +294,17 @@ export function $ibmMqMessage(
   config: IbmMqMessageBindingConfig,
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
+  const kind = enumeratedField(
+    context,
+    IBM_MQ_BINDING_PROTOCOL,
+    "type",
+    config.type,
+    MESSAGE_TYPES,
+    configTarget,
+  );
   const state: IbmMqMessageBindingState = {
-    ...present(
-      "type",
-      enumeratedField(
-        context,
-        IBM_MQ_BINDING_PROTOCOL,
-        "type",
-        config.type,
-        MESSAGE_TYPES,
-        configTarget,
-      ),
-    ),
-    ...present("headers", trimmed(config.headers)),
+    ...present("type", kind),
+    ...present("headers", headers(context, kind, config.headers, configTarget)),
     ...present("description", trimmed(config.description)),
     ...present("expiry", expiry(context, config.expiry, configTarget)),
   };
@@ -319,6 +317,42 @@ export function $ibmMqMessage(
     config: state,
     node: configTarget,
   });
+}
+
+/**
+ * Checks the `headers` field against the payload kind.
+ *
+ * IBM MQ allows the field only on a binary payload. Its schema says so with a
+ * `oneOf`: the `jms` and `string` branches both forbid `headers`, and the
+ * `binary` branch does not. A document that carries both is rejected by the
+ * AsyncAPI parser, so emitting it would hand the author a failure that talks
+ * about this emitter rather than about their source.
+ *
+ * A binding that names no type keeps the field. The specification leaves that
+ * combination valid, because the `binary` branch matches when the type is
+ * absent.
+ *
+ * The field goes and the kind stays. The kind is the more specific statement:
+ * the author said what the payload is, and headers are the part that cannot
+ * apply to it.
+ */
+function headers(
+  context: DecoratorContext,
+  kind: string | undefined,
+  value: string | undefined,
+  target: DiagnosticTarget,
+): string | undefined {
+  const written = trimmed(value);
+  if (written === undefined) return undefined;
+  if (kind === undefined || kind === "binary") return written;
+  reportBindingField(
+    context,
+    IBM_MQ_BINDING_PROTOCOL,
+    "headers",
+    "a binary payload, because IBM MQ allows headers on no other type",
+    target,
+  );
+  return undefined;
 }
 
 /** Checks the `expiry` field, which IBM MQ states as zero or more. */

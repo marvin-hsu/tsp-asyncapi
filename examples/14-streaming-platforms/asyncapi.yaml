@@ -1,0 +1,184 @@
+asyncapi: 3.1.0
+id: urn:example:streaming-platforms
+info:
+  title: Sensor Stream
+  version: 1.0.0
+  description: Sensor readings, streamed over four platforms.
+defaultContentType: application/json
+servers:
+  pulsar:
+    host: pulsar.example.com:6650
+    protocol: pulsar
+    title: Pulsar cluster
+    bindings:
+      pulsar:
+        tenant: telemetry
+        bindingVersion: 0.1.0
+      solace:
+        msgVpn: telemetry-vpn
+        clientName: sensor-stream
+        bindingVersion: 0.4.0
+  nats:
+    host: nats.example.com:4222
+    protocol: nats
+    title: NATS cluster
+    bindings:
+      pulsar:
+        tenant: telemetry
+        bindingVersion: 0.1.0
+      solace:
+        msgVpn: telemetry-vpn
+        clientName: sensor-stream
+        bindingVersion: 0.4.0
+  pubsub:
+    host: pubsub.googleapis.com
+    protocol: googlepubsub
+    title: Pub/Sub
+    bindings:
+      pulsar:
+        tenant: telemetry
+        bindingVersion: 0.1.0
+      solace:
+        msgVpn: telemetry-vpn
+        clientName: sensor-stream
+        bindingVersion: 0.4.0
+  solace:
+    host: solace.example.com:55555
+    protocol: smf
+    title: Solace broker
+    bindings:
+      pulsar:
+        tenant: telemetry
+        bindingVersion: 0.1.0
+      solace:
+        msgVpn: telemetry-vpn
+        clientName: sensor-stream
+        bindingVersion: 0.4.0
+channels:
+  PulsarTopic:
+    address: persistent://telemetry/sensors/readings
+    description: The Pulsar topic every reading is written to.
+    servers:
+      - $ref: "#/servers/pulsar"
+    messages:
+      SensorReading:
+        $ref: "#/components/messages/SensorReading"
+    bindings:
+      pulsar:
+        namespace: sensors
+        persistence: persistent
+        compaction: 100
+        geo-replication:
+          - us-east
+          - eu-west
+        retention:
+          time: 10080
+          size: 5000
+        ttl: 86400
+        deduplication: true
+        bindingVersion: 0.1.0
+  PubSubTopic:
+    address: sensor-readings
+    description: The Pub/Sub topic the same readings are published to.
+    servers:
+      - $ref: "#/servers/pubsub"
+    messages:
+      SensorReading:
+        $ref: "#/components/messages/SensorReading"
+    bindings:
+      googlepubsub:
+        schemaSettings:
+          encoding: json
+          name: projects/telemetry/schemas/reading
+          firstRevisionId: rev-1
+        labels:
+          team: telemetry
+          tier: standard
+        messageRetentionDuration: 86400s
+        messageStoragePolicy:
+          allowedPersistenceRegions:
+            - us-central1
+            - europe-west1
+        bindingVersion: 0.2.0
+  SolaceTopic:
+    address: telemetry/readings
+    description: The Solace topic the readings fan out on.
+    servers:
+      - $ref: "#/servers/solace"
+    messages:
+      SensorReading:
+        $ref: "#/components/messages/SensorReading"
+operations:
+  consumeReading:
+    action: receive
+    channel:
+      $ref: "#/channels/PulsarTopic"
+    bindings:
+      nats:
+        queue: reading-workers
+        bindingVersion: 0.1.0
+    messages:
+      - $ref: "#/channels/PulsarTopic/messages/SensorReading"
+  publishReading:
+    action: send
+    channel:
+      $ref: "#/channels/PubSubTopic"
+    messages:
+      - $ref: "#/channels/PubSubTopic/messages/SensorReading"
+  fanOutReading:
+    action: send
+    channel:
+      $ref: "#/channels/SolaceTopic"
+    bindings:
+      solace:
+        destinations:
+          - deliveryMode: persistent
+            destinationType: queue
+            queue:
+              name: readings
+              accessType: nonexclusive
+        timeToLive: 3600000
+        priority: 4
+        dmqEligible: true
+        bindingVersion: 0.4.0
+    messages:
+      - $ref: "#/channels/SolaceTopic/messages/SensorReading"
+components:
+  schemas:
+    SensorReading:
+      type: object
+      properties:
+        sensorId:
+          type: string
+          description: The sensor this reading came from.
+        value:
+          type: number
+          format: double
+          description: What the sensor measured.
+        unit:
+          type: string
+          description: The unit of that measurement.
+        readAt:
+          type: string
+          format: date-time
+          description: When the sensor took it, in UTC.
+      required:
+        - sensorId
+        - value
+        - unit
+        - readAt
+      description: One reading from one sensor.
+  messages:
+    SensorReading:
+      name: SensorReading
+      description: One reading from one sensor.
+      payload:
+        $ref: "#/components/schemas/SensorReading"
+      bindings:
+        googlepubsub:
+          attributes:
+            source: field-gateway
+          orderingKey: sensorId
+          schema:
+            name: projects/telemetry/schemas/reading
+          bindingVersion: 0.2.0

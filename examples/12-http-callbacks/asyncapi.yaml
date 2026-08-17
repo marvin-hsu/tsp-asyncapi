@@ -1,0 +1,106 @@
+asyncapi: 3.1.0
+id: urn:example:http-callbacks
+info:
+  title: Payment Callbacks
+  version: 1.0.0
+  description: The webhook a payment provider calls when a charge settles.
+defaultContentType: application/json
+servers:
+  callbacks:
+    host: hooks.example.com
+    protocol: https
+    title: Callback endpoint
+    description: The endpoint the provider posts to.
+channels:
+  PaymentHook:
+    address: /hooks/payments
+    description: The callback endpoint.
+    servers:
+      - $ref: "#/servers/callbacks"
+    messages:
+      ChargeSettled:
+        $ref: "#/components/messages/ChargeSettled"
+      CallbackAccepted:
+        $ref: "#/components/messages/CallbackAccepted"
+operations:
+  deliverChargeSettled:
+    action: send
+    channel:
+      $ref: "#/channels/PaymentHook"
+    bindings:
+      http:
+        method: POST
+        query:
+          type: object
+          properties:
+            attempt:
+              type: integer
+              description: Which delivery attempt this is.
+        bindingVersion: 0.3.0
+    messages:
+      - $ref: "#/channels/PaymentHook/messages/ChargeSettled"
+    reply:
+      channel:
+        $ref: "#/channels/PaymentHook"
+      messages:
+        - $ref: "#/channels/PaymentHook/messages/CallbackAccepted"
+components:
+  schemas:
+    ChargeSettled:
+      type: object
+      properties:
+        chargeId:
+          type: string
+          description: The charge this notification is about.
+        amountMinor:
+          type: integer
+          format: int64
+          description: What the charge settled at, in the smallest unit of the currency.
+        currency:
+          type: string
+          description: The ISO 4217 code of that currency.
+        succeeded:
+          type: boolean
+          description: Whether the money moved.
+      required:
+        - chargeId
+        - amountMinor
+        - currency
+        - succeeded
+      description: The notification the provider posts when a charge reaches a final state.
+    CallbackAccepted:
+      type: object
+      properties:
+        deliveryId:
+          type: string
+          description: The delivery this acknowledges, echoed back for the provider's log.
+      required:
+        - deliveryId
+      description: What this service answers the provider with.
+  messages:
+    ChargeSettled:
+      name: ChargeSettled
+      description: The notification the provider posts when a charge reaches a final state.
+      payload:
+        $ref: "#/components/schemas/ChargeSettled"
+      bindings:
+        http:
+          headers:
+            type: object
+            properties:
+              X-Signature:
+                type: string
+                description: The HMAC the provider signs the body with.
+              X-Delivery-Id:
+                type: string
+                format: uuid
+          bindingVersion: 0.3.0
+    CallbackAccepted:
+      name: CallbackAccepted
+      description: What this service answers the provider with.
+      payload:
+        $ref: "#/components/schemas/CallbackAccepted"
+      bindings:
+        http:
+          statusCode: 202
+          bindingVersion: 0.3.0

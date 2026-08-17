@@ -63,6 +63,7 @@ export default defineConfig({
                 ],
               },
               { text: "Request and Reply", link: "/guide/request-reply" },
+              { text: "Examples", link: "/guide/examples" },
             ],
           },
           {
@@ -143,6 +144,7 @@ export default defineConfig({
                 ],
               },
               { text: "Request 與 Reply", link: "/zh-tw/guide/request-reply" },
+              { text: "範例", link: "/zh-tw/guide/examples" },
             ],
           },
           {

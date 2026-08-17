@@ -167,7 +167,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Eleven worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it.
+Fourteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it.
 
 ## Emitter options
 

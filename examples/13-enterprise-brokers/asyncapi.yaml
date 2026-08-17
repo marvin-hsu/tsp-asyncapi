@@ -1,0 +1,163 @@
+asyncapi: 3.1.0
+id: urn:example:enterprise-brokers
+info:
+  title: Order Dispatch
+  version: 1.0.0
+  description: Order dispatch, published to four enterprise brokers.
+defaultContentType: application/json
+servers:
+  rabbit:
+    host: rabbit.example.com:5672
+    protocol: amqp
+    title: RabbitMQ
+    bindings:
+      jms:
+        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
+        clientID: order-dispatch
+        bindingVersion: 0.0.1
+      ibmmq:
+        groupId: PRODCLSTR1
+        ccdtQueueManagerName: "*"
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+  activemq:
+    host: activemq.example.com:61616
+    protocol: jms
+    title: ActiveMQ
+    bindings:
+      jms:
+        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
+        clientID: order-dispatch
+        bindingVersion: 0.0.1
+      ibmmq:
+        groupId: PRODCLSTR1
+        ccdtQueueManagerName: "*"
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+  ibm-mq:
+    host: mq.example.com:1414
+    protocol: ibmmq
+    title: IBM MQ queue manager
+    bindings:
+      jms:
+        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
+        clientID: order-dispatch
+        bindingVersion: 0.0.1
+      ibmmq:
+        groupId: PRODCLSTR1
+        ccdtQueueManagerName: "*"
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+  anypoint:
+    host: mq-eu.anypoint.mulesoft.com
+    protocol: amqp
+    title: Anypoint MQ
+    bindings:
+      jms:
+        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
+        clientID: order-dispatch
+        bindingVersion: 0.0.1
+      ibmmq:
+        groupId: PRODCLSTR1
+        ccdtQueueManagerName: "*"
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+channels:
+  DispatchDestination:
+    address: order.dispatch
+    description: The destination every dispatch is written to.
+    messages:
+      OrderDispatched:
+        $ref: "#/components/messages/OrderDispatched"
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: dispatch
+          type: topic
+          durable: true
+          vhost: /
+        bindingVersion: 0.3.0
+      jms:
+        destination: ORDER.DISPATCH
+        destinationType: queue
+        bindingVersion: 0.0.1
+      anypointmq:
+        destination: order-dispatch
+        destinationType: exchange
+        bindingVersion: 0.0.1
+      ibmmq:
+        destinationType: queue
+        queue:
+          objectName: ORDER.DISPATCH
+          isPartitioned: false
+          exclusive: false
+        maxMsgLength: 4194304
+        bindingVersion: 0.1.0
+operations:
+  publishOrderDispatched:
+    action: send
+    channel:
+      $ref: "#/channels/DispatchDestination"
+    bindings:
+      amqp:
+        expiration: 86400000
+        cc:
+          - order.audit
+        deliveryMode: 2
+        mandatory: true
+        timestamp: true
+        bindingVersion: 0.3.0
+    messages:
+      - $ref: "#/channels/DispatchDestination/messages/OrderDispatched"
+components:
+  schemas:
+    OrderDispatched:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: The order that was dispatched.
+        warehouseId:
+          type: string
+          description: The warehouse it left from.
+        trackingNumber:
+          type: string
+          description: The carrier's tracking number.
+      required:
+        - orderId
+        - warehouseId
+        - trackingNumber
+      description: An order handed to fulfilment.
+  messages:
+    OrderDispatched:
+      name: OrderDispatched
+      description: An order handed to fulfilment.
+      payload:
+        $ref: "#/components/schemas/OrderDispatched"
+      bindings:
+        amqp:
+          contentEncoding: gzip
+          messageType: order.dispatched
+          bindingVersion: 0.3.0
+        jms:
+          headers:
+            type: object
+            properties:
+              JMSXGroupID:
+                type: string
+          bindingVersion: 0.0.1
+        anypointmq:
+          headers:
+            type: object
+            properties:
+              correlationId:
+                type: string
+                format: uuid
+          bindingVersion: 0.0.1
+        ibmmq:
+          type: binary
+          headers: Content-Type,X-Correlation-Id
+          description: The dispatch record, as a length-prefixed binary frame.
+          expiry: 60000
+          bindingVersion: 0.1.0

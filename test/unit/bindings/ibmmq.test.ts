@@ -39,7 +39,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
 
-      @ibmMqMessage(#{ type: "jms", headers: "Content-Type,Trace-Id", expiry: 60000 })
+      @ibmMqMessage(#{ type: "binary", headers: "Content-Type,Trace-Id", expiry: 60000 })
       @message
       model OrderCreated {
         id: string;
@@ -155,6 +155,87 @@ describe("Unit: the IBM MQ binding decorators", () => {
     const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
     expect(reported.message).toContain("expiry");
     expect(reported.message).toContain("zero or more");
+  });
+
+  it("drops headers on a payload IBM MQ does not allow them on", async () => {
+    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+      namespace Test;
+
+      @ibmMqMessage(#{ type: "jms", headers: "Content-Type", expiry: 60000 })
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @channel("orders")
+      interface OrderChannel {
+        ${OPERATION}
+      }
+    `);
+
+    // IBM MQ allows `headers` on a binary payload and on no other. Emitting
+    // both is a document the AsyncAPI parser rejects, so the field goes and
+    // the type stays: the author said what the payload is, and the headers
+    // are the part that cannot apply to it.
+    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    expect(reported.message).toContain("headers");
+    expect(reported.message).toContain("a binary payload");
+    expect(doc.components.messages.OrderCreated.bindings.ibmmq).toEqual({
+      type: "jms",
+      expiry: 60000,
+      bindingVersion: "0.1.0",
+    });
+  });
+
+  it("keeps headers on a binary payload", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+      namespace Test;
+
+      @ibmMqMessage(#{ type: "binary", headers: "Content-Type,X-Trace" })
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @channel("orders")
+      interface OrderChannel {
+        ${OPERATION}
+      }
+    `);
+
+    expect(doc.components.messages.OrderCreated.bindings.ibmmq.headers).toBe(
+      "Content-Type,X-Trace",
+    );
+  });
+
+  it("keeps headers when the binding names no type", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+      namespace Test;
+
+      @ibmMqMessage(#{ headers: "Content-Type" })
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @channel("orders")
+      interface OrderChannel {
+        ${OPERATION}
+      }
+    `);
+
+    // The specification leaves this valid: its `binary` branch matches when
+    // the type is absent, so the parser accepts the pair.
+    expect(doc.components.messages.OrderCreated.bindings.ibmmq).toEqual({
+      headers: "Content-Type",
+      bindingVersion: "0.1.0",
+    });
   });
 
   it("drops an empty queue object rather than emitting one", async () => {
