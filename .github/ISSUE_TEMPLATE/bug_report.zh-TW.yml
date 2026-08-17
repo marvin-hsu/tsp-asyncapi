@@ -1,0 +1,62 @@
+name: 錯誤回報（中文）
+description: emitter 輸出了錯的內容，或拒絕了它應該接受的輸入。
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        下面三個欄位決定這份回報能不能被處理。附上 TypeSpec 原始碼的問題，
+        通常一分鐘內就能重現。只有文字描述的問題，多半要先來回問一輪。
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 你使用的 `tsp-asyncapi` 版本。
+      placeholder: 0.1.4
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: TypeSpec 原始碼
+      description: 能重現問題的最小原始碼。
+      render: typespec
+      placeholder: |
+        @service(#{ title: "Orders" })
+        namespace Test;
+
+        @message
+        model OrderCreated {
+          id: string;
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: emitted
+    attributes:
+      label: emitter 實際寫出什麼
+      description: 輸出的文件，或它回報的 diagnostic。
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你預期的結果
+      description: >
+        若 AsyncAPI 規格對這件事有明文規定，請附上章節連結。
+        多數爭議附了規格就能定案。
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 其他資訊
+      description: Node 版本、作業系統，或設定中任何不尋常的地方。
+    validations:
+      required: false

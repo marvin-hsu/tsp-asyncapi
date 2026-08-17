@@ -1,0 +1,46 @@
+name: 功能建議（中文）
+description: AsyncAPI 有這個能力，但這個 emitter 還無法表達。
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        這個 emitter 把 TypeSpec 對應到 AsyncAPI 3.1 規格。
+        指出是規格的哪一部分，比描述一個願望容易回答得多。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你目前無法表達什麼
+      description: 你想寫的 contract，以及 emitter 在哪裡擋住你。
+    validations:
+      required: true
+
+  - type: input
+    id: spec
+    attributes:
+      label: 對應到 AsyncAPI 的哪一部分
+      description: 若有的話，附上 3.1 規格的章節連結。
+      placeholder: https://www.asyncapi.com/docs/reference/specification/v3.0.0#operationObject
+    validations:
+      required: false
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: 在 TypeSpec 裡可能長什麼樣
+      description: >
+        草稿就夠了。它不必是最後採用的設計，
+        但寫出一個具體形狀能讓討論落地。
+      render: typespec
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: 你目前怎麼繞過
+      description: >
+        繞法能說明這件事對你的成本。有時候那個繞法本身就是答案。
+    validations:
+      required: false

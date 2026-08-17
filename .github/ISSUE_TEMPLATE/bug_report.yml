@@ -1,0 +1,63 @@
+name: Bug report
+description: The emitter wrote something wrong, or refused something it should accept.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The three fields below are what make a report actionable. A bug that
+        arrives with its TypeSpec source can be reproduced in a minute. One
+        that arrives as a description usually costs a round trip first.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version of `tsp-asyncapi` you are using.
+      placeholder: 0.1.4
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: TypeSpec source
+      description: The smallest source that shows the problem.
+      render: typespec
+      placeholder: |
+        @service(#{ title: "Orders" })
+        namespace Test;
+
+        @message
+        model OrderCreated {
+          id: string;
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: emitted
+    attributes:
+      label: What the emitter wrote
+      description: The emitted document, or the diagnostics it reported.
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: >
+        If the AsyncAPI specification says what should happen here, link the
+        section. That settles most questions on its own.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Node version, operating system, or anything unusual in the setup.
+    validations:
+      required: false

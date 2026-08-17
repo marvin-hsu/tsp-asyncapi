@@ -1,0 +1,20 @@
+# A vulnerability must not arrive as a public issue, so the link below sends
+# it to the private channel instead. Questions go to Discussions, which keeps
+# the issue list to things that need a change in the code.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability / 回報漏洞
+    url: https://github.com/marvin-hsu/tsp-asyncapi/security/advisories/new
+    about: >
+      Report privately. Do not open a public issue for a vulnerability.
+      請透過私密管道回報，不要用公開 issue。
+  - name: Ask a question / 提問
+    url: https://github.com/marvin-hsu/tsp-asyncapi/discussions
+    about: >
+      For how-to questions and anything you are not sure is a bug.
+      用法問題，以及你不確定是不是錯誤的情況。
+  - name: Documentation / 文件
+    url: https://marvin-hsu.github.io/tsp-asyncapi/
+    about: >
+      The decorator reference and the diagnostic list.
+      decorator 參考與 diagnostic 清單。

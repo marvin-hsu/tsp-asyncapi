@@ -1,0 +1,49 @@
+name: Feature request
+description: Something in AsyncAPI that this emitter cannot describe yet.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This emitter maps TypeSpec onto the AsyncAPI 3.1 specification. A
+        request that names the part of the specification it is about is much
+        easier to answer than one that describes a wish.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you cannot describe today
+      description: >
+        The contract you are trying to write, and where the emitter stops you.
+    validations:
+      required: true
+
+  - type: input
+    id: spec
+    attributes:
+      label: The part of AsyncAPI this is about
+      description: A link to the section of the 3.1 specification, if there is one.
+      placeholder: https://www.asyncapi.com/docs/reference/specification/v3.0.0#operationObject
+    validations:
+      required: false
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: How it might look in TypeSpec
+      description: >
+        A sketch is enough. It does not have to be the design that ships, and
+        naming one makes the discussion concrete.
+      render: typespec
+    validations:
+      required: false
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do instead today
+      description: >
+        A workaround tells us how much this costs you. It also sometimes turns
+        out to be the answer.
+    validations:
+      required: false
