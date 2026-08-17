@@ -2,7 +2,7 @@ import { DecoratorContext, Model } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { claimBinding } from "../state.js";
-import { KafkaMessageBindingState, schemaField, schemaIdLocation } from "./config.js";
+import { KafkaMessageBindingState, kafkaSchemaField, schemaIdLocation } from "./config.js";
 
 /**
  * The `config` argument of `@kafkaMessage`, as the author wrote it.
@@ -62,7 +62,7 @@ export function $kafkaMessage(
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
   const state: KafkaMessageBindingState = {
-    ...present("key", schemaField(context, "key", config.key, configTarget)),
+    ...present("key", kafkaSchemaField(context, "key", config.key, configTarget)),
     ...present(
       "schemaIdLocation",
       schemaIdLocation(context, config.schemaIdLocation, configTarget),

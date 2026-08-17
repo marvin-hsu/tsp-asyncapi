@@ -9,9 +9,8 @@
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
-import { reportDiagnostic } from "../../../lib.js";
-import { trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
+import { toPlainValue } from "../../../marshalled-values.js";
+import { enumeratedField, reportBindingField, schemaField } from "../fields.js";
 import {
   KafkaChannelBindingObject,
   KafkaMessageBindingObject,
@@ -54,25 +53,14 @@ const CLEANUP_POLICY_KEY = "cleanup.policy";
 /** The two places the Kafka binding allows a schema id to sit. */
 const SCHEMA_ID_LOCATIONS = ["header", "payload"];
 
-/**
- * Reports one field of a Kafka binding that carries a value the binding
- * specification forbids.
- *
- * One diagnostic code covers every such rule. The code carries the protocol,
- * the field and what the field expects, so a new rule adds a call rather than
- * a code.
- */
+/** Reports one field of a Kafka binding, naming the protocol for the caller. */
 function reportField(
   context: DecoratorContext,
   field: string,
   expected: string,
   target: DiagnosticTarget,
 ): void {
-  reportDiagnostic(context.program, {
-    code: "invalid-binding-field",
-    format: { protocol: KAFKA_BINDING_PROTOCOL, field, expected },
-    target,
-  });
+  reportBindingField(context, KAFKA_BINDING_PROTOCOL, field, expected, target);
 }
 
 /**
@@ -120,23 +108,20 @@ export function schemaIdLocation(
   value: string | undefined,
   target: DiagnosticTarget,
 ): string | undefined {
-  // The value is trimmed before the check, so `" payload "` names the place
-  // the author meant rather than being rejected over its spacing.
-  const location = trimmed(value);
-  if (location === undefined) return undefined;
-  if (!SCHEMA_ID_LOCATIONS.includes(location)) {
-    reportField(context, "schemaIdLocation", SCHEMA_ID_LOCATIONS.join(" or "), target);
-    return undefined;
-  }
-  return location;
+  return enumeratedField(
+    context,
+    KAFKA_BINDING_PROTOCOL,
+    "schemaIdLocation",
+    value,
+    SCHEMA_ID_LOCATIONS,
+    target,
+  );
 }
 
 /**
  * Checks one Schema Object field of a Kafka binding.
  *
  * `key`, `groupId` and `clientId` are Schema Objects in the Kafka binding.
- * The value is written as an object literal and is emitted as written. A
- * scalar or an array is not a Schema Object, so it is reported and dropped.
  *
  * @param context - The decorator context
  * @param field - The field name, for the diagnostic
@@ -146,19 +131,13 @@ export function schemaIdLocation(
  * rejected
  * @internal
  */
-export function schemaField(
+export function kafkaSchemaField(
   context: DecoratorContext,
   field: string,
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportField(context, field, "a schema object", target);
-    return undefined;
-  }
-  return plain;
+  return schemaField(context, KAFKA_BINDING_PROTOCOL, field, value, target);
 }
 
 /**

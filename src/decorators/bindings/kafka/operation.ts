@@ -2,7 +2,7 @@ import { DecoratorContext, Operation } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
 import { claimBinding } from "../state.js";
-import { KafkaOperationBindingState, schemaField } from "./config.js";
+import { KafkaOperationBindingState, kafkaSchemaField } from "./config.js";
 
 /**
  * The `config` argument of `@kafkaOperation`, as the author wrote it.
@@ -48,8 +48,8 @@ export function $kafkaOperation(
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
   const state: KafkaOperationBindingState = {
-    ...present("groupId", schemaField(context, "groupId", config.groupId, configTarget)),
-    ...present("clientId", schemaField(context, "clientId", config.clientId, configTarget)),
+    ...present("groupId", kafkaSchemaField(context, "groupId", config.groupId, configTarget)),
+    ...present("clientId", kafkaSchemaField(context, "clientId", config.clientId, configTarget)),
   };
 
   claimBinding(context, {
