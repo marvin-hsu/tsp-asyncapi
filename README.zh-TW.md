@@ -201,7 +201,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@AsyncAPI.send` / `@AsyncAPI.receive` — 把一個 operation 標記成本應用送出或接收的 message。
 - `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — 描述 operation 的回覆。見文件站台的 Request 與 Reply 一章。
 - `@AsyncAPI.message` — 把 model 標記為一個 message。
-- `@AsyncAPI.server` / `@AsyncAPI.useServer` / `@AsyncAPI.serverVariable` — 宣告並參照 server 設定。
+- `@AsyncAPI.server` / `@AsyncAPI.useServer` — 宣告並參照 server。server 變數是 `@server` 設定裡的 `variables` 欄位，不是獨立的 decorator。
 - `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — 宣告並套用安全機制 (security schemes)。
 - `@AsyncAPI.binding` — 加上通用的 protocol binding 設定。
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — 加上 Kafka 專屬的 binding 設定。

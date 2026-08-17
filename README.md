@@ -201,7 +201,7 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@AsyncAPI.send` / `@AsyncAPI.receive` — Marks one operation as a message this application sends or receives.
 - `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — Describes the reply of an operation. See the Request and Reply guide on the docs site.
 - `@AsyncAPI.message` — Marks a model as a message.
-- `@AsyncAPI.server` / `@AsyncAPI.useServer` / `@AsyncAPI.serverVariable` — Declares and references servers.
+- `@AsyncAPI.server` / `@AsyncAPI.useServer` — Declares and references servers. Server variables are the `variables` field of the `@server` config, not a decorator of their own.
 - `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — Declares and applies security schemes.
 - `@AsyncAPI.binding` — Adds generic protocol binding configurations.
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — Adds Kafka-specific binding configurations.
