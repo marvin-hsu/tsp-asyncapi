@@ -502,6 +502,20 @@ AsyncAPI defines every member of a Bindings Object as an object. A string, a num
 
 ## Warnings
 
+### `duplicate-channel-address`
+
+> Channel '\<id\>' and channel '\<other\>' both use the address '\<address\>'. AsyncAPI allows it, because the two have different ids, but a reader cannot tell which set of messages one address actually carries. Give them one channel with both operations, or give each its own address.
+
+Two channels carry the same address. The document stays valid, because their ids differ and each names its own messages, so this is a warning.
+
+What it costs is clarity. The address is the thing that exists at run time; the channel id is not. So a reader of the document cannot tell which set of messages that one address actually carries.
+
+A [`@dynamicChannel`](./decorators/channels#dynamicchannel) is never reported. Its address is `null` because the address is unknown until run time, so two of them state nothing about each other.
+
+Only the second channel of a pair is reported, and the message names the first.
+
+**Fix:** put both operations on one channel, or give each channel its own address.
+
 ### `channel-no-messages`
 
 > Channel '\<id\>' has no recognizable messages. Did you forget to annotate the payload models with '@message'? The channel was emitted without a `messages` map.

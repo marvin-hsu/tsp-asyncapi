@@ -108,8 +108,40 @@ export function resolveChannels(
   }
 
   reportUseServerWithoutChannel(program);
+  reportDuplicateAddresses(program, channels);
 
   return { channels, emitted };
+}
+
+/**
+ * Reports two channels that carry one address.
+ *
+ * AsyncAPI allows it. The two channels have different ids, so the document
+ * is valid, and each one names its own messages. What a reader cannot tell
+ * is which set of messages the address actually carries, because the address
+ * is the thing that exists at run time and the id is not.
+ *
+ * A dynamic channel is excluded. Its address is `null` because the address is
+ * unknown until run time, so two of them state nothing about each other.
+ *
+ * Only the second channel of a pair is reported, and it names the first. One
+ * mistake gets one report.
+ */
+function reportDuplicateAddresses(program: Program, channels: readonly ChannelNode[]): void {
+  const byAddress = new Map<string, ChannelNode>();
+  for (const channel of channels) {
+    if (channel.address === null) continue;
+    const first = byAddress.get(channel.address);
+    if (first === undefined) {
+      byAddress.set(channel.address, channel);
+      continue;
+    }
+    reportDiagnostic(program, {
+      code: "duplicate-channel-address",
+      format: { id: channel.key, other: first.key, address: channel.address },
+      target: channel.target,
+    });
+  }
 }
 
 /**

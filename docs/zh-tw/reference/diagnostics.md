@@ -502,6 +502,20 @@ AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與
 
 ## 警告
 
+### `duplicate-channel-address`
+
+> Channel '\<id\>' and channel '\<other\>' both use the address '\<address\>'. AsyncAPI allows it, because the two have different ids, but a reader cannot tell which set of messages one address actually carries. Give them one channel with both operations, or give each its own address.
+
+兩個 channel 用了同一個 address。文件仍然合法，因為兩者的 id 不同、各自列出自己的 message，所以這是警告而非錯誤。
+
+代價是可讀性。**address 是執行期真實存在的東西，channel id 不是。** 所以讀文件的人無法判斷那一個 address 實際承載哪一組 message。
+
+[`@dynamicChannel`](./decorators/channels#dynamicchannel) 不會被回報。它的 address 是 `null`，因為位址要到執行期才知道，所以兩個動態 channel 之間沒有互相說明任何事。
+
+一對之中只回報後面那個，訊息裡會指出前面那個是誰。
+
+**修法：** 把兩個 operation 放進同一個 channel；或讓每個 channel 有自己的 address。
+
 ### `channel-no-messages`
 
 > Channel '\<id\>' has no recognizable messages. Did you forget to annotate the payload models with '@message'? The channel was emitted without a `messages` map.

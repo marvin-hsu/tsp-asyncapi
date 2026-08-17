@@ -431,6 +431,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Duplicate channel id: '${"id"}'. Each channel needs its own id, because the id is the key of that channel in the emitted document. This channel was dropped, and the first one with this id in source order was kept. Pass an explicit id to @channel on one of them.`,
       },
     },
+    "duplicate-channel-address": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Channel '${"id"}' and channel '${"other"}' both use the address '${"address"}'. AsyncAPI allows it, because the two have different ids, but a reader cannot tell which set of messages one address actually carries. Give them one channel with both operations, or give each its own address.`,
+      },
+    },
     "channel-no-messages": {
       severity: "warning",
       messages: {

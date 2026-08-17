@@ -4,6 +4,7 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { $lib } from "../../../src/lib.js";
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
 
 describe("Unit: Channels (Phase 4.1)", () => {
   let runner: TesterInstance;
@@ -659,5 +660,78 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // ever sorted by name. It fails too if the entries are reversed. Every
     // other test here declares one channel, where no order is visible.
     expect(Object.keys(doc.channels ?? {})).toEqual(["Zeta", "Alpha"]);
+  });
+});
+
+describe("Unit: Channels — one address on two channels", () => {
+  /**
+   * AsyncAPI allows two channels to share an address, because their ids
+   * differ. The document stays valid. What a reader cannot tell is which set
+   * of messages that one address carries, because the address is what exists
+   * at run time and the id is not.
+   */
+  it("warns when two channels carry the same address", async () => {
+    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message model Placed { id: string; }
+      @message model Shipped { id: string; }
+
+      @channel("orders") interface Publishing {
+        @send op publish(m: Placed): void;
+      }
+      @channel("orders") interface Watching {
+        @receive op watch(): Shipped;
+      }
+    `);
+
+    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address");
+    // Only the second channel is reported. One mistake, one report.
+    expect(reported).toHaveLength(1);
+    expect(reported[0].severity).toBe("warning");
+  });
+
+  it("does not warn about two dynamic channels", async () => {
+    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message model Placed { id: string; }
+      @message model Shipped { id: string; }
+
+      @dynamicChannel interface First {
+        @send op publish(m: Placed): void;
+      }
+      @dynamicChannel interface Second {
+        @receive op watch(): Shipped;
+      }
+    `);
+
+    // Their address is `null` because it is unknown until run time, so two of
+    // them state nothing about each other.
+    expect(
+      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
+    ).toHaveLength(0);
+  });
+
+  it("does not warn when two channels carry different addresses", async () => {
+    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message model Placed { id: string; }
+
+      @channel("orders.placed") interface A {
+        @send op publish(m: Placed): void;
+      }
+      @channel("orders.shipped") interface B {
+        @send op ship(m: Placed): void;
+      }
+    `);
+
+    expect(
+      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
+    ).toHaveLength(0);
   });
 });

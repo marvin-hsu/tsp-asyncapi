@@ -111,6 +111,27 @@ describe("Unit: Schemas — annotations", () => {
       expect(props.name).toEqual({ type: "string", minLength: 2, default: "ab" });
     });
 
+    it("reports a default the serializer cannot represent, and omits it", async () => {
+      const { builder, M, diagnostics } = await compileSchemasWithDiagnostics(t.code`
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+        model ${t.model("M")} {
+          ip?: ipv4 = ipv4.fromBytes(127, 0, 0, 1);
+        }
+      `);
+      builder.buildSchema(M);
+
+      const props = builder.getSchemas().M.properties as Record<string, any>;
+      // A half-serialized default would put a value in the schema that the
+      // schema itself rejects, so the keyword is left out entirely.
+      expect("default" in props.ip).toBe(false);
+      // Dropping it in silence would leave the author believing the default
+      // reached the document.
+      expect(diagnostics.map((d) => d.code)).toEqual(["tsp-asyncapi/unserializable-default"]);
+      expect(diagnostics[0].severity).toBe("warning");
+    });
+
     it("emits no default for a property that has none", async () => {
       const props = await propertiesOf(`
         model Holder {
