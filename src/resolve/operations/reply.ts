@@ -1,15 +1,14 @@
 import { Model, Operation, Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import {
+  ReplyAddressState,
   getReplyAddressInternal,
   getReplyChannelInternal,
 } from "../../decorators/operations/reply-state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { OperationReplyObject } from "../../types.js";
-import { EmittedChannel } from "../../resolve/channels.js";
-import { channelRef } from "../json-pointer.js";
-import { present } from "../../optional-fields.js";
-import { buildMessageReferences } from "./messages.js";
+import { OperationReplyNode } from "../service.js";
+import { EmittedChannel } from "../channels.js";
+import { resolveMessageRefs } from "./messages.js";
 
 /** Everything the reply builder needs about one operation. */
 export interface ReplyContext {
@@ -44,10 +43,10 @@ export interface ReplyContext {
  * @param context - What this operation contributes to its reply
  * @returns The reply object, or `undefined` when this operation has none
  */
-export function buildOperationReply(
+export function resolveOperationReply(
   program: Program,
   context: ReplyContext,
-): OperationReplyObject | undefined {
+): OperationReplyNode | undefined {
   const { operation, ownChannel, channels, replyModels, requestModels, messageKeys } = context;
   const declaredChannel = getReplyChannelInternal(program, operation);
   const declaredAddress = getReplyAddressInternal(program, operation);
@@ -78,12 +77,12 @@ export function buildOperationReply(
   // reply channel. The rule holds by construction here. A reply travels over
   // the channel it names, so the channel collection puts every reply message
   // on that channel before this runs.
-  const messages = buildMessageReferences(replyModels, replyChannel, messageKeys);
+  const address = resolveReplyAddress(program, replyChannel, declaredAddress);
 
   return {
-    ...present("address", buildReplyAddress(program, replyChannel, declaredAddress)),
-    channel: { $ref: channelRef(replyChannel.id) },
-    ...present("messages", messages),
+    channelKey: replyChannel.id,
+    ...(address !== undefined ? { address } : {}),
+    messages: resolveMessageRefs(replyModels, replyChannel, messageKeys),
   };
 }
 
@@ -102,11 +101,11 @@ export function buildOperationReply(
  * The address is dropped and the rest of the reply survives. A reply over a
  * static channel is still a valid document.
  */
-function buildReplyAddress(
+function resolveReplyAddress(
   program: Program,
   replyChannel: EmittedChannel,
   declaredAddress: ReturnType<typeof getReplyAddressInternal>,
-): OperationReplyObject["address"] {
+): ReplyAddressState | undefined {
   if (declaredAddress === undefined) return undefined;
   if (replyChannel.address !== null) {
     reportDiagnostic(program, {

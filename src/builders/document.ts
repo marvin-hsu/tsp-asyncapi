@@ -10,7 +10,8 @@ import {
 import { lowerServers } from "../lower/servers.js";
 import { resolveChannels } from "../resolve/channels.js";
 import { lowerChannels } from "../lower/channels.js";
-import { buildOperations } from "./operations/builder.js";
+import { resolveOperations } from "../resolve/operations.js";
+import { lowerOperations } from "../lower/operations.js";
 import { buildInfo } from "./info.js";
 import { resolveMessages } from "../resolve/messages.js";
 import { lowerMessages, reportShadowedSchemaKeys } from "../lower/messages.js";
@@ -101,7 +102,9 @@ export function buildAsyncAPIDocument(
   // The operations are built after the channels. An operation refers to its
   // channel and to one message of that channel, so it needs the id and the
   // message keys of every channel that reached the document.
-  const operations = buildOperations(program, emitted, messageKeys, declaredSchemes, placements);
+  const operations = lowerOperations(
+    resolveOperations(program, emitted, messageKeys, declaredSchemes, placements),
+  );
 
   // The bindings are checked last. A binding reaches its object through
   // whichever builder emits that object, and the four builders have all run

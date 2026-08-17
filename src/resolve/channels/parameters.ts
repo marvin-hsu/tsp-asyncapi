@@ -7,7 +7,7 @@ import { getParameterLocation, listMessages } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { serializeExamples } from "../../builders/example-serialization.js";
 import { present, text } from "../../optional-fields.js";
-import { unwrapModels } from "../../builders/operation-models.js";
+import { unwrapModels } from "../operation-models.js";
 import { channelOperations } from "./scope.js";
 
 /**

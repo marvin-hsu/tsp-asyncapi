@@ -1,7 +1,6 @@
 import { Model } from "@typespec/compiler";
-import { ReferenceObject } from "../../types.js";
-import { EmittedChannel } from "../../resolve/channels.js";
-import { channelMessageRef } from "../json-pointer.js";
+import { MessageRefNode } from "../service.js";
+import { EmittedChannel } from "../channels.js";
 
 /**
  * Builds the message references of one side of an operation.
@@ -33,20 +32,22 @@ import { channelMessageRef } from "../json-pointer.js";
  * @returns The references, in signature order, or `undefined` when none
  * survives
  */
-export function buildMessageReferences(
+export function resolveMessageRefs(
   models: readonly Model[],
   channel: EmittedChannel,
   messageKeys: ReadonlyMap<Model, string>,
-): ReferenceObject[] | undefined {
-  const references: ReferenceObject[] = [];
+): readonly MessageRefNode[] {
+  const refs: MessageRefNode[] = [];
 
   for (const model of models) {
     // A model that describes no emitted message is not a message at all.
     if (!messageKeys.has(model)) continue;
-    const key = channel.messageKeys.get(model);
-    if (key === undefined) continue;
-    references.push({ $ref: channelMessageRef(channel.id, key) });
+    const messageKey = channel.messageKeys.get(model);
+    if (messageKey === undefined) continue;
+    // Only the two keys are carried. Writing the pointer they address is a
+    // document detail, so the lower stage does it.
+    refs.push({ channelKey: channel.id, messageKey });
   }
 
-  return references.length > 0 ? references : undefined;
+  return refs;
 }

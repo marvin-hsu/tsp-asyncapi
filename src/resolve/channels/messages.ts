@@ -2,7 +2,7 @@ import { Model, Program } from "@typespec/compiler";
 import { ChannelMessageNode } from "../service.js";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { channelMessageModels } from "../../builders/operation-models.js";
+import { channelMessageModels } from "../operation-models.js";
 
 /**
  * What one channel contributes to the rest of the document.
