@@ -226,6 +226,23 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 
+## Not implemented yet
+
+Measured against the AsyncAPI 3.0 JSON schema on 2026-08-17. The `channel`,
+`server` and `info` objects carry every field the specification defines.
+These are the gaps, and each one is a decision rather than an oversight.
+
+| Missing                                | What it means today                                                                                                                                | Why it is not there                                                                                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `traits` on a message and an operation | The only specification field absent from the four core objects. Write the fields on the object itself.                                             | A trait is a reusable fragment merged into an object. It needs the reuse machinery in the row below.                                               |
+| Reusable `components` sections         | `components` carries `schemas`, `messages` and `securitySchemes`. The rest of the document is emitted in place.                                    | Everything else has exactly one use site, so a `$ref` would add a hop without saving anything. This changes when traits arrive.                    |
+| `x-` specification extensions          | No decorator writes one. `@jsonSchemaExtension` is a different thing: it adds a keyword to a JSON Schema, not an `x-` field to an AsyncAPI object. | Waiting for a use case that the existing decorators cannot express.                                                                                |
+| More than one `@service`               | The first service is emitted and `multiple-services` reports the rest.                                                                             | AsyncAPI describes one application per document. Emitting several means choosing file names and cross-document references, which is the row below. |
+| Cross-file `$ref`                      | Every reference points inside the one emitted document.                                                                                            | It only becomes useful once one program emits several documents.                                                                                   |
+| `@typespec/versioning`                 | Not read. A versioned program emits the document its current state describes.                                                                      | The three-stage pipeline was built so that this becomes resolve-then-lower once per version. The plumbing is ready; the feature is not written.    |
+
+The [diagnostics reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/diagnostics) lists every code the emitter reports, so anything it cannot represent is reported rather than dropped in silence.
+
 ## Development
 
 ```bash

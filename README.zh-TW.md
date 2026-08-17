@@ -226,6 +226,22 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
+## 尚未實作
+
+以 AsyncAPI 3.0 的 JSON schema 於 2026-08-17 實測。`channel`、`server` 與
+`info` 三個物件的規格欄位已全數實作。以下是缺口，每一項都是決定，不是遺漏。
+
+| 缺什麼                           | 目前的替代做法                                                                                                              | 為什麼還沒做                                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| message 與 operation 的 `traits` | 四個核心物件裡唯一缺的規格欄位。直接把欄位寫在物件本身。                                                                    | trait 是可重用的片段，合併進物件。它需要下一列的重用機制。                            |
+| `components` 的可重用區塊        | `components` 只放 `schemas`、`messages` 與 `securitySchemes`，其餘就地展開。                                                | 其他東西都只有一個使用點，抽出去再 `$ref` 只是多一次跳轉。traits 進來後這點會改變。   |
+| `x-` 規格擴充                    | 沒有任何 decorator 會寫。`@jsonSchemaExtension` 是另一回事：它加的是 JSON Schema 的關鍵字，不是 AsyncAPI 物件的 `x-` 欄位。 | 等一個現有 decorator 表達不了的實際需求。                                             |
+| 多個 `@service`                  | 輸出第一個 service，其餘由 `multiple-services` 回報。                                                                       | AsyncAPI 一份文件描述一個應用。要輸出多個就得決定檔名與跨文件引用，也就是下一列。     |
+| 跨檔 `$ref`                      | 所有引用都指向同一份輸出文件的內部。                                                                                        | 要等到一個程式能輸出多份文件，它才有意義。                                            |
+| `@typespec/versioning`           | 不讀取。有版本的程式輸出的是它當前狀態所描述的文件。                                                                        | 三階段管線就是為此而建：每個版本各跑一次 resolve 與 lower。管路已經就位，功能還沒寫。 |
+
+[診斷訊息參考](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/diagnostics)列出 emitter 會回報的每一個代碼 —— 表達不了的東西都會被回報，不會靜默丟棄。
+
 ## 開發
 
 ```bash
