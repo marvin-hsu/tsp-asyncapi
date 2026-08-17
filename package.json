@@ -39,6 +39,7 @@
     "lib",
     "README.md",
     "README.zh-TW.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
