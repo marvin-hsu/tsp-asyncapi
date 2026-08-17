@@ -43,6 +43,14 @@ servers:
     externalDocs:
       url: https://example.com/docs/signup-events
       description: The signup event guide.
+    tags:
+      - name: signup
+        description: Everything the signup domain publishes.
+      - name: public-contract
+        description: Consumed outside the identity platform. Break it with care.
+        externalDocs:
+          url: https://example.com/contracts/signup
+          description: The compatibility policy for this contract.
     bindings:
       kafka:
         schemaRegistryUrl: https://registry.example.com
@@ -67,6 +75,14 @@ servers:
     externalDocs:
       url: https://example.com/docs/signup-events
       description: The signup event guide.
+    tags:
+      - name: signup
+        description: Everything the signup domain publishes.
+      - name: public-contract
+        description: Consumed outside the identity platform. Break it with care.
+        externalDocs:
+          url: https://example.com/contracts/signup
+          description: The compatibility policy for this contract.
     bindings:
       kafka:
         schemaRegistryUrl: https://registry.example.com
