@@ -15,20 +15,20 @@ import {
   getDiscriminatedUnion,
   ignoreDiagnostics,
 } from "@typespec/compiler";
-import { SchemaObject, ReferenceObject } from "../../types/index.js";
-import { reportDiagnostic } from "../../lib.js";
-import { isOneOf } from "../../decorators/index.js";
-import { JSON_SCHEMA_TYPE } from "../../constants.js";
-import { refFor, isUninstantiatedTemplateDeclaration } from "../../naming.js";
-import { SchemaDiagnostics } from "./diagnostics.js";
-import { SchemaKeyRegistry } from "./key-registration.js";
+import { SchemaObject, ReferenceObject } from "../types/index.js";
+import { reportDiagnostic } from "../lib.js";
+import { isOneOf } from "../decorators/index.js";
+import { JSON_SCHEMA_TYPE } from "../constants.js";
+import { refFor, isUninstantiatedTemplateDeclaration } from "../naming.js";
+import { SchemaDiagnostics } from "./schemas/diagnostics.js";
+import { SchemaKeyRegistry } from "./schemas/key-registration.js";
 import {
   findDiscriminatingProperty,
   findEncodedNameOverrideConflict,
   findNeverOverrideOfInheritedProperty,
-} from "./inheritance.js";
-import { withDocs, withPropertyDocs, buildValidationKeywords } from "./annotations.js";
-import { SCHEMA_ENCODING_MIME_TYPE } from "../../constants.js";
+} from "./schemas/inheritance.js";
+import { withDocs, withPropertyDocs, buildValidationKeywords } from "./schemas/annotations.js";
+import { SCHEMA_ENCODING_MIME_TYPE } from "../constants.js";
 import {
   isBuiltinScalar,
   isBuiltinCollectionInstantiation,
@@ -37,9 +37,9 @@ import {
   buildEnumSchemaBody,
   buildEnumMemberSchema,
   SCALAR_SCHEMAS,
-} from "./scalars.js";
-import { applyEncoding } from "./encoding.js";
-import { shouldEmitProperty } from "./visibility.js";
+} from "./schemas/scalars.js";
+import { applyEncoding } from "./schemas/encoding.js";
+import { shouldEmitProperty } from "./schemas/visibility.js";
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.

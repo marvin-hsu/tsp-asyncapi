@@ -13,7 +13,7 @@
 import { Program } from "@typespec/compiler";
 import type { MessageHeadersNode, MessageNode, MessagePayloadNode } from "../resolve/service.js";
 import { present, text } from "../optional-fields.js";
-import { SchemaBuilder } from "./schemas/builder.js";
+import { SchemaBuilder } from "./schemas.js";
 import { reportDiagnostic } from "../lib.js";
 import {
   MessageObject,

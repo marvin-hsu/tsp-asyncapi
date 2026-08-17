@@ -24,9 +24,10 @@ import { Diagnostic, getSourceLocation } from "@typespec/compiler";
  * The text of a string argument holds its quotes, because the node the
  * compiler points at is the whole string literal.
  *
- * @param diagnostic - The reported diagnostic
  * @returns The source text of its target, or an empty string when it has no
  * target. An empty string never matches text a test asks for.
+ * @param diagnostics
+ * @param code
  */
 export function findDiagnostic(diagnostics: readonly Diagnostic[], code: string): Diagnostic {
   const found = diagnostics.find((diagnostic) => diagnostic.code === code);
