@@ -8,7 +8,8 @@ import {
   resolveServers,
 } from "../resolve/servers.js";
 import { lowerServers } from "../lower/servers.js";
-import { buildChannels } from "./channels/builder.js";
+import { resolveChannels } from "../resolve/channels.js";
+import { lowerChannels } from "../lower/channels.js";
 import { buildOperations } from "./operations/builder.js";
 import { buildInfo } from "./info.js";
 import { resolveMessages } from "../resolve/messages.js";
@@ -80,7 +81,8 @@ export function buildAsyncAPIDocument(
 
   // The channels are built after the components, because a channel refers to
   // its messages by the key `components.messages` gave them.
-  const { channels, emitted } = buildChannels(program, messageKeys, placements);
+  const { channels: channelNodes, emitted } = resolveChannels(program, messageKeys, placements);
+  const channels = lowerChannels(channelNodes);
 
   // Servers come from the service namespace, the same source as `info`. A
   // server on any other namespace is reported, then left out.

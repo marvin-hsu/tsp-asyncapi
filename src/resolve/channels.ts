@@ -1,0 +1,142 @@
+/**
+ * The resolve half of the channels.
+ *
+ * It reads the `@channel` state, assigns each channel its key in the root
+ * `channels` map, and settles the three things a channel is made of besides
+ * its own prose: the servers it is available on, the parameters of its
+ * address, and the messages it carries.
+ *
+ * The lower half turns those nodes into Channel Objects. Every reference in
+ * the output is written there, because a `$ref` is a document detail rather
+ * than a fact about the program.
+ */
+
+import { Model, Program, getDoc, getSummary } from "@typespec/compiler";
+import { ChannelTarget, listChannelsInternal } from "../decorators/channels/state.js";
+import { listUseServerTargets } from "../decorators/channels/use-server-state.js";
+import { reportDiagnostic } from "../lib.js";
+import { buildExternalDocs } from "../builders/external-docs.js";
+import { buildTags } from "../builders/tags.js";
+import { BindingPlacements, markBindingsPlaced, resolveBindings } from "./bindings.js";
+import { resolveChannelMessages } from "./channels/messages.js";
+import { resolveChannelParameters } from "./channels/parameters.js";
+import { resolveChannelServers } from "./channels/servers.js";
+import { ChannelNode } from "./service.js";
+
+/**
+ * One channel that reached the document.
+ *
+ * The operations resolver needs all three fields. The key builds the
+ * reference that points at the channel. The message keys build the reference
+ * that points at one message of it. The address decides whether a reply may
+ * carry an address of its own, because AsyncAPI allows that only on a channel
+ * whose address is `null`.
+ *
+ * @internal
+ */
+export interface EmittedChannel {
+  /** The key of this channel in the emitted `channels` map. */
+  id: string;
+  /** The address it was emitted with. It is `null` for a dynamic channel. */
+  address: string | null;
+  /** The key this channel gave each message model it carries. */
+  messageKeys: ReadonlyMap<Model, string>;
+}
+
+/** What the channel resolver hands to the rest of the pipeline. */
+export interface ResolvedChannels {
+  readonly channels: readonly ChannelNode[];
+  readonly emitted: ReadonlyMap<ChannelTarget, EmittedChannel>;
+}
+
+/**
+ * Resolves every `@channel` the program declares.
+ *
+ * Every channel goes to the root `channels` map. `components.channels` exists
+ * in AsyncAPI for a channel no operation refers to, and this emitter does not
+ * use it. A channel declared in TypeSpec is always meant to be part of the
+ * application, so hoisting some of them into `components` would add a level
+ * of indirection with no reader benefit.
+ *
+ * A repeated id is reported and the later channel is dropped, the same rule
+ * every other key collision in this emitter follows.
+ *
+ * @param program - The program to read the channels from
+ * @param messageKeys - The `components.messages` key each model claimed
+ * @param placements - Where the binding applications this build placed are
+ * recorded
+ * @returns The channels in source order, and the channel each target
+ * contributed
+ * @internal
+ */
+export function resolveChannels(
+  program: Program,
+  messageKeys: ReadonlyMap<Model, string>,
+  placements: BindingPlacements,
+): ResolvedChannels {
+  const channels: ChannelNode[] = [];
+  const claimedBy = new Set<string>();
+  const emitted = new Map<ChannelTarget, EmittedChannel>();
+
+  for (const { target, record } of listChannelsInternal(program)) {
+    const key = record.state.channelId ?? target.name;
+    if (claimedBy.has(key)) {
+      reportDiagnostic(program, { code: "duplicate-channel-id", format: { id: key }, target });
+      // The repeated id is the mistake, and it is already reported. The
+      // bindings of this channel are not a second one.
+      markBindingsPlaced(program, "channel", target, placements);
+      continue;
+    }
+    claimedBy.add(key);
+
+    const messages = resolveChannelMessages(program, target, key, messageKeys);
+    channels.push({
+      target,
+      key,
+      address: record.state.address,
+      ...optional("title", getSummary(program, target)),
+      ...optional("description", getDoc(program, target)),
+      servers: resolveChannelServers(program, target),
+      parameters: resolveChannelParameters(program, target, record, key),
+      messages: messages.messages,
+      messageKeys: messages.keys,
+      tags: buildTags(program, target) ?? [],
+      ...optional("externalDocs", buildExternalDocs(program, target)),
+      bindings: resolveBindings(program, "channel", target, placements),
+    });
+    emitted.set(target, { id: key, address: record.state.address, messageKeys: messages.keys });
+  }
+
+  reportUseServerWithoutChannel(program);
+
+  return { channels, emitted };
+}
+
+/**
+ * Reports every `@useServer` that sits on a target with no channel.
+ *
+ * Only a channel carries a `servers` field, so such an application reaches no
+ * part of the document. Dropping it in silence hides an author mistake, so
+ * each one names the server it wanted.
+ */
+function reportUseServerWithoutChannel(program: Program): void {
+  const channels = new Set(listChannelsInternal(program).map(({ target }) => target));
+  for (const [target, recorded] of listUseServerTargets(program)) {
+    if (channels.has(target)) continue;
+    for (const entry of recorded) {
+      reportDiagnostic(program, {
+        code: "use-server-without-channel",
+        format: { name: entry.name },
+        target: entry.node,
+      });
+    }
+  }
+}
+
+/** Includes a field only when it is defined. */
+function optional<K extends string, V>(
+  name: K,
+  value: V | undefined,
+): Record<K, V> | Record<string, never> {
+  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
+}

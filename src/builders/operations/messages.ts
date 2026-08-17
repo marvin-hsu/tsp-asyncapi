@@ -1,6 +1,6 @@
 import { Model } from "@typespec/compiler";
 import { ReferenceObject } from "../../types.js";
-import { EmittedChannel } from "../channels/builder.js";
+import { EmittedChannel } from "../../resolve/channels.js";
 import { channelMessageRef } from "../json-pointer.js";
 
 /**

@@ -2,8 +2,6 @@ import { Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { getUsedServers } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ReferenceObject } from "../../types.js";
-import { serverRef } from "../json-pointer.js";
 import { orderBySourceNodes } from "../../source-order.js";
 
 /**
@@ -25,12 +23,9 @@ import { orderBySourceNodes } from "../../source-order.js";
  * server. The caller then leaves the field out, which AsyncAPI reads as
  * "available on every server".
  */
-export function buildChannelServers(
-  program: Program,
-  target: ChannelTarget,
-): ReferenceObject[] | undefined {
+export function resolveChannelServers(program: Program, target: ChannelTarget): readonly string[] {
   const recorded = getUsedServers(program, target);
-  if (recorded.length === 0) return undefined;
+  if (recorded.length === 0) return [];
 
   const ordered = orderBySourceNodes(
     program,
@@ -39,7 +34,7 @@ export function buildChannelServers(
   );
 
   const claimed = new Set<string>();
-  const references: ReferenceObject[] = [];
+  const names: string[] = [];
   for (const entry of ordered) {
     if (claimed.has(entry.name)) {
       reportDiagnostic(program, {
@@ -50,7 +45,9 @@ export function buildChannelServers(
       continue;
     }
     claimed.add(entry.name);
-    references.push({ $ref: serverRef(entry.name) });
+    // Only the name is carried. Turning it into a reference is a document
+    // detail, so the lower stage does it.
+    names.push(entry.name);
   }
-  return references;
+  return names;
 }

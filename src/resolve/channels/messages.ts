@@ -1,9 +1,8 @@
 import { Model, Program } from "@typespec/compiler";
+import { ChannelMessageNode } from "../service.js";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ReferenceObject } from "../../types.js";
-import { componentsMessageRef } from "../json-pointer.js";
-import { channelMessageModels } from "../operation-models.js";
+import { channelMessageModels } from "../../builders/operation-models.js";
 
 /**
  * What one channel contributes to the rest of the document.
@@ -14,8 +13,8 @@ import { channelMessageModels } from "../operation-models.js";
  * recomputes them.
  */
 export interface ChannelMessages {
-  /** The `messages` map, or `undefined` when the channel names none. */
-  messages: Record<string, ReferenceObject> | undefined;
+  /** The messages this channel carries, in source order. */
+  messages: ChannelMessageNode[];
   /** The key this channel gave each model it carries. */
   keys: Map<Model, string>;
 }
@@ -46,13 +45,13 @@ export interface ChannelMessages {
  * @param messageKeys - The key each emitted message model was given
  * @returns The `messages` map and the key of each model on this channel
  */
-export function buildChannelMessages(
+export function resolveChannelMessages(
   program: Program,
   target: ChannelTarget,
   channelId: string,
   messageKeys: ReadonlyMap<Model, string>,
 ): ChannelMessages {
-  const entries: [string, ReferenceObject][] = [];
+  const nodes: ChannelMessageNode[] = [];
   const claimed = new Set<string>();
   const keys = new Map<Model, string>();
 
@@ -61,20 +60,15 @@ export function buildChannelMessages(
     if (key === undefined || claimed.has(key)) continue;
     claimed.add(key);
     keys.set(model, key);
-    entries.push([key, { $ref: componentsMessageRef(key) }]);
+    nodes.push({ model, key });
   }
 
-  if (entries.length === 0) {
+  if (nodes.length === 0) {
     reportDiagnostic(program, {
       code: "channel-no-messages",
       format: { id: channelId },
       target,
     });
-    return { messages: undefined, keys };
   }
-
-  // The map is built from entries, so a key such as `__proto__` becomes an
-  // own property instead of a write to the prototype. This matches the way
-  // every other map in this emitter is built.
-  return { messages: Object.fromEntries(entries), keys };
+  return { messages: nodes, keys };
 }

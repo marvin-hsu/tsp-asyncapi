@@ -18,7 +18,7 @@ import {
 } from "../decorators/operations/reply-state.js";
 import { OperationAction } from "../decorators/operations/state.js";
 import { bySourcePosition, sourcePositionOf } from "../source-order.js";
-import { channelOperations } from "./channels/scope.js";
+import { channelOperations } from "../resolve/channels/scope.js";
 
 /**
  * The models of one operation signature, split by side.

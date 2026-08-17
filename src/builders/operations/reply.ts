@@ -6,7 +6,7 @@ import {
 } from "../../decorators/operations/reply-state.js";
 import { reportDiagnostic } from "../../lib.js";
 import { OperationReplyObject } from "../../types.js";
-import { EmittedChannel } from "../channels/builder.js";
+import { EmittedChannel } from "../../resolve/channels.js";
 import { channelRef } from "../json-pointer.js";
 import { present } from "../../optional-fields.js";
 import { buildMessageReferences } from "./messages.js";

@@ -1,13 +1,13 @@
 import { Enum, ModelProperty, Program, Scalar, Type, Union, getDoc } from "@typespec/compiler";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
 import { parseAddressParameters } from "../../decorators/channels/address-template.js";
+import { ChannelParameterNode } from "../service.js";
 import { ChannelRecord, ChannelTarget } from "../../decorators/channels/state.js";
 import { getParameterLocation, listMessages } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
-import { ParameterObject } from "../../types.js";
-import { serializeExamples } from "../example-serialization.js";
+import { serializeExamples } from "../../builders/example-serialization.js";
 import { present, text } from "../../optional-fields.js";
-import { unwrapModels } from "../operation-models.js";
+import { unwrapModels } from "../../builders/operation-models.js";
 import { channelOperations } from "./scope.js";
 
 /**
@@ -41,17 +41,17 @@ import { channelOperations } from "./scope.js";
  * @returns The `parameters` map, or `undefined` when the address holds no
  * expression
  */
-export function buildChannelParameters(
+export function resolveChannelParameters(
   program: Program,
   target: ChannelTarget,
   record: ChannelRecord,
   channelId: string,
-): Record<string, ParameterObject> | undefined {
+): readonly ChannelParameterNode[] {
   const address = record.state.address;
   // A dynamic channel carries no address, so neither direction of the match
   // applies to it. Every check below would name an address the channel does
   // not have, and the fix each one asks for would be impossible to write.
-  if (address === null) return undefined;
+  if (address === null) return [];
 
   // One name written twice in an address is one parameter. The duplicate is
   // taken out here, so nothing below reports the same mistake twice.
@@ -61,12 +61,10 @@ export function buildChannelParameters(
 
   reportAddressMismatch(program, record, channelId, names, declared);
 
-  if (names.length === 0) return undefined;
-  const entries: [string, ParameterObject][] = names.map((name) => [
-    name,
-    describeParameter(program, name, declared.get(name), readFields),
-  ]);
-  return Object.fromEntries(entries);
+  if (names.length === 0) return [];
+  return names.map((name) =>
+    describeParameter(program, name, declared.get(name), readFields, target),
+  );
 }
 
 /**
@@ -183,14 +181,19 @@ function describeParameter(
   name: string,
   properties: ModelProperty[] | undefined,
   readFields: ParameterFieldReader,
-): ParameterObject {
-  if (properties === undefined) return {};
+  channel: ChannelTarget,
+): ChannelParameterNode {
+  // A node is produced for every name in the address, including one no
+  // declaration describes and one whose declarations do not hold up. The
+  // lower stage then needs no usable flag and never parses the address again.
+  const bare = { target: properties?.[0] ?? channel, name };
+  if (properties === undefined) return bare;
   let usable = true;
   for (const property of properties) {
     if (!checkDeclaration(program, name, property, readFields(property))) usable = false;
   }
-  if (!usable) return {};
-  return buildParameter(readFields(properties[0]));
+  if (!usable) return bare;
+  return { ...bare, ...buildParameter(readFields(properties[0])) };
 }
 
 /**
@@ -319,10 +322,10 @@ function checkDeclaration(
  * `schema` field here, so the declared type reaches the document only
  * through `enum`, and only when the type names a limited set of values.
  */
-function buildParameter(fields: ParameterFields): ParameterObject {
+function buildParameter(fields: ParameterFields): Omit<ChannelParameterNode, "target" | "name"> {
   const values = fields.values;
   return {
-    ...present("enum", values !== undefined && values.length > 0 ? values : undefined),
+    ...present("enumValues", values !== undefined && values.length > 0 ? values : undefined),
     ...text("default", fields.default),
     ...text("description", fields.description),
     ...present("examples", fields.examples),
