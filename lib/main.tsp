@@ -269,6 +269,115 @@ extern dec websocketChannel(
   config: valueof AsyncAPIWebSocketChannelBinding
 );
 
+// Adds the MQTT server binding to the servers of one namespace.
+// Apply it to the service namespace. Every server that namespace declares
+// gets its own copy, for the same reason `@kafkaServer` works that way.
+extern dec mqttServer(target: Namespace, config: valueof AsyncAPIMqttServerBinding);
+// Adds the MQTT operation binding to one operation.
+// Apply it to an operation that carries `@send` or `@receive`.
+extern dec mqttOperation(target: Operation, config: valueof AsyncAPIMqttOperationBinding);
+// Adds the MQTT message binding to one message.
+// Apply it to a model that carries `@message`.
+// MQTT defines no channel binding with fields, so there is no `mqttChannel`.
+extern dec mqttMessage(target: Model, config: valueof AsyncAPIMqttMessageBinding);
+
+// Adds the HTTP operation binding to one operation.
+// Apply it to an operation that carries `@send` or `@receive`.
+extern dec httpOperation(target: Operation, config: valueof AsyncAPIHttpOperationBinding);
+// Adds the HTTP message binding to one message.
+// Apply it to a model that carries `@message`.
+extern dec httpMessage(target: Model, config: valueof AsyncAPIHttpMessageBinding);
+
+// Adds the AMQP channel binding to one channel.
+// Apply it to the interface or namespace that carries `@channel` or
+// `@dynamicChannel`. The member covers AMQP 0-9-1, not AMQP 1.0.
+extern dec amqpChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIAmqpChannelBinding
+);
+// Adds the AMQP operation binding to one operation.
+// Apply it to an operation that carries `@send` or `@receive`.
+extern dec amqpOperation(target: Operation, config: valueof AsyncAPIAmqpOperationBinding);
+// Adds the AMQP message binding to one message.
+// Apply it to a model that carries `@message`.
+extern dec amqpMessage(target: Model, config: valueof AsyncAPIAmqpMessageBinding);
+
+// Adds the NATS binding to one operation.
+// Apply it to an operation that carries `@send` or `@receive`.
+// NATS defines no server, channel or message binding.
+extern dec natsOperation(target: Operation, config: valueof AsyncAPINatsOperationBinding);
+
+// Adds the Pulsar server binding to the servers of one namespace.
+// Apply it to the service namespace.
+extern dec pulsarServer(target: Namespace, config: valueof AsyncAPIPulsarServerBinding);
+// Adds the Pulsar channel binding to one channel.
+// `namespace` and `persistence` are required. A binding without either one is
+// reported and dropped whole.
+extern dec pulsarChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIPulsarChannelBinding
+);
+
+// Adds the Google Cloud Pub/Sub channel binding to one channel.
+// `schemaSettings` is required, and it requires `encoding` and `name`.
+extern dec googlePubSubChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIGooglePubSubChannelBinding
+);
+// Adds the Google Cloud Pub/Sub message binding to one message.
+// Apply it to a model that carries `@message`.
+extern dec googlePubSubMessage(
+  target: Model,
+  config: valueof AsyncAPIGooglePubSubMessageBinding
+);
+
+// Adds the Amazon SQS channel binding to one channel.
+// `queue` is required, and it requires `name` and `fifoQueue`.
+extern dec sqsChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPISqsChannelBinding
+);
+// Adds the Amazon SQS operation binding to one operation.
+// `queues` is required, and every entry requires `name`.
+extern dec sqsOperation(target: Operation, config: valueof AsyncAPISqsOperationBinding);
+
+// Adds the Anypoint MQ channel binding to one channel.
+extern dec anypointMqChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIAnypointMqChannelBinding
+);
+// Adds the Anypoint MQ message binding to one message.
+extern dec anypointMqMessage(
+  target: Model,
+  config: valueof AsyncAPIAnypointMqMessageBinding
+);
+
+// Adds the JMS server binding to the servers of one namespace.
+// `jmsConnectionFactory` is required.
+extern dec jmsServer(target: Namespace, config: valueof AsyncAPIJmsServerBinding);
+// Adds the JMS channel binding to one channel.
+extern dec jmsChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIJmsChannelBinding
+);
+// Adds the JMS message binding to one message.
+extern dec jmsMessage(target: Model, config: valueof AsyncAPIJmsMessageBinding);
+
+// Adds the IBM MQ server binding to the servers of one namespace.
+extern dec ibmMqServer(target: Namespace, config: valueof AsyncAPIIbmMqServerBinding);
+// Adds the IBM MQ channel binding to one channel.
+extern dec ibmMqChannel(
+  target: Interface | Namespace,
+  config: valueof AsyncAPIIbmMqChannelBinding
+);
+// Adds the IBM MQ message binding to one message.
+extern dec ibmMqMessage(target: Model, config: valueof AsyncAPIIbmMqMessageBinding);
+
+// Adds the Solace server binding to the servers of one namespace.
+extern dec solaceServer(target: Namespace, config: valueof AsyncAPISolaceServerBinding);
+// Adds the Solace operation binding to one operation.
+extern dec solaceOperation(target: Operation, config: valueof AsyncAPISolaceOperationBinding);
+
 // The Kafka server binding fields.
 // AsyncAPI says the three schema-registry fields of the channel and message
 // bindings only apply when `schemaRegistryUrl` is set here. The emitter does
@@ -317,6 +426,298 @@ model AsyncAPIWebSocketChannelBinding {
   method?: string;
   query?: unknown;
   headers?: unknown;
+}
+
+// The MQTT Last Will and Testament.
+// `qos` is 0, 1 or 2.
+model AsyncAPIMqttLastWill {
+  topic?: string;
+  qos?: int32;
+  message?: string;
+  retain?: boolean;
+}
+
+// The MQTT server binding fields.
+// `sessionExpiryInterval` and `maximumPacketSize` are MQTT 5 fields. Each one
+// is a number of seconds or bytes, or a Schema Object describing that number.
+model AsyncAPIMqttServerBinding {
+  clientId?: string;
+  cleanSession?: boolean;
+  lastWill?: AsyncAPIMqttLastWill;
+  keepAlive?: int32;
+  sessionExpiryInterval?: unknown;
+  maximumPacketSize?: unknown;
+}
+
+// The MQTT operation binding fields.
+// `qos` is 0, 1 or 2. `messageExpiryInterval` is an MQTT 5 field.
+model AsyncAPIMqttOperationBinding {
+  qos?: int32;
+  retain?: boolean;
+  messageExpiryInterval?: unknown;
+}
+
+// The MQTT message binding fields.
+// All four are MQTT 5 fields. `payloadFormatIndicator` is 0 for bytes and 1
+// for UTF-8. `correlationData` is a Schema Object. `responseTopic` is a topic
+// name or a Schema Object.
+model AsyncAPIMqttMessageBinding {
+  payloadFormatIndicator?: int32;
+  correlationData?: unknown;
+  contentType?: string;
+  responseTopic?: unknown;
+}
+
+// The HTTP operation binding fields.
+// `method` is one of GET, PUT, POST, PATCH, DELETE, HEAD, OPTIONS, CONNECT
+// and TRACE.
+// `query` is a Schema Object of type `object` with a `properties` key.
+model AsyncAPIHttpOperationBinding {
+  method?: string;
+  query?: unknown;
+}
+
+// The HTTP message binding fields.
+// `headers` is a Schema Object of type `object` with a `properties` key.
+// `statusCode` applies to a message named by an Operation Reply Object.
+model AsyncAPIHttpMessageBinding {
+  headers?: unknown;
+  statusCode?: int32;
+}
+
+// The AMQP exchange one channel is bound to.
+// `type` is one of topic, direct, fanout, default and headers.
+model AsyncAPIAmqpExchange {
+  name?: string;
+  type?: string;
+  durable?: boolean;
+  autoDelete?: boolean;
+  vhost?: string;
+}
+
+// The AMQP queue one channel is bound to.
+model AsyncAPIAmqpQueue {
+  name?: string;
+  durable?: boolean;
+  exclusive?: boolean;
+  autoDelete?: boolean;
+  vhost?: string;
+}
+
+// The AMQP channel binding fields.
+// `is` is `queue` or `routingKey`.
+model AsyncAPIAmqpChannelBinding {
+  // `is` is a TypeSpec keyword, so the field name is written in backticks.
+  // The emitted member is still `is`, which is what AMQP names it.
+  `is`?: string;
+  exchange?: AsyncAPIAmqpExchange;
+  queue?: AsyncAPIAmqpQueue;
+}
+
+// The AMQP operation binding fields.
+// `deliveryMode` is 1 for transient and 2 for persistent.
+// `expiration` is a number of milliseconds.
+model AsyncAPIAmqpOperationBinding {
+  expiration?: int32;
+  userId?: string;
+  cc?: string[];
+  priority?: int32;
+  deliveryMode?: int32;
+  mandatory?: boolean;
+  bcc?: string[];
+  timestamp?: boolean;
+  ack?: boolean;
+}
+
+// The AMQP message binding fields.
+model AsyncAPIAmqpMessageBinding {
+  contentEncoding?: string;
+  messageType?: string;
+}
+
+// The NATS operation binding fields.
+// `queue` is the queue group name, at most 255 characters.
+model AsyncAPINatsOperationBinding {
+  queue?: string;
+}
+
+// The Pulsar server binding fields.
+model AsyncAPIPulsarServerBinding {
+  tenant?: string;
+}
+
+// How long Pulsar keeps a message. `0` disables retention on that measure.
+model AsyncAPIPulsarRetention {
+  time?: int32;
+  size?: int32;
+}
+
+// The Pulsar channel binding fields.
+// `namespace` and `persistence` are required.
+// `persistence` is `persistent` or `non-persistent`.
+// `geoReplication` is emitted as `geo-replication`. A TypeSpec field name
+// cannot hold a dash, so the two names differ here and nowhere else.
+model AsyncAPIPulsarChannelBinding {
+  // `namespace` is a TypeSpec keyword, so the field name is written in
+  // backticks. The emitted field is still `namespace`.
+  `namespace`?: string;
+  persistence?: string;
+  compaction?: int32;
+  geoReplication?: string[];
+  retention?: AsyncAPIPulsarRetention;
+  ttl?: int32;
+  deduplication?: boolean;
+}
+
+// The schema one Google Cloud Pub/Sub topic validates against.
+// `encoding` and `name` are both required.
+model AsyncAPIGooglePubSubSchemaSettings {
+  encoding?: string;
+  name?: string;
+  firstRevisionId?: string;
+  lastRevisionId?: string;
+}
+
+// Where a Google Cloud Pub/Sub topic keeps its messages.
+model AsyncAPIGooglePubSubStoragePolicy {
+  allowedPersistenceRegions?: string[];
+}
+
+// The Google Cloud Pub/Sub channel binding fields.
+// `schemaSettings` is required.
+// `labels` is an open map, emitted as written.
+model AsyncAPIGooglePubSubChannelBinding {
+  schemaSettings?: AsyncAPIGooglePubSubSchemaSettings;
+  labels?: Record<unknown>;
+  messageRetentionDuration?: string;
+  messageStoragePolicy?: AsyncAPIGooglePubSubStoragePolicy;
+}
+
+// The schema one Google Cloud Pub/Sub message names.
+model AsyncAPIGooglePubSubSchema {
+  name?: string;
+}
+
+// The Google Cloud Pub/Sub message binding fields.
+// `attributes` is an open map, emitted as written.
+model AsyncAPIGooglePubSubMessageBinding {
+  attributes?: Record<unknown>;
+  orderingKey?: string;
+  schema?: AsyncAPIGooglePubSubSchema;
+}
+
+// One Amazon SQS queue.
+// A channel binding requires `name` and `fifoQueue`. An operation binding
+// requires `name` alone.
+// `deduplicationScope` is `queue` or `messageGroup`.
+// `fifoThroughputLimit` is `perQueue` or `perMessageGroupId`.
+// The four time fields are numbers of seconds.
+model AsyncAPISqsQueue {
+  name?: string;
+  fifoQueue?: boolean;
+  deduplicationScope?: string;
+  fifoThroughputLimit?: string;
+  deliveryDelay?: int32;
+  visibilityTimeout?: int32;
+  receiveMessageWaitTime?: int32;
+  messageRetentionPeriod?: int32;
+  redrivePolicy?: Record<unknown>;
+  policy?: Record<unknown>;
+  tags?: Record<unknown>;
+}
+
+// The Amazon SQS channel binding fields.
+// `queue` is required.
+model AsyncAPISqsChannelBinding {
+  queue?: AsyncAPISqsQueue;
+  deadLetterQueue?: AsyncAPISqsQueue;
+}
+
+// The Amazon SQS operation binding fields.
+// `queues` is required and must hold at least one queue.
+model AsyncAPISqsOperationBinding {
+  queues?: AsyncAPISqsQueue[];
+}
+
+// The Anypoint MQ channel binding fields.
+// `destinationType` is `exchange`, `queue` or `fifo-queue`.
+model AsyncAPIAnypointMqChannelBinding {
+  destination?: string;
+  destinationType?: string;
+}
+
+// The Anypoint MQ message binding fields.
+// `headers` is a Schema Object, written as an object literal.
+model AsyncAPIAnypointMqMessageBinding {
+  headers?: unknown;
+}
+
+// The JMS server binding fields.
+// `jmsConnectionFactory` is required.
+model AsyncAPIJmsServerBinding {
+  jmsConnectionFactory?: string;
+  properties?: unknown[];
+  clientID?: string;
+}
+
+// The JMS channel binding fields.
+// `destinationType` is `queue` or `fifo-queue`.
+model AsyncAPIJmsChannelBinding {
+  destination?: string;
+  destinationType?: string;
+}
+
+// The JMS message binding fields.
+// `headers` is a Schema Object, written as an object literal.
+model AsyncAPIJmsMessageBinding {
+  headers?: unknown;
+}
+
+// The IBM MQ server binding fields.
+// `heartBeatInterval` is from 0 to 999999 seconds.
+model AsyncAPIIbmMqServerBinding {
+  groupId?: string;
+  ccdtQueueManagerName?: string;
+  cipherSpec?: string;
+  multiEndpointServer?: boolean;
+  heartBeatInterval?: int32;
+}
+
+// The IBM MQ channel binding fields.
+// `destinationType` is `topic` or `queue`.
+// `maxMsgLength` is from 0 to 104857600 bytes.
+model AsyncAPIIbmMqChannelBinding {
+  destinationType?: string;
+  queue?: Record<unknown>;
+  topic?: Record<unknown>;
+  maxMsgLength?: int32;
+}
+
+// The IBM MQ message binding fields.
+// `type` is `string`, `jms` or `binary`.
+// `headers` is a comma-separated list of header names, not a Schema Object.
+model AsyncAPIIbmMqMessageBinding {
+  type?: string;
+  headers?: string;
+  description?: string;
+  expiry?: int32;
+}
+
+// The Solace server binding fields.
+// `clientName` is at most 160 characters.
+model AsyncAPISolaceServerBinding {
+  msgVpn?: string;
+  clientName?: string;
+}
+
+// The Solace operation binding fields.
+// Each entry of `destinations` may carry a `deliveryMode` of `direct` or
+// `persistent`. The rest of an entry is emitted as written.
+model AsyncAPISolaceOperationBinding {
+  destinations?: unknown[];
+  timeToLive?: int32;
+  priority?: int32;
+  dmqEligible?: boolean;
 }
 
 model AsyncAPIInfo {

@@ -206,6 +206,17 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@AsyncAPI.binding` — Adds generic protocol binding configurations.
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — Adds Kafka-specific binding configurations.
 - `@AsyncAPI.websocketChannel` — Adds the WebSocket channel binding.
+- `@AsyncAPI.mqttServer` / `@AsyncAPI.mqttOperation` / `@AsyncAPI.mqttMessage` — Adds the MQTT bindings.
+- `@AsyncAPI.httpOperation` / `@AsyncAPI.httpMessage` — Adds the HTTP bindings.
+- `@AsyncAPI.amqpChannel` / `@AsyncAPI.amqpOperation` / `@AsyncAPI.amqpMessage` — Adds the AMQP 0-9-1 bindings.
+- `@AsyncAPI.natsOperation` — Adds the NATS operation binding.
+- `@AsyncAPI.pulsarServer` / `@AsyncAPI.pulsarChannel` — Adds the Pulsar bindings.
+- `@AsyncAPI.googlePubSubChannel` / `@AsyncAPI.googlePubSubMessage` — Adds the Google Cloud Pub/Sub bindings.
+- `@AsyncAPI.sqsChannel` / `@AsyncAPI.sqsOperation` — Adds the Amazon SQS bindings.
+- `@AsyncAPI.anypointMqChannel` / `@AsyncAPI.anypointMqMessage` — Adds the Anypoint MQ bindings.
+- `@AsyncAPI.jmsServer` / `@AsyncAPI.jmsChannel` / `@AsyncAPI.jmsMessage` — Adds the JMS bindings.
+- `@AsyncAPI.ibmMqServer` / `@AsyncAPI.ibmMqChannel` / `@AsyncAPI.ibmMqMessage` — Adds the IBM MQ bindings.
+- `@AsyncAPI.solaceServer` / `@AsyncAPI.solaceOperation` — Adds the Solace bindings.
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 

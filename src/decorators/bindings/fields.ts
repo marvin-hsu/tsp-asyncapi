@@ -103,3 +103,200 @@ export function schemaField(
   }
   return plain;
 }
+
+/**
+ * Checks one field that a binding limits to a fixed set of numbers.
+ *
+ * MQTT states its quality of service as `0`, `1` or `2`, and its payload
+ * format indicator as `0` or `1`. A value outside the set names a mode no
+ * broker implements.
+ *
+ * The declared type is `int32`, so the value is already whole by the time it
+ * arrives. Only membership is checked here.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param allowed - The values the binding specification allows
+ * @param target - Where a problem is reported
+ * @returns The value, or `undefined` when it was absent or rejected
+ * @internal
+ */
+export function numericField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: number | undefined,
+  allowed: readonly number[],
+  target: DiagnosticTarget,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value)) {
+    reportBindingField(context, protocol, field, allowed.join(", "), target);
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Checks one field a binding types as a number or a Schema Object.
+ *
+ * MQTT 5 states four fields this way. Each one holds a fixed value, or a
+ * schema that describes the value. Both reach the document as written.
+ *
+ * A string, a boolean or an array is neither, so it is reported and dropped.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @returns The number or the plain JSON object, or `undefined` when the field
+ * was absent or rejected
+ * @internal
+ */
+export function numberOrSchemaField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  target: DiagnosticTarget,
+): number | Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (typeof plain === "number") return plain;
+  if (isPlainObject(plain)) return plain;
+  reportBindingField(context, protocol, field, "a number or a schema object", target);
+  return undefined;
+}
+
+/**
+ * Checks one field a binding types as a string or a Schema Object.
+ *
+ * MQTT states `responseTopic` this way. It holds a topic name, or a schema
+ * that describes the name. Both reach the document as written.
+ *
+ * A blank string is dropped without a report. It names no topic, and the
+ * author who wrote spaces meant no topic rather than a topic called spaces.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @returns The string or the plain JSON object, or `undefined` when the field
+ * was absent, blank, or rejected
+ * @internal
+ */
+export function stringOrSchemaField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  target: DiagnosticTarget,
+): string | Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (typeof plain === "string") return trimmed(plain);
+  if (isPlainObject(plain)) return plain;
+  reportBindingField(context, protocol, field, "a topic name or a schema object", target);
+  return undefined;
+}
+
+/**
+ * Checks one Schema Object field that must describe a set of named values.
+ *
+ * The WebSocket and HTTP bindings both state this rule, for the query
+ * parameters and the headers of a request. The schema must be of type
+ * `object` and must have a `properties` key. A schema that says neither
+ * describes no parameter at all, so a generator reading it produces a request
+ * with nothing in it.
+ *
+ * A `$ref` passes without either key. The reference names a schema that lives
+ * elsewhere, and this emitter does not follow it.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @returns The plain JSON object, or `undefined` when it was absent or
+ * rejected
+ * @internal
+ */
+export function namedValuesSchemaField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  target: DiagnosticTarget,
+): Record<string, unknown> | undefined {
+  const schema = schemaField(context, protocol, field, value, target);
+  if (schema === undefined) return undefined;
+  if (schema.$ref !== undefined) return schema;
+  if (schema.type !== "object" || schema.properties === undefined) {
+    reportBindingField(
+      context,
+      protocol,
+      field,
+      'an object schema with a "properties" key',
+      target,
+    );
+    return undefined;
+  }
+  return schema;
+}
+
+/**
+ * Reports a field the binding specification requires and the author left out.
+ *
+ * The caller drops the whole binding after this call. A binding missing a
+ * required field cannot be written as a valid document, and emitting a
+ * partial one would hand the author a document that fails validation with a
+ * message about the emitter rather than about their source.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field the specification requires
+ * @param target - Where the problem is reported
+ * @internal
+ */
+export function reportMissingField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  target: DiagnosticTarget,
+): void {
+  reportDiagnostic(context.program, {
+    code: "missing-binding-field",
+    format: { protocol, field },
+    target,
+  });
+}
+
+/**
+ * Names the fields a nested binding object requires but does not carry.
+ *
+ * Several bindings nest an object that has required fields of its own. The
+ * queue of an SQS channel needs a name and a FIFO flag. The schema settings
+ * of a Google Pub/Sub channel need an encoding and a name.
+ *
+ * A blank string counts as absent. It names nothing, so a broker or a
+ * generator can do no more with it than with no field at all.
+ *
+ * @param value - The object the author wrote
+ * @param required - The field names the specification requires
+ * @returns The required fields the object does not carry, in the order given
+ * @internal
+ */
+export function missingFields(
+  value: Record<string, unknown>,
+  required: readonly string[],
+): string[] {
+  return required.filter((field) => {
+    const written = value[field];
+    if (written === undefined || written === null) return true;
+    return typeof written === "string" && written.trim() === "";
+  });
+}

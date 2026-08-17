@@ -186,6 +186,135 @@ export const WEBSOCKET_BINDING_PROTOCOL = "ws";
 export const WEBSOCKET_BINDING_VERSION = "0.1.0";
 
 /**
+ * The member name the MQTT bindings claim inside a Bindings Object.
+ */
+export const MQTT_BINDING_PROTOCOL = "mqtt";
+
+/**
+ * The version of the MQTT binding specification this library emits.
+ *
+ * One binding covers MQTT 3 and MQTT 5. The fields that only MQTT 5 defines
+ * are optional, so a document for MQTT 3 leaves them out.
+ */
+export const MQTT_BINDING_VERSION = "0.2.0";
+
+/**
+ * The member name the HTTP bindings claim inside a Bindings Object.
+ */
+export const HTTP_BINDING_PROTOCOL = "http";
+
+/**
+ * The version of the HTTP binding specification this library emits.
+ *
+ * AsyncAPI 3.0 accepts both `0.2.0` and `0.3.0`. This library emits `0.3.0`,
+ * which is the later of the two and adds `statusCode` to the message binding.
+ */
+export const HTTP_BINDING_VERSION = "0.3.0";
+
+/**
+ * The member name the AMQP bindings claim inside a Bindings Object.
+ *
+ * The member is `amqp`. It covers AMQP 0-9-1, which is the version RabbitMQ
+ * speaks. AsyncAPI defines a separate `amqp1` binding for AMQP 1.0, and this
+ * library does not emit it.
+ */
+export const AMQP_BINDING_PROTOCOL = "amqp";
+
+/**
+ * The version of the AMQP binding specification this library emits.
+ */
+export const AMQP_BINDING_VERSION = "0.3.0";
+
+/**
+ * The member name the NATS binding claims inside a Bindings Object.
+ */
+export const NATS_BINDING_PROTOCOL = "nats";
+
+/**
+ * The version of the NATS binding specification this library emits.
+ */
+export const NATS_BINDING_VERSION = "0.1.0";
+
+/**
+ * The member name the Pulsar bindings claim inside a Bindings Object.
+ */
+export const PULSAR_BINDING_PROTOCOL = "pulsar";
+
+/**
+ * The version of the Pulsar binding specification this library emits.
+ */
+export const PULSAR_BINDING_VERSION = "0.1.0";
+
+/**
+ * The member name the Google Cloud Pub/Sub bindings claim inside a Bindings
+ * Object.
+ */
+export const GOOGLE_PUB_SUB_BINDING_PROTOCOL = "googlepubsub";
+
+/**
+ * The version of the Google Cloud Pub/Sub binding specification this library
+ * emits.
+ */
+export const GOOGLE_PUB_SUB_BINDING_VERSION = "0.2.0";
+
+/**
+ * The member name the Amazon SQS bindings claim inside a Bindings Object.
+ */
+export const SQS_BINDING_PROTOCOL = "sqs";
+
+/**
+ * The version of the Amazon SQS binding specification this library emits.
+ *
+ * AsyncAPI 3.0 accepts both `0.1.0` and `0.2.0`. This library emits `0.2.0`,
+ * which is the later of the two.
+ */
+export const SQS_BINDING_VERSION = "0.2.0";
+
+/**
+ * The member name the Anypoint MQ bindings claim inside a Bindings Object.
+ */
+export const ANYPOINT_MQ_BINDING_PROTOCOL = "anypointmq";
+
+/**
+ * The version of the Anypoint MQ binding specification this library emits.
+ */
+export const ANYPOINT_MQ_BINDING_VERSION = "0.0.1";
+
+/**
+ * The member name the JMS bindings claim inside a Bindings Object.
+ */
+export const JMS_BINDING_PROTOCOL = "jms";
+
+/**
+ * The version of the JMS binding specification this library emits.
+ */
+export const JMS_BINDING_VERSION = "0.0.1";
+
+/**
+ * The member name the IBM MQ bindings claim inside a Bindings Object.
+ */
+export const IBM_MQ_BINDING_PROTOCOL = "ibmmq";
+
+/**
+ * The version of the IBM MQ binding specification this library emits.
+ */
+export const IBM_MQ_BINDING_VERSION = "0.1.0";
+
+/**
+ * The member name the Solace bindings claim inside a Bindings Object.
+ */
+export const SOLACE_BINDING_PROTOCOL = "solace";
+
+/**
+ * The version of the Solace binding specification this library emits.
+ *
+ * AsyncAPI 3.0 accepts `0.2.0`, `0.3.0` and `0.4.0`. This library emits
+ * `0.4.0`, which is the latest. It is also the first to spell the server
+ * field `msgVpn`; the `0.2.0` schema spells it `msvVpn`.
+ */
+export const SOLACE_BINDING_VERSION = "0.4.0";
+
+/**
  * The `schemaFormat` values that name the AsyncAPI Schema Object itself.
  *
  * Every schema this emitter writes into `components.schemas` is an AsyncAPI

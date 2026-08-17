@@ -311,6 +311,9 @@ readonly default: CallableMessage<["protocol"]>;
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
 };
+"missing-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "field"]>;
+};
 "binding-outside-document": {
 readonly default: CallableMessage<["protocol", "level"]>;
 readonly anyLevel: CallableMessage<["protocol"]>;
@@ -325,6 +328,103 @@ readonly default: "This anonymous type refers back to itself with no named type 
 
 // @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;
+
+// @public
+export interface AmqpChannelBindingConfig {
+    exchange?: unknown;
+    is?: string;
+    queue?: unknown;
+}
+
+// @public
+export interface AmqpChannelBindingObject {
+    bindingVersion: string;
+    exchange?: AmqpExchangeObject;
+    is?: string;
+    queue?: AmqpQueueObject;
+}
+
+// @public
+export interface AmqpExchangeObject {
+    autoDelete?: boolean;
+    durable?: boolean;
+    name?: string;
+    type?: string;
+    vhost?: string;
+}
+
+// @public
+export interface AmqpMessageBindingConfig {
+    contentEncoding?: string;
+    messageType?: string;
+}
+
+// @public
+export interface AmqpMessageBindingObject {
+    bindingVersion: string;
+    contentEncoding?: string;
+    messageType?: string;
+}
+
+// @public
+export interface AmqpOperationBindingConfig {
+    ack?: boolean;
+    bcc?: unknown;
+    cc?: unknown;
+    deliveryMode?: number;
+    expiration?: number;
+    mandatory?: boolean;
+    priority?: number;
+    timestamp?: boolean;
+    userId?: string;
+}
+
+// @public
+export interface AmqpOperationBindingObject {
+    ack?: boolean;
+    bcc?: string[];
+    bindingVersion: string;
+    cc?: string[];
+    deliveryMode?: number;
+    expiration?: number;
+    mandatory?: boolean;
+    priority?: number;
+    timestamp?: boolean;
+    userId?: string;
+}
+
+// @public
+export interface AmqpQueueObject {
+    autoDelete?: boolean;
+    durable?: boolean;
+    exclusive?: boolean;
+    name?: string;
+    vhost?: string;
+}
+
+// @public
+export interface AnypointMqChannelBindingConfig {
+    destination?: string;
+    destinationType?: string;
+}
+
+// @public
+export interface AnypointMqChannelBindingObject {
+    bindingVersion: string;
+    destination?: string;
+    destinationType?: string;
+}
+
+// @public
+export interface AnypointMqMessageBindingConfig {
+    headers?: unknown;
+}
+
+// @public
+export interface AnypointMqMessageBindingObject {
+    bindingVersion: string;
+    headers?: SchemaObject;
+}
 
 // @public
 export interface AsyncAPIDocument {
@@ -484,7 +584,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -772,6 +872,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "invalid-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "expected"]>;
+    };
+    "missing-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "field"]>;
     };
     "binding-outside-document": {
         readonly default: CallableMessage<["protocol", "level"]>;
@@ -1072,6 +1175,9 @@ readonly default: CallableMessage<["protocol"]>;
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
 };
+"missing-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "field"]>;
+};
 "binding-outside-document": {
 readonly default: CallableMessage<["protocol", "level"]>;
 readonly anyLevel: CallableMessage<["protocol"]>;
@@ -1168,6 +1274,135 @@ export function getUsedSecuritySchemes(program: Program, target: UseSecurityTarg
 export function getUsedServers(program: Program, target: ChannelTarget): UseServerState[];
 
 // @public
+export interface GooglePubSubChannelBindingConfig {
+    labels?: unknown;
+    messageRetentionDuration?: string;
+    messageStoragePolicy?: unknown;
+    schemaSettings?: unknown;
+}
+
+// @public
+export interface GooglePubSubChannelBindingObject {
+    bindingVersion: string;
+    labels?: Record<string, unknown>;
+    messageRetentionDuration?: string;
+    messageStoragePolicy?: GooglePubSubStoragePolicyObject;
+    schemaSettings: GooglePubSubSchemaSettingsObject;
+}
+
+// @public
+export interface GooglePubSubMessageBindingConfig {
+    attributes?: unknown;
+    orderingKey?: string;
+    schema?: unknown;
+}
+
+// @public
+export interface GooglePubSubMessageBindingObject {
+    attributes?: Record<string, unknown>;
+    bindingVersion: string;
+    orderingKey?: string;
+    schema?: GooglePubSubSchemaObject;
+}
+
+// @public
+export interface GooglePubSubSchemaObject {
+    name: string;
+}
+
+// @public
+export interface GooglePubSubSchemaSettingsObject {
+    encoding: string;
+    firstRevisionId?: string;
+    lastRevisionId?: string;
+    name: string;
+}
+
+// @public
+export interface GooglePubSubStoragePolicyObject {
+    allowedPersistenceRegions?: string[];
+}
+
+// @public
+export interface HttpMessageBindingConfig {
+    headers?: unknown;
+    statusCode?: number;
+}
+
+// @public
+export interface HttpMessageBindingObject {
+    bindingVersion: string;
+    headers?: SchemaObject;
+    statusCode?: number;
+}
+
+// @public
+export interface HttpOperationBindingConfig {
+    method?: string;
+    query?: unknown;
+}
+
+// @public
+export interface HttpOperationBindingObject {
+    bindingVersion: string;
+    method?: string;
+    query?: SchemaObject;
+}
+
+// @public
+export interface IbmMqChannelBindingConfig {
+    destinationType?: string;
+    maxMsgLength?: number;
+    queue?: unknown;
+    topic?: unknown;
+}
+
+// @public
+export interface IbmMqChannelBindingObject {
+    bindingVersion: string;
+    destinationType?: string;
+    maxMsgLength?: number;
+    queue?: Record<string, unknown>;
+    topic?: Record<string, unknown>;
+}
+
+// @public
+export interface IbmMqMessageBindingConfig {
+    description?: string;
+    expiry?: number;
+    headers?: string;
+    type?: string;
+}
+
+// @public
+export interface IbmMqMessageBindingObject {
+    bindingVersion: string;
+    description?: string;
+    expiry?: number;
+    headers?: string;
+    type?: string;
+}
+
+// @public
+export interface IbmMqServerBindingConfig {
+    ccdtQueueManagerName?: string;
+    cipherSpec?: string;
+    groupId?: string;
+    heartBeatInterval?: number;
+    multiEndpointServer?: boolean;
+}
+
+// @public
+export interface IbmMqServerBindingObject {
+    bindingVersion: string;
+    ccdtQueueManagerName?: string;
+    cipherSpec?: string;
+    groupId?: string;
+    heartBeatInterval?: number;
+    multiEndpointServer?: boolean;
+}
+
+// @public
 export interface InfoObject {
     contact?: ContactObject;
     description?: string;
@@ -1184,6 +1419,45 @@ export function isHeader(program: Program, target: ModelProperty): boolean;
 
 // @public
 export function isOneOf(program: Program, target: Union): boolean;
+
+// @public
+export interface JmsChannelBindingConfig {
+    destination?: string;
+    destinationType?: string;
+}
+
+// @public
+export interface JmsChannelBindingObject {
+    bindingVersion: string;
+    destination?: string;
+    destinationType?: string;
+}
+
+// @public
+export interface JmsMessageBindingConfig {
+    headers?: unknown;
+}
+
+// @public
+export interface JmsMessageBindingObject {
+    bindingVersion: string;
+    headers?: SchemaObject;
+}
+
+// @public
+export interface JmsServerBindingConfig {
+    clientID?: string;
+    jmsConnectionFactory?: string;
+    properties?: unknown;
+}
+
+// @public
+export interface JmsServerBindingObject {
+    bindingVersion: string;
+    clientID?: string;
+    jmsConnectionFactory: string;
+    properties?: unknown[];
+}
 
 // Warning: (ae-internal-missing-underscore) The name "JsonSchemaExtensionRecord" should be prefixed with an underscore because the declaration is marked as @internal
 //
@@ -1312,9 +1586,81 @@ export interface MessageState {
 }
 
 // @public
+export interface MqttLastWillObject {
+    message?: string;
+    qos?: number;
+    retain?: boolean;
+    topic?: string;
+}
+
+// @public
+export interface MqttMessageBindingConfig {
+    contentType?: string;
+    correlationData?: unknown;
+    payloadFormatIndicator?: number;
+    responseTopic?: unknown;
+}
+
+// @public
+export interface MqttMessageBindingObject {
+    bindingVersion: string;
+    contentType?: string;
+    correlationData?: SchemaObject;
+    payloadFormatIndicator?: number;
+    responseTopic?: string | SchemaObject;
+}
+
+// @public
+export interface MqttOperationBindingConfig {
+    messageExpiryInterval?: unknown;
+    qos?: number;
+    retain?: boolean;
+}
+
+// @public
+export interface MqttOperationBindingObject {
+    bindingVersion: string;
+    messageExpiryInterval?: number | SchemaObject;
+    qos?: number;
+    retain?: boolean;
+}
+
+// @public
+export interface MqttServerBindingConfig {
+    cleanSession?: boolean;
+    clientId?: string;
+    keepAlive?: number;
+    lastWill?: unknown;
+    maximumPacketSize?: unknown;
+    sessionExpiryInterval?: unknown;
+}
+
+// @public
+export interface MqttServerBindingObject {
+    bindingVersion: string;
+    cleanSession?: boolean;
+    clientId?: string;
+    keepAlive?: number;
+    lastWill?: MqttLastWillObject;
+    maximumPacketSize?: number | SchemaObject;
+    sessionExpiryInterval?: number | SchemaObject;
+}
+
+// @public
 export interface MultiFormatSchemaObject {
     schema: unknown;
     schemaFormat: string;
+}
+
+// @public
+export interface NatsOperationBindingConfig {
+    queue?: string;
+}
+
+// @public
+export interface NatsOperationBindingObject {
+    bindingVersion: string;
+    queue?: string;
 }
 
 // @public
@@ -1383,6 +1729,46 @@ export interface ParameterObject {
 }
 
 // @public
+export interface PulsarChannelBindingConfig {
+    compaction?: number;
+    deduplication?: boolean;
+    geoReplication?: unknown;
+    namespace?: string;
+    persistence?: string;
+    retention?: unknown;
+    ttl?: number;
+}
+
+// @public
+export interface PulsarChannelBindingObject {
+    "geo-replication"?: string[];
+    bindingVersion: string;
+    compaction?: number;
+    deduplication?: boolean;
+    namespace: string;
+    persistence: string;
+    retention?: PulsarRetentionObject;
+    ttl?: number;
+}
+
+// @public
+export interface PulsarRetentionObject {
+    size?: number;
+    time?: number;
+}
+
+// @public
+export interface PulsarServerBindingConfig {
+    tenant?: string;
+}
+
+// @public
+export interface PulsarServerBindingObject {
+    bindingVersion: string;
+    tenant?: string;
+}
+
+// @public
 export type RawSchemaState = MultiFormatSchemaObject;
 
 // @public
@@ -1398,7 +1784,7 @@ export interface ReplyAddressState {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1686,6 +2072,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "invalid-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "expected"]>;
+    };
+    "missing-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "field"]>;
     };
     "binding-outside-document": {
         readonly default: CallableMessage<["protocol", "level"]>;
@@ -1986,6 +2375,9 @@ readonly default: CallableMessage<["protocol"]>;
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
 };
+"missing-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "field"]>;
+};
 "binding-outside-document": {
 readonly default: CallableMessage<["protocol", "level"]>;
 readonly anyLevel: CallableMessage<["protocol"]>;
@@ -2084,6 +2476,75 @@ export interface ServerVariableObject {
     description?: string;
     enum?: string[];
     examples?: string[];
+}
+
+// @public
+export interface SolaceOperationBindingConfig {
+    destinations?: unknown;
+    dmqEligible?: boolean;
+    priority?: number;
+    timeToLive?: number;
+}
+
+// @public
+export interface SolaceOperationBindingObject {
+    bindingVersion: string;
+    destinations?: Record<string, unknown>[];
+    dmqEligible?: boolean;
+    priority?: number;
+    timeToLive?: number;
+}
+
+// @public
+export interface SolaceServerBindingConfig {
+    clientName?: string;
+    msgVpn?: string;
+}
+
+// @public
+export interface SolaceServerBindingObject {
+    bindingVersion: string;
+    clientName?: string;
+    msgVpn?: string;
+}
+
+// @public
+export interface SqsChannelBindingConfig {
+    deadLetterQueue?: unknown;
+    queue?: unknown;
+}
+
+// @public
+export interface SqsChannelBindingObject {
+    bindingVersion: string;
+    deadLetterQueue?: SqsQueueObject;
+    queue: SqsQueueObject;
+}
+
+// @public
+export interface SqsOperationBindingConfig {
+    queues?: unknown;
+}
+
+// @public
+export interface SqsOperationBindingObject {
+    bindingVersion: string;
+    queues: SqsQueueObject[];
+}
+
+// @public
+export interface SqsQueueObject {
+    deduplicationScope?: string;
+    deliveryDelay?: number;
+    fifoQueue?: boolean;
+    fifoThroughputLimit?: string;
+    messageRetentionPeriod?: number;
+    name: string;
+    policy?: Record<string, unknown>;
+    receiveMessageWaitTime?: number;
+    redrivePolicy?: Record<string, unknown>;
+    tags?: Record<string, unknown>;
+    visibilityTimeout?: number;
 }
 
 // @public

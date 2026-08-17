@@ -244,6 +244,279 @@ describe("AsyncAPI emitted document", () => {
     await expect(doc).toBeValidAsyncAPI();
   });
 
+  it("should describe an MQTT contract with all three bindings end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Sensors" })
+      @mqttServer(#{
+        clientId: "sensor-gateway",
+        cleanSession: true,
+        lastWill: #{ topic: "sensors/status", qos: 1, message: "offline", retain: true },
+        keepAlive: 60,
+        sessionExpiryInterval: 3600,
+      })
+      @server("mqtt-prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
+      namespace TestService;
+
+      @mqttMessage(#{
+        payloadFormatIndicator: 1,
+        contentType: "application/json",
+        responseTopic: "sensors/ack",
+      })
+      @message
+      model Reading {
+        value: float64;
+      }
+
+      @channel("sensors/readings")
+      @useServer("mqtt-prod")
+      interface Readings {
+        @mqttOperation(#{ qos: 2, retain: true, messageExpiryInterval: 300 })
+        @send
+        op publish(event: Reading): void;
+      }
+    `);
+
+    expect(doc.servers["mqtt-prod"].bindings.mqtt.lastWill).toEqual({
+      topic: "sensors/status",
+      qos: 1,
+      message: "offline",
+      retain: true,
+    });
+    expect(doc.operations.publish.bindings.mqtt.qos).toBe(2);
+    expect(doc.components.messages.Reading.bindings.mqtt.payloadFormatIndicator).toBe(1);
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe an AMQP topology end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Events" })
+      @server("rabbit", #{ host: "rabbit.example.com:5672", protocol: "amqp" })
+      namespace TestService;
+
+      @amqpMessage(#{ contentEncoding: "gzip", messageType: "event.created" })
+      @message
+      model EventCreated {
+        id: string;
+      }
+
+      @amqpChannel(#{
+        \`is\`: "routingKey",
+        exchange: #{ name: "events", type: "topic", durable: true },
+      })
+      @channel("events.created")
+      @useServer("rabbit")
+      interface EventChannel {
+        @amqpOperation(#{ deliveryMode: 2, expiration: 60000, cc: #["events.audit"] })
+        @send
+        op publish(event: EventCreated): void;
+      }
+    `);
+
+    expect(doc.channels.EventChannel.bindings.amqp.exchange).toEqual({
+      name: "events",
+      type: "topic",
+      durable: true,
+    });
+    expect(doc.operations.publish.bindings.amqp.deliveryMode).toBe(2);
+    expect(doc.components.messages.EventCreated.bindings.amqp.contentEncoding).toBe("gzip");
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe an HTTP request and reply end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Notices" })
+      @server("api", #{ host: "api.example.com", protocol: "https" })
+      namespace TestService;
+
+      @httpMessage(#{
+        headers: #{ type: "object", properties: #{ \`X-Trace-Id\`: #{ type: "string" } } },
+        statusCode: 201,
+      })
+      @message
+      model Notice {
+        body: string;
+      }
+
+      @channel("/notices")
+      @useServer("api")
+      interface Notices {
+        @httpOperation(#{
+          method: "POST",
+          query: #{ type: "object", properties: #{ since: #{ type: "string" } } },
+        })
+        @send
+        op publish(event: Notice): void;
+      }
+    `);
+
+    expect(doc.operations.publish.bindings.http.method).toBe("POST");
+    expect(doc.components.messages.Notice.bindings.http.statusCode).toBe(201);
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe a NATS and Pulsar contract end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @pulsarServer(#{ tenant: "orders" })
+      @server("pulsar", #{ host: "pulsar.example.com:6650", protocol: "pulsar" })
+      namespace TestService;
+
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @pulsarChannel(#{
+        \`namespace\`: "orders",
+        persistence: "persistent",
+        retention: #{ time: 1440, size: 1000 },
+      })
+      @channel("orders.created")
+      @useServer("pulsar")
+      interface OrderChannel {
+        @natsOperation(#{ queue: "orders-workers" })
+        @receive
+        op onOrderCreated(): OrderCreated;
+      }
+    `);
+
+    expect(doc.channels.OrderChannel.bindings.pulsar.namespace).toBe("orders");
+    expect(doc.operations.onOrderCreated.bindings.nats.queue).toBe("orders-workers");
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe a Google Cloud Pub/Sub topic end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("pubsub", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
+      namespace TestService;
+
+      @googlePubSubMessage(#{
+        orderingKey: "customer-id",
+        schema: #{ name: "projects/p/schemas/order" },
+      })
+      @message
+      model OrderCreated {
+        orderId: string;
+      }
+
+      @googlePubSubChannel(#{
+        schemaSettings: #{ encoding: "json", name: "projects/p/schemas/order" },
+        labels: #{ team: "orders" },
+        messageRetentionDuration: "86400s",
+      })
+      @channel("orders-created")
+      @useServer("pubsub")
+      interface OrderChannel {
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    // `schemaSettings` is required. The parser is the authority on that, so
+    // the document goes to it rather than only to a shape assertion here.
+    expect(doc.channels.OrderChannel.bindings.googlepubsub.schemaSettings).toEqual({
+      encoding: "json",
+      name: "projects/p/schemas/order",
+    });
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe an Amazon SQS queue end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @server("sqs", #{ host: "sqs.eu-west-1.amazonaws.com", protocol: "sqs" })
+      namespace TestService;
+
+      @message
+      model OrderCreated {
+        orderId: string;
+      }
+
+      @sqsChannel(#{
+        queue: #{ name: "orders", fifoQueue: false, visibilityTimeout: 30 },
+        deadLetterQueue: #{ name: "orders-dlq", fifoQueue: false },
+      })
+      @channel("orders")
+      @useServer("sqs")
+      interface OrderChannel {
+        @sqsOperation(#{ queues: #[#{ name: "orders", fifoQueue: false }] })
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    expect(doc.channels.OrderChannel.bindings.sqs.queue.name).toBe("orders");
+    expect(doc.operations.publish.bindings.sqs.queues).toHaveLength(1);
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe an IBM MQ and JMS contract end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @ibmMqServer(#{ groupId: "PRODCLSTR1", heartBeatInterval: 300 })
+      @server("mq", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+      namespace TestService;
+
+      @ibmMqMessage(#{ type: "jms", expiry: 60000 })
+      @jmsMessage(#{ headers: #{ type: "object" } })
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @ibmMqChannel(#{
+        destinationType: "queue",
+        queue: #{ objectName: "ORDERS.QUEUE" },
+        maxMsgLength: 4194304,
+      })
+      @jmsChannel(#{ destination: "orders", destinationType: "queue" })
+      @channel("orders")
+      @useServer("mq")
+      interface OrderChannel {
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    expect(doc.channels.OrderChannel.bindings.ibmmq.destinationType).toBe("queue");
+    expect(doc.channels.OrderChannel.bindings.jms.destination).toBe("orders");
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("should describe an Anypoint MQ and Solace contract end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @solaceServer(#{ msgVpn: "orders-vpn", clientName: "order-service" })
+      @server("solace", #{ host: "solace.example.com:55555", protocol: "smf" })
+      namespace TestService;
+
+      @anypointMqMessage(#{ headers: #{ type: "object" } })
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @anypointMqChannel(#{ destination: "orders", destinationType: "queue" })
+      @channel("orders")
+      @useServer("solace")
+      interface OrderChannel {
+        @solaceOperation(#{
+          destinations: #[
+            #{ destinationType: "queue", deliveryMode: "persistent", queue: #{ name: "orders" } }
+          ],
+          timeToLive: 60000,
+        })
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    expect(doc.servers.solace.bindings.solace.msgVpn).toBe("orders-vpn");
+    expect(doc.operations.publish.bindings.solace.destinations).toHaveLength(1);
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
   it("should validate a channel that carries every optional field", async () => {
     const doc = await emitAsyncAPI(`
       @service(#{ title: "Orders" })

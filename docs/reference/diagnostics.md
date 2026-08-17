@@ -846,6 +846,20 @@ A binding sits on the object its target emits. A target that emits no object car
 
 **Fix:** add the decorator that emits the object, or remove the binding.
 
+### `missing-binding-field`
+
+> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
+
+Several bindings state fields the author has to give. A Pulsar channel needs a `namespace` and a `persistence`. A Google Cloud Pub/Sub channel needs `schemaSettings`, and that object needs an `encoding` and a `name`. An Amazon SQS channel needs a `queue`, and that queue needs a `name` and a `fifoQueue`. An SQS operation needs a `queues` list with at least one entry. A JMS server needs a `jmsConnectionFactory`.
+
+A blank string counts as absent. A name of spaces names nothing, so it is worth no more than no field at all.
+
+This is an error rather than a warning. The emitter cannot write the binding without the field, so nothing of it survives for the author to inspect. Emitting it in part would hand back a document that fails validation with a message about this emitter rather than about the source.
+
+Every missing field of one object is reported, not only the first. Reporting one at a time would send the author round the loop twice.
+
+**Fix:** add the field the message names to the decorator config.
+
 ### `invalid-binding-field`
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.

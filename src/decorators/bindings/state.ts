@@ -50,7 +50,21 @@ export type EmittedBindingLevel = Exclude<BindingLevel, "any">;
  * entry there is a compile error.
  * @internal
  */
-export type BindingRenderer = "verbatim" | "kafka" | "websocket";
+export type BindingRenderer =
+  | "verbatim"
+  | "kafka"
+  | "websocket"
+  | "mqtt"
+  | "http"
+  | "amqp"
+  | "nats"
+  | "pulsar"
+  | "googlepubsub"
+  | "sqs"
+  | "anypointmq"
+  | "jms"
+  | "ibmmq"
+  | "solace";
 
 /**
  * One recorded binding application.

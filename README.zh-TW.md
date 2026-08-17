@@ -206,6 +206,17 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@AsyncAPI.binding` — 加上通用的 protocol binding 設定。
 - `@AsyncAPI.kafkaServer` / `@AsyncAPI.kafkaChannel` / `@AsyncAPI.kafkaOperation` / `@AsyncAPI.kafkaMessage` — 加上 Kafka 專屬的 binding 設定。
 - `@AsyncAPI.websocketChannel` — 加上 WebSocket channel binding。
+- `@AsyncAPI.mqttServer` / `@AsyncAPI.mqttOperation` / `@AsyncAPI.mqttMessage` — 加上 MQTT binding。
+- `@AsyncAPI.httpOperation` / `@AsyncAPI.httpMessage` — 加上 HTTP binding。
+- `@AsyncAPI.amqpChannel` / `@AsyncAPI.amqpOperation` / `@AsyncAPI.amqpMessage` — 加上 AMQP 0-9-1 binding。
+- `@AsyncAPI.natsOperation` — 加上 NATS operation binding。
+- `@AsyncAPI.pulsarServer` / `@AsyncAPI.pulsarChannel` — 加上 Pulsar binding。
+- `@AsyncAPI.googlePubSubChannel` / `@AsyncAPI.googlePubSubMessage` — 加上 Google Cloud Pub/Sub binding。
+- `@AsyncAPI.sqsChannel` / `@AsyncAPI.sqsOperation` — 加上 Amazon SQS binding。
+- `@AsyncAPI.anypointMqChannel` / `@AsyncAPI.anypointMqMessage` — 加上 Anypoint MQ binding。
+- `@AsyncAPI.jmsServer` / `@AsyncAPI.jmsChannel` / `@AsyncAPI.jmsMessage` — 加上 JMS binding。
+- `@AsyncAPI.ibmMqServer` / `@AsyncAPI.ibmMqChannel` / `@AsyncAPI.ibmMqMessage` — 加上 IBM MQ binding。
+- `@AsyncAPI.solaceServer` / `@AsyncAPI.solaceOperation` — 加上 Solace binding。
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 

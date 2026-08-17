@@ -11,11 +11,11 @@
  * a folder, and this one has no second decorator to group with.
  */
 
-import { DecoratorContext, DiagnosticTarget, Interface, Namespace } from "@typespec/compiler";
+import { DecoratorContext, Interface, Namespace } from "@typespec/compiler";
 import { WEBSOCKET_BINDING_PROTOCOL } from "../../constants.js";
 import { present } from "../../optional-fields.js";
 import { WebSocketChannelBindingObject } from "../../types/index.js";
-import { enumeratedField, reportBindingField, schemaField } from "./fields.js";
+import { enumeratedField, namedValuesSchemaField } from "./fields.js";
 import { claimBinding } from "./state.js";
 
 /**
@@ -30,46 +30,6 @@ export type WebSocketChannelBindingState = Omit<WebSocketChannelBindingObject, "
 
 /** The two methods the WebSocket binding allows a handshake to use. */
 const HANDSHAKE_METHODS = ["GET", "POST"];
-
-/**
- * Checks one Schema Object field of the handshake.
- *
- * `query` and `headers` each describe a set of named values. The binding
- * says the schema must be of type `object` and must have a `properties` key.
- * A schema that says neither describes no parameter at all, so a generator
- * reading it produces a handshake with nothing in it.
- *
- * A `$ref` passes without either field. The reference names a schema that
- * lives elsewhere, and this emitter does not follow it.
- *
- * @param context - The decorator context
- * @param field - The field name, for the diagnostic
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The plain JSON object, or `undefined` when it was absent or
- * rejected
- */
-function handshakeSchema(
-  context: DecoratorContext,
-  field: string,
-  value: unknown,
-  target: DiagnosticTarget,
-): Record<string, unknown> | undefined {
-  const schema = schemaField(context, WEBSOCKET_BINDING_PROTOCOL, field, value, target);
-  if (schema === undefined) return undefined;
-  if (schema.$ref !== undefined) return schema;
-  if (schema.type !== "object" || schema.properties === undefined) {
-    reportBindingField(
-      context,
-      WEBSOCKET_BINDING_PROTOCOL,
-      field,
-      'an object schema with a "properties" key',
-      target,
-    );
-    return undefined;
-  }
-  return schema;
-}
 
 /**
  * The `config` argument of `@websocketChannel`, as the author wrote it.
@@ -137,8 +97,26 @@ export function $websocketChannel(
         configTarget,
       ),
     ),
-    ...present("query", handshakeSchema(context, "query", config.query, configTarget)),
-    ...present("headers", handshakeSchema(context, "headers", config.headers, configTarget)),
+    ...present(
+      "query",
+      namedValuesSchemaField(
+        context,
+        WEBSOCKET_BINDING_PROTOCOL,
+        "query",
+        config.query,
+        configTarget,
+      ),
+    ),
+    ...present(
+      "headers",
+      namedValuesSchemaField(
+        context,
+        WEBSOCKET_BINDING_PROTOCOL,
+        "headers",
+        config.headers,
+        configTarget,
+      ),
+    ),
   };
 
   claimBinding(context, {

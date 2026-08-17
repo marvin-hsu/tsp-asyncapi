@@ -716,6 +716,16 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that, so the field was dropped and the rest of the binding was kept.`,
       },
     },
+
+    // This one is an error, for the reason stated above the code before it.
+    // A binding whose required field is absent cannot be written as a valid
+    // document, so the whole binding goes and nothing survives to inspect.
+    "missing-binding-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The ${"protocol"} binding requires the field '${"field"}', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '${"field"}' to the decorator config.`,
+      },
+    },
     // The level-less wording is a second message, not the default message
     // with another level value. `@binding` records the level `any`, which is
     // not a position in the document. Interpolating it would read "for the

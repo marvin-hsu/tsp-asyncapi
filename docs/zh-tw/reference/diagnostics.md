@@ -846,6 +846,20 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 
 **修法：** 補上會產生該物件的 decorator，或移除該 binding。
 
+### `missing-binding-field`
+
+> The \<protocol\> binding requires the field '\<field\>', and this binding does not give it. AsyncAPI would reject the emitted document, so the whole binding was dropped. Add '\<field\>' to the decorator config.
+
+有幾個 binding 規定了作者必須給的欄位。Pulsar channel 需要 `namespace` 與 `persistence`。Google Cloud Pub/Sub channel 需要 `schemaSettings`，而該物件又需要 `encoding` 與 `name`。Amazon SQS channel 需要 `queue`，而該 queue 又需要 `name` 與 `fifoQueue`。SQS operation 需要至少有一筆的 `queues` 清單。JMS server 需要 `jmsConnectionFactory`。
+
+空白字串等同於沒寫。全是空格的名稱沒有指名任何東西，價值不高於完全不寫該欄位。
+
+這是 error 而不是 warning。缺了該欄位，emitter 無法寫出這個 binding，作者也就沒有任何殘留可以檢查。只輸出一部分，會交給作者一份驗證失敗的文件，而失敗訊息講的是這個 emitter，不是原始碼。
+
+同一個物件缺的每個欄位都會回報，不是只報第一個。一次只報一個會讓作者多跑一輪。
+
+**修法：** 依訊息指名的欄位，補進 decorator 的設定裡。
+
 ### `invalid-binding-field`
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.

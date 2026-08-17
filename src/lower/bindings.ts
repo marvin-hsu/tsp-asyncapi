@@ -18,6 +18,17 @@ import type { BindingRenderer } from "../decorators/bindings/state.js";
 import type { BindingNode } from "../resolve/service.js";
 import { BindingObject, BindingsObject } from "../types/index.js";
 import { renderKafkaBinding } from "./bindings/kafka.js";
+import { renderAmqpBinding } from "./bindings/amqp.js";
+import { renderAnypointMqBinding } from "./bindings/anypointmq.js";
+import { renderIbmMqBinding } from "./bindings/ibmmq.js";
+import { renderJmsBinding } from "./bindings/jms.js";
+import { renderSolaceBinding } from "./bindings/solace.js";
+import { renderGooglePubSubBinding } from "./bindings/googlepubsub.js";
+import { renderNatsBinding } from "./bindings/nats.js";
+import { renderPulsarBinding } from "./bindings/pulsar.js";
+import { renderSqsBinding } from "./bindings/sqs.js";
+import { renderHttpBinding } from "./bindings/http.js";
+import { renderMqttBinding } from "./bindings/mqtt.js";
 import { renderWebSocketBinding } from "./bindings/websocket.js";
 
 /**
@@ -48,6 +59,32 @@ const RENDERERS: Record<BindingRenderer, (config: unknown) => object> = {
   // level too. The member it lands under is `ws`, which the decorator
   // records as the protocol name.
   websocket: renderWebSocketBinding,
+  // One name covers all three MQTT levels, for the same reason it covers
+  // all four Kafka levels. There is no channel level: the MQTT binding
+  // says a channel object must carry no property.
+  mqtt: renderMqttBinding,
+  // HTTP covers an operation and a message. AsyncAPI defines no HTTP
+  // server or channel object with fields of its own.
+  http: renderHttpBinding,
+  // AMQP covers a channel, an operation and a message. Its server object
+  // carries no property.
+  amqp: renderAmqpBinding,
+  // NATS defines one object, on an operation.
+  nats: renderNatsBinding,
+  // Pulsar covers a server and a channel.
+  pulsar: renderPulsarBinding,
+  // Google Cloud Pub/Sub covers a channel and a message.
+  googlepubsub: renderGooglePubSubBinding,
+  // Amazon SQS covers a channel and an operation.
+  sqs: renderSqsBinding,
+  // Anypoint MQ covers a channel and a message.
+  anypointmq: renderAnypointMqBinding,
+  // JMS covers a server, a channel and a message.
+  jms: renderJmsBinding,
+  // IBM MQ covers a server, a channel and a message.
+  ibmmq: renderIbmMqBinding,
+  // Solace covers a server and an operation.
+  solace: renderSolaceBinding,
 };
 
 /** Runs the renderer one node names. */
