@@ -1,0 +1,59 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+servers:
+  production:
+    host: "{tenant}.kafka.example.com:9092"
+    protocol: kafka-secure
+    protocolVersion: 3.5.0
+    pathname: /{stage}
+    title: Production
+    summary: The production cluster.
+    description: One cluster per tenant.
+    variables:
+      tenant:
+        enum:
+          - acme
+          - globex
+        default: acme
+        description: The tenant.
+      stage:
+        default: v1
+        examples:
+          - v1
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+      - $ref: "#/components/securitySchemes/oauth"
+  sit:
+    host: kafka.sit.example.com:9092
+    protocol: kafka
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+      - $ref: "#/components/securitySchemes/oauth"
+channels: {}
+operations: {}
+components:
+  securitySchemes:
+    kafka-scram:
+      type: scramSha512
+      description: SASL/SCRAM over TLS.
+    api-key:
+      type: httpApiKey
+      name: X-Api-Key
+      in: header
+    oauth:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://example.com/token
+          refreshUrl: https://example.com/refresh
+          availableScopes:
+            orders:read: Read orders
+        authorizationCode:
+          authorizationUrl: https://example.com/authorize
+          tokenUrl: https://example.com/token
+          availableScopes:
+            orders:write: Write orders
+      scopes:
+        - orders:read

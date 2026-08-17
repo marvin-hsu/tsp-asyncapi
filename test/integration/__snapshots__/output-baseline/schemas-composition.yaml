@@ -1,0 +1,110 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+channels: {}
+operations: {}
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+      required:
+        - kind
+        - name
+      discriminator: kind
+    Cat:
+      allOf:
+        - $ref: "#/components/schemas/Pet"
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - cat
+            lives:
+              type: integer
+              format: int32
+          required:
+            - kind
+            - lives
+    Dog:
+      allOf:
+        - $ref: "#/components/schemas/Pet"
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - dog
+          required:
+            - kind
+    Envelope:
+      type: object
+      oneOf:
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - cat
+            value:
+              $ref: "#/components/schemas/Cat"
+          required:
+            - kind
+            - value
+        - type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - dog
+            value:
+              $ref: "#/components/schemas/Dog"
+          required:
+            - kind
+            - value
+      discriminator: kind
+    Payment:
+      oneOf:
+        - type: string
+        - type: integer
+          format: int32
+    Channel:
+      type: string
+      enum:
+        - web
+        - app
+    Priority:
+      type: string
+      enum:
+        - low
+        - high
+    PetAdopted:
+      type: object
+      properties:
+        pet:
+          $ref: "#/components/schemas/Pet"
+        envelope:
+          $ref: "#/components/schemas/Envelope"
+        payment:
+          $ref: "#/components/schemas/Payment"
+        origin:
+          $ref: "#/components/schemas/Channel"
+        priority:
+          $ref: "#/components/schemas/Priority"
+      required:
+        - pet
+        - envelope
+        - payment
+        - origin
+        - priority
+  messages:
+    PetAdopted:
+      name: PetAdopted
+      payload:
+        $ref: "#/components/schemas/PetAdopted"

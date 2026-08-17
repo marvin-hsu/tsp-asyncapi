@@ -1,0 +1,88 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+channels: {}
+operations: {}
+components:
+  schemas:
+    OrderPlacedPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - id
+        - amount
+      externalDocs:
+        url: https://example.com/order-placed
+        description: How to consume this message.
+    MqmdFields:
+      type: object
+      properties:
+        CorrelId:
+          type: string
+      required:
+        - CorrelId
+    ShippingHeaders:
+      type: object
+      properties:
+        MQMD:
+          $ref: "#/components/schemas/MqmdFields"
+      required:
+        - MQMD
+    OrderShipped:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+          x-retry-count:
+            type: integer
+            format: int32
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderPlacedPayload"
+      correlationId:
+        location: $message.header#/correlationId
+        description: Ties a reply to its request.
+      tags:
+        - name: orders
+          description: Emitted by the order service.
+      externalDocs:
+        url: https://example.com/order-placed
+        description: How to consume this message.
+      examples:
+        - name: smallOrder
+          summary: One line, already paid.
+          headers:
+            correlationId: abc-123
+          payload:
+            id: o-1
+            amount: 12.5
+        - name: largeOrder
+          payload:
+            id: o-2
+            amount: 999
+    shipped:
+      name: shipped
+      headers:
+        $ref: "#/components/schemas/ShippingHeaders"
+      payload:
+        $ref: "#/components/schemas/OrderShipped"
+      correlationId:
+        location: $message.header#/MQMD/CorrelId

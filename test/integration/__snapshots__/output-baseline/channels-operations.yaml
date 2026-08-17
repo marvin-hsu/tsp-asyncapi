@@ -1,0 +1,110 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+servers:
+  primary:
+    host: kafka.example.com:9092
+    protocol: kafka
+  secondary:
+    host: kafka.dr.example.com:9092
+    protocol: kafka
+channels:
+  ReplyChannel:
+    address: null
+    description: The reply channel. Its address is only known at run time.
+    messages:
+      OrderAccepted:
+        $ref: "#/components/messages/OrderAccepted"
+  OrderCommands:
+    address: orders.{region}.{tenant}.create
+    servers:
+      - $ref: "#/servers/primary"
+      - $ref: "#/servers/secondary"
+    parameters:
+      region:
+        description: The region of the cluster.
+        location: $message.header#/region
+      tenant:
+        enum:
+          - acme
+          - globex
+    messages:
+      CreateOrder:
+        $ref: "#/components/messages/CreateOrder"
+    tags:
+      - name: commands
+  shipped:
+    address: orders.shipped
+    messages:
+      OrderShipped:
+        $ref: "#/components/messages/OrderShipped"
+operations:
+  onAccepted:
+    action: receive
+    channel:
+      $ref: "#/channels/ReplyChannel"
+    messages:
+      - $ref: "#/channels/ReplyChannel/messages/OrderAccepted"
+  createOrder:
+    action: send
+    channel:
+      $ref: "#/channels/OrderCommands"
+    security:
+      - $ref: "#/components/securitySchemes/kafka-scram"
+    messages:
+      - $ref: "#/channels/OrderCommands/messages/CreateOrder"
+    reply:
+      address:
+        location: $message.header#/replyTo
+        description: Where the reply goes.
+      channel:
+        $ref: "#/channels/ReplyChannel"
+      messages:
+        - $ref: "#/channels/ReplyChannel/messages/OrderAccepted"
+  onOrderShipped:
+    action: receive
+    channel:
+      $ref: "#/channels/shipped"
+    description: Consumes the shipment event.
+    messages:
+      - $ref: "#/channels/shipped/messages/OrderShipped"
+components:
+  schemas:
+    CreateOrder:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+    OrderAccepted:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+    OrderShipped:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+  messages:
+    CreateOrder:
+      name: CreateOrder
+      payload:
+        $ref: "#/components/schemas/CreateOrder"
+    OrderAccepted:
+      name: OrderAccepted
+      payload:
+        $ref: "#/components/schemas/OrderAccepted"
+    OrderShipped:
+      name: OrderShipped
+      payload:
+        $ref: "#/components/schemas/OrderShipped"
+  securitySchemes:
+    kafka-scram:
+      type: scramSha512

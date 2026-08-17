@@ -1,0 +1,39 @@
+{
+  "asyncapi": "3.1.0",
+  "id": "urn:com:example:orders",
+  "info": {
+    "title": "Order Events",
+    "version": "1.4.2",
+    "description": "Every event the order system publishes.",
+    "termsOfService": "https://example.com/terms",
+    "contact": {
+      "name": "API Team",
+      "url": "https://example.com/team",
+      "email": "team@example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "tags": [
+      {
+        "name": "orders",
+        "description": "The order domain as a whole.",
+        "externalDocs": {
+          "url": "https://example.com/orders",
+          "description": "The order guide."
+        }
+      },
+      {
+        "name": "public"
+      }
+    ],
+    "externalDocs": {
+      "url": "https://example.com/docs",
+      "description": "The whole documentation set."
+    }
+  },
+  "defaultContentType": "application/json",
+  "channels": {},
+  "operations": {}
+}

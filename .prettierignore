@@ -2,3 +2,7 @@ pnpm-lock.yaml
 coverage
 dist
 etc/
+
+# The output baselines of the Phase 9 refactor. They are the bytes the
+# emitter wrote, so a formatter must never touch them.
+test/integration/__snapshots__/

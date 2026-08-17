@@ -1,0 +1,69 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka
+    bindings:
+      kafka:
+        schemaRegistryUrl: https://registry.example.com
+        schemaRegistryVendor: confluent
+        bindingVersion: 0.5.0
+channels:
+  OrderChannel:
+    address: orders.created
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+    bindings:
+      kafka:
+        topic: orders.created
+        partitions: 3
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - compact
+          retention.ms: 604800000
+        bindingVersion: 0.5.0
+      amqp:
+        expiration: 100
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/OrderChannel"
+    bindings:
+      kafka:
+        groupId:
+          type: string
+        clientId:
+          type: string
+        bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/OrderChannel/messages/OrderCreated"
+components:
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        kafka:
+          key:
+            type: string
+          schemaIdLocation: header
+          schemaIdPayloadEncoding: confluent
+          schemaLookupStrategy: TopicIdStrategy
+          bindingVersion: 0.5.0
+        mqtt:
+          qos: 1

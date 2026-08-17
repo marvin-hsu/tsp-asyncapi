@@ -1,0 +1,65 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+channels: {}
+operations: {}
+components:
+  schemas:
+    Details:
+      type: object
+      properties:
+        placedAt:
+          type: integer
+          format: unixtime
+        blob:
+          type: string
+          format: base64url
+        slug:
+          type: string
+          examples:
+            - ab
+            - cd
+          minLength: 2
+          maxLength: 64
+          pattern: ^[a-z]+$
+          default: ab
+        retries:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10
+          default: 3
+        enabled:
+          type: boolean
+          default: false
+        token:
+          type: string
+          format: password
+        name:
+          type: string
+          deprecated: true
+        owner:
+          type: string
+          x-owner: orders-team
+      required:
+        - placedAt
+        - blob
+        - token
+        - owner
+      description: Everything that describes a value without naming its type.
+      externalDocs:
+        url: https://example.com/annotations
+        description: The annotation guide.
+    OrderDetailed:
+      type: object
+      properties:
+        details:
+          $ref: "#/components/schemas/Details"
+      required:
+        - details
+  messages:
+    OrderDetailed:
+      name: OrderDetailed
+      payload:
+        $ref: "#/components/schemas/OrderDetailed"
