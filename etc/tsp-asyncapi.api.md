@@ -2005,6 +2005,7 @@ export interface SchemaObject {
     examples?: unknown[];
     exclusiveMaximum?: number;
     exclusiveMinimum?: number;
+    externalDocs?: ExternalDocumentationObject;
     // (undocumented)
     format?: string;
     // (undocumented)

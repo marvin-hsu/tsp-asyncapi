@@ -48,9 +48,20 @@ info:
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 ```
 
-附加外部文件連結。target 宣告為 `unknown`，因為 external docs 可以標在多種位置上。**目前 emitter 讀取兩處：service namespace 上的輸出到 `info.externalDocs`，`@message` model 上的輸出到該 message 的 `externalDocs`。** 標在其他位置會記錄下來，但還不會輸出。
+附加外部文件連結。target 宣告為 `unknown`，因為 external docs 可以標在多種位置上。emitter 會讀取其中六處：
 
-標有 `@server` 的 namespace 也會把該連結放到它宣告的每個 server 上。server 來自 service namespace，而 `info` 讀的是同一個 namespace，所以連結會出現在兩處。AsyncAPI 在兩種物件上都定義了 `externalDocs`。
+| 標在哪裡                                  | 輸出到哪裡                     |
+| ----------------------------------------- | ------------------------------ |
+| service namespace                         | `info.externalDocs`            |
+| 標有 `@server` 的 namespace               | 它宣告的每一個 server          |
+| `@message` model                          | 該 message 的 `externalDocs`   |
+| 任何會變成 schema 的 model、scalar 或屬性 | 該 schema 的 `externalDocs`    |
+| `@channel` interface                      | 該 channel 的 `externalDocs`   |
+| `@send`／`@receive` operation             | 該 operation 的 `externalDocs` |
+
+AsyncAPI 的 Schema Object 在 JSON Schema draft-07 之上只加了三個欄位，`externalDocs` 與 `discriminator`、`deprecated` 並列。`@message` model 會同時輸出到 message 與它的 payload schema，`@doc` 本來就是這樣。
+
+server 來自 service namespace，而 `info` 讀的是同一個 namespace，所以標在該 namespace 的一個連結會出現在兩處。AsyncAPI 在兩種物件上都定義了 `externalDocs`。
 
 `url` 必須是絕對 URL。AsyncAPI 對這個欄位標了 `uri` 格式，相對路徑（例如 `/docs`）會讓 parser 拒絕整份文件。url 不是絕對 URL 時，emitter 回報 [`invalid-url`](../diagnostics#invalid-url) 錯誤，並丟棄這次標記。
 

@@ -617,6 +617,13 @@ export interface SchemaObject {
    * validates. It only tells a reader to stop using the value.
    */
   deprecated?: boolean;
+  /**
+   * Additional external documentation for this schema (`@externalDocs`).
+   * AsyncAPI's Schema Object defines this alongside `discriminator` and
+   * `deprecated` as one of the three fields it adds on top of JSON Schema
+   * draft-07.
+   */
+  externalDocs?: ExternalDocumentationObject;
   anyOf?: (SchemaObject | ReferenceObject)[];
   allOf?: (SchemaObject | ReferenceObject)[];
   oneOf?: (SchemaObject | ReferenceObject)[];

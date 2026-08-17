@@ -123,6 +123,105 @@ describe("Unit: Schemas — annotations", () => {
     });
   });
 
+  describe("@externalDocs", () => {
+    // AsyncAPI's Schema Object adds exactly three fields on top of JSON Schema
+    // draft-07: `discriminator`, `deprecated`, and `externalDocs`. The first
+    // two already reach the document, so a link written on a model that no
+    // message names had nowhere to go.
+    it("reaches a model's own schema", async () => {
+      const { builder, M } = await compileSchemas(t.code`
+        @externalDocs("https://example.com/nested", "Nested docs")
+        model Nested {
+          a: string;
+        }
+        model ${t.model("M")} {
+          n: Nested;
+        }
+      `);
+      builder.buildSchema(M);
+      const schemas = builder.getSchemas() as unknown as Record<string, any>;
+
+      expect(schemas.Nested.externalDocs).toEqual({
+        url: "https://example.com/nested",
+        description: "Nested docs",
+      });
+    });
+
+    it("reaches a scalar's use site", async () => {
+      const props = await propertiesOf(`
+        @externalDocs("https://example.com/code")
+        scalar Code extends string;
+        model Holder {
+          c: Code;
+        }
+      `);
+
+      // The decorator is on the scalar, so it has to travel down the
+      // `baseScalar` chain to the property that uses it.
+      expect(props.c.externalDocs).toEqual({ url: "https://example.com/code" });
+    });
+
+    it("reaches a property of its own", async () => {
+      const props = await propertiesOf(`
+        model Holder {
+          @externalDocs("https://example.com/prop", "Prop docs")
+          p: string;
+        }
+      `);
+
+      expect(props.p.externalDocs).toEqual({
+        url: "https://example.com/prop",
+        description: "Prop docs",
+      });
+    });
+
+    it("omits the description when none was given", async () => {
+      const props = await propertiesOf(`
+        model Holder {
+          @externalDocs("https://example.com/only-url")
+          p: string;
+        }
+      `);
+
+      expect(props.p.externalDocs.url).toBe("https://example.com/only-url");
+      expect(props.p.externalDocs.description).toBeUndefined();
+    });
+
+    it("stays outside the allOf when the property wraps its scalar", async () => {
+      const props = await propertiesOf(`
+        @minLength(5)
+        scalar Tight extends string;
+        model Holder {
+          @minLength(2)
+          @externalDocs("https://example.com/wrapped", "Wrapped docs")
+          p: Tight;
+        }
+      `);
+
+      // A property re-declaring a keyword its scalar already carries makes the
+      // builder wrap the scalar's shape in `allOf`, so both constraints hold.
+      expect(props.p.allOf).toBeDefined();
+      // `externalDocs` describes the value, it does not constrain it. Left
+      // inside the `allOf` branch, a reader looking at this property would
+      // never see the link.
+      expect(props.p.externalDocs).toEqual({
+        url: "https://example.com/wrapped",
+        description: "Wrapped docs",
+      });
+      expect(props.p.allOf[0].externalDocs).toBeUndefined();
+    });
+
+    it("emits nothing for a target with no @externalDocs", async () => {
+      const props = await propertiesOf(`
+        model Holder {
+          p: string;
+        }
+      `);
+
+      expect("externalDocs" in props.p).toBe(false);
+    });
+  });
+
   describe("#deprecated", () => {
     it("marks a deprecated property", async () => {
       const props = await propertiesOf(`

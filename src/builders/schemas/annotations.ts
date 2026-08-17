@@ -31,6 +31,7 @@ import { SchemaDiagnostics } from "./diagnostics.js";
 import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { serializeExamples, serializeDefaultValue } from "../example-serialization.js";
 import { toPlainValue } from "../../marshalled-values.js";
+import { buildExternalDocs } from "../external-docs.js";
 import { applyEncoding } from "./encoding.js";
 
 /**
@@ -56,7 +57,10 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * value validates. That distinction is what lets them be hoisted out of an
  * `allOf` branch, which `hoistAnnotationsAboveAllOf` relies on.
  */
-type DocFields = Pick<SchemaObject, "title" | "description" | "examples" | "deprecated">;
+type DocFields = Pick<
+  SchemaObject,
+  "title" | "description" | "examples" | "deprecated" | "externalDocs"
+>;
 
 /**
  * Builds `title`/`description`/`examples`/`deprecated` from a declaration's
@@ -96,6 +100,11 @@ type DocFields = Pick<SchemaObject, "title" | "description" | "examples" | "depr
  * `deprecated` is a bare boolean with nowhere to carry that message, so only
  * its presence is emitted. The compiler already reports the message itself
  * at every use site, so it does not go unseen.
+ *
+ * `@externalDocs` maps to `externalDocs`. AsyncAPI's Schema Object defines it
+ * alongside `discriminator` and `deprecated` as one of the three fields it
+ * adds on top of draft-07. A model that is also a message emits it on both
+ * the message and its schema, which is the same thing `@doc` already does.
  */
 function buildDocFields(
   program: Program,
@@ -106,6 +115,7 @@ function buildDocFields(
   const title = getSummary(program, target);
   const description = getDoc(program, target);
   const deprecated = getDeprecated(program, target) !== undefined ? true : undefined;
+  const externalDocs = buildExternalDocs(program, target);
   // A dropped example still surfaces as a diagnostic, rather than being
   // dropped in total silence. Each example is its own drop, so the
   // source-order index separates them. Two bad examples on one target are
@@ -118,6 +128,7 @@ function buildDocFields(
     ...(description !== undefined ? { description } : {}),
     ...(examples.length > 0 ? { examples } : {}),
     ...(deprecated !== undefined ? { deprecated } : {}),
+    ...(externalDocs !== undefined ? { externalDocs } : {}),
   };
 }
 
@@ -430,20 +441,23 @@ function hoistAnnotationsAboveAllOf(
   const title = docs.title ?? inner.title;
   const description = docs.description ?? inner.description;
   const examples = docs.examples ?? inner.examples;
-  // `deprecated` is an annotation, exactly like `title`/`description`. Left
-  // inside the `allOf` branch, a reader looking at this level would not see
-  // it. So it is hoisted with the rest of them.
+  // `deprecated` and `externalDocs` are annotations, exactly like
+  // `title`/`description`. Left inside the `allOf` branch, a reader looking at
+  // this level would not see them. So they are hoisted with the rest.
   const deprecated = docs.deprecated ?? inner.deprecated;
+  const externalDocs = docs.externalDocs ?? inner.externalDocs;
   delete inner.title;
   delete inner.description;
   delete inner.examples;
   delete inner.deprecated;
+  delete inner.externalDocs;
   return {
     allOf: [inner],
     ...(title !== undefined ? { title } : {}),
     ...(description !== undefined ? { description } : {}),
     ...(examples !== undefined ? { examples } : {}),
     ...(deprecated !== undefined ? { deprecated } : {}),
+    ...(externalDocs !== undefined ? { externalDocs } : {}),
     ...restValidation,
     ...(format !== undefined ? { format } : {}),
   };

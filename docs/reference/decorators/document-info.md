@@ -48,9 +48,20 @@ Without `@info`, `info.version` falls back to `0.0.0`. If `@info` sets no `descr
 extern dec externalDocs(target: unknown, url: valueof string, description?: valueof string);
 ```
 
-Attaches an external documentation link. The target is declared `unknown` because external docs attach in several places. **Today the emitter reads it from the service namespace, emitting `info.externalDocs`, and from a `@message` model, emitting that message's `externalDocs`.** Applying it elsewhere records the link but emits nothing yet.
+Attaches an external documentation link. The target is declared `unknown` because external docs attach in several places. The emitter reads it at six of them:
 
-A namespace that carries `@server` also puts the link on every server it declares. The servers come from the service namespace, and `info` reads that same namespace, so the link appears in both places. AsyncAPI defines `externalDocs` on both objects.
+| Applied to                                           | Emitted on                      |
+| ---------------------------------------------------- | ------------------------------- |
+| The service namespace                                | `info.externalDocs`             |
+| A namespace carrying `@server`                       | every server it declares        |
+| A `@message` model                                   | that message's `externalDocs`   |
+| Any model, scalar, or property that becomes a schema | that schema's `externalDocs`    |
+| A `@channel` interface                               | that channel's `externalDocs`   |
+| A `@send`/`@receive` operation                       | that operation's `externalDocs` |
+
+AsyncAPI's Schema Object defines `externalDocs` alongside `discriminator` and `deprecated` as one of the three fields it adds on top of JSON Schema draft-07. A `@message` model emits the link on both the message and its payload schema, which is what `@doc` already does.
+
+The servers come from the service namespace, and `info` reads that same namespace, so one link on that namespace appears in both places. AsyncAPI defines `externalDocs` on both objects.
 
 The `url` must be an absolute URL. AsyncAPI marks the field with the `uri` format, so a relative one such as `/docs` makes a parser reject the whole document. A url that is not absolute raises an [`invalid-url`](../diagnostics#invalid-url) error, and the whole application is dropped.
 
