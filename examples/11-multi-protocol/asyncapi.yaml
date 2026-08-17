@@ -1,0 +1,144 @@
+asyncapi: 3.1.0
+id: urn:example:order-events
+info:
+  title: Order Events
+  version: 2.0.0
+  description: Order events, delivered over Kafka, WebSocket and SQS.
+defaultContentType: application/json
+servers:
+  kafka-prod:
+    host: kafka.example.com:9092
+    protocol: kafka
+    title: Event backbone
+  ws-public:
+    host: stream.example.com
+    protocol: wss
+    title: Public order stream
+  sqs-partner:
+    host: sqs.eu-west-1.amazonaws.com
+    protocol: sqs
+    title: Partner queue
+channels:
+  OrderTopic:
+    address: orders.placed
+    description: The Kafka topic every order is published to.
+    servers:
+      - $ref: "#/servers/kafka-prod"
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    bindings:
+      kafka:
+        topic: orders.placed.v2
+        partitions: 12
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - delete
+          retention.ms: 604800000
+        bindingVersion: 0.5.0
+  OrderStream:
+    address: /streams/orders
+    description: The stream a browser subscribes to.
+    servers:
+      - $ref: "#/servers/ws-public"
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    bindings:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            token:
+              type: string
+              description: A short-lived access token.
+        bindingVersion: 0.1.0
+  PartnerQueue:
+    address: partner-orders
+    description: The queue a partner reads from.
+    servers:
+      - $ref: "#/servers/sqs-partner"
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    bindings:
+      sqs:
+        queue:
+          name: partner-orders
+          fifoQueue: false
+          visibilityTimeout: 30
+          messageRetentionPeriod: 345600
+        deadLetterQueue:
+          name: partner-orders-dlq
+          fifoQueue: false
+        bindingVersion: 0.2.0
+operations:
+  publishOrderPlaced:
+    action: send
+    channel:
+      $ref: "#/channels/OrderTopic"
+    bindings:
+      kafka:
+        groupId:
+          type: string
+        clientId:
+          type: string
+        bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/OrderTopic/messages/OrderPlaced"
+  receiveOrderPlaced:
+    action: receive
+    channel:
+      $ref: "#/channels/OrderStream"
+    messages:
+      - $ref: "#/channels/OrderStream/messages/OrderPlaced"
+  receivePartnerOrder:
+    action: receive
+    channel:
+      $ref: "#/channels/PartnerQueue"
+    bindings:
+      sqs:
+        queues:
+          - name: partner-orders
+        bindingVersion: 0.2.0
+    messages:
+      - $ref: "#/channels/PartnerQueue/messages/OrderPlaced"
+components:
+  schemas:
+    OrderPlaced:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: The order this event is about.
+        customerId:
+          type: string
+          description: The customer who placed it.
+        amountMinor:
+          type: integer
+          format: int64
+          description: What the order came to, in the smallest unit of the currency.
+        placedAt:
+          type: string
+          format: date-time
+          description: When the customer placed it, in UTC.
+      required:
+        - orderId
+        - customerId
+        - amountMinor
+        - placedAt
+      description: An order that a customer placed.
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      description: An order that a customer placed.
+      payload:
+        $ref: "#/components/schemas/OrderPlaced"
+      bindings:
+        kafka:
+          key:
+            type: string
+          schemaIdLocation: payload
+          bindingVersion: 0.5.0

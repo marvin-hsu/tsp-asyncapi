@@ -1,9 +1,11 @@
-// The generic `@binding`, on an MQTT device-telemetry service. It lands on a
-// server, an operation and a message here. The channel carries none, because
-// MQTT defines no channel binding.
-// Example 08 uses the four Kafka decorators. This library ships no decorator
-// for MQTT, WebSocket, AMQP or HTTP. `@binding` carries those protocols.
-// It is the escape hatch, and it checks nothing.
+// The MQTT bindings, on a device-telemetry service. They land on a server, an
+// operation and a message here. The channel carries none, because the MQTT
+// binding specification says its channel object must hold no property at all.
+//
+// Example 08 shows the four Kafka decorators. This one shows two things Kafka
+// cannot: a protocol whose levels are a different set, and the generic
+// `@binding` beside the named decorators, on the one kind of name that still
+// needs it.
 import "../..";
 
 using AsyncAPI;
@@ -22,49 +24,43 @@ using AsyncAPI;
     title: "Production broker",
   }
 )
-// The server binding. `@binding` names no level of its own. The level comes
-// from the target. This namespace carries `@service` and no `@channel`, so
-// the binding reaches the servers alone.
-// Every server of this namespace gets its own copy of the binding. `@server`
-// is repeatable and keyed by name, so no decorator target can single one
-// server out. This namespace declares one server, so one copy is written.
-// Write `bindingVersion` yourself. `@binding` adds none, because it never
-// reads the shape of the config. `0.2.0` is the version of the MQTT bindings
-// these fields belong to.
-@binding(
-  "mqtt",
-  #{
-    clientId: "telemetry-gateway",
-    cleanSession: false,
-    keepAlive: 60,
-    lastWill: #{
-      topic: "devices/status",
-      qos: 1,
-      message: "gateway offline",
-      retain: false,
-    },
-    bindingVersion: "0.2.0",
-  }
-)
+// Every server of this namespace gets its own copy. `@server` is repeatable
+// and keyed by name, so no decorator target can single one server out. This
+// namespace declares one server, so one copy is written.
+//
+// `bindingVersion: 0.2.0` is written for you. Each named decorator knows which
+// version of the binding its fields come from, so you never write it and can
+// never write the wrong one.
+//
+// `lastWill.qos` is checked. MQTT allows 0, 1 and 2. Write 3 and the emitter
+// reports `invalid-binding-field`, drops that one field, and keeps the rest of
+// the will.
+@mqttServer(#{
+  clientId: "telemetry-gateway",
+  cleanSession: false,
+  keepAlive: 60,
+  lastWill: #{
+    topic: "devices/status",
+    qos: 1,
+    message: "gateway offline",
+    retain: false,
+  },
+  sessionExpiryInterval: 3600,
+})
 namespace DeviceTelemetry;
 
 /**
  * One reading from one device.
  */
-// The message binding. The target is a model that carries `@message`, so the
-// binding lands on the message object.
 // `payloadFormatIndicator`, `contentType` and `responseTopic` are MQTT 5
 // fields. The broker above declares `protocolVersion: "5.0"`, so all three
-// apply.
-@binding(
-  "mqtt",
-  #{
-    payloadFormatIndicator: 1,
-    contentType: "application/json",
-    responseTopic: "devices/commands",
-    bindingVersion: "0.2.0",
-  }
-)
+// apply. `payloadFormatIndicator` is 0 for bytes and 1 for UTF-8, and no
+// other value is accepted.
+@mqttMessage(#{
+  payloadFormatIndicator: 1,
+  contentType: "application/json",
+  responseTopic: "devices/commands",
+})
 @message
 model DeviceReading {
   /** The serial number of the device. */
@@ -80,21 +76,24 @@ model DeviceReading {
 /**
  * The telemetry of one device.
  */
-// This channel carries no binding. Read the binding specification of your
-// protocol before you write the fields.
-// MQTT version `0.2.0` reserves its channel binding object for future use.
-// That object must contain no property at all. `bindingVersion` is a
-// property, so even the version is not allowed here.
-// The emitter enforces none of that. It reads no schema for a raw binding,
-// and it checks nothing inside the config. Write `qos` here and the emitter
-// writes it here. `qos` is an MQTT operation field, not a channel field.
+// This channel carries no MQTT binding, and there is no `@mqttChannel` to
+// write. Version 0.2.0 of the MQTT binding reserves its channel object for
+// future use and says it must contain no property, `bindingVersion` included.
+//
+// The generic `@binding` is here instead, on a name AsyncAPI reserves but
+// gives no fields: `stomp`. That is what `@binding` is for now. It cannot
+// carry a protocol of your own invention, because the member names of a
+// Bindings Object are a closed list and a parser rejects anything outside it.
+// A name of your own has to start with `x-`.
+@binding("stomp", #{})
 @channel("devices/{deviceId}/telemetry")
 @useServer("mqtt-prod")
 interface DeviceTelemetryChannel {
-  // The operation binding. The target is an operation, so the binding lands
-  // on the operation object. `qos`, `retain` and `messageExpiryInterval` are
-  // the three fields the MQTT operation binding defines.
-  @binding("mqtt", #{ qos: 1, retain: false, messageExpiryInterval: 300, bindingVersion: "0.2.0" })
+  // `qos`, `retain` and `messageExpiryInterval` are the three fields the MQTT
+  // operation binding defines. `retain` only means anything on a send, which
+  // AsyncAPI states and this emitter does not check, because the rule spans
+  // the operation and its action.
+  @mqttOperation(#{ qos: 1, retain: false, messageExpiryInterval: 300 })
   @send("publishDeviceReading")
   op publish(
     /** The serial number of the device. */

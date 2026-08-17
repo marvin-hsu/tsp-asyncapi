@@ -15,12 +15,13 @@ servers:
       mqtt:
         clientId: telemetry-gateway
         cleanSession: false
-        keepAlive: 60
         lastWill:
           topic: devices/status
           qos: 1
           message: gateway offline
           retain: false
+        keepAlive: 60
+        sessionExpiryInterval: 3600
         bindingVersion: 0.2.0
 channels:
   DeviceTelemetryChannel:
@@ -37,6 +38,8 @@ channels:
     messages:
       DeviceReading:
         $ref: "#/components/messages/DeviceReading"
+    bindings:
+      stomp: {}
 operations:
   publishDeviceReading:
     action: send

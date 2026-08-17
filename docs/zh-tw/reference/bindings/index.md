@@ -2,7 +2,7 @@
 
 AsyncAPI 用 Bindings Object 描述特定通訊協定的設定。規格把它放在四種物件上：server、channel、operation 與 message。該物件的每一個成員各代表一個通訊協定，例如 `kafka`。
 
-本 library 為十三個通訊協定提供 decorator：Kafka、WebSocket、MQTT、HTTP、AMQP、NATS、Pulsar、Google Cloud Pub/Sub、Amazon SQS、Anypoint MQ、JMS、IBM MQ 與 Solace。另外提供一個通用 decorator，供其他通訊協定使用。
+本 library 為十三個通訊協定提供 decorator：Kafka、WebSocket、MQTT、HTTP、AMQP、NATS、Pulsar、Google Cloud Pub/Sub、Amazon SQS、Anypoint MQ、JMS、IBM MQ 與 Solace。另外提供通用的 `@binding`，供 AsyncAPI 保留但未定義欄位的那些名稱使用。
 
 一個通訊協定在一個物件上只佔一個成員。兩個 decorator 在同一個物件上宣告同一個成員是錯誤。emitter 不會合併兩份設定，後寫的那份也不會取代先寫的那份。
 
@@ -30,7 +30,13 @@ AsyncAPI 用 Bindings Object 描述特定通訊協定的設定。規格把它放
 extern dec binding(target: unknown, protocol: valueof string, config: valueof unknown);
 ```
 
-在 target 產生的物件上加入一個原樣的 binding。若某個通訊協定還沒有專屬 decorator，用這個。若某個欄位是新版 binding 才加入的，也用這個。
+在 target 產生的物件上加入一個原樣的 binding。用於新版 binding 才加入的欄位，以及下方那三個沒有欄位的通訊協定。
+
+::: warning
+Bindings Object 的成員名稱是**封閉清單**。AsyncAPI 逐一列出它認得的通訊協定，其他名稱會被 parser 以「Property '\<name\>' is not expected to be here」拒絕。所以 `@binding("mycorp", ...)` 會產生一份無法通過驗證的文件。
+
+要放自訂的通訊協定，名稱請以 `x-` 開頭。那是規格擴充機制，parser 在任何位置都接受。
+:::
 
 設定內容原樣輸出。這個 decorator 不加 `bindingVersion`。它不解讀設定的形狀，因此無法判斷欄位屬於哪一版。通訊協定需要該欄位時，自行寫進設定裡。
 

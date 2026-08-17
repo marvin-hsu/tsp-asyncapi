@@ -165,6 +165,10 @@ components:
 
 An operation refers to a message through its channel, never through `components.messages`. AsyncAPI 3 requires that form.
 
+## Examples
+
+Eleven worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it.
+
 ## Emitter options
 
 Set these in `tspconfig.yaml`, or pass them as CLI arguments:

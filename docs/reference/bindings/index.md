@@ -2,7 +2,7 @@
 
 AsyncAPI describes protocol-specific settings in a Bindings Object. The specification puts one on four objects: a server, a channel, an operation, and a message. Each member of that object names a protocol, such as `kafka`.
 
-This library ships decorators for thirteen protocols: Kafka, WebSocket, MQTT, HTTP, AMQP, NATS, Pulsar, Google Cloud Pub/Sub, Amazon SQS, Anypoint MQ, JMS, IBM MQ and Solace. It also ships a generic decorator for every other protocol.
+This library ships decorators for thirteen protocols: Kafka, WebSocket, MQTT, HTTP, AMQP, NATS, Pulsar, Google Cloud Pub/Sub, Amazon SQS, Anypoint MQ, JMS, IBM MQ and Solace. It also ships a generic decorator, `@binding`, for the names AsyncAPI reserves but gives no fields.
 
 One protocol claims one member per object. Two decorators that claim the same member on the same object are an error. The emitter never merges the two configurations, and the later one never replaces the earlier one.
 
@@ -30,7 +30,13 @@ One protocol claims one member per object. Two decorators that claim the same me
 extern dec binding(target: unknown, protocol: valueof string, config: valueof unknown);
 ```
 
-Adds one raw binding to whichever object the target emits. Use it for a protocol that has no decorator here yet. Use it also for a field a newer version of a binding added.
+Adds one raw binding to whichever object the target emits. Use it for a field a newer version of a binding added, and for the three protocols below that carry no fields.
+
+::: warning
+The member names of a Bindings Object are a closed list. AsyncAPI names every protocol it knows, and a parser rejects any other name with "Property '\<name\>' is not expected to be here". So `@binding("mycorp", ...)` writes a document that fails validation.
+
+For a protocol of your own, use a name that starts with `x-`. That prefix is the specification extension mechanism, and a parser accepts it anywhere.
+:::
 
 The config is emitted as written. This decorator adds no `bindingVersion`. It does not read the shape of the config, so it cannot know which version the fields belong to. Write that field yourself when the protocol needs it.
 

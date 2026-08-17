@@ -165,6 +165,10 @@ components:
 
 operation 透過自己的 channel 參照 message，不會直接指向 `components.messages`。AsyncAPI 3 規定必須是這種形式。
 
+## 範例
+
+[`examples/`](./examples/) 底下有十一個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的 AsyncAPI 文件。
+
 ## Emitter 選項
 
 在 `tspconfig.yaml` 設定，或透過 CLI 參數傳入：
