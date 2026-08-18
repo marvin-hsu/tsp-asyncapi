@@ -11,5 +11,5 @@ filters:
     - typespec
     - nodejs
   categories:
-    - documentation-generator
+    - dsl
   hasCommercial: false
