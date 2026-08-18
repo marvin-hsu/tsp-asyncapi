@@ -34,6 +34,10 @@ export default defineConfig({
     ],
   ],
 
+  sitemap: {
+    hostname: "https://marvin-hsu.github.io/tsp-asyncapi",
+  },
+
   locales: {
     root: {
       label: "English",
