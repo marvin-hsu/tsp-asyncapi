@@ -70,7 +70,7 @@
     "*.{ts,js,mjs,cjs}": "eslint --fix",
     "*": "prettier --write --ignore-unknown"
   },
-  "author": "",
+  "author": "Marvin Hsu <contact@marvinhsu.dev> (https://github.com/marvin-hsu)",
   "license": "MIT",
   "devEngines": {
     "packageManager": {
