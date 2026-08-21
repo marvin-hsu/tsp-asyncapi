@@ -40,6 +40,9 @@ const ownKeys = (value: object): string[] => Object.getOwnPropertyNames(value);
 /** The own keys as a set, because a map states no order to its caller. */
 const keySet = (value: object): Set<string> => new Set(ownKeys(value));
 
+/** Narrows a key to the shape the document types index an extension by. */
+const isExtensionKey = (key: string): key is `x-${string}` => key.startsWith("x-");
+
 describe("Unit: lower transforms — empty in, nothing out", () => {
   it("omits the bindings and the servers section when there is no node", () => {
     let empty = 0;
@@ -245,15 +248,26 @@ describe("Unit: lower transforms — the info object", () => {
   it("carries each field that says something, and no field the model invented", () => {
     let blank = 0;
     let absent = 0;
+    let extended = 0;
 
     fc.assert(
       fc.property(infoNode, (node) => {
         const info = lowerInfo(node);
         const keys = ownKeys(info);
 
+        // An `x-` key is the author's own, so the specification field list
+        // cannot name it. It is checked against the model instead.
+        const extensionKeys = keys.filter(isExtensionKey);
+        if (extensionKeys.length > 0) extended++;
+        // A map states no order to its caller, so the key sets are compared.
+        expect(new Set(extensionKeys)).toEqual(new Set(Object.keys(node.extensions)));
+        for (const key of extensionKeys) {
+          expect(info[key]).toEqual(node.extensions[key]);
+        }
+
         // `target` is a source location the document has no field for. A
         // whole-node spread would leak it.
-        expect(keys.filter((key) => !INFO_KEYS.includes(key))).toEqual([]);
+        expect(keys.filter((key) => !INFO_KEYS.includes(key) && !key.startsWith("x-"))).toEqual([]);
 
         expect(info.title).toBe(node.title);
         expect(info.version).toBe(node.version);
@@ -288,5 +302,8 @@ describe("Unit: lower transforms — the info object", () => {
     // `optional-fields`, so both have to be reached.
     expect(blank).toBeGreaterThan(0);
     expect(absent).toBeGreaterThan(0);
+    // An empty extension map emits no field at all, so the populated case
+    // has to be reached for the check above to mean anything.
+    expect(extended).toBeGreaterThan(0);
   });
 });

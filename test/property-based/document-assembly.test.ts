@@ -278,7 +278,7 @@ describe("Integration: document assembly — the options that reach the head", (
    */
   it.fails("treats a blank option the way it treats blank prose", () => {
     const model = {
-      info: { title: "T", version: "1", tags: [] },
+      info: { title: "T", version: "1", tags: [], extensions: {} },
       servers: [],
       securitySchemes: [],
       messages: [],

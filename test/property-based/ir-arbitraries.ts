@@ -135,6 +135,26 @@ export const bindingConfig: fc.Arbitrary<JsonObject> = fc.dictionary(
 );
 
 /**
+ * The `x-` extensions of one document object.
+ *
+ * Resolve rejects a key outside the specification pattern, so every key drawn
+ * here is one that reaches the document. The empty map carries most of the
+ * weight, and it has to stay reachable: the lower stage emits no field at all
+ * for it.
+ */
+const extensions: fc.Arbitrary<JsonObject> = fc.oneof(
+  { weight: 2, arbitrary: fc.constant<JsonObject>({}) },
+  {
+    weight: 1,
+    arbitrary: fc.dictionary(
+      fc.stringMatching(/^x-[a-z][a-zA-Z0-9-]{0,6}$/),
+      fc.oneof(fc.string(), fc.integer(), fc.boolean()),
+      { maxKeys: 3 },
+    ),
+  },
+);
+
+/**
  * A config the generic `@binding` may hold.
  *
  * That decorator takes plain JSON and reads none of it, so an author can
@@ -259,6 +279,7 @@ export const infoNode: fc.Arbitrary<InfoNode> = fc
     ),
     tags: fc.array(tagNode, { maxLength: 3 }),
     externalDocs: fc.option(externalDocsNode, { nil: undefined }),
+    extensions,
   })
   .map((draw) => ({
     title: draw.title,
@@ -269,6 +290,7 @@ export const infoNode: fc.Arbitrary<InfoNode> = fc
     ...optional("license", draw.license),
     tags: draw.tags,
     ...optional("externalDocs", draw.externalDocs),
+    extensions: draw.extensions,
   }));
 
 /**
@@ -306,6 +328,7 @@ const messageNode = (key: string): fc.Arbitrary<MessageNode> =>
       contentType: optionalText,
       tags: fc.array(tagNode, { maxLength: 2 }),
       bindings: bindingNodes(2),
+      extensions,
     })
     .map((draw) => ({
       target: stubModel(key),
@@ -324,6 +347,7 @@ const messageNode = (key: string): fc.Arbitrary<MessageNode> =>
       examples: [],
       tags: draw.tags,
       bindings: draw.bindings,
+      extensions: draw.extensions,
     }));
 
 /** A message list whose keys are unique, the way resolve leaves it. */
@@ -374,6 +398,7 @@ const channelNode = (key: string): fc.Arbitrary<ChannelNode> =>
       messages: channelMessageNodes,
       tags: fc.array(tagNode, { maxLength: 2 }),
       bindings: bindingNodes(2),
+      extensions,
     })
     .map((draw) => ({
       target: stubTarget,
@@ -387,6 +412,7 @@ const channelNode = (key: string): fc.Arbitrary<ChannelNode> =>
       messageKeys: new Map(draw.messages.map((message) => [message.model, message.key])),
       tags: draw.tags,
       bindings: draw.bindings,
+      extensions: draw.extensions,
     }));
 
 /** A channel list whose keys are unique, the way resolve leaves it. */
@@ -433,6 +459,7 @@ const operationNode = (
         security: fc.uniqueArray(documentKey, { maxLength: 2 }),
         tags: fc.array(tagNode, { maxLength: 2 }),
         bindings: bindingNodes(2),
+        extensions,
         messages: messageRefs([own], 2),
         reply: fc.option(
           fc
@@ -458,6 +485,7 @@ const operationNode = (
         security: draw.security,
         tags: draw.tags,
         bindings: draw.bindings,
+        extensions: draw.extensions,
         messages: draw.messages,
         ...optional("reply", draw.reply),
       })),
