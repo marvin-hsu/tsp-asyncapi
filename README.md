@@ -238,9 +238,9 @@ into three groups: planned, waiting for a use case, and will not do.
 
 ### Planned
 
-| Planned work                                                    | What it means today                                                           | Notes                                 |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------- |
-| Test-case re-evaluation, and more property-based test scenarios | The suite carries about 986 example-based cases and 15 fast-check properties. | This is the current highest priority. |
+| Planned work                                                    | What it means today                                                      | Notes                                 |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
+| Test-case re-evaluation, and more property-based test scenarios | The suite carries 1036 example-based cases and 53 fast-check properties. | This is the current highest priority. |
 
 ### Waiting for a use case
 
