@@ -4,7 +4,38 @@ This project follows [semantic versioning](https://semver.org/). It is still
 in `0.x`, so a minor release may carry a breaking change. Any that does says
 so at the top of its entry.
 
-## Unreleased
+The Traditional Chinese version is [CHANGELOG.zh-TW.md](./CHANGELOG.zh-TW.md).
+
+## 0.3.0
+
+**Behavior changes.** No public export was removed, and no decorator changed
+its signature, so a project on 0.2.1 upgrades without editing a line of
+TypeSpec. Five checks did get narrower or wider, and each one can change what
+an existing program emits or reports. Regenerate and read the diff.
+
+- The `asyncapi-id` and `default-content-type` options now answer to the rule
+  every other text field answers to. A blank option is absent, and one that
+  says something is trimmed. Both were a bare truthiness test, so a blank
+  option reached the document and a padded one kept its padding. The options
+  schema sets no minimum length, so an author can write either.
+- An array index inside a raw schema `$ref` is now only what RFC 6901 spells:
+  `0`, or a digit run with no leading zero. The reader passed the token to
+  `Number`, which also reads `""` and `" "` as 0, and `"01"`, `"1.0"`, `"+1"`,
+  `"0x1"` and `"1e0"` as 1. Such a `$ref` was reported as resolving. It now
+  reports `unresolved-raw-schema-ref`, so a program that carried one starts
+  reporting where it did not before.
+- A value the serializer cannot represent is now reported and dropped, however
+  deep it sits. A failure inside an array reached the document as `null`, and
+  one inside an object made that member vanish, both without a word. This
+  covers `@binding` and `@jsonSchemaExtension` as well as `@extension`.
+- A runtime expression may now hold a line terminator inside a JSON Pointer
+  token. RFC 6901 puts no character outside a reference token, and both JSON
+  and YAML carry one inside a member name. `@correlationId`,
+  `@parameterLocation` and `@replyAddress` all take such an expression.
+- A tag metadata conflict is now reported once per declaration. The report
+  came out once per reader instead, so one disagreement on a service namespace
+  was named two or three times, depending on whether that namespace also
+  carried servers or a channel.
 
 ### Features
 
@@ -14,15 +45,36 @@ so at the top of its entry.
   one. The decorator is repeatable, and the emitted keys follow source order.
   The value is any JSON value, and it is emitted as written.
 
-  A key without the `x-` prefix reports `invalid-extension-key`. The same key
-  twice on one target reports `duplicate-extension-key`, and the first
-  application in source order is kept. A target that emits none of the four
-  objects reports `extension-target-not-emitted`.
+  A key outside the specification pattern reports `invalid-extension-key`;
+  the prefix alone is not enough, because the official parser rejects `x-`
+  and `x-has space`. The same key twice on one target reports
+  `duplicate-extension-key`, and the first application in source order is
+  kept. A value the serializer cannot represent reports
+  `unserializable-extension`. A target that emits none of the four objects
+  reports `extension-target-not-emitted`.
 
   A server and a security scheme are not supported. Both are declared with a
   named argument on a namespace, so one `@extension` cannot name which of
   them it means. For a keyword inside a JSON Schema, use
   `@jsonSchemaExtension` instead.
+
+### Tests
+
+The suite carries 53 fast-check properties over seven pure modules. It carried
+15 before. Every one was validated by mutation: the module it covers was
+broken the way its plan named, and the property had to turn red. Three of the
+five behavior changes above are defects those properties found.
+
+### Documentation
+
+- A fifteenth example writes an `x-` field on each object that takes one.
+- The other fourteen documents were regenerated. They had not been rebuilt
+  since 0.2.1, so the committed output still showed the channel keys and the
+  folded lines of 0.2.0.
+- Both READMEs record one thing this emitter cannot fix. A member named
+  `__proto__` inside a decorator's object value never reaches it: the compiler
+  marshals such a value by assigning each member, and an assignment to that
+  name sets the prototype instead of adding a member.
 
 ## 0.2.1
 
