@@ -262,6 +262,26 @@ Applications that set _different_ fields merge instead, and so do a built-in `@t
 
 **Fix:** merge the two applications into one, or give them different names.
 
+### `invalid-extension-key`
+
+> The extension key '\<key\>' is not a specification extension name. AsyncAPI reads only a key of the shape 'x-' followed by one or more letters, digits, underscores, dots, or hyphens, so this @extension was dropped. Rename the key to that shape.
+
+An application of [`@extension`](./decorators/document-info#extension) passed a key the AsyncAPI Specification Extensions pattern rejects. The pattern is `^x-[\w\d\.\-\_]+$`. Any other key would be an unknown field in the emitted object, and the official parser rejects the document.
+
+A bare `x-` is one such key. It has the prefix but no name after it. A key with a space is another.
+
+**Fix:** rename the key to `x-`, then one or more letters, digits, underscores, dots, or hyphens.
+
+### `duplicate-extension-key`
+
+> The extension key '\<key\>' is applied to this target more than once. An object carries one value per key, so this @extension was dropped and the first one with this key in source order was kept. Remove the extra @extension, or give it another key.
+
+Two applications of [`@extension`](./decorators/document-info#extension) on one target pass the same key. An emitted object carries one value per key, so one of the two values would have to be dropped.
+
+The same key on two _different_ targets is never a conflict. Every emitted object carries its own set of extensions.
+
+**Fix:** remove the extra application, or give it another key.
+
 ### `duplicate-server-name`
 
 > Duplicate server name: '\<name\>'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.
@@ -791,6 +811,28 @@ The emitter follows the derived message's own declaration. Both readings are def
 A `@messageExample` value contains something the compiler cannot serialize to plain JSON (an unsupported scalar constructor, a malformed `duration.fromISO(...)` value, ...). The whole entry is dropped, including its serializable sibling fields. An entry that kept half its payload would show a message the application never sends.
 
 **Fix:** simplify the example value to JSON-representable parts.
+
+### `extension-target-not-emitted`
+
+> @extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.
+
+[`@extension`](./decorators/document-info#extension) accepts any target, because AsyncAPI allows a specification extension on every object. This emitter writes one on four objects only: `info`, a channel, an operation, and a message. A target that emits none of them reaches no part of the document.
+
+A server and a security scheme are two such targets. Both are declared with a named argument on a namespace, so one `@extension` cannot name which of them it means.
+
+One target gets one report, however many keys it carries. The placement is the mistake, not each key.
+
+**Fix:** move the application to the service namespace, a `@channel` interface, a `@send`/`@receive` operation, or a `@message` model.
+
+### `unserializable-extension`
+
+> The value of the extension key '\<key\>' could not be serialized to JSON, so this @extension was dropped. Give the key a value the emitter can write.
+
+The value passed to [`@extension`](./decorators/document-info#extension) contains something the compiler cannot serialize to plain JSON, such as an unsupported scalar constructor. The whole application is dropped. A recorded value the writer cannot write would make the key disappear with nothing said about it.
+
+Other applications on the same target are unaffected.
+
+**Fix:** simplify the value to JSON-representable parts.
 
 ### `unserializable-default`
 

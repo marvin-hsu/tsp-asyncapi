@@ -4,6 +4,26 @@ This project follows [semantic versioning](https://semver.org/). It is still
 in `0.x`, so a minor release may carry a breaking change. Any that does says
 so at the top of its entry.
 
+## Unreleased
+
+### Features
+
+- `@extension` writes one `x-` specification extension on the object its
+  target emits. It reaches four objects: `info`, a channel, an operation, and
+  a message. A target that emits several of them gets the extension on each
+  one. The decorator is repeatable, and the emitted keys follow source order.
+  The value is any JSON value, and it is emitted as written.
+
+  A key without the `x-` prefix reports `invalid-extension-key`. The same key
+  twice on one target reports `duplicate-extension-key`, and the first
+  application in source order is kept. A target that emits none of the four
+  objects reports `extension-target-not-emitted`.
+
+  A server and a security scheme are not supported. Both are declared with a
+  named argument on a namespace, so one `@extension` cannot name which of
+  them it means. For a keyword inside a JSON Schema, use
+  `@jsonSchemaExtension` instead.
+
 ## 0.2.1
 
 **Breaking change.** Without an explicit `channelId`, `@channel` now keys the

@@ -182,3 +182,111 @@ server 來自 service namespace，而 `info` 讀的是同一個 namespace，所�
 - **兩個 `@asyncTag` 同名、同一個欄位給了兩個不同的值。** 這是 [`conflicting-tag-metadata`](../diagnostics#conflicting-tag-metadata) error。該欄位保留原始碼順序中第一次套用的值。
 
 同一個名字出現在**兩個不同的 target** 上、帶不同的 metadata，不算錯誤。AsyncAPI 讓每個物件各自持有獨立的 `tags` 陣列。
+
+## `@extension`
+
+```typespec
+extern dec extension(target: unknown, key: valueof string, value: valueof unknown);
+```
+
+在 target 產生的物件上加一個 `x-` 規格擴充欄位。值可以是任何 JSON 值，照原樣輸出。
+
+可重複套用：每次套用加一個 key。輸出的 key 依原始碼順序排列，並排在該物件所有規格欄位之後。
+
+emitter 會在四個位置讀取它：
+
+| 標在哪裡                      | 輸出到哪裡        |
+| ----------------------------- | ----------------- |
+| service namespace             | `info`            |
+| `@channel` interface          | 該 channel 物件   |
+| `@send`／`@receive` operation | 該 operation 物件 |
+| `@message` model              | 該 message 物件   |
+
+一個 target 產生多個物件時，每個物件都拿到這組欄位。同時是 service 又是 channel 的 namespace 就是這種 target。
+
+key 必須符合 AsyncAPI 規格擴充的樣式 `^x-[\w\d\.\-\_]+$`。也就是 `x-` 加上一個以上的英文字母、數字、底線、點或連字號。AsyncAPI 不把其他 key 讀成規格擴充。不合樣式的 key 回報 [`invalid-extension-key`](../diagnostics#invalid-extension-key)，這次套用被丟棄。
+
+同一個 target 上的一個 key 只取一個值。同一個 key 第二次套用回報 [`duplicate-extension-key`](../diagnostics#duplicate-extension-key)，保留原始碼順序中的第一次套用。
+
+值必須是 emitter 寫得出來的 JSON。寫不出來的值回報 [`unserializable-extension`](../diagnostics#unserializable-extension)，該次套用被丟棄。
+
+```typespec
+@service(#{ title: "Order Service API" })
+@info(#{ version: "1.0.0" })
+@extension("x-owner", "orders-team")
+@extension("x-sla", #{ tier: "gold", hours: 24 })
+namespace Orders;
+```
+
+```yaml
+info:
+  title: Order Service API
+  version: 1.0.0
+  x-owner: orders-team
+  x-sla:
+    tier: gold
+    hours: 24
+```
+
+```typespec
+@message
+@extension("x-schema-registry-id", 4711)
+model OrderCreated {
+  id: string;
+}
+
+@channel("orders.created")
+@extension("x-retention-days", 7)
+interface OrderChannel {
+  @send
+  @extension("x-audit", true)
+  publishOrderCreated(payload: OrderCreated): void;
+}
+```
+
+```yaml
+channels:
+  orders.created:
+    address: orders.created
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+    x-retention-days: 7
+operations:
+  publishOrderCreated:
+    action: send
+    channel:
+      $ref: "#/channels/orders.created"
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
+    x-audit: true
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      x-schema-registry-id: 4711
+```
+
+### `@extension` 與 `@jsonSchemaExtension`
+
+兩者寫進不同的層，這條分工不會變。
+
+|            | `@extension`                                       | [`@jsonSchemaExtension`](./schemas#jsonschemaextension) |
+| ---------- | -------------------------------------------------- | ------------------------------------------------------- |
+| 寫進哪裡   | AsyncAPI 物件：`info`、channel、operation、message | `components.schemas` 裡的 JSON Schema                   |
+| key 的樣式 | `^x-[\w\d\.\-\_]+$`                                | 任何 key                                                |
+| 典型用途   | 放在規格欄位旁邊的工具用 metadata                  | emitter 沒有專屬 decorator 的 JSON Schema 關鍵字        |
+
+`@message` model 會同時產生一個 message 物件與一份 payload schema。標在該 model 上的 `@extension` 寫進 message 物件。要為 payload schema 加關鍵字，用 `@jsonSchemaExtension`。
+
+### 不支援 server 與 security scheme
+
+`@extension` 無法在 server 或 security scheme 上寫入擴充欄位。
+
+兩者都以具名參數宣告在 namespace 上，寫法是 `@server("production", #{ ... })`。一個 namespace 可以宣告好幾個。`@extension` 的 target 是那個 namespace，所以這次套用指不出它要的是哪一個 server 或哪一個 scheme。
+
+因此標在 service namespace 上的擴充只會落在 `info`，不會到達該 namespace 宣告的 server。這一點與 `@externalDocs` 和 `@asyncTag` 不同，那兩個會複製到每一個 server。
+
+target 不產生上述四種物件時，回報 [`extension-target-not-emitted`](../diagnostics#extension-target-not-emitted)，該 target 上的每個擴充都被丟棄。

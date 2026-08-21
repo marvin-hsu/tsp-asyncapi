@@ -203,6 +203,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 - `@AsyncAPI.info` — 設定完整的 AsyncAPI `info` 區塊：version、description、contact、license。
 - `@AsyncAPI.externalDocs` — 附加外部文件連結。
+- `@AsyncAPI.extension` — 在 target 產生的 `info`、channel、operation 或 message 物件上加一個 `x-` 規格擴充欄位。可重複套用，每次加一個 key。
 - `@AsyncAPI.oneOf` — 標註在 union 上，輸出 `oneOf` 取代預設的 `anyOf`。
 - `@AsyncAPI.jsonSchemaExtension` — 加入一個沒有專屬 decorator 對照的 JSON Schema 關鍵字，例如 `@jsonSchemaExtension("unevaluatedProperties", false)`。可重複套用，每次加一組 key/value。
 - `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — 在 interface 或 namespace 上宣告一個 channel。
@@ -236,12 +237,9 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 ### 計劃做
 
-列的順序就是優先順序。
-
-| 計劃項目                               | 目前的狀態                                                                                                                  | 說明                                                                                   |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 重新評估測試案例、加入更多屬性測試情境 | 測試套件目前有約 986 個案例式測試與 15 條 fast-check 性質。                                                                 | 目前優先級最高的工作，排在下面兩個功能之前。                                           |
-| `x-` 規格擴充                          | 沒有任何 decorator 會寫。`@jsonSchemaExtension` 是另一回事：它加的是 JSON Schema 的關鍵字，不是 AsyncAPI 物件的 `x-` 欄位。 | 需要一個以 AsyncAPI 物件（而非 schema）為目標的新 decorator。這個 decorator 還沒設計。 |
+| 計劃項目                               | 目前的狀態                                                  | 說明                   |
+| -------------------------------------- | ----------------------------------------------------------- | ---------------------- |
+| 重新評估測試案例、加入更多屬性測試情境 | 測試套件目前有約 986 個案例式測試與 15 條 fast-check 性質。 | 目前優先級最高的工作。 |
 
 ### 等使用情境
 

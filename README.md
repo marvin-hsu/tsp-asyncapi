@@ -203,6 +203,7 @@ A name collision between two declarations reports a diagnostic error. It does no
 
 - `@AsyncAPI.info` — Sets the full AsyncAPI `info` block: version, description, contact, and license.
 - `@AsyncAPI.externalDocs` — Attaches external documentation links.
+- `@AsyncAPI.extension` — Adds one `x-` specification extension to the `info`, channel, operation, or message object the target emits. Repeatable; each application adds one key.
 - `@AsyncAPI.oneOf` — Marks a union to emit `oneOf` instead of the default `anyOf`.
 - `@AsyncAPI.jsonSchemaExtension` — Adds one JSON Schema keyword this emitter has no dedicated decorator for, e.g. `@jsonSchemaExtension("unevaluatedProperties", false)`. Repeatable; each application adds one key/value pair.
 - `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — Declares one channel on an interface or a namespace.
@@ -237,12 +238,9 @@ into three groups: planned, waiting for a use case, and will not do.
 
 ### Planned
 
-The rows appear in priority order.
-
-| Planned work                                                    | What it means today                                                                                                                                | Notes                                                                                                             |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Test-case re-evaluation, and more property-based test scenarios | The suite carries about 986 example-based cases and 15 fast-check properties.                                                                      | This is the current highest priority. It comes before the two features below.                                     |
-| `x-` specification extensions                                   | No decorator writes one. `@jsonSchemaExtension` is a different thing: it adds a keyword to a JSON Schema, not an `x-` field to an AsyncAPI object. | It needs a new decorator that targets an AsyncAPI object rather than a schema. The decorator is not designed yet. |
+| Planned work                                                    | What it means today                                                           | Notes                                 |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------- |
+| Test-case re-evaluation, and more property-based test scenarios | The suite carries about 986 example-based cases and 15 fast-check properties. | This is the current highest priority. |
 
 ### Waiting for a use case
 

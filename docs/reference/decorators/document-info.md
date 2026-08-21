@@ -182,3 +182,111 @@ One name means one Tag Object per object. Two applications that name one tag on 
 - **Two `@asyncTag`, same name, one field with two different values.** This is [`conflicting-tag-metadata`](../diagnostics#conflicting-tag-metadata), an error. The first application in source order keeps the field.
 
 One name on **two different targets** may carry different metadata, and that is not an error. AsyncAPI gives every object its own `tags` array, and those arrays are independent.
+
+## `@extension`
+
+```typespec
+extern dec extension(target: unknown, key: valueof string, value: valueof unknown);
+```
+
+Adds one `x-` specification extension to the object the target emits. The value is any JSON value, and it is emitted as written.
+
+Repeatable: each application adds one key. The emitted keys follow source order, and they come after every specification field of the object.
+
+The emitter reads it at four places:
+
+| Applied to                     | Emitted on            |
+| ------------------------------ | --------------------- |
+| The service namespace          | `info`                |
+| A `@channel` interface         | that channel object   |
+| A `@send`/`@receive` operation | that operation object |
+| A `@message` model             | that message object   |
+
+A target that emits more than one object gets the extension on each of them. A namespace that is both the service and a channel is one such target.
+
+The key must match the AsyncAPI Specification Extensions pattern, `^x-[\w\d\.\-\_]+$`. That is `x-`, then one or more letters, digits, underscores, dots, or hyphens. AsyncAPI reads no other key as a specification extension. Any other key raises [`invalid-extension-key`](../diagnostics#invalid-extension-key) and that application is dropped.
+
+One key on one target takes one value. A second application of the same key on the same target raises [`duplicate-extension-key`](../diagnostics#duplicate-extension-key). The first application in source order is kept.
+
+The value must be one the emitter can write as JSON. A value it cannot write raises [`unserializable-extension`](../diagnostics#unserializable-extension) and that application is dropped.
+
+```typespec
+@service(#{ title: "Order Service API" })
+@info(#{ version: "1.0.0" })
+@extension("x-owner", "orders-team")
+@extension("x-sla", #{ tier: "gold", hours: 24 })
+namespace Orders;
+```
+
+```yaml
+info:
+  title: Order Service API
+  version: 1.0.0
+  x-owner: orders-team
+  x-sla:
+    tier: gold
+    hours: 24
+```
+
+```typespec
+@message
+@extension("x-schema-registry-id", 4711)
+model OrderCreated {
+  id: string;
+}
+
+@channel("orders.created")
+@extension("x-retention-days", 7)
+interface OrderChannel {
+  @send
+  @extension("x-audit", true)
+  publishOrderCreated(payload: OrderCreated): void;
+}
+```
+
+```yaml
+channels:
+  orders.created:
+    address: orders.created
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+    x-retention-days: 7
+operations:
+  publishOrderCreated:
+    action: send
+    channel:
+      $ref: "#/channels/orders.created"
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
+    x-audit: true
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      x-schema-registry-id: 4711
+```
+
+### `@extension` and `@jsonSchemaExtension`
+
+The two write to different layers, and the split does not change.
+
+|             | `@extension`                                            | [`@jsonSchemaExtension`](./schemas#jsonschemaextension) |
+| ----------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| Writes into | An AsyncAPI object: `info`, channel, operation, message | A JSON Schema in `components.schemas`                   |
+| Key shape   | `^x-[\w\d\.\-\_]+$`                                     | Any key                                                 |
+| Typical use | Tooling metadata beside the specification fields        | A JSON Schema keyword this emitter has no decorator for |
+
+A `@message` model produces both a message object and a payload schema. `@extension` on that model writes the message object. To add a keyword to the payload schema, use `@jsonSchemaExtension`.
+
+### Servers and security schemes are not supported
+
+`@extension` cannot write an extension on a server or on a security scheme.
+
+Both are declared with a named argument on a namespace, as in `@server("production", #{ ... })`. One namespace may declare several of them. The target of `@extension` is the namespace, so the application cannot name which server or which scheme it means.
+
+An extension on the service namespace therefore lands on `info` alone. It does not reach the servers that namespace declares. This differs from `@externalDocs` and `@asyncTag`, which copy onto every server.
+
+A target that emits none of the four supported objects raises [`extension-target-not-emitted`](../diagnostics#extension-target-not-emitted), and every extension on it is dropped.

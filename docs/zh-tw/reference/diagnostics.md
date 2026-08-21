@@ -262,6 +262,26 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 **修法：** 把兩次套用合併成一次，或改用不同的名字。
 
+### `invalid-extension-key`
+
+> The extension key '\<key\>' is not a specification extension name. AsyncAPI reads only a key of the shape 'x-' followed by one or more letters, digits, underscores, dots, or hyphens, so this @extension was dropped. Rename the key to that shape.
+
+傳給 [`@extension`](./decorators/document-info#extension) 的 key 不符合 AsyncAPI 規格擴充的樣式。樣式是 `^x-[\w\d\.\-\_]+$`。其他 key 在輸出的物件裡都是來歷不明的欄位，官方 parser 會判定整份文件不合法。
+
+只有 `x-` 就是這種 key。它有前綴，但後面沒有名字。含空白的 key 也是。
+
+**修法：** 把 key 改成 `x-` 加上一個以上的英文字母、數字、底線、點或連字號。
+
+### `duplicate-extension-key`
+
+> The extension key '\<key\>' is applied to this target more than once. An object carries one value per key, so this @extension was dropped and the first one with this key in source order was kept. Remove the extra @extension, or give it another key.
+
+同一個 target 上兩次 [`@extension`](./decorators/document-info#extension) 用了同一個 key。輸出的物件對一個 key 只放一個值，兩個值必定有一個要被丟掉。保留原始碼順序中的第一次套用。
+
+同一個 key 出現在兩個*不同*的 target 上永遠不算衝突。每個輸出的物件各自持有自己那組擴充欄位。
+
+**修法：** 移除多餘的那次套用，或改用另一個 key。
+
 ### `duplicate-server-name`
 
 > Duplicate server name: '\<name\>'. Each @server on a namespace needs its own name, because the name is the key of that server in the emitted document. This @server was dropped, and the first one with this name in source order was kept.
@@ -789,6 +809,28 @@ emitter 採用衍生 message 自己的宣告。兩種解讀都說得通，所以
 `@messageExample` 的值含有 compiler 無法序列化為純 JSON 的內容（不支援的 scalar 建構式、格式錯誤的 `duration.fromISO(...)` 值等）。該筆整筆捨棄，連同其中本來可以序列化的欄位。只保留一半 payload 的範例會描述出應用程式從不發送的 message。
 
 **修法：** 把範例值改寫成可用 JSON 表示的部分。
+
+### `extension-target-not-emitted`
+
+> @extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.
+
+[`@extension`](./decorators/document-info#extension) 接受任何 target，因為 AsyncAPI 允許每個物件帶規格擴充。這個 emitter 只寫四種物件：`info`、channel、operation 與 message。target 不產生其中任何一種時，這次套用到不了文件的任何位置。
+
+server 與 security scheme 就是這種 target。兩者都以具名參數宣告在 namespace 上，所以一個 `@extension` 指不出它要的是哪一個。
+
+一個 target 只回報一次，不論它帶幾個 key。錯的是位置，不是每一個 key。
+
+**修法：** 把這次套用移到 service namespace、`@channel` interface、`@send`／`@receive` operation，或 `@message` model 上。
+
+### `unserializable-extension`
+
+> The value of the extension key '\<key\>' could not be serialized to JSON, so this @extension was dropped. Give the key a value the emitter can write.
+
+傳給 [`@extension`](./decorators/document-info#extension) 的值含有 compiler 無法序列化成純 JSON 的內容，例如不支援的 scalar 建構式。整次套用被丟棄。把這種值記下來，最後只會在寫檔時讓那個 key 無聲消失。
+
+同一個 target 上其他次套用不受影響。
+
+**修法：** 把值簡化成 JSON 可表示的內容。
 
 ### `unserializable-default`
 
