@@ -259,6 +259,31 @@ into three groups: planned, waiting for a use case, and will not do.
 
 The [diagnostics reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/diagnostics) lists every code the emitter reports, so anything it cannot represent is reported rather than dropped in silence.
 
+### One exception, in the compiler
+
+A member named `__proto__` never reaches this emitter. The compiler marshals
+an object value by assigning each member in turn. In JavaScript, an
+assignment to `__proto__` sets the prototype of the object. It does not add a
+member. So the member is lost before any decorator runs, and nothing reports
+it.
+
+```typespec
+// The emitter receives one member, `ok`. The other one is gone.
+@extension("x-thing", #{ `__proto__`: "written", ok: 1 })
+```
+
+When the lost member holds an object or an array, that value also becomes the
+prototype of the marshalled object. Reading a name the author never declared
+can then return the author's data.
+
+Every decorator that takes an object value is affected, `@extension` and
+`@binding` among them. This emitter cannot recover the member, because the
+value arrives already changed.
+
+Do not use `__proto__` as a member name. `test/unit/extensions.test.ts`
+carries the case as `it.fails`, so it turns green if the compiler stops
+losing the name.
+
 ## Development
 
 ```bash

@@ -258,6 +258,27 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 [診斷訊息參考](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/diagnostics)列出 emitter 會回報的每一個代碼 —— 表達不了的東西都會被回報，不會靜默丟棄。
 
+### 唯一的例外，在 compiler
+
+名稱是 `__proto__` 的成員到不了這個 emitter。compiler 把 object value 交給
+decorator 之前會逐個成員賦值。在 JavaScript 裡，對 `__proto__` 賦值是設定該物件
+的原型，不是新增一個成員。所以這個成員在任何 decorator 執行前就消失了，而且不會
+有任何回報。
+
+```typespec
+// emitter 只收到 `ok` 一個成員，另一個不見了。
+@extension("x-thing", #{ `__proto__`: "written", ok: 1 })
+```
+
+消失的成員如果裝著 object 或 array，那個值還會變成該物件的原型。此後去讀作者從未
+宣告的名稱，可能拿到作者塞進去的資料。
+
+所有接受 object value 的 decorator 都受影響，`@extension` 與 `@binding` 都在內。
+這個 emitter 救不回那個成員，因為值送到時就已經被改過了。
+
+不要用 `__proto__` 當成員名稱。`test/unit/extensions.test.ts` 用 `it.fails` 記錄了
+這個案例，等 compiler 不再弄丟這個名稱，那條測試就會轉綠。
+
 ## 開發
 
 ```bash
