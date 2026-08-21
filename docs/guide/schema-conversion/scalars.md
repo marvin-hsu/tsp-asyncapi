@@ -1,3 +1,8 @@
+---
+title: "Scalars"
+description: "| TypeSpec                                 | `type`    | `format`                                 |"
+---
+
 # Scalars
 
 ## Built-in scalars

@@ -1,3 +1,8 @@
+---
+title: "Pulsar"
+description: "The Pulsar binding. The emitted member is `pulsar`, and every object carries `bindingVersion: 0.1.0`."
+---
+
 # Pulsar
 
 The Pulsar binding. The emitted member is `pulsar`, and every object carries `bindingVersion: 0.1.0`.

@@ -1,3 +1,8 @@
+---
+title: "Document Info"
+description: "Fills the AsyncAPI `info` block on the service namespace. The argument's shape:"
+---
+
 # Document Info
 
 ## `@info`

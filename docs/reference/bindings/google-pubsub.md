@@ -1,3 +1,8 @@
+---
+title: "Google Cloud Pub/Sub"
+description: "The Google Cloud Pub/Sub binding. The emitted member is `googlepubsub`, and every object carries `bindingVersion: 0.2.0`."
+---
+
 # Google Cloud Pub/Sub
 
 The Google Cloud Pub/Sub binding. The emitted member is `googlepubsub`, and every object carries `bindingVersion: 0.2.0`.

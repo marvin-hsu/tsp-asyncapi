@@ -1,3 +1,8 @@
+---
+title: "Solace"
+description: "The Solace binding. The emitted member is `solace`, and every object carries `bindingVersion: 0.4.0`."
+---
+
 # Solace
 
 The Solace binding. The emitted member is `solace`, and every object carries `bindingVersion: 0.4.0`.

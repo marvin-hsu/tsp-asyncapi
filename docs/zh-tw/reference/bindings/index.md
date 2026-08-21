@@ -1,3 +1,8 @@
+---
+title: "通訊協定 binding"
+description: "AsyncAPI 用 Bindings Object 描述特定通訊協定的設定。規格把它放在四種物件上：server、channel、operation 與 message。該物件的每一個成員各代表一個通訊協定，例如 `kafka`。"
+---
+
 # 通訊協定 binding
 
 AsyncAPI 用 Bindings Object 描述特定通訊協定的設定。規格把它放在四種物件上：server、channel、operation 與 message。該物件的每一個成員各代表一個通訊協定，例如 `kafka`。

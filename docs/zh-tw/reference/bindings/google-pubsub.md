@@ -1,3 +1,8 @@
+---
+title: "Google Cloud Pub/Sub"
+description: "Google Cloud Pub/Sub binding。輸出的成員是 `googlepubsub`，每個物件都帶 `bindingVersion: 0.2.0`。"
+---
+
 # Google Cloud Pub/Sub
 
 Google Cloud Pub/Sub binding。輸出的成員是 `googlepubsub`，每個物件都帶 `bindingVersion: 0.2.0`。

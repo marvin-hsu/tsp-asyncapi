@@ -1,3 +1,8 @@
+---
+title: "HTTP"
+description: "The HTTP binding. The emitted member is `http`, and every object carries `bindingVersion: 0.3.0`."
+---
+
 # HTTP
 
 The HTTP binding. The emitted member is `http`, and every object carries `bindingVersion: 0.3.0`.

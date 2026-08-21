@@ -1,3 +1,8 @@
+---
+title: "Getting Started"
+description: "`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in Ty..."
+---
+
 # Getting Started
 
 `tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document.

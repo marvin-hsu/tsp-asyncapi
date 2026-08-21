@@ -1,3 +1,8 @@
+---
+title: "Request 與 Reply"
+description: "AsyncAPI 3 有兩種方式描述 request/reply。本頁介紹兩種寫法，並說明各自的適用時機。"
+---
+
 # Request 與 Reply
 
 AsyncAPI 3 有兩種方式描述 request/reply。本頁介紹兩種寫法，並說明各自的適用時機。

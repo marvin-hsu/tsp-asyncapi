@@ -1,3 +1,8 @@
+---
+title: "Anypoint MQ"
+description: "Anypoint MQ binding。輸出的成員是 `anypointmq`，每個物件都帶 `bindingVersion: 0.0.1`。"
+---
+
 # Anypoint MQ
 
 Anypoint MQ binding。輸出的成員是 `anypointmq`，每個物件都帶 `bindingVersion: 0.0.1`。

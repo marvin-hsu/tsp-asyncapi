@@ -1,3 +1,8 @@
+---
+title: "操作 (Operations)"
+description: '把一個 operation 標記成本應用送出的 message。輸出的 operation 帶 `action: "send"`。AsyncAPI 3 的 `action` 是本應用視角的動詞。`send` 表示本應用產生這個 message。'
+---
+
 # 操作 (Operations)
 
 ## `@send`

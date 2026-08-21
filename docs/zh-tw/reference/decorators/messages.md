@@ -1,3 +1,8 @@
+---
+title: "訊息 (Messages)"
+description: "把一個 model 標記為 AsyncAPI message。每個被標記的 model 會成為 `components.messages` 的一筆，其 `payload` 指向該 model 的 schema。"
+---
+
 # 訊息 (Messages)
 
 ## `@message`

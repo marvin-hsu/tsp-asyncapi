@@ -1,3 +1,8 @@
+---
+title: "Models"
+description: "A named model becomes an entry in `components.schemas`, and a use site references it through `$ref`. Optional properties (`?`) stay out of `require..."
+---
+
 # Models
 
 ## Models

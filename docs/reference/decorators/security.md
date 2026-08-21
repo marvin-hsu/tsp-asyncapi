@@ -1,3 +1,8 @@
+---
+title: "Security"
+description: "Defines one entry of `components.securitySchemes`. The `name` argument becomes the key of that entry. The decorator is repeatable."
+---
+
 # Security
 
 ## `@securityScheme`

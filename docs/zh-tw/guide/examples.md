@@ -1,3 +1,8 @@
+---
+title: "範例"
+description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十四個完整範例。每個目錄有三個檔案：TypeSpec 原始碼、編譯時用的 `tspconfig.yam..."
+---
+
 # 範例
 
 這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十四個完整範例。每個目錄有三個檔案：TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 產生的 `asyncapi.yaml`。

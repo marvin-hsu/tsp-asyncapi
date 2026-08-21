@@ -1,3 +1,8 @@
+---
+title: "Protocol bindings"
+description: "AsyncAPI describes protocol-specific settings in a Bindings Object. The specification puts one on four objects: a server, a channel, an operation, ..."
+---
+
 # Protocol bindings
 
 AsyncAPI describes protocol-specific settings in a Bindings Object. The specification puts one on four objects: a server, a channel, an operation, and a message. Each member of that object names a protocol, such as `kafka`.

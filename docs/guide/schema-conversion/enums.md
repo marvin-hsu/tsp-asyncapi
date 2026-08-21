@@ -1,3 +1,8 @@
+---
+title: "Enums"
+description: "Member values come from the explicit value (`Low: 0`) or fall back to the member name. `type` is `string` when all values are strings, `number` whe..."
+---
+
 # Enums
 
 ## Enums

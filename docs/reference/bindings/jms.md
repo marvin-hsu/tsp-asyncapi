@@ -1,3 +1,8 @@
+---
+title: "JMS"
+description: "The JMS binding. The emitted member is `jms`, and every object carries `bindingVersion: 0.0.1`."
+---
+
 # JMS
 
 The JMS binding. The emitted member is `jms`, and every object carries `bindingVersion: 0.0.1`.

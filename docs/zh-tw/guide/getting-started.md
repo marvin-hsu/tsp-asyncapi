@@ -1,3 +1,8 @@
+---
+title: "快速開始"
+description: "`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 會為你產出 AsyncAPI..."
+---
+
 # 快速開始
 
 `tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 會為你產出 AsyncAPI 文件。

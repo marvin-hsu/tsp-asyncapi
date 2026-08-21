@@ -1,3 +1,8 @@
+---
+title: "Kafka"
+description: "The Kafka binding. The emitted member is `kafka`, and every object carries `bindingVersion: 0.5.0`."
+---
+
 # Kafka
 
 The Kafka binding. The emitted member is `kafka`, and every object carries `bindingVersion: 0.5.0`.

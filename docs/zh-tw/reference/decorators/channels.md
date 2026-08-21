@@ -1,3 +1,8 @@
+---
+title: "通道 (Channels)"
+description: "宣告一個 channel。這個 channel 擁有直接寫在該 interface 或 namespace 裡的 operation。巢狀的 interface 與巢狀的 namespace 是各自獨立的範圍。它們可以各自帶自己的 channel。"
+---
+
 # 通道 (Channels)
 
 ## `@channel`

@@ -1,3 +1,8 @@
+---
+title: "Validation"
+description: "Each maps to the draft-07 keyword of the same meaning. They may target a property, a model, or a scalar declaration:"
+---
+
 # Validation
 
 ## Validation decorators

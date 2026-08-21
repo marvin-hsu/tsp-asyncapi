@@ -1,3 +1,8 @@
+---
+title: "Amazon SQS"
+description: "Amazon SQS binding。輸出的成員是 `sqs`，每個物件都帶 `bindingVersion: 0.2.0`。"
+---
+
 # Amazon SQS
 
 Amazon SQS binding。輸出的成員是 `sqs`，每個物件都帶 `bindingVersion: 0.2.0`。

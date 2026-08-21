@@ -22,6 +22,7 @@ export default defineConfig({
   description: "An AsyncAPI 3.1 emitter for TypeSpec",
   base: "/tsp-asyncapi/",
   lastUpdated: true,
+  cleanUrls: true,
   head: [
     ["script", { async: "", src: "https://www.googletagmanager.com/gtag/js?id=G-GPFN76W5SX" }],
     [
@@ -32,6 +33,12 @@ export default defineConfig({
       gtag('js', new Date());
       gtag('config', 'G-GPFN76W5SX');`,
     ],
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:site_name", content: "TypeSpec AsyncAPI" }],
+    ["meta", { property: "og:title", content: "TypeSpec AsyncAPI" }],
+    ["meta", { property: "og:description", content: "An AsyncAPI 3.1 emitter for TypeSpec" }],
+    ["meta", { property: "og:url", content: "https://marvin-hsu.github.io/tsp-asyncapi/" }],
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
 
   sitemap: {
@@ -123,6 +130,7 @@ export default defineConfig({
       label: "繁體中文",
       lang: "zh-TW",
       link: "/zh-tw/",
+      description: "TypeSpec 的 AsyncAPI 3.1 轉換器",
       themeConfig: {
         nav: [
           { text: "指南", link: "/zh-tw/guide/getting-started" },

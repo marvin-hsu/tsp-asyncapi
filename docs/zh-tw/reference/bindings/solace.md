@@ -1,3 +1,8 @@
+---
+title: "Solace"
+description: "Solace binding。輸出的成員是 `solace`，每個物件都帶 `bindingVersion: 0.4.0`。"
+---
+
 # Solace
 
 Solace binding。輸出的成員是 `solace`，每個物件都帶 `bindingVersion: 0.4.0`。

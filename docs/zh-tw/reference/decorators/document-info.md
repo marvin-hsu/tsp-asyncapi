@@ -1,3 +1,8 @@
+---
+title: "文件資訊 (Document Info)"
+description: "填入 service namespace 的 AsyncAPI `info` 區塊。參數的形狀："
+---
+
 # 文件資訊 (Document Info)
 
 ## `@info`

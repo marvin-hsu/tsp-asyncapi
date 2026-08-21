@@ -1,3 +1,8 @@
+---
+title: "JMS"
+description: "JMS binding。輸出的成員是 `jms`，每個物件都帶 `bindingVersion: 0.0.1`。"
+---
+
 # JMS
 
 JMS binding。輸出的成員是 `jms`，每個物件都帶 `bindingVersion: 0.0.1`。

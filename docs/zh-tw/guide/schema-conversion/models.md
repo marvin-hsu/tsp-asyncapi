@@ -1,3 +1,8 @@
+---
+title: "Model (模型與屬性)"
+description: "具名 model 成為 `components.schemas` 的一個項目。使用處以 `$ref` 引用它。選填屬性（`?`）不進 `required`。array 轉成 `type: array`。`Record<T>` 轉成帶 `additionalProperties` 的 `type..."
+---
+
 # Model (模型與屬性)
 
 ## Model

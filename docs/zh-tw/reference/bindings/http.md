@@ -1,3 +1,8 @@
+---
+title: "HTTP"
+description: "HTTP binding。輸出的成員是 `http`，每個物件都帶 `bindingVersion: 0.3.0`。"
+---
+
 # HTTP
 
 HTTP binding。輸出的成員是 `http`，每個物件都帶 `bindingVersion: 0.3.0`。

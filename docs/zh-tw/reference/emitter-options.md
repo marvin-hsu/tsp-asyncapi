@@ -1,3 +1,8 @@
+---
+title: "Emitter 選項"
+description: '在 `tspconfig.yaml` 設定，或在 CLI 以 `--option "tsp-asyncapi.<name>=<value>"` 傳入。'
+---
+
 # Emitter 選項
 
 在 `tspconfig.yaml` 設定，或在 CLI 以 `--option "tsp-asyncapi.<name>=<value>"` 傳入。

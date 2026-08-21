@@ -1,3 +1,8 @@
+---
+title: "MQTT"
+description: "The MQTT binding. The emitted member is `mqtt`, and every object carries `bindingVersion: 0.2.0`."
+---
+
 # MQTT
 
 The MQTT binding. The emitted member is `mqtt`, and every object carries `bindingVersion: 0.2.0`.

@@ -1,3 +1,8 @@
+---
+title: "安全機制 (Security)"
+description: "定義一筆 `components.securitySchemes` 項目。`name` 引數就是該項目的 key。此 decorator 可重複標記。"
+---
+
 # 安全機制 (Security)
 
 ## `@securityScheme`

@@ -1,3 +1,8 @@
+---
+title: "Emitter Options"
+description: 'Set these in `tspconfig.yaml`, or pass them on the CLI with `--option "tsp-asyncapi.<name>=<value>"`.'
+---
+
 # Emitter Options
 
 Set these in `tspconfig.yaml`, or pass them on the CLI with `--option "tsp-asyncapi.<name>=<value>"`.

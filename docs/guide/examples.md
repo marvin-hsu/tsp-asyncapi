@@ -1,3 +1,8 @@
+---
+title: "Examples"
+description: "Fourteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+---
+
 # Examples
 
 Fourteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds three files: the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it.

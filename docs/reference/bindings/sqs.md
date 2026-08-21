@@ -1,3 +1,8 @@
+---
+title: "Amazon SQS"
+description: "The Amazon SQS binding. The emitted member is `sqs`, and every object carries `bindingVersion: 0.2.0`."
+---
+
 # Amazon SQS
 
 The Amazon SQS binding. The emitted member is `sqs`, and every object carries `bindingVersion: 0.2.0`.

@@ -1,3 +1,8 @@
+---
+title: "Scalar (純量型別)"
+description: "| TypeSpec                                 | `type`    | `format`                                 |"
+---
+
 # Scalar (純量型別)
 
 ## 內建 scalar

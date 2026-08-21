@@ -1,3 +1,8 @@
+---
+title: "Anypoint MQ"
+description: "The Anypoint MQ binding. The emitted member is `anypointmq`, and every object carries `bindingVersion: 0.0.1`."
+---
+
 # Anypoint MQ
 
 The Anypoint MQ binding. The emitted member is `anypointmq`, and every object carries `bindingVersion: 0.0.1`.

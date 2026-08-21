@@ -1,3 +1,8 @@
+---
+title: "Advanced"
+description: "An instantiated template gets a stable name derived from its arguments:"
+---
+
 # Advanced
 
 ## Templates

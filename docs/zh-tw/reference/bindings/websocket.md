@@ -1,3 +1,8 @@
+---
+title: "WebSocket"
+description: "WebSocket binding。輸出的成員是 `ws`，每個物件都帶 `bindingVersion: 0.1.0`。"
+---
+
 # WebSocket
 
 WebSocket binding。輸出的成員是 `ws`，每個物件都帶 `bindingVersion: 0.1.0`。

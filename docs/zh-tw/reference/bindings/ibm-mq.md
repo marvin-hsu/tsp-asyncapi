@@ -1,3 +1,8 @@
+---
+title: "IBM MQ"
+description: "IBM MQ binding。輸出的成員是 `ibmmq`，每個物件都帶 `bindingVersion: 0.1.0`。"
+---
+
 # IBM MQ
 
 IBM MQ binding。輸出的成員是 `ibmmq`，每個物件都帶 `bindingVersion: 0.1.0`。

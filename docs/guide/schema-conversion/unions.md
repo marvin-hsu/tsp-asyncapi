@@ -1,3 +1,8 @@
+---
+title: "Unions"
+description: "A union of only string literals collapses to a single `enum` — same shape as a string enum:"
+---
+
 # Unions
 
 ## Unions

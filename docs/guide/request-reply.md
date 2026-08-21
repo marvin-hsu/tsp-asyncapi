@@ -1,3 +1,8 @@
+---
+title: "Request and Reply"
+description: "AsyncAPI 3 describes a request and reply exchange in two ways. This page shows both, and says when to use each."
+---
+
 # Request and Reply
 
 AsyncAPI 3 describes a request and reply exchange in two ways. This page shows both, and says when to use each.

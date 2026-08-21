@@ -1,3 +1,8 @@
+---
+title: "伺服器 (Servers)"
+description: "宣告一個應用程式連線的 server。`name` 引數就是該 server 在根層 `servers` map 中的 key。`host` 與 `protocol` 為必填。`protocolVersion`、`pathname`、`title`、`summary`、`description..."
+---
+
 # 伺服器 (Servers)
 
 ## `@server`

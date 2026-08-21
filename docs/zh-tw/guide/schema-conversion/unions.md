@@ -1,3 +1,8 @@
+---
+title: "Union (聯集)"
+description: "只有字串字面值的 union 收斂成單一 `enum`，形狀與字串 enum 相同："
+---
+
 # Union (聯集)
 
 ## Union

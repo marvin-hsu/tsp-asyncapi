@@ -1,3 +1,8 @@
+---
+title: "Messages"
+description: "Marks a model as an AsyncAPI message. Each marked model becomes an entry in `components.messages`, with its `payload` referencing the model's schema."
+---
+
 # Messages
 
 ## `@message`

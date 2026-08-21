@@ -1,3 +1,8 @@
+---
+title: "AMQP"
+description: "AMQP binding。輸出的成員是 `amqp`，每個物件都帶 `bindingVersion: 0.3.0`。"
+---
+
 # AMQP
 
 AMQP binding。輸出的成員是 `amqp`，每個物件都帶 `bindingVersion: 0.3.0`。

@@ -1,3 +1,8 @@
+---
+title: "Pulsar"
+description: "Pulsar binding。輸出的成員是 `pulsar`，每個物件都帶 `bindingVersion: 0.1.0`。"
+---
+
 # Pulsar
 
 Pulsar binding。輸出的成員是 `pulsar`，每個物件都帶 `bindingVersion: 0.1.0`。

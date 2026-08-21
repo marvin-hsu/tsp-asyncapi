@@ -1,3 +1,8 @@
+---
+title: "AMQP"
+description: "The AMQP binding. The emitted member is `amqp`, and every object carries `bindingVersion: 0.3.0`."
+---
+
 # AMQP
 
 The AMQP binding. The emitted member is `amqp`, and every object carries `bindingVersion: 0.3.0`.

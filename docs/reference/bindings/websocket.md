@@ -1,3 +1,8 @@
+---
+title: "WebSocket"
+description: "The WebSocket binding. The emitted member is `ws`, and every object carries `bindingVersion: 0.1.0`."
+---
+
 # WebSocket
 
 The WebSocket binding. The emitted member is `ws`, and every object carries `bindingVersion: 0.1.0`.

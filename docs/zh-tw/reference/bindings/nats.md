@@ -1,3 +1,8 @@
+---
+title: "NATS"
+description: "NATS binding。輸出的成員是 `nats`，每個物件都帶 `bindingVersion: 0.1.0`。"
+---
+
 # NATS
 
 NATS binding。輸出的成員是 `nats`，每個物件都帶 `bindingVersion: 0.1.0`。

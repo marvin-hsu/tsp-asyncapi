@@ -1,3 +1,8 @@
+---
+title: "Modifiers"
+description: "`@summary` → `title`, `@doc` (or a `/** ... */` doc comment) → `description`, `@example` → an entry in `examples`, serialized to plain JSON:"
+---
+
 # Modifiers
 
 ## Documentation: `@summary`, `@doc`, `@example`

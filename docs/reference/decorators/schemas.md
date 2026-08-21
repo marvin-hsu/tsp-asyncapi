@@ -1,3 +1,8 @@
+---
+title: "Schemas"
+description: "Marks a union to emit `oneOf` (exactly one variant must match) instead of the default `anyOf` (at least one). Takes effect in the [schema conversio..."
+---
+
 # Schemas
 
 ## `@oneOf`

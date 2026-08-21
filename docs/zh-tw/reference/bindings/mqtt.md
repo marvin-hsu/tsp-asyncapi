@@ -1,3 +1,8 @@
+---
+title: "MQTT"
+description: "MQTT binding。輸出的成員是 `mqtt`，每個物件都帶 `bindingVersion: 0.2.0`。"
+---
+
 # MQTT
 
 MQTT binding。輸出的成員是 `mqtt`，每個物件都帶 `bindingVersion: 0.2.0`。

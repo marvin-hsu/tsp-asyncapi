@@ -1,3 +1,8 @@
+---
+title: "IBM MQ"
+description: "The IBM MQ binding. The emitted member is `ibmmq`, and every object carries `bindingVersion: 0.1.0`."
+---
+
 # IBM MQ
 
 The IBM MQ binding. The emitted member is `ibmmq`, and every object carries `bindingVersion: 0.1.0`.

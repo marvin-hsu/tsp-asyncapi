@@ -1,3 +1,8 @@
+---
+title: "Kafka"
+description: "Kafka binding。輸出的成員是 `kafka`，每個物件都帶 `bindingVersion: 0.5.0`。"
+---
+
 # Kafka
 
 Kafka binding。輸出的成員是 `kafka`，每個物件都帶 `bindingVersion: 0.5.0`。

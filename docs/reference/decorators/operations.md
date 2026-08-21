@@ -1,3 +1,8 @@
+---
+title: "Operations"
+description: 'Marks one operation as a message this application sends. The emitted operation carries `action: "send"`. AsyncAPI 3 reads the action from the poi...'
+---
+
 # Operations
 
 ## `@send`

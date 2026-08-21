@@ -1,3 +1,8 @@
+---
+title: "Inheritance"
+description: "`model B extends A` becomes `allOf: [$ref to A, B's own properties]`. `@discriminator` adds AsyncAPI 3.x's string-form `discriminator` naming the p..."
+---
+
 # Inheritance
 
 ## Inheritance and discriminators

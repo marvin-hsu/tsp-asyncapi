@@ -1,3 +1,8 @@
+---
+title: "NATS"
+description: "The NATS binding. The emitted member is `nats`, and every object carries `bindingVersion: 0.1.0`."
+---
+
 # NATS
 
 The NATS binding. The emitted member is `nats`, and every object carries `bindingVersion: 0.1.0`.
