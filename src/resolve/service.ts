@@ -2,6 +2,7 @@ import { Program, Service, Type } from "@typespec/compiler";
 import { BindingPlacements, reportUnattachedBindings } from "./bindings.js";
 import { resolveChannels } from "./channels.js";
 import { reportExtensionProblems } from "./extensions.js";
+import { reportTagConflicts } from "./tags.js";
 import { resolveInfo } from "./info.js";
 import { resolveMessages } from "./messages.js";
 import { resolveOperations } from "./operations.js";
@@ -679,6 +680,7 @@ export function resolveService(
   );
 
   reportUnattachedBindings(program, placements);
+  reportTagConflicts(program);
   reportExtensionProblems(
     program,
     extensionCarriers(service, channelCarriers, messageCarriers, operationCarriers),

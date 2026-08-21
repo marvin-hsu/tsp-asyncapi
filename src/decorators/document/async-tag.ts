@@ -49,7 +49,10 @@ export interface AsyncTagState extends AsyncTagMetadata {
   node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
 }
 
-const [getAsyncTagsInternal, setAsyncTags] = useStateMap<Type, AsyncTagState[]>(asyncTagStateKey);
+const [getAsyncTagsInternal, setAsyncTags, getAsyncTagStateMap] = useStateMap<
+  Type,
+  AsyncTagState[]
+>(asyncTagStateKey);
 
 /**
  * Adds one tag, with its metadata, to the emitted object.
@@ -150,4 +153,22 @@ function toExternalDocs(externalDocs: AsyncTagExternalDocs): AsyncTagExternalDoc
  */
 export function getAsyncTags(program: Program, target: Type): AsyncTagState[] {
   return getAsyncTagsInternal(program, target) ?? [];
+}
+
+/**
+ * Lists every type that carries `@asyncTag`, with its recorded tags.
+ *
+ * The tag conflicts are reported once per type, in the resolve wrap-up. That
+ * needs the whole set, because a type that reaches no document object still
+ * carries a mistake worth reporting.
+ *
+ * The order is the order the decorators ran, which is not the order the
+ * author reads. The caller sorts.
+ *
+ * @param program - The program to read the state from
+ * @returns Each type and the tags recorded on it
+ * @internal
+ */
+export function listAsyncTagTargets(program: Program): [Type, readonly AsyncTagState[]][] {
+  return [...getAsyncTagStateMap(program)];
 }

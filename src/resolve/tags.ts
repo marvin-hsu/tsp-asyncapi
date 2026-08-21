@@ -1,9 +1,61 @@
-import { Program, Type, getTags } from "@typespec/compiler";
+import { DiagnosticTarget, Program, Type, getTags } from "@typespec/compiler";
 import { TagObject } from "../types/index.js";
 import { AsyncTagExternalDocs, AsyncTagState, getAsyncTags } from "../decorators/index.js";
+import { listAsyncTagTargets } from "../decorators/document/async-tag.js";
 import { reportDiagnostic } from "../lib.js";
-import { orderBySourceNodes } from "../source-order.js";
+import { bySourcePosition, orderBySourceNodes, sourcePositionOf } from "../source-order.js";
 import { text } from "../optional-fields.js";
+
+/** One `@asyncTag` field two applications of one name disagree about. */
+interface TagClash {
+  readonly name: string;
+  readonly field: string;
+  readonly node: DiagnosticTarget;
+}
+
+/** The merge of one type's tags, and every disagreement inside it. */
+interface MergedTags {
+  readonly merged: Map<string, AsyncTagState>;
+  readonly clashes: readonly TagClash[];
+}
+
+/**
+ * Reports every `@asyncTag` metadata conflict, once per type.
+ *
+ * The merge itself is silent, and this is the only place that reports. The
+ * two were one function before, which meant the report came out once per
+ * caller rather than once per mistake: a service namespace is read again for
+ * its servers, and again when it carries a channel, so one disagreement was
+ * reported two or three times depending on which other roles that namespace
+ * happened to play.
+ *
+ * Every type that carries the decorator is walked, not only the ones that
+ * reached the document. A type whose declaration was dropped still holds a
+ * mistake worth reporting, and this is what keeps that report alive without
+ * the dropping site having to ask for it.
+ *
+ * The reports come out in source order. The state layer hands the types over
+ * in the order the decorators ran, which is not the order the author reads.
+ *
+ * @param program - The program to read the state from
+ * @internal
+ */
+export function reportTagConflicts(program: Program): void {
+  const compare = bySourcePosition(program);
+  const targets = listAsyncTagTargets(program)
+    .map(([target]) => ({ target, key: sourcePositionOf(target) }))
+    .sort((a, b) => compare(a.key, b.key));
+
+  for (const { target } of targets) {
+    for (const clash of mergeAsyncTags(program, target).clashes) {
+      reportDiagnostic(program, {
+        code: "conflicting-tag-metadata",
+        target: clash.node,
+        format: { name: clash.name, field: clash.field },
+      });
+    }
+  }
+}
 
 /**
  * Builds the `tags` array of one object, or returns `undefined` when the
@@ -27,7 +79,7 @@ import { text } from "../optional-fields.js";
  * as well, where earlier versions of this emitter emitted two.
  */
 export function buildTags(program: Program, target: Type): TagObject[] | undefined {
-  const merged = mergeAsyncTags(program, target);
+  const merged = mergeAsyncTags(program, target).merged;
   const names: string[] = [];
   for (const name of getTags(program, target)) {
     if (!names.includes(name)) {
@@ -90,7 +142,8 @@ function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObje
  * reported. AsyncAPI gives every object its own `tags` array, and those
  * arrays are independent.
  */
-function mergeAsyncTags(program: Program, target: Type): Map<string, AsyncTagState> {
+function mergeAsyncTags(program: Program, target: Type): MergedTags {
+  const clashes: TagClash[] = [];
   const recorded = getAsyncTags(program, target);
   const merged = new Map<string, AsyncTagState>();
   const ordered = orderBySourceNodes(
@@ -107,11 +160,7 @@ function mergeAsyncTags(program: Program, target: Type): Map<string, AsyncTagSta
     }
     const conflicts = conflictingFields(kept, tag);
     for (const field of conflicts) {
-      reportDiagnostic(program, {
-        code: "conflicting-tag-metadata",
-        target: tag.node,
-        format: { name: tag.name, field },
-      });
+      clashes.push({ name: tag.name, field, node: tag.node });
     }
     // The merge runs even after a conflict. Only the conflicting field falls
     // back to the first application. A field the later application alone
@@ -128,7 +177,7 @@ function mergeAsyncTags(program: Program, target: Type): Map<string, AsyncTagSta
         : {}),
     });
   }
-  return merged;
+  return { merged, clashes };
 }
 
 /**

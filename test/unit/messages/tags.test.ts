@@ -473,3 +473,73 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     ]);
   });
 });
+
+describe("Unit: tag conflicts are reported once per declaration", () => {
+  let runner: TesterInstance;
+
+  beforeEach(async () => {
+    runner = await AsyncAPITester.createInstance();
+  });
+
+  /** Two applications of one name that disagree about `description`. */
+  const CONFLICT = `
+    @asyncTag("orders", #{ description: "first" })
+    @asyncTag("orders", #{ description: "second" })
+  `;
+
+  /** The conflict reports of one compilation. */
+  function conflicts(program: TesterInstance["program"]) {
+    return program.diagnostics.filter(
+      (diagnostic) => diagnostic.code === "tsp-asyncapi/conflicting-tag-metadata",
+    );
+  }
+
+  it("reports once when the namespace is only a service", async () => {
+    await runner.compile(`
+      @service(#{ title: "Orders" })
+      ${CONFLICT}
+      namespace Test;
+    `);
+    buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
+
+    expect(conflicts(runner.program)).toHaveLength(1);
+  });
+
+  // The service namespace is read again for its servers, and again when it
+  // carries a channel. The report follows the mistake, not the number of
+  // objects the namespace produces.
+  it("reports once when the namespace also declares a server", async () => {
+    await runner.compile(`
+      @service(#{ title: "Orders" })
+      @server("primary", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+      ${CONFLICT}
+      namespace Test;
+    `);
+    buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
+
+    expect(conflicts(runner.program)).toHaveLength(1);
+  });
+
+  // The losing model reaches no document object at all. Its own mistake is
+  // still its own, so dropping the declaration must not drop the report.
+  it("reports a conflict on a message a key collision dropped", async () => {
+    await runner.compile(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message("Same")
+      ${CONFLICT}
+      model First {
+        id: string;
+      }
+
+      @message("Same")
+      model Second {
+        id: string;
+      }
+    `);
+    buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
+
+    expect(conflicts(runner.program)).toHaveLength(1);
+  });
+});

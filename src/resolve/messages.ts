@@ -162,12 +162,14 @@ function isSameDeclaration(program: Program, left: Model, right: Model): boolean
 /**
  * Surfaces the diagnostics of a message the key collision dropped.
  *
- * The model never reaches the document, so nothing else reads its tags or its
- * examples. A bad value inside either would then go unreported purely because
- * another model won the key, which is not a reason to stay silent.
+ * The model never reaches the document, so nothing else reads its examples. A
+ * bad value inside one would then go unreported purely because another model
+ * won the key, which is not a reason to stay silent.
+ *
+ * The tags need no call of their own. `reportTagConflicts` walks every type
+ * that carries the decorator, so a dropped model is covered there.
  */
 function reportDroppedMessage(program: Program, model: Model): void {
-  buildTags(program, model);
   buildMessageExamples(program, model);
 }
 
