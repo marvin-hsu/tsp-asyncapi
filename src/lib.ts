@@ -346,6 +346,31 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Tag '${"name"}' is declared more than once here, with a different '${"field"}'. AsyncAPI emits one Tag Object per name on an object, so only one of the two values can be kept. The first one in source order was kept. Merge the @asyncTag applications into one, or give them different names.`,
       },
     },
+    "invalid-extension-key": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The extension key '${"key"}' is not a specification extension name. AsyncAPI reads only a key of the shape 'x-' followed by one or more letters, digits, underscores, dots, or hyphens, so this @extension was dropped. Rename the key to that shape.`,
+      },
+    },
+    "duplicate-extension-key": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The extension key '${"key"}' is applied to this target more than once. An object carries one value per key, so this @extension was dropped and the first one with this key in source order was kept. Remove the extra @extension, or give it another key.`,
+      },
+    },
+    "unserializable-extension": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`The value of the extension key '${"key"}' could not be serialized to JSON, so this @extension was dropped. Give the key a value the emitter can write.`,
+      },
+    },
+    "extension-target-not-emitted": {
+      severity: "warning",
+      messages: {
+        default:
+          "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.",
+      },
+    },
     "duplicate-server-name": {
       severity: "error",
       messages: {

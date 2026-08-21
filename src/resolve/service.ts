@@ -1,6 +1,7 @@
-import { Program, Service } from "@typespec/compiler";
+import { Program, Service, Type } from "@typespec/compiler";
 import { BindingPlacements, reportUnattachedBindings } from "./bindings.js";
 import { resolveChannels } from "./channels.js";
+import { reportExtensionProblems } from "./extensions.js";
 import { resolveInfo } from "./info.js";
 import { resolveMessages } from "./messages.js";
 import { resolveOperations } from "./operations.js";
@@ -222,6 +223,13 @@ export interface InfoNode {
   readonly tags: readonly TagNode[];
   /** Further reading about the application. */
   readonly externalDocs?: ExternalDocsNode;
+  /**
+   * The `x-` extensions of the object, in source order.
+   *
+   * An empty record means none, the same convention an empty list follows.
+   * The keys all carry the `x-` prefix, so no spec field can be shadowed.
+   */
+  readonly extensions: JsonObject;
 }
 
 /**
@@ -400,6 +408,8 @@ export interface MessageNode {
   readonly rawPayloadRef?: string;
   /** The local reference the raw headers schema points at. */
   readonly rawHeadersRef?: string;
+  /** The `x-` extensions of the object, in source order. Empty means none. */
+  readonly extensions: JsonObject;
 }
 
 /**
@@ -477,6 +487,8 @@ export interface ChannelNode {
   readonly externalDocs?: ExternalDocsNode;
   /** The protocol bindings of the channel, in source order. */
   readonly bindings: readonly BindingNode[];
+  /** The `x-` extensions of the object, in source order. Empty means none. */
+  readonly extensions: JsonObject;
 }
 
 /**
@@ -569,6 +581,8 @@ export interface OperationNode {
    * channel is not a channel.
    */
   readonly reply?: OperationReplyNode;
+  /** The `x-` extensions of the object, in source order. Empty means none. */
+  readonly extensions: JsonObject;
 }
 
 /**
@@ -617,8 +631,10 @@ export interface OperationReplyNode {
  * names its messages by the key they claimed. The channels come before the
  * operations for the same reason.
  *
- * The unattached-binding report runs last. Every stage that places a binding
- * runs before it, so anything the record still does not hold reached nothing.
+ * The unattached-binding report runs last, together with the unreached
+ * extension report. Every stage that places a binding or carries an
+ * extension runs before them, so whatever they still do not hold reached
+ * nothing.
  *
  * @param program - The compiled program
  * @param service - The service the document describes, if the program has one
@@ -636,8 +652,16 @@ export function resolveService(
   const securitySchemes = resolveSecuritySchemes(program);
   const declaredSchemes = new Set(securitySchemes.map((scheme) => scheme.name));
 
-  const { messages, keys } = resolveMessages(program, placements);
-  const { channels, emitted } = resolveChannels(program, keys, placements);
+  const {
+    messages,
+    keys,
+    extensionCarriers: messageCarriers,
+  } = resolveMessages(program, placements);
+  const {
+    channels,
+    emitted,
+    extensionCarriers: channelCarriers,
+  } = resolveChannels(program, keys, placements);
 
   // A server on any namespace other than the service's never reaches the
   // document, and a `@useSecurity` beside it has just as little to attach to.
@@ -646,9 +670,19 @@ export function resolveService(
 
   const servers =
     service !== undefined ? resolveServers(program, service.type, declaredSchemes, placements) : [];
-  const operations = resolveOperations(program, emitted, keys, declaredSchemes, placements);
+  const { operations, extensionCarriers: operationCarriers } = resolveOperations(
+    program,
+    emitted,
+    keys,
+    declaredSchemes,
+    placements,
+  );
 
   reportUnattachedBindings(program, placements);
+  reportExtensionProblems(
+    program,
+    extensionCarriers(service, channelCarriers, messageCarriers, operationCarriers),
+  );
 
   return {
     ...(service !== undefined ? { target: service.type } : {}),
@@ -660,4 +694,30 @@ export function resolveService(
     channels,
     operations,
   };
+}
+
+/**
+ * The types whose `@extension` applications reached an emitted object.
+ *
+ * One type may appear through more than one route. A namespace is both the
+ * service and a channel when it carries `@channel`, and its extensions then
+ * reach `info` and the Channel Object alike.
+ *
+ * Each of the three sets comes from its own resolver rather than from the
+ * nodes it handed back. A declaration a resolver dropped holds no node, yet
+ * its extensions reached the object another declaration built: the message
+ * whose key it lost, the channel whose id it lost, or the copy of it an
+ * extending interface carries.
+ */
+function extensionCarriers(
+  service: Service | undefined,
+  channels: Iterable<Type>,
+  messages: Iterable<Type>,
+  operations: Iterable<Type>,
+): ReadonlySet<Type> {
+  const carriers = new Set<Type>(channels);
+  if (service !== undefined) carriers.add(service.type);
+  for (const message of messages) carriers.add(message);
+  for (const operation of operations) carriers.add(operation);
+  return carriers;
 }

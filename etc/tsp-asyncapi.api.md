@@ -149,6 +149,18 @@ readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI 
 "conflicting-tag-metadata": {
 readonly default: CallableMessage<["name", "field"]>;
 };
+"invalid-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"duplicate-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"unserializable-extension": {
+readonly default: CallableMessage<["key"]>;
+};
+"extension-target-not-emitted": {
+readonly default: "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.";
+};
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -534,7 +546,7 @@ export type BindingObject = Record<string, unknown>;
 export type BindingsObject = Record<string, BindingObject>;
 
 // @public
-export interface ChannelObject {
+export interface ChannelObject extends SpecificationExtensions {
     address: string | null;
     bindings?: BindingsObject;
     description?: string;
@@ -584,7 +596,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -710,6 +722,18 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "conflicting-tag-metadata": {
         readonly default: CallableMessage<["name", "field"]>;
+    };
+    "invalid-extension-key": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "duplicate-extension-key": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "unserializable-extension": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "extension-target-not-emitted": {
+        readonly default: "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.";
     };
     "duplicate-server-name": {
         readonly default: CallableMessage<["name"]>;
@@ -1013,6 +1037,18 @@ readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI 
 "conflicting-tag-metadata": {
 readonly default: CallableMessage<["name", "field"]>;
 };
+"invalid-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"duplicate-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"unserializable-extension": {
+readonly default: CallableMessage<["key"]>;
+};
+"extension-target-not-emitted": {
+readonly default: "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.";
+};
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -1218,6 +1254,9 @@ export function getContentType(program: Program, target: Model): string | undefi
 // @public
 export function getCorrelationId(program: Program, target: Model): CorrelationIdState | undefined;
 
+// @public
+export function getExtensions(program: Program, target: Type): ReadonlyMap<string, unknown>;
+
 // Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
 //
 // @public
@@ -1403,7 +1442,7 @@ export interface IbmMqServerBindingObject {
 }
 
 // @public
-export interface InfoObject {
+export interface InfoObject extends SpecificationExtensions {
     contact?: ContactObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject;
@@ -1566,7 +1605,7 @@ export interface MessageExampleState extends MessageExampleOptions {
 }
 
 // @public
-export interface MessageObject {
+export interface MessageObject extends SpecificationExtensions {
     bindings?: BindingsObject;
     contentType?: string;
     correlationId?: CorrelationIdObject;
@@ -1693,7 +1732,7 @@ export interface OperationActionState {
 }
 
 // @public
-export interface OperationObject {
+export interface OperationObject extends SpecificationExtensions {
     action: "send" | "receive";
     bindings?: BindingsObject;
     channel: ReferenceObject;
@@ -1784,7 +1823,7 @@ export interface ReplyAddressState {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1910,6 +1949,18 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "conflicting-tag-metadata": {
         readonly default: CallableMessage<["name", "field"]>;
+    };
+    "invalid-extension-key": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "duplicate-extension-key": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "unserializable-extension": {
+        readonly default: CallableMessage<["key"]>;
+    };
+    "extension-target-not-emitted": {
+        readonly default: "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.";
     };
     "duplicate-server-name": {
         readonly default: CallableMessage<["name"]>;
@@ -2213,6 +2264,18 @@ readonly default: "@asyncTag was given an empty name. The `name` of an AsyncAPI 
 "conflicting-tag-metadata": {
 readonly default: CallableMessage<["name", "field"]>;
 };
+"invalid-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"duplicate-extension-key": {
+readonly default: CallableMessage<["key"]>;
+};
+"unserializable-extension": {
+readonly default: CallableMessage<["key"]>;
+};
+"extension-target-not-emitted": {
+readonly default: "@extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.";
+};
 "duplicate-server-name": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -2507,6 +2570,9 @@ export interface SolaceServerBindingObject {
     clientName?: string;
     msgVpn?: string;
 }
+
+// @public
+export type SpecificationExtensions = Record<`x-${string}`, unknown>;
 
 // @public
 export interface SqsChannelBindingConfig {

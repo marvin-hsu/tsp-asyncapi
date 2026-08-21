@@ -30,6 +30,7 @@ import {
 import { buildRawSchema } from "./messages/payload.js";
 import { buildMessageExamples } from "./messages/examples.js";
 import { buildTags } from "./tags.js";
+import { resolveExtensions } from "./extensions.js";
 import { buildExternalDocs } from "../external-docs.js";
 import {
   declarationNameFor,
@@ -48,11 +49,16 @@ import { MessageHeadersNode, MessageNode, MessagePayloadNode } from "./service.j
  * dropped is absent, so a channel that names such a model emits no entry for
  * it.
  *
+ * `extensionCarriers` holds every model whose `@extension` applications
+ * reached a Message Object. It is wider than `keys`: a dropped model reached
+ * the message its key names through the model that claimed it.
+ *
  * @internal
  */
 export interface ResolvedMessages {
   readonly messages: readonly MessageNode[];
   readonly keys: Map<Model, string>;
+  readonly extensionCarriers: ReadonlySet<Model>;
 }
 
 /**
@@ -206,8 +212,8 @@ function resolvePayload(
  * @param program - The program to read the messages from
  * @param placements - Where the binding applications this build placed are
  * recorded
- * @returns The messages in source order, and the key each surviving model
- * claimed
+ * @returns The messages in source order, the key each surviving model
+ * claimed, and every model whose extensions reached a Message Object
  * @internal
  */
 export function resolveMessages(program: Program, placements: BindingPlacements): ResolvedMessages {
@@ -219,8 +225,14 @@ export function resolveMessages(program: Program, placements: BindingPlacements)
   const messages: MessageNode[] = [];
   const keys = new Map<Model, string>();
   const claimedBy = new Map<string, Model>();
+  // Every model this loop sees reached the message its key names, whether it
+  // claimed the key itself or the model that claimed it stood in for it. The
+  // extension report reads this set, so a dropped model raises no warning
+  // about a key the document does carry.
+  const extensionCarriers = new Set<Model>();
 
   for (const [model, state] of declared) {
+    extensionCarriers.add(model);
     const key = messageKeyFor(program, model, state);
     const owner = claimedBy.get(key);
     if (owner !== undefined) {
@@ -256,10 +268,11 @@ export function resolveMessages(program: Program, placements: BindingPlacements)
       tags: buildTags(program, model) ?? [],
       ...optional("externalDocs", buildExternalDocs(program, model)),
       bindings: resolveBindings(program, "message", model, placements),
+      extensions: resolveExtensions(program, model),
     });
   }
 
-  return { messages, keys };
+  return { messages, keys, extensionCarriers };
 }
 
 /** Includes a text field only when it holds one. */

@@ -7,6 +7,7 @@
 
 import { Namespace, Program, Service, getDoc } from "@typespec/compiler";
 import { getInfo } from "../decorators/index.js";
+import { resolveExtensions } from "./extensions.js";
 import { buildTags } from "./tags.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
@@ -34,7 +35,13 @@ export function resolveInfo(program: Program, service: Service | undefined): Inf
   if (service === undefined) {
     // A program with no `@service` still emits a document, so `info` still
     // needs its two required fields.
-    return { title: DEFAULT_DOCUMENT_TITLE, version: DEFAULT_INFO_VERSION, tags: [] };
+    // No service means no namespace to carry an `@extension`.
+    return {
+      title: DEFAULT_DOCUMENT_TITLE,
+      version: DEFAULT_INFO_VERSION,
+      tags: [],
+      extensions: {},
+    };
   }
   const target: Namespace = service.type;
   const custom = getInfo(program, target);
@@ -51,6 +58,7 @@ export function resolveInfo(program: Program, service: Service | undefined): Inf
     ...optional("license", custom?.license),
     tags: buildTags(program, target) ?? [],
     ...optional("externalDocs", buildExternalDocs(program, target)),
+    extensions: resolveExtensions(program, target),
   };
 }
 

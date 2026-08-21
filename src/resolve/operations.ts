@@ -17,6 +17,7 @@ import { getOperationAction } from "../decorators/operations/action.js";
 import { reportDiagnostic } from "../lib.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { buildTags } from "./tags.js";
+import { resolveExtensions } from "./extensions.js";
 import { BindingPlacements, markBindingsPlaced, resolveBindings } from "./bindings.js";
 import { EmittedChannel } from "./channels.js";
 import { owningChannelTarget } from "./channels/scope.js";
@@ -35,6 +36,20 @@ interface PlacedOperation {
 }
 
 /**
+ * What the resolve half of the operations produces.
+ *
+ * `extensionCarriers` is wider than the node list. A declaration in a base
+ * interface reaches the document through the copy the extending interface
+ * holds, and its extensions reach that copy's Operation Object.
+ *
+ * @internal
+ */
+export interface ResolvedOperations {
+  readonly operations: readonly OperationNode[];
+  readonly extensionCarriers: ReadonlySet<Operation>;
+}
+
+/**
  * Resolves every operation that `@send` or `@receive` marks.
  *
  * An operation reaches the document through the channel it sits on. One with
@@ -48,7 +63,8 @@ interface PlacedOperation {
  * @param declaredSchemes - The keys of `components.securitySchemes`
  * @param placements - Where the binding applications this build placed are
  * recorded
- * @returns The operations, in source order
+ * @returns The operations in source order, and every operation whose
+ * extensions reached an Operation Object
  * @internal
  */
 export function resolveOperations(
@@ -57,9 +73,14 @@ export function resolveOperations(
   messageKeys: ReadonlyMap<Model, string>,
   declaredSchemes: ReadonlySet<string>,
   placements: BindingPlacements,
-): readonly OperationNode[] {
+): ResolvedOperations {
   const nodes: OperationNode[] = [];
   const claimed = new Set<string>();
+  // Every operation that reached an Operation Object, whether it holds a node
+  // of its own or a copy of it carried the declaration in. The extension
+  // report reads this set, so neither route raises a warning about a key the
+  // document does carry.
+  const extensionCarriers = new Set<Operation>();
 
   const placed: PlacedOperation[] = listOperationActions(program).map(({ target, record }) => {
     const owner = owningChannelTarget(target);
@@ -75,8 +96,9 @@ export function resolveOperations(
       // missing because the declared channel was dropped.
       if (target.node !== undefined && emittedNodes.has(target.node)) {
         // The copies carry this declaration into the document, so its
-        // bindings reached an object too.
+        // bindings and its extensions reached an object too.
         markBindingsPlaced(program, "operation", target, placements);
+        extensionCarriers.add(target);
         continue;
       }
       reportDiagnostic(program, {
@@ -91,11 +113,13 @@ export function resolveOperations(
     if (claimed.has(key)) {
       reportDiagnostic(program, { code: "duplicate-operation-id", format: { id: key }, target });
       // The repeated key is the mistake, and it is already reported. The
-      // bindings of this operation are not a second one.
+      // bindings and the extensions of this operation are not a second one.
       markBindingsPlaced(program, "operation", target, placements);
+      extensionCarriers.add(target);
       continue;
     }
     claimed.add(key);
+    extensionCarriers.add(target);
 
     const { request, reply } = operationSides(program, target, record.action);
     const replyNode = resolveOperationReply(program, {
@@ -120,12 +144,13 @@ export function resolveOperations(
       bindings: resolveBindings(program, "operation", target, placements),
       messages: resolveMessageRefs(request, channel, messageKeys),
       ...optional("reply", replyNode),
+      extensions: resolveExtensions(program, target),
     });
   }
 
   reportRepliesWithoutAction(program);
 
-  return nodes;
+  return { operations: nodes, extensionCarriers };
 }
 
 /**

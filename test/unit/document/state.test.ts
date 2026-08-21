@@ -2,7 +2,13 @@
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
-import { $info, $externalDocs, getInfo, getExternalDocs } from "../../../src/decorators/index.js";
+import {
+  $info,
+  $externalDocs,
+  getInfo,
+  getExternalDocs,
+  getExtensions,
+} from "../../../src/decorators/index.js";
 import { DecoratorContext } from "@typespec/compiler";
 
 describe("Unit: Decorators", () => {
@@ -48,5 +54,32 @@ describe("Unit: Decorators", () => {
     const state = getExternalDocs(program, TestTarget);
     expect(state?.url).toBe("https://example.com");
     expect(state?.description).toBe("Desc");
+  });
+
+  // Applications run bottom-up, so the run order here is x-second then
+  // x-first. The reader must answer in source order instead.
+  it("should read extensions back in source order, first application winning", async () => {
+    const runner = await AsyncAPITester.createInstance();
+    const { Target, program } = await runner.compile(t.code`
+      @extension("x-first", "kept")
+      @extension("x-first", "dropped")
+      @extension("x-second", #{ nested: 1 })
+      model ${t.model("Target")} {}
+    `);
+
+    const extensions = getExtensions(program, Target);
+
+    expect([...extensions.keys()]).toEqual(["x-first", "x-second"]);
+    expect(extensions.get("x-first")).toBe("kept");
+    expect(extensions.get("x-second")).toEqual({ nested: 1 });
+  });
+
+  it("should read an empty extension map for a type without @extension", async () => {
+    const runner = await AsyncAPITester.createInstance();
+    const { Target, program } = await runner.compile(t.code`
+      model ${t.model("Target")} {}
+    `);
+
+    expect(getExtensions(program, Target).size).toBe(0);
   });
 });

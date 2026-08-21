@@ -72,6 +72,20 @@ extern dec oneOf(target: Union);
 // Repeatable: apply it more than once on the same target to add more than
 // one pair.
 extern dec jsonSchemaExtension(target: Model | ModelProperty, key: valueof string, value: valueof unknown);
+// Adds one `x-` specification extension to whichever object the target
+// emits: `info`, a channel, an operation, or a message.
+// The key must be `x-`, then one or more letters, digits, underscores, dots,
+// or hyphens. That is the shape the specification allows. Any other key is
+// reported and dropped.
+// The value is any JSON value, and it is emitted as written.
+// Repeatable: apply it more than once on the same target to add more than
+// one key. Two applications with one key are reported, and the first one
+// in source order is kept.
+// Target is unknown because AsyncAPI allows extensions on every object.
+// A target that emits none of the four objects is reported, because the
+// extension then reaches no part of the document.
+// For a key inside a schema, use `@jsonSchemaExtension` instead.
+extern dec extension(target: unknown, key: valueof string, value: valueof unknown);
 // Marks a model as an AsyncAPI message. The model itself is the payload.
 // The target stays restricted to `Model`. A scalar payload must be wrapped
 // in a model.

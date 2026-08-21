@@ -648,6 +648,36 @@ describe("AsyncAPI emitted document", () => {
     expect(doc.components.schemas).toBeUndefined();
     await expect(doc).toBeValidAsyncAPI();
   });
+
+  it("should carry x- extensions on all four objects end to end", async () => {
+    const doc = await emitAsyncAPI(`
+      @service(#{ title: "Orders" })
+      @extension("x-owner", "orders-team")
+      namespace TestService;
+
+      @message
+      @extension("x-schema-id", 4711)
+      model OrderCreated {
+        orderId: string;
+      }
+
+      @channel("orders.created")
+      @extension("x-retention", #{ days: 7, compacted: true })
+      interface OrderChannel {
+        @send
+        @extension("x-tags", #["critical", "public"])
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    // The parser rejects an unknown field on any of these objects, so it is
+    // the judge of whether an `x-` field is allowed where the emitter put it.
+    await expect(doc).toBeValidAsyncAPI();
+    expect(doc.info["x-owner"]).toBe("orders-team");
+    expect(doc.channels["orders.created"]["x-retention"]).toEqual({ days: 7, compacted: true });
+    expect(doc.operations.publish["x-tags"]).toEqual(["critical", "public"]);
+    expect(doc.components.messages.OrderCreated["x-schema-id"]).toBe(4711);
+  });
 });
 
 describe("AsyncAPI spec validation helper", () => {

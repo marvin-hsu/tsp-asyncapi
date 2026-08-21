@@ -17,6 +17,7 @@ import { listUseServerTargets } from "../decorators/channels/use-server-state.js
 import { reportDiagnostic } from "../lib.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { buildTags } from "./tags.js";
+import { resolveExtensions } from "./extensions.js";
 import { BindingPlacements, markBindingsPlaced, resolveBindings } from "./bindings.js";
 import { resolveChannelMessages } from "./channels/messages.js";
 import { resolveChannelParameters } from "./channels/parameters.js";
@@ -43,10 +44,17 @@ export interface EmittedChannel {
   messageKeys: ReadonlyMap<Model, string>;
 }
 
-/** What the channel resolver hands to the rest of the pipeline. */
+/**
+ * What the channel resolver hands to the rest of the pipeline.
+ *
+ * `extensionCarriers` is wider than `emitted`. A target an id collision
+ * dropped reached the Channel Object the id names, through the target that
+ * claimed it.
+ */
 export interface ResolvedChannels {
   readonly channels: readonly ChannelNode[];
   readonly emitted: ReadonlyMap<ChannelTarget, EmittedChannel>;
+  readonly extensionCarriers: ReadonlySet<ChannelTarget>;
 }
 
 /**
@@ -77,8 +85,14 @@ export function resolveChannels(
   const channels: ChannelNode[] = [];
   const claimedBy = new Set<string>();
   const emitted = new Map<ChannelTarget, EmittedChannel>();
+  // Every target this loop sees reached the channel its id names, whether it
+  // claimed the id itself or the target that claimed it stood in for it. The
+  // extension report reads this set, so a dropped target raises no warning
+  // about an id the document does carry.
+  const extensionCarriers = new Set<ChannelTarget>();
 
   for (const { target, record } of listChannelsInternal(program)) {
+    extensionCarriers.add(target);
     // The address doubles as the default key. With a broker such as Kafka,
     // the address is the topic name, and the topic name is what a reader
     // looks the channel up by. Only a dynamic channel has no address, so
@@ -107,6 +121,7 @@ export function resolveChannels(
       tags: buildTags(program, target) ?? [],
       ...optional("externalDocs", buildExternalDocs(program, target)),
       bindings: resolveBindings(program, "channel", target, placements),
+      extensions: resolveExtensions(program, target),
     });
     emitted.set(target, { id: key, address: record.state.address, messageKeys: messages.keys });
   }
@@ -114,7 +129,7 @@ export function resolveChannels(
   reportUseServerWithoutChannel(program);
   reportDuplicateAddresses(program, channels);
 
-  return { channels, emitted };
+  return { channels, emitted, extensionCarriers };
 }
 
 /**

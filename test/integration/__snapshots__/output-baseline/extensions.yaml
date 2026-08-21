@@ -1,0 +1,49 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 1.4.2
+  description: Every order event.
+  x-owner:
+    team: orders
+    contact:
+      slack: "#orders"
+  x-audience:
+    - internal
+    - partner
+channels:
+  orders.created:
+    address: orders.created
+    description: Every order lands here.
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+    x-retention:
+      days: 7
+      compacted: true
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders.created"
+    title: Publish an order
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
+    x-sla-ms: 250
+    x-replaced-by: publishV2
+components:
+  schemas:
+    OrderCreated:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required:
+        - orderId
+      description: One order a customer placed.
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      description: One order a customer placed.
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      x-schema-id: 4711

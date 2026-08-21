@@ -34,27 +34,59 @@ function isTypeSpecValue(value: object): value is Value {
 }
 
 /**
- * Converts one marshalled decorator argument into plain JSON.
+ * Marks a value the serializer cannot represent.
  *
- * A string, a number and a boolean pass through. An array is converted
- * element by element. An object is converted field by field.
- *
- * A field is dropped in two cases. The first is a field the author left out.
- * The second is a field the serializer cannot represent. Both would otherwise
- * write a key whose value is `undefined`, which no JSON document can hold.
- * The test runs on the converted value, because the serializer is what
- * produces the second case.
- *
- * A value the compiler did not flatten is serialized against its own type.
- * That is what turns a `utcDateTime` into an ISO string.
- *
- * @param program - The program the value belongs to
- * @param value - One marshalled decorator argument, or a part of one
- * @returns The same data as plain JSON, or `undefined` when the serializer
- * cannot represent the value
- * @internal
+ * A failure cannot be reported as `undefined` inside the recursion. An
+ * absent member of an object value arrives as `undefined` too, and those two
+ * cases need opposite answers: an absent member is dropped, a failed one
+ * fails the value that holds it.
  */
-export function toPlainValue(program: Program, value: unknown): unknown {
+const UNREPRESENTABLE = Symbol("unrepresentable");
+
+/**
+ * Converts every element of an array value.
+ *
+ * One failed element fails the array. Dropping it would leave a hole, and a
+ * hole reaches the writer as `null`.
+ */
+function convertArray(program: Program, value: readonly unknown[]): unknown {
+  const elements: unknown[] = [];
+  for (const element of value) {
+    const plain = convert(program, element);
+    if (plain === UNREPRESENTABLE) return UNREPRESENTABLE;
+    elements.push(plain);
+  }
+  return elements;
+}
+
+/**
+ * Converts every member of an object value.
+ *
+ * A member the author left out is dropped. That is the one `undefined` here
+ * that is not a failure, so it is tested before the conversion runs.
+ *
+ * One failed member fails the object. A truncated object would claim the
+ * author wrote fewer members than they did.
+ */
+function convertObject(program: Program, value: object): unknown {
+  const result: Record<string, unknown> = {};
+  for (const [key, field] of Object.entries(value)) {
+    if (field === undefined) continue;
+    const plain = convert(program, field);
+    if (plain === UNREPRESENTABLE) return UNREPRESENTABLE;
+    result[key] = plain;
+  }
+  return result;
+}
+
+/**
+ * Converts one marshalled value, or reports that it cannot be converted.
+ *
+ * A string, a number and a boolean pass through. A value the compiler did
+ * not flatten is serialized against its own type. That is what turns a
+ * `utcDateTime` into an ISO string.
+ */
+function convert(program: Program, value: unknown): unknown {
   switch (typeof value) {
     case "string":
     case "number":
@@ -62,23 +94,38 @@ export function toPlainValue(program: Program, value: unknown): unknown {
       return value;
     case "object": {
       if (value === null) return null;
-      if (Array.isArray(value)) {
-        return value.map((element) => toPlainValue(program, element));
-      }
-      if (isTypeSpecValue(value)) {
-        return serializeValueAsJson(program, value, value.type);
-      }
-      const result: Record<string, unknown> = {};
-      for (const [key, field] of Object.entries(value)) {
-        const plain = toPlainValue(program, field);
-        if (plain === undefined) continue;
-        result[key] = plain;
-      }
-      return result;
+      if (Array.isArray(value)) return convertArray(program, value);
+      if (!isTypeSpecValue(value)) return convertObject(program, value);
+      const plain = serializeValueAsJson(program, value, value.type);
+      return plain === undefined ? UNREPRESENTABLE : plain;
     }
     default:
-      return value;
+      return value === undefined ? UNREPRESENTABLE : value;
   }
+}
+
+/**
+ * Converts one marshalled decorator argument into plain JSON.
+ *
+ * The whole argument is rejected when any part of it cannot be represented.
+ * So every caller reports one problem about the argument it was given, and
+ * no partial value reaches the document.
+ *
+ * A member the author named `__proto__` never arrives. The marshaller assigns
+ * each member of an object value in turn, and that assignment writes the
+ * prototype rather than the member. So the loop above reads an object that
+ * already lost the pair, and `Object.entries` skips whatever the prototype
+ * now holds. Nothing here can recover the name.
+ *
+ * @param program - The program the value belongs to
+ * @param value - One marshalled decorator argument
+ * @returns The same data as plain JSON, or `undefined` when the serializer
+ * cannot represent some part of the value
+ * @internal
+ */
+export function toPlainValue(program: Program, value: unknown): unknown {
+  const plain = convert(program, value);
+  return plain === UNREPRESENTABLE ? undefined : plain;
 }
 
 /**

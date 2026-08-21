@@ -38,6 +38,7 @@ export {
   type AsyncTagMetadata,
   type AsyncTagState,
 } from "./document/async-tag.js";
+export { $extension, getExtensions } from "./extension.js";
 export { $oneOf, isOneOf } from "./schemas/one-of.js";
 export {
   $jsonSchemaExtension,

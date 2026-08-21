@@ -13,6 +13,18 @@ import { BindingsObject } from "./bindings.js";
  */
 
 /**
+ * The `x-` fields an AsyncAPI object may carry.
+ *
+ * The key type admits only an `x-` prefixed member, so a misspelled
+ * specification field stays a type error. `@extension` fills these fields,
+ * and the four objects that extend this type are the four the decorator
+ * reaches.
+ *
+ * @public
+ */
+export type SpecificationExtensions = Record<`x-${string}`, unknown>;
+
+/**
  * Represents the root of the AsyncAPI 3.1 document.
  * @public
  */
@@ -39,7 +51,7 @@ export interface AsyncAPIDocument {
  * Provides metadata about the API.
  * @public
  */
-export interface InfoObject {
+export interface InfoObject extends SpecificationExtensions {
   /** A unique and precise title of the API. */
   title: string;
   /** The version of the API document. */
@@ -172,7 +184,7 @@ export interface ExternalDocumentationObject {
  * Describes one channel: an address plus the messages that flow over it.
  * @public
  */
-export interface ChannelObject {
+export interface ChannelObject extends SpecificationExtensions {
   /**
    * The address of the channel, such as a topic name or a routing key.
    * It is `null` when the address is only known at runtime. AsyncAPI reads
@@ -247,7 +259,7 @@ export interface ParameterObject {
  * consumes one.
  * @public
  */
-export interface OperationObject {
+export interface OperationObject extends SpecificationExtensions {
   /** Whether this application sends or receives the message. */
   action: "send" | "receive";
   /**
@@ -451,7 +463,7 @@ export interface MultiFormatSchemaObject {
  * Describes one message an application sends or receives.
  * @public
  */
-export interface MessageObject {
+export interface MessageObject extends SpecificationExtensions {
   /** A machine-friendly name. Defaults to the `components.messages` key. */
   name?: string;
   /** A human-friendly title. */

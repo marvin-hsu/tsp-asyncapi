@@ -72,6 +72,9 @@ function lowerChannel(node: ChannelNode): ChannelObject {
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
     ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    // The `x-` fields go last. They cannot collide with a specification
+    // field, so their place is after every one of them.
+    ...structuredClone(node.extensions),
   };
 }
 

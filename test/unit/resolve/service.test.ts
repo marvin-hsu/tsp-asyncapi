@@ -55,6 +55,7 @@ const info: InfoNode = {
   externalDocs,
   contact,
   license,
+  extensions: { "x-owner": "orders-team" },
 };
 
 const variable: ServerVariableNode = { enum: ["dev", "prod"], default: "dev" };
@@ -88,6 +89,7 @@ const message: MessageNode = {
   tags: [tag],
   bindings: [binding],
   rawPayloadRef: "#/components/schemas/Order",
+  extensions: { "x-owner": "orders-team" },
 };
 
 const parameter: ChannelParameterNode = {
@@ -108,6 +110,7 @@ const channel: ChannelNode = {
   messageKeys: new Map([[model, "Order"]]),
   tags: [tag],
   bindings: [binding],
+  extensions: { "x-owner": "orders-team" },
 };
 
 const messageRef: MessageRefNode = { channelKey: "orders", messageKey: "Order" };
@@ -124,6 +127,7 @@ const operationNode: OperationNode = {
   bindings: [binding],
   messages: [messageRef],
   reply,
+  extensions: { "x-owner": "orders-team" },
 };
 
 const service: AsyncAPIService = {

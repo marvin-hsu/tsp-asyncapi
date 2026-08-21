@@ -53,6 +53,9 @@ function lowerOperation(node: OperationNode): OperationObject {
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("messages", lowerMessageRefs(node.messages)),
     ...present("reply", node.reply ? lowerReply(node.reply) : undefined),
+    // The `x-` fields go last. They cannot collide with a specification
+    // field, so their place is after every one of them.
+    ...structuredClone(node.extensions),
   };
 }
 
