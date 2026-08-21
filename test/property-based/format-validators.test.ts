@@ -1,0 +1,274 @@
+import { describe, it, expect } from "vitest";
+import fc from "fast-check";
+import { isAbsoluteUrl } from "../../src/decorators/absolute-url.js";
+import { isRuntimeExpression } from "../../src/decorators/runtime-expression.js";
+import { SERVER_NAME_PATTERN, SECURITY_SCHEME_NAME_PATTERN } from "../../src/constants.js";
+import { isSafeComponentsKey } from "../../src/naming.js";
+
+/**
+ * Properties of the three format checks a decorator runs on author text.
+ *
+ * Each check decides an acceptance surface. A defect moves that surface: the
+ * check takes a value the official parser refuses, or it refuses a value the
+ * specification allows. Both defects hide at the edge of the grammar — an
+ * empty pointer, a scheme nobody wrote an example for, a missing anchor.
+ *
+ * The example tests pin single strings. These properties build a value from
+ * the grammar instead, then break one part of a built value and require the
+ * answer to flip.
+ */
+
+describe("Unit: absolute URL — whitespace", () => {
+  /** The whitespace characters a URL parser handles in several ways. */
+  const whitespace = fc.constantFrom(
+    " ",
+    "\t",
+    "\n",
+    "\r",
+    "\f",
+    "\v",
+    "\u00a0",
+    "\u2028",
+    "\ufeff",
+  );
+
+  it("rejects a legal URL that carries a whitespace character", () => {
+    let parserAccepts = 0;
+
+    fc.assert(
+      fc.property(fc.webUrl(), whitespace, fc.nat(), (url, space, offset) => {
+        const at = offset % (url.length + 1);
+        const spaced = `${url.slice(0, at)}${space}${url.slice(at)}`;
+        // The parser strips or escapes the character instead of refusing it.
+        // Those are the cases the guard in front of the parser carries.
+        if (URL.canParse(spaced)) parserAccepts++;
+        expect(isAbsoluteUrl(spaced)).toBe(false);
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
+
+    // A run where the parser refused every spaced value would pass without
+    // the guard, so it would say nothing about the guard.
+    expect(parserAccepts).toBeGreaterThan(0);
+  });
+});
+
+describe("Unit: absolute URL — scheme", () => {
+  /**
+   * The schemes the WHATWG standard calls special.
+   *
+   * A special scheme takes a host, so the value is built in authority form.
+   */
+  const specialScheme = fc.constantFrom("http", "https", "ws", "wss", "ftp");
+
+  /** A scheme with no special handling. Its body is an opaque path. */
+  const opaqueScheme = fc.constantFrom("urn", "mailto", "tag", "x-custom.scheme+v1", "coap");
+
+  const host = fc.stringMatching(/^[a-z][a-z0-9-]{0,8}(\.[a-z]{2,4})?$/);
+  const path = fc.stringMatching(/^(\/[a-z0-9._-]{0,6}){0,3}$/);
+  const opaqueBody = fc.stringMatching(/^[a-z0-9][a-z0-9:._-]{0,14}$/);
+
+  const absoluteUrl = fc.oneof(
+    fc.tuple(specialScheme, host, path).map(([scheme, h, p]) => `${scheme}://${h}${p}`),
+    fc.tuple(opaqueScheme, opaqueBody).map(([scheme, body]) => `${scheme}:${body}`),
+  );
+
+  /** Text with no colon, so it names no scheme and cannot be absolute. */
+  const notAbsolute = fc.oneof(
+    fc.string().filter((text) => !text.includes(":") && !/\s/.test(text)),
+    fc.stringMatching(/^(\/[a-z]{1,5}){1,3}$/),
+    fc.constantFrom("token", "example.com", "//example.com", "./relative", "?query", "#frag"),
+  );
+
+  /**
+   * `isAbsoluteUrl` is `URL.canParse` behind a whitespace guard, so a
+   * differential test against that same parser states the implementation
+   * twice. This property builds both sides from the grammar instead. A value
+   * with a scheme and an authority, or a scheme and an opaque body, is
+   * absolute. Text holding no colon names no scheme, so it is not.
+   */
+  it("accepts a built URL of any scheme and refuses text naming no scheme", () => {
+    let accepted = 0;
+    let rejected = 0;
+
+    fc.assert(
+      fc.property(absoluteUrl, notAbsolute, (url, text) => {
+        accepted++;
+        expect(isAbsoluteUrl(url)).toBe(true);
+        rejected++;
+        expect(isAbsoluteUrl(text)).toBe(false);
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
+
+    // Each side of the acceptance surface needs cases of its own.
+    expect(accepted).toBeGreaterThan(0);
+    expect(rejected).toBeGreaterThan(0);
+  });
+});
+
+/** The source half of a runtime expression. */
+const source = fc.constantFrom("header", "payload");
+
+/**
+ * The body of the JSON Pointer half.
+ *
+ * The pool holds the characters RFC 6901 escaping and JSON Pointer syntax
+ * both care about. A body of plain letters would never reach the edge of the
+ * pattern. The empty string is the pointer that names the whole object.
+ */
+const pointerBody = fc.oneof(
+  fc.constant(""),
+  fc
+    .array(
+      fc.oneof(
+        fc.constantFrom("~", "/", "~0", "~1", "%", ".", "-", "_", " "),
+        fc.stringMatching(/^[A-Za-z0-9]{1,3}$/),
+      ),
+      { minLength: 1, maxLength: 5 },
+    )
+    .map((pieces) => pieces.join("")),
+);
+
+/** The line terminators the pattern cannot match. */
+const LINE_TERMINATORS = /[\n\r\u2028\u2029]/;
+
+describe("Unit: runtime expression — the grammar accepts what it builds", () => {
+  it("accepts every expression built from the grammar", () => {
+    let emptyPointer = 0;
+    let carriesTilde = 0;
+
+    fc.assert(
+      fc.property(source, pointerBody, (which, body) => {
+        // A line terminator in the body is held out. The pattern refuses one,
+        // and the failing test below records that.
+        fc.pre(!LINE_TERMINATORS.test(body));
+
+        const pointer = body === "" ? "" : `/${body}`;
+        const expression = `$message.${which}#${pointer}`;
+        if (body === "") emptyPointer++;
+        if (body.includes("~")) carriesTilde++;
+        expect(isRuntimeExpression(expression)).toBe(true);
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
+
+    // The empty pointer is its own branch of the pattern.
+    expect(emptyPointer).toBeGreaterThan(0);
+    // A body with no `~` never reaches the escaping of RFC 6901.
+    expect(carriesTilde).toBeGreaterThan(0);
+  });
+
+  /**
+   * The pattern spells the pointer as `(?:\/.*)?`. A `.` in a JavaScript
+   * regular expression without the `s` flag matches no line terminator.
+   *
+   * Observed: `$message.payload#/a\nb` is refused, and so is any body
+   * carrying `\n`, `\r`, U+2028, or U+2029. RFC 6901 puts no such limit on a
+   * reference token, and both JSON and YAML carry those characters inside a
+   * member name. One trailing `\n` is accepted, because `$` in JavaScript
+   * also matches in front of a final line terminator.
+   *
+   * Recorded, not fixed. This file only adds tests.
+   */
+  it.fails("accepts a pointer token holding a line terminator", () => {
+    fc.assert(
+      fc.property(source, fc.constantFrom("\n", "\r", "\u2028", "\u2029"), (which, terminator) => {
+        expect(isRuntimeExpression(`$message.${which}#/a${terminator}b`)).toBe(true);
+      }),
+      { numRuns: 200, seed: 20260815 },
+    );
+  });
+});
+
+describe("Unit: runtime expression — one break refuses the whole value", () => {
+  /** The five ways an author writes a runtime expression wrong. */
+  const breakages = [
+    "no-fragment",
+    "wrong-case",
+    "wrong-prefix",
+    "pointer-without-slash",
+    "leading-whitespace",
+  ] as const;
+
+  it("refuses a legal expression with any single part broken", () => {
+    const applied = new Map<string, number>();
+
+    fc.assert(
+      fc.property(source, pointerBody, fc.constantFrom(...breakages), (which, body, breakage) => {
+        fc.pre(!LINE_TERMINATORS.test(body));
+        const pointer = body === "" ? "" : `/${body}`;
+
+        let broken: string;
+        switch (breakage) {
+          case "no-fragment":
+            broken = `$message.${which}${pointer}`;
+            break;
+          case "wrong-case":
+            broken = `$message.${which.toUpperCase()}#${pointer}`;
+            break;
+          case "wrong-prefix":
+            broken = `$msg.${which}#${pointer}`;
+            break;
+          case "pointer-without-slash":
+            // Dropping the slash breaks the value only when a body follows it
+            // and the body opens with no slash of its own.
+            fc.pre(body !== "" && !body.startsWith("/"));
+            broken = `$message.${which}#${body}`;
+            break;
+          case "leading-whitespace":
+            // Only the leading side breaks the value. A trailing space is a
+            // legal reference token character, so it stays accepted.
+            broken = ` $message.${which}#${pointer}`;
+            break;
+        }
+
+        applied.set(breakage, (applied.get(breakage) ?? 0) + 1);
+        expect(isRuntimeExpression(broken)).toBe(false);
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
+
+    // A breakage the run never applied is a breakage the property never
+    // tested, whatever the total count says.
+    for (const breakage of breakages) {
+      expect(applied.get(breakage) ?? 0).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("Unit: name patterns — one charset inside the other", () => {
+  const serverName = fc.stringMatching(/^[A-Za-z0-9_-]{1,12}$/);
+  /** A name drawn from the wider charset, so a dot can appear. */
+  const componentsKey = fc.stringMatching(/^[A-Za-z0-9._-]{1,12}$/);
+
+  it("accepts every server name as a components key, and a dot only as a key", () => {
+    let carriesMarker = 0;
+    let keyOnly = 0;
+
+    fc.assert(
+      fc.property(serverName, componentsKey, (name, key) => {
+        if (/[-_]/.test(name)) carriesMarker++;
+        // The server charset is the narrower one, so a name it accepts also
+        // keys the Components Object.
+        expect(SERVER_NAME_PATTERN.test(name)).toBe(true);
+        expect(isSafeComponentsKey(name)).toBe(true);
+        expect(SECURITY_SCHEME_NAME_PATTERN.test(name)).toBe(true);
+
+        if (key.includes(".")) {
+          keyOnly++;
+          // A dot is the one character that separates the two charsets.
+          expect(isSafeComponentsKey(key)).toBe(true);
+          expect(SECURITY_SCHEME_NAME_PATTERN.test(key)).toBe(true);
+          expect(SERVER_NAME_PATTERN.test(key)).toBe(false);
+        }
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
+
+    // `-` and `_` are the two non-alphanumeric characters both charsets take.
+    expect(carriesMarker).toBeGreaterThan(0);
+    // With no dot the property never separates the two charsets.
+    expect(keyOnly).toBeGreaterThan(0);
+  });
+});
