@@ -5,6 +5,7 @@ import type { Program } from "@typespec/compiler";
 import { lowerDocument } from "../../src/lower/document.js";
 import { resolvesInDocument } from "../../src/lower/json-pointer.js";
 import { ASYNCAPI_VERSION } from "../../src/constants.js";
+import { trimmed } from "../../src/optional-fields.js";
 import type { AsyncAPIEmitterOptions } from "../../src/lib.js";
 import { infoNode, requiredText, service } from "./ir-arbitraries.js";
 
@@ -245,11 +246,17 @@ describe("Integration: document assembly — the options that reach the head", (
         // The version is the emitter's own claim, never an option.
         expect(document.asyncapi).toBe(ASYNCAPI_VERSION);
 
-        expect(Object.hasOwn(document, "id")).toBe(id !== undefined);
-        if (id !== undefined) expect(document.id).toBe(id);
+        // An option answers to the rule every other text field answers to:
+        // a blank one is absent, and one that says something is trimmed.
+        expect(Object.hasOwn(document, "id")).toBe(trimmed(id) !== undefined);
+        if (trimmed(id) !== undefined) expect(document.id).toBe(trimmed(id));
 
-        expect(Object.hasOwn(document, "defaultContentType")).toBe(contentType !== undefined);
-        if (contentType !== undefined) expect(document.defaultContentType).toBe(contentType);
+        expect(Object.hasOwn(document, "defaultContentType")).toBe(
+          trimmed(contentType) !== undefined,
+        );
+        if (trimmed(contentType) !== undefined) {
+          expect(document.defaultContentType).toBe(trimmed(contentType));
+        }
 
         // `output-file` and `file-type` name the artifact, not the document.
         expect(Object.hasOwn(document, "output-file")).toBe(false);
@@ -267,16 +274,14 @@ describe("Integration: document assembly — the options that reach the head", (
   /**
    * The two head options skip the rule the rest of the document follows.
    *
-   * Observed: `asyncapi-id: "   "` reaches the document as `id: "   "`, and
-   * `asyncapi-id: "  x  "` reaches it as `id: "  x  "`. Both conditions are a
-   * plain truthiness test, so a blank option is a value and a padded option
-   * keeps its padding. Every prose field of the document goes through `text`
-   * instead, which answers a blank as absent and trims the rest. The options
+   * Both conditions used to be a plain truthiness test, so
+   * `asyncapi-id: "   "` reached the document as `id: "   "` and
+   * `asyncapi-id: "  x  "` kept its padding. Every prose field of the
+   * document goes through `text`, which answers a blank as absent and trims
+   * the rest, and the two options now go through it as well. The options
    * schema sets no minimum length, so an author can write either one.
-   *
-   * Recorded, not fixed. This file only adds tests.
    */
-  it.fails("treats a blank option the way it treats blank prose", () => {
+  it("treats a blank option the way it treats blank prose", () => {
     const model = {
       info: { title: "T", version: "1", tags: [], extensions: {} },
       servers: [],

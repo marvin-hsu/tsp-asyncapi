@@ -26,8 +26,16 @@
  * An empty pointer, `$message.header#`, points at the whole headers object
  * and is legal. A pointer with several levels, such as
  * `$message.payload#/user/id`, is legal too.
+ *
+ * The pointer is matched with `[\s\S]` rather than `.`. RFC 6901 puts no
+ * character outside a reference token, so a token holding a line terminator
+ * is legal, and `.` matches no line terminator without the `s` flag.
+ *
+ * The end is spelled `(?![\s\S])` rather than `$`. The two are equivalent
+ * here, because the pattern carries no `m` flag. The negative lookahead
+ * states end-of-input without depending on that.
  */
-const RUNTIME_EXPRESSION_PATTERN = /^\$message\.(?:header|payload)#(?:\/.*)?$/;
+const RUNTIME_EXPRESSION_PATTERN = /^\$message\.(?:header|payload)#(?:\/[\s\S]*)?(?![\s\S])/;
 
 /**
  * Tells whether one string is a legal runtime expression.

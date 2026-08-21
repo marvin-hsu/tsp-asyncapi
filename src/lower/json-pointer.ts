@@ -150,6 +150,16 @@ function fromJsonPointerToken(token: string): string {
 }
 
 /**
+ * The only text RFC 6901 spells an array index with.
+ *
+ * `Number` accepts far more than the grammar does. It reads `""` and `" "` as
+ * 0, and `"01"`, `"1.0"`, `"+1"`, `"0x1"` and `"1e0"` all as 1. A pointer
+ * written any of those ways would be reported as resolving here, while a
+ * reader that follows the specification finds nothing at it.
+ */
+const ARRAY_INDEX = /^(?:0|[1-9]\d*)$/;
+
+/**
  * Takes one step through a container the document holds.
  *
  * An array is addressed by index, and an object by key. Both are containers
@@ -161,8 +171,11 @@ function fromJsonPointerToken(token: string): string {
  */
 function stepThrough(container: unknown, token: string): unknown {
   if (Array.isArray(container)) {
+    if (!ARRAY_INDEX.test(token)) {
+      return undefined;
+    }
     const index = Number(token);
-    if (!Number.isInteger(index) || index < 0 || index >= container.length) {
+    if (index >= container.length) {
       return undefined;
     }
     return container[index];

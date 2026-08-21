@@ -116,6 +116,10 @@ const source = fc.constantFrom("header", "payload");
  * The pool holds the characters RFC 6901 escaping and JSON Pointer syntax
  * both care about. A body of plain letters would never reach the edge of the
  * pattern. The empty string is the pointer that names the whole object.
+ *
+ * The line terminators are in the pool because the pattern once refused
+ * them. Holding them out here would leave that fix guarded by hand-written
+ * cases alone, and a regression would pass.
  */
 const pointerBody = fc.oneof(
   fc.constant(""),
@@ -123,6 +127,7 @@ const pointerBody = fc.oneof(
     .array(
       fc.oneof(
         fc.constantFrom("~", "/", "~0", "~1", "%", ".", "-", "_", " "),
+        fc.constantFrom("\n", "\r", "\u2028", "\u2029"),
         fc.stringMatching(/^[A-Za-z0-9]{1,3}$/),
       ),
       { minLength: 1, maxLength: 5 },
@@ -130,24 +135,22 @@ const pointerBody = fc.oneof(
     .map((pieces) => pieces.join("")),
 );
 
-/** The line terminators the pattern cannot match. */
+/** The line terminators a reference token may hold. */
 const LINE_TERMINATORS = /[\n\r\u2028\u2029]/;
 
 describe("Unit: runtime expression — the grammar accepts what it builds", () => {
   it("accepts every expression built from the grammar", () => {
     let emptyPointer = 0;
     let carriesTilde = 0;
+    let carriesTerminator = 0;
 
     fc.assert(
       fc.property(source, pointerBody, (which, body) => {
-        // A line terminator in the body is held out. The pattern refuses one,
-        // and the failing test below records that.
-        fc.pre(!LINE_TERMINATORS.test(body));
-
         const pointer = body === "" ? "" : `/${body}`;
         const expression = `$message.${which}#${pointer}`;
         if (body === "") emptyPointer++;
         if (body.includes("~")) carriesTilde++;
+        if (LINE_TERMINATORS.test(body)) carriesTerminator++;
         expect(isRuntimeExpression(expression)).toBe(true);
       }),
       { numRuns: 2000, seed: 20260815 },
@@ -157,21 +160,23 @@ describe("Unit: runtime expression — the grammar accepts what it builds", () =
     expect(emptyPointer).toBeGreaterThan(0);
     // A body with no `~` never reaches the escaping of RFC 6901.
     expect(carriesTilde).toBeGreaterThan(0);
+    // The terminators are what the pattern once refused, so a run that drew
+    // none would say nothing about that.
+    expect(carriesTerminator).toBeGreaterThan(0);
   });
 
   /**
-   * The pattern spells the pointer as `(?:\/.*)?`. A `.` in a JavaScript
-   * regular expression without the `s` flag matches no line terminator.
+   * The pattern used to spell the pointer as `(?:\/.*)?`, and `.` matches no
+   * line terminator without the `s` flag. So `$message.payload#/a\nb` was
+   * refused, along with any body carrying `\n`, `\r`, U+2028, or U+2029.
+   * RFC 6901 puts no such limit on a reference token, and both JSON and YAML
+   * carry those characters inside a member name.
    *
-   * Observed: `$message.payload#/a\nb` is refused, and so is any body
-   * carrying `\n`, `\r`, U+2028, or U+2029. RFC 6901 puts no such limit on a
-   * reference token, and both JSON and YAML carry those characters inside a
-   * member name. One trailing `\n` is accepted, because `$` in JavaScript
-   * also matches in front of a final line terminator.
-   *
-   * Recorded, not fixed. This file only adds tests.
+   * The grammar property above draws a terminator too. This case names the
+   * four of them one at a time, so a pool that stopped drawing one would
+   * still leave the fix under test.
    */
-  it.fails("accepts a pointer token holding a line terminator", () => {
+  it("accepts a pointer token holding a line terminator", () => {
     fc.assert(
       fc.property(source, fc.constantFrom("\n", "\r", "\u2028", "\u2029"), (which, terminator) => {
         expect(isRuntimeExpression(`$message.${which}#/a${terminator}b`)).toBe(true);
@@ -196,7 +201,6 @@ describe("Unit: runtime expression — one break refuses the whole value", () =>
 
     fc.assert(
       fc.property(source, pointerBody, fc.constantFrom(...breakages), (which, body, breakage) => {
-        fc.pre(!LINE_TERMINATORS.test(body));
         const pointer = body === "" ? "" : `/${body}`;
 
         let broken: string;

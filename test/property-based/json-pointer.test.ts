@@ -177,12 +177,19 @@ describe("Unit: JSON Pointer — reader properties", () => {
           // `length` and the inherited names are the tokens a reader that
           // indexed an array by the raw token would answer for.
           fc.constantFrom("x", "abc", "1.5", "-0.5", "NaN", "Infinity", "length", "constructor"),
+          // The tokens `Number` reads as an index and the specification does
+          // not. They are what makes the oracle below disagree with the rule
+          // this reader used to carry.
+          fc.constantFrom("01", "+1", "1e0", "0x1", "1.0", "", " "),
         ),
         (items, token) => {
+          // The oracle spells the specification rule. Reading the module's
+          // own rule instead would make this an identity, and loosening the
+          // reader would move both sides at once.
+          const isIndex = /^(?:0|[1-9]\d*)$/.test(token);
           const index = Number(token);
-          const isIndex = Number.isInteger(index) && index >= 0;
-          if (!Number.isInteger(index)) notAnIndex++;
-          else if (isIndex && index < items.length) inRange++;
+          if (!isIndex) notAnIndex++;
+          else if (index < items.length) inRange++;
           else outOfRange++;
 
           expect(resolvesInDocument(arrayDoc(items), arrayRef(token))).toBe(
@@ -238,18 +245,16 @@ describe("Unit: JSON Pointer — reader properties", () => {
 
   /**
    * RFC 6901 spells an array index as `0` or a digit run with no leading
-   * zero. The reader passes the token to `Number` instead, which accepts
-   * much more.
+   * zero.
    *
-   * Observed: every token below resolves against a three-member array.
-   * `""` and `" "` both become 0, `"01"`, `"1.0"`, `"+1"`, `"0x1"`, and
-   * `"1e0"` all become 1. So a raw schema carrying `#/…/oneOf/0x1` is
-   * reported as resolving, and a reader that follows the specification
-   * finds nothing there.
-   *
-   * Recorded, not fixed. This file only adds tests.
+   * The reader used to pass the token to `Number`, which accepts much more.
+   * Every token below resolved against a three-member array: `""` and `" "`
+   * both became 0, and `"01"`, `"1.0"`, `"+1"`, `"0x1"` and `"1e0"` all
+   * became 1. So a raw schema carrying `#/…/oneOf/0x1` was reported as
+   * resolving, while a reader that follows the specification finds nothing
+   * there.
    */
-  it.fails("rejects an array index the specification does not spell", () => {
+  it("rejects an array index the specification does not spell", () => {
     fc.assert(
       fc.property(fc.constantFrom("", " ", "01", "1.0", "+1", "0x1", "1e0"), (token) => {
         expect(resolvesInDocument(arrayDoc(["a", "b", "c"]), arrayRef(token))).toBe(false);

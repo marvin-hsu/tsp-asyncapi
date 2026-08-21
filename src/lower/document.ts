@@ -14,6 +14,7 @@ import type { AsyncAPIService } from "../resolve/service.js";
 import { SchemaBuilder } from "./schemas.js";
 import { reportUnresolvedRawSchemaRefs } from "./raw-schema-refs.js";
 import { ASYNCAPI_VERSION } from "../constants.js";
+import { text } from "../optional-fields.js";
 import { lowerChannels } from "./channels.js";
 import { lowerInfo } from "./info.js";
 import { lowerMessages, reportShadowedSchemaKeys } from "./messages.js";
@@ -70,11 +71,13 @@ export function lowerDocument(
 
   const document: AsyncAPIDocument = {
     asyncapi: ASYNCAPI_VERSION,
-    ...(options["asyncapi-id"] ? { id: options["asyncapi-id"] } : {}),
+    // The two head options answer to the rule every other text field in the
+    // document answers to. A blank option names nothing, so it is absent
+    // rather than emitted as blank, and a padded one is trimmed. The options
+    // schema sets no minimum length, so an author can write either.
+    ...text("id", options["asyncapi-id"]),
     info: lowerInfo(service.info),
-    ...(options["default-content-type"]
-      ? { defaultContentType: options["default-content-type"] }
-      : {}),
+    ...text("defaultContentType", options["default-content-type"]),
     ...(service.servers.length > 0 ? { servers: lowerServers(service.servers) } : {}),
     // `channels` is required, so an empty map is emitted when the program
     // declares no channel.
