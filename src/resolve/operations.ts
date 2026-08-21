@@ -80,6 +80,13 @@ export function resolveOperations(
   // of its own or a copy of it carried the declaration in. The extension
   // report reads this set, so neither route raises a warning about a key the
   // document does carry.
+  // Every operation the loop sees carries its extensions into the document,
+  // through its own node or through a copy that stood in for it. The one
+  // exception takes itself back out below. Registering first, rather than on
+  // each surviving path, is what keeps a later branch from forgetting: the
+  // three reports this loop can make each dropped a declaration that the
+  // document did carry, and each one warned about an extension that was
+  // already there.
   const extensionCarriers = new Set<Operation>();
 
   const placed: PlacedOperation[] = listOperationActions(program).map(({ target, record }) => {
@@ -89,6 +96,7 @@ export function resolveOperations(
   const emittedNodes = emittedDeclarationNodes(placed);
 
   for (const { target, record, channel } of placed) {
+    extensionCarriers.add(target);
     if (channel === undefined) {
       // The operation points at a channel that reached the document, so one
       // with no such channel reaches nothing. The channel may be missing
@@ -96,9 +104,8 @@ export function resolveOperations(
       // missing because the declared channel was dropped.
       if (target.node !== undefined && emittedNodes.has(target.node)) {
         // The copies carry this declaration into the document, so its
-        // bindings and its extensions reached an object too.
+        // bindings reached an object too.
         markBindingsPlaced(program, "operation", target, placements);
-        extensionCarriers.add(target);
         continue;
       }
       reportDiagnostic(program, {
@@ -106,6 +113,9 @@ export function resolveOperations(
         format: { name: target.name },
         target,
       });
+      // This is the one operation that reaches no object at all, so it is
+      // the one whose extensions really are unplaced.
+      extensionCarriers.delete(target);
       continue;
     }
 
@@ -113,13 +123,11 @@ export function resolveOperations(
     if (claimed.has(key)) {
       reportDiagnostic(program, { code: "duplicate-operation-id", format: { id: key }, target });
       // The repeated key is the mistake, and it is already reported. The
-      // bindings and the extensions of this operation are not a second one.
+      // bindings of this operation are not a second one.
       markBindingsPlaced(program, "operation", target, placements);
-      extensionCarriers.add(target);
       continue;
     }
     claimed.add(key);
-    extensionCarriers.add(target);
 
     const { request, reply } = operationSides(program, target, record.action);
     const replyNode = resolveOperationReply(program, {
