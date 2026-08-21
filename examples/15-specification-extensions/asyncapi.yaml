@@ -1,0 +1,53 @@
+asyncapi: 3.1.0
+id: urn:example:orders-service
+info:
+  title: Orders Service
+  version: 1.0.0
+  description: Order events, with the metadata our tooling reads.
+  x-owner: orders-team
+  x-repository: https://github.com/example/orders
+  x-review:
+    board: architecture
+    cadence: quarterly
+    reviewers:
+      - ana
+      - bo
+defaultContentType: application/json
+channels:
+  orders.placed:
+    address: orders.placed
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    x-retention-hours: 168
+    x-partitions: 12
+operations:
+  publishOrderPlaced:
+    action: send
+    channel:
+      $ref: "#/channels/orders.placed"
+    description: Publishes one placed order.
+    messages:
+      - $ref: "#/channels/orders.placed/messages/OrderPlaced"
+    x-sla-ms: 250
+components:
+  schemas:
+    OrderPlaced:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+      description: One order that a customer placed.
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      description: One order that a customer placed.
+      payload:
+        $ref: "#/components/schemas/OrderPlaced"
+      x-schema-registry-id: 4711

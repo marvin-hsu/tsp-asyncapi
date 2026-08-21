@@ -89,7 +89,7 @@ servers:
         schemaRegistryVendor: confluent
         bindingVersion: 0.5.0
 channels:
-  SignupFunnel:
+  signup.v1.{tenantId}.events:
     address: signup.v1.{tenantId}.events
     description: The signup funnel events of one tenant.
     servers:
@@ -117,7 +117,7 @@ operations:
   publishSignupEvent:
     action: send
     channel:
-      $ref: "#/channels/SignupFunnel"
+      $ref: "#/channels/signup.v1.{tenantId}.events"
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
     bindings:
@@ -127,11 +127,11 @@ operations:
           description: The producing service instance.
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
+      - $ref: "#/channels/signup.v1.{tenantId}.events/messages/SignupEventV1"
   consumeSignupEvent:
     action: receive
     channel:
-      $ref: "#/channels/SignupFunnel"
+      $ref: "#/channels/signup.v1.{tenantId}.events"
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
     bindings:
@@ -144,7 +144,7 @@ operations:
           description: The consuming service instance.
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/SignupFunnel/messages/SignupEventV1"
+      - $ref: "#/channels/signup.v1.{tenantId}.events/messages/SignupEventV1"
 components:
   schemas:
     Plan:

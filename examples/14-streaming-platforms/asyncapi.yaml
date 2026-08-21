@@ -55,7 +55,7 @@ servers:
         clientName: sensor-stream
         bindingVersion: 0.4.0
 channels:
-  PulsarTopic:
+  persistent://telemetry/sensors/readings:
     address: persistent://telemetry/sensors/readings
     description: The Pulsar topic every reading is written to.
     servers:
@@ -77,7 +77,7 @@ channels:
         ttl: 86400
         deduplication: true
         bindingVersion: 0.1.0
-  PubSubTopic:
+  sensor-readings:
     address: sensor-readings
     description: The Pub/Sub topic the same readings are published to.
     servers:
@@ -100,7 +100,7 @@ channels:
             - us-central1
             - europe-west1
         bindingVersion: 0.2.0
-  SolaceTopic:
+  telemetry/readings:
     address: telemetry/readings
     description: The Solace topic the readings fan out on.
     servers:
@@ -112,23 +112,23 @@ operations:
   consumeReading:
     action: receive
     channel:
-      $ref: "#/channels/PulsarTopic"
+      $ref: "#/channels/persistent:~1~1telemetry~1sensors~1readings"
     bindings:
       nats:
         queue: reading-workers
         bindingVersion: 0.1.0
     messages:
-      - $ref: "#/channels/PulsarTopic/messages/SensorReading"
+      - $ref: "#/channels/persistent:~1~1telemetry~1sensors~1readings/messages/SensorReading"
   publishReading:
     action: send
     channel:
-      $ref: "#/channels/PubSubTopic"
+      $ref: "#/channels/sensor-readings"
     messages:
-      - $ref: "#/channels/PubSubTopic/messages/SensorReading"
+      - $ref: "#/channels/sensor-readings/messages/SensorReading"
   fanOutReading:
     action: send
     channel:
-      $ref: "#/channels/SolaceTopic"
+      $ref: "#/channels/telemetry~1readings"
     bindings:
       solace:
         destinations:
@@ -142,7 +142,7 @@ operations:
         dmqEligible: true
         bindingVersion: 0.4.0
     messages:
-      - $ref: "#/channels/SolaceTopic/messages/SensorReading"
+      - $ref: "#/channels/telemetry~1readings/messages/SensorReading"
 components:
   schemas:
     SensorReading:

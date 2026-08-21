@@ -6,7 +6,7 @@ info:
   description: The request and reply patterns this emitter supports.
 defaultContentType: application/json
 channels:
-  OrderStatusDesk:
+  orders.status:
     address: orders.status
     description: Status queries and their answers, on one channel.
     messages:
@@ -20,7 +20,7 @@ channels:
     messages:
       OrderAccepted:
         $ref: "#/components/messages/OrderAccepted"
-  OrderCommands:
+  orders.create:
     address: orders.create
     description: The commands that create an order.
     messages:
@@ -30,14 +30,14 @@ operations:
   getOrderStatus:
     action: send
     channel:
-      $ref: "#/channels/OrderStatusDesk"
+      $ref: "#/channels/orders.status"
     messages:
-      - $ref: "#/channels/OrderStatusDesk/messages/OrderStatusQuery"
+      - $ref: "#/channels/orders.status/messages/OrderStatusQuery"
     reply:
       channel:
-        $ref: "#/channels/OrderStatusDesk"
+        $ref: "#/channels/orders.status"
       messages:
-        - $ref: "#/channels/OrderStatusDesk/messages/OrderStatus"
+        - $ref: "#/channels/orders.status/messages/OrderStatus"
   onOrderAccepted:
     action: receive
     channel:
@@ -47,9 +47,9 @@ operations:
   createOrder:
     action: send
     channel:
-      $ref: "#/channels/OrderCommands"
+      $ref: "#/channels/orders.create"
     messages:
-      - $ref: "#/channels/OrderCommands/messages/CreateOrder"
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
     reply:
       address:
         location: $message.header#/replyTo

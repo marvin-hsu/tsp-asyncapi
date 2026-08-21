@@ -11,7 +11,7 @@ servers:
     protocol: kafka
     title: Edge broker
 channels:
-  DeviceReadings:
+  telemetry.{region}.devices.{deviceId}.readings:
     address: telemetry.{region}.devices.{deviceId}.readings
     description: Readings from one device, in one region.
     servers:
@@ -48,7 +48,7 @@ channels:
     messages:
       DeviceAlarm:
         $ref: "#/components/messages/DeviceAlarm"
-  Firmware:
+  telemetry.firmware.{channelVersion}:
     address: telemetry.firmware.{channelVersion}
     description: Firmware reports, on a channel that sits on a namespace.
     parameters:
@@ -65,9 +65,9 @@ operations:
   sendDeviceReading:
     action: send
     channel:
-      $ref: "#/channels/DeviceReadings"
+      $ref: "#/channels/telemetry.{region}.devices.{deviceId}.readings"
     messages:
-      - $ref: "#/channels/DeviceReadings/messages/DeviceReading"
+      - $ref: "#/channels/telemetry.{region}.devices.{deviceId}.readings/messages/DeviceReading"
   sendDeviceAlarm:
     action: send
     channel:
@@ -83,9 +83,9 @@ operations:
   sendFirmwareReport:
     action: send
     channel:
-      $ref: "#/channels/Firmware"
+      $ref: "#/channels/telemetry.firmware.{channelVersion}"
     messages:
-      - $ref: "#/channels/Firmware/messages/FirmwareReport"
+      - $ref: "#/channels/telemetry.firmware.{channelVersion}/messages/FirmwareReport"
 components:
   schemas:
     DeviceReading:

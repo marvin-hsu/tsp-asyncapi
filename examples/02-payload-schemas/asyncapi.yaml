@@ -6,7 +6,7 @@ info:
   description: The basic shapes of the schema layer.
 defaultContentType: application/json
 channels:
-  PlacedOrders:
+  catalog.orders.placed:
     address: catalog.orders.placed
     messages:
       OrderPlaced:
@@ -15,9 +15,9 @@ operations:
   sendOrderPlaced:
     action: send
     channel:
-      $ref: "#/channels/PlacedOrders"
+      $ref: "#/channels/catalog.orders.placed"
     messages:
-      - $ref: "#/channels/PlacedOrders/messages/OrderPlaced"
+      - $ref: "#/channels/catalog.orders.placed/messages/OrderPlaced"
 components:
   schemas:
     PostalAddress:

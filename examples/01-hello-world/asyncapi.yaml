@@ -6,7 +6,7 @@ info:
   description: The smallest AsyncAPI document this emitter can produce.
 defaultContentType: application/json
 channels:
-  Greetings:
+  hello.greetings:
     address: hello.greetings
     description: Greetings sent to every listener.
     messages:
@@ -16,9 +16,9 @@ operations:
   sendGreeting:
     action: send
     channel:
-      $ref: "#/channels/Greetings"
+      $ref: "#/channels/hello.greetings"
     messages:
-      - $ref: "#/channels/Greetings/messages/Greeting"
+      - $ref: "#/channels/hello.greetings/messages/Greeting"
 components:
   schemas:
     Greeting:

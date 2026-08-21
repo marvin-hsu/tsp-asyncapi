@@ -63,7 +63,7 @@ servers:
         heartBeatInterval: 300
         bindingVersion: 0.1.0
 channels:
-  DispatchDestination:
+  order.dispatch:
     address: order.dispatch
     description: The destination every dispatch is written to.
     messages:
@@ -98,7 +98,7 @@ operations:
   publishOrderDispatched:
     action: send
     channel:
-      $ref: "#/channels/DispatchDestination"
+      $ref: "#/channels/order.dispatch"
     bindings:
       amqp:
         expiration: 86400000
@@ -109,7 +109,7 @@ operations:
         timestamp: true
         bindingVersion: 0.3.0
     messages:
-      - $ref: "#/channels/DispatchDestination/messages/OrderDispatched"
+      - $ref: "#/channels/order.dispatch/messages/OrderDispatched"
 components:
   schemas:
     OrderDispatched:

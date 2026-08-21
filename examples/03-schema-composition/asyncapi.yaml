@@ -6,7 +6,7 @@ info:
   description: How the schema layer composes schemas.
 defaultContentType: application/json
 channels:
-  FulfilledOrders:
+  fulfilment.orders.fulfilled:
     address: fulfilment.orders.fulfilled
     messages:
       OrderFulfilled:
@@ -15,9 +15,9 @@ operations:
   sendOrderFulfilled:
     action: send
     channel:
-      $ref: "#/channels/FulfilledOrders"
+      $ref: "#/channels/fulfilment.orders.fulfilled"
     messages:
-      - $ref: "#/channels/FulfilledOrders/messages/OrderFulfilled"
+      - $ref: "#/channels/fulfilment.orders.fulfilled/messages/OrderFulfilled"
 components:
   schemas:
     OrderLine:

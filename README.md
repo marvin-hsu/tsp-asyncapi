@@ -169,7 +169,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Fourteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
+Fifteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
 

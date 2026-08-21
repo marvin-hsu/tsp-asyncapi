@@ -12,7 +12,7 @@ servers:
     title: Callback endpoint
     description: The endpoint the provider posts to.
 channels:
-  PaymentHook:
+  /hooks/payments:
     address: /hooks/payments
     description: The callback endpoint.
     servers:
@@ -26,7 +26,7 @@ operations:
   deliverChargeSettled:
     action: send
     channel:
-      $ref: "#/channels/PaymentHook"
+      $ref: "#/channels/~1hooks~1payments"
     bindings:
       http:
         method: POST
@@ -38,12 +38,12 @@ operations:
               description: Which delivery attempt this is.
         bindingVersion: 0.3.0
     messages:
-      - $ref: "#/channels/PaymentHook/messages/ChargeSettled"
+      - $ref: "#/channels/~1hooks~1payments/messages/ChargeSettled"
     reply:
       channel:
-        $ref: "#/channels/PaymentHook"
+        $ref: "#/channels/~1hooks~1payments"
       messages:
-        - $ref: "#/channels/PaymentHook/messages/CallbackAccepted"
+        - $ref: "#/channels/~1hooks~1payments/messages/CallbackAccepted"
 components:
   schemas:
     ChargeSettled:

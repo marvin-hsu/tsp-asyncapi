@@ -2,8 +2,7 @@ asyncapi: 3.1.0
 info:
   title: Streetlights Kafka API
   version: 1.0.0
-  description: The Smartylighting Streetlights API allows you to remotely manage
-    the city lights.
+  description: The Smartylighting Streetlights API allows you to remotely manage the city lights.
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -23,7 +22,7 @@ servers:
       - $ref: "#/components/securitySchemes/scramSha256"
       - $ref: "#/components/securitySchemes/X509"
 channels:
-  LightingMeasuredChannel:
+  smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured:
     address: smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured
     description: The topic on which measured values may be produced and consumed.
     parameters:
@@ -31,21 +30,21 @@ channels:
     messages:
       LightMeasured:
         $ref: "#/components/messages/LightMeasured"
-  LightTurnOnChannel:
+  smartylighting.streetlights.1.0.action.{streetlightId}.turn.on:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.turn.on
     parameters:
       streetlightId: {}
     messages:
       TurnOnOff:
         $ref: "#/components/messages/TurnOnOff"
-  LightTurnOffChannel:
+  smartylighting.streetlights.1.0.action.{streetlightId}.turn.off:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.turn.off
     parameters:
       streetlightId: {}
     messages:
       TurnOnOff:
         $ref: "#/components/messages/TurnOnOff"
-  LightsDimChannel:
+  smartylighting.streetlights.1.0.action.{streetlightId}.dim:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.dim
     parameters:
       streetlightId: {}
@@ -56,7 +55,7 @@ operations:
   receiveLightMeasurement:
     action: receive
     channel:
-      $ref: "#/channels/LightingMeasuredChannel"
+      $ref: "#/channels/smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured"
     title: Inform about environmental lighting conditions of a particular streetlight.
     bindings:
       kafka:
@@ -68,7 +67,7 @@ operations:
   turnOn:
     action: send
     channel:
-      $ref: "#/channels/LightTurnOnChannel"
+      $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.on"
     bindings:
       kafka:
         clientId:
@@ -77,11 +76,11 @@ operations:
             - my-app-id
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/LightTurnOnChannel/messages/TurnOnOff"
+      - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.on/messages/TurnOnOff"
   turnOff:
     action: send
     channel:
-      $ref: "#/channels/LightTurnOffChannel"
+      $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.off"
     bindings:
       kafka:
         clientId:
@@ -90,11 +89,11 @@ operations:
             - my-app-id
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/LightTurnOffChannel/messages/TurnOnOff"
+      - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.off/messages/TurnOnOff"
   dimLight:
     action: send
     channel:
-      $ref: "#/channels/LightsDimChannel"
+      $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.dim"
     bindings:
       kafka:
         clientId:
@@ -103,7 +102,7 @@ operations:
             - my-app-id
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/LightsDimChannel/messages/DimLight"
+      - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.dim/messages/DimLight"
 components:
   schemas:
     CommonHeaders:

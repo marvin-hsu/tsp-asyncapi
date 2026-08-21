@@ -6,7 +6,7 @@ info:
   description: Message headers, content types, correlation and examples.
 defaultContentType: application/json
 channels:
-  InvoicingEvents:
+  invoicing.events:
     address: invoicing.events
     messages:
       InvoiceIssuedV1:
@@ -17,15 +17,15 @@ operations:
   sendInvoiceIssued:
     action: send
     channel:
-      $ref: "#/channels/InvoicingEvents"
+      $ref: "#/channels/invoicing.events"
     messages:
-      - $ref: "#/channels/InvoicingEvents/messages/InvoiceIssuedV1"
+      - $ref: "#/channels/invoicing.events/messages/InvoiceIssuedV1"
   sendInvoiceSettled:
     action: send
     channel:
-      $ref: "#/channels/InvoicingEvents"
+      $ref: "#/channels/invoicing.events"
     messages:
-      - $ref: "#/channels/InvoicingEvents/messages/InvoiceSettled"
+      - $ref: "#/channels/invoicing.events/messages/InvoiceSettled"
 components:
   schemas:
     InvoiceIssuedPayload:

@@ -19,7 +19,7 @@ servers:
     protocol: sqs
     title: Partner queue
 channels:
-  OrderTopic:
+  orders.placed:
     address: orders.placed
     description: The Kafka topic every order is published to.
     servers:
@@ -37,7 +37,7 @@ channels:
             - delete
           retention.ms: 604800000
         bindingVersion: 0.5.0
-  OrderStream:
+  /streams/orders:
     address: /streams/orders
     description: The stream a browser subscribes to.
     servers:
@@ -55,7 +55,7 @@ channels:
               type: string
               description: A short-lived access token.
         bindingVersion: 0.1.0
-  PartnerQueue:
+  partner-orders:
     address: partner-orders
     description: The queue a partner reads from.
     servers:
@@ -78,7 +78,7 @@ operations:
   publishOrderPlaced:
     action: send
     channel:
-      $ref: "#/channels/OrderTopic"
+      $ref: "#/channels/orders.placed"
     bindings:
       kafka:
         groupId:
@@ -87,24 +87,24 @@ operations:
           type: string
         bindingVersion: 0.5.0
     messages:
-      - $ref: "#/channels/OrderTopic/messages/OrderPlaced"
+      - $ref: "#/channels/orders.placed/messages/OrderPlaced"
   receiveOrderPlaced:
     action: receive
     channel:
-      $ref: "#/channels/OrderStream"
+      $ref: "#/channels/~1streams~1orders"
     messages:
-      - $ref: "#/channels/OrderStream/messages/OrderPlaced"
+      - $ref: "#/channels/~1streams~1orders/messages/OrderPlaced"
   receivePartnerOrder:
     action: receive
     channel:
-      $ref: "#/channels/PartnerQueue"
+      $ref: "#/channels/partner-orders"
     bindings:
       sqs:
         queues:
           - name: partner-orders
         bindingVersion: 0.2.0
     messages:
-      - $ref: "#/channels/PartnerQueue/messages/OrderPlaced"
+      - $ref: "#/channels/partner-orders/messages/OrderPlaced"
 components:
   schemas:
     OrderPlaced:

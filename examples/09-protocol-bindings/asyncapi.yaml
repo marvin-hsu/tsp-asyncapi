@@ -24,7 +24,7 @@ servers:
         sessionExpiryInterval: 3600
         bindingVersion: 0.2.0
 channels:
-  DeviceTelemetryChannel:
+  devices/{deviceId}/telemetry:
     address: devices/{deviceId}/telemetry
     description: The telemetry of one device.
     servers:
@@ -44,7 +44,7 @@ operations:
   publishDeviceReading:
     action: send
     channel:
-      $ref: "#/channels/DeviceTelemetryChannel"
+      $ref: "#/channels/devices~1{deviceId}~1telemetry"
     bindings:
       mqtt:
         qos: 1
@@ -52,7 +52,7 @@ operations:
         messageExpiryInterval: 300
         bindingVersion: 0.2.0
     messages:
-      - $ref: "#/channels/DeviceTelemetryChannel/messages/DeviceReading"
+      - $ref: "#/channels/devices~1{deviceId}~1telemetry/messages/DeviceReading"
 components:
   schemas:
     DeviceReading:
