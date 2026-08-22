@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
@@ -6,11 +5,12 @@ import { builtSecuritySchemes } from "../../../utils/security-schemes.js";
 import { reportSecurityUsesWithoutServer } from "../../../../src/resolve/servers.js";
 import { getUsedSecuritySchemes } from "../../../../src/decorators/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
+import { serversOf } from "../../../utils/document.js";
 
 describe("Unit: server security", () => {
   it("emits one reference per required scheme, in source order", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       @securityScheme("oidc", #{
@@ -23,14 +23,14 @@ describe("Unit: server security", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/scram" },
       { $ref: "#/components/securitySchemes/oidc" },
     ]);
   });
 
   it("puts the same security on every server of the namespace", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       @useSecurity("scram")
@@ -39,24 +39,24 @@ describe("Unit: server security", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/scram" },
     ]);
-    expect(doc.servers.sit.security).toEqual([{ $ref: "#/components/securitySchemes/scram" }]);
+    expect(serversOf(doc).sit.security).toEqual([{ $ref: "#/components/securitySchemes/scram" }]);
   });
 
   it("omits the security field when the namespace requires no scheme", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{ host: "kafka.example.com", protocol: "kafka" })
       namespace Test;
     `);
 
-    expect(doc.servers.production).not.toHaveProperty("security");
+    expect(serversOf(doc).production).not.toHaveProperty("security");
   });
 
   it("emits one reference for a scheme name given twice", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       @useSecurity("scram")
@@ -65,7 +65,7 @@ describe("Unit: server security", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/scram" },
     ]);
   });
@@ -74,7 +74,7 @@ describe("Unit: server security", () => {
     // The reference would address a key the document does not carry, and the
     // official parser rejects the whole document for it. So the entry is
     // dropped, and the only entry left is the one that resolves.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       @useSecurity("missing")
@@ -91,7 +91,7 @@ describe("Unit: server security", () => {
           /@useSecurity\('missing'\) names a security scheme that no @securityScheme defines/,
       },
     ]);
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/scram" },
     ]);
     await expect(doc).toBeValidAsyncAPI();
@@ -101,7 +101,7 @@ describe("Unit: server security", () => {
     // An empty `security` array is not the same as a missing one. AsyncAPI
     // reads an empty array as "this server needs no scheme at all", which is
     // a claim the author never made.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @useSecurity("missing")
       @server("production", #{ host: "kafka.example.com", protocol: "kafka" })
@@ -111,12 +111,12 @@ describe("Unit: server security", () => {
     expectDiagnostics(diagnostics, [
       { code: "tsp-asyncapi/undeclared-security-scheme", severity: "warning" },
     ]);
-    expect(doc.servers.production).not.toHaveProperty("security");
+    expect(serversOf(doc).production).not.toHaveProperty("security");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("applies one augment decorator once when its namespace is reopened", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       @server("production", #{ host: "kafka.example.com", protocol: "kafka" })
@@ -126,7 +126,7 @@ describe("Unit: server security", () => {
       @@useSecurity(Test, "scram");
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/scram" },
     ]);
   });
@@ -146,7 +146,7 @@ describe("Unit: server security", () => {
   });
 
   it("reports a useSecurity on a namespace that declares no server", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -243,7 +243,7 @@ describe("Unit: server security", () => {
     // dropped for sitting outside the service does reach the state. The test
     // now pins the question the emitter actually asks, which is whether the
     // namespace puts any server into the document.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -274,7 +274,7 @@ describe("Unit: server security", () => {
     // The evaluation follows the order the namespaces are declared in, and
     // the two augment decorators below are written the other way round. So
     // the sort is what decides the order the author reads.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @@useSecurity(Alpha, "alpha-scheme");
       @@useSecurity(Beta, "beta-scheme");
 

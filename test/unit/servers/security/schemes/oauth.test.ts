@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../../src/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
+import { present, securitySchemesOf } from "../../../../utils/document.js";
 
 describe("Unit: security schemes — OAuth flows and scopes", () => {
   it("emits the whole flows structure of an oauth2 scheme", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -38,7 +38,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oauth).toEqual({
+    expect(securitySchemesOf(doc).oauth).toEqual({
       type: "oauth2",
       description: "The identity provider.",
       flows: {
@@ -97,7 +97,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
   it("drops a blank refresh url without reporting a missing one", async () => {
     // `refreshUrl` is optional on every flow, so a blank one is left out
     // rather than reported. Only a URL the flow requires is reported.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -112,7 +112,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oauth.flows).toEqual({
+    expect(securitySchemesOf(doc).oauth.flows).toEqual({
       clientCredentials: { tokenUrl: "https://example.com/token", availableScopes: {} },
     });
   });
@@ -121,7 +121,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
     // A scope name is a key the author chose, so it is kept as written. A
     // blank entry of `scopes` names no scope at all, so it is dropped and
     // reported. The scheme survives, so the diagnostic is a warning.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -143,8 +143,13 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
         message: /The `scopes` of this security scheme hold an entry that is blank/,
       },
     ]);
-    expect(doc.components.securitySchemes.oauth.scopes).toEqual(["orders:write"]);
-    expect(doc.components.securitySchemes.oauth.flows.clientCredentials.availableScopes).toEqual({
+    expect(securitySchemesOf(doc).oauth.scopes).toEqual(["orders:write"]);
+    expect(
+      present(
+        present(securitySchemesOf(doc).oauth.flows, "oauth flows").clientCredentials,
+        "clientCredentials flow",
+      ).availableScopes,
+    ).toEqual({
       "orders:write": "Write orders",
     });
   });
@@ -153,7 +158,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
     // AsyncAPI reads the empty list as "this scheme needs no scope". The
     // author asked for two scopes here, so a silent drop would leave the
     // document asserting the opposite of what was written.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("oidc", #{
         type: "openIdConnect",
@@ -170,7 +175,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
         message: /The `scopes` of this security scheme hold an entry that is blank/,
       },
     ]);
-    expect(doc.components.securitySchemes.oidc.scopes).toEqual([]);
+    expect(securitySchemesOf(doc).oidc.scopes).toEqual([]);
   });
 
   it("keeps a blank scope description as an empty string", async () => {
@@ -178,7 +183,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
     // remove. `availableScopes` is a map, and AsyncAPI requires a value for
     // every key of it, so there is nothing to leave absent. Dropping the
     // entry instead would take away a scope the author declared.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -192,14 +197,19 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oauth.flows.clientCredentials.availableScopes).toEqual({
+    expect(
+      present(
+        present(securitySchemesOf(doc).oauth.flows, "oauth flows").clientCredentials,
+        "clientCredentials flow",
+      ).availableScopes,
+    ).toEqual({
       "orders:read": "",
     });
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("emits an empty scopes list, which asks for no scope at all", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -214,14 +224,14 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oauth.scopes).toEqual([]);
+    expect(securitySchemesOf(doc).oauth.scopes).toEqual([]);
   });
 
   it("omits scopes when the author gave none, on both kinds that take them", async () => {
     // An absent `scopes` and an empty one say different things. The empty
     // one asks for no scope, and the absent one says nothing at all. So a
     // scheme without the field must not grow one.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -239,7 +249,7 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oauth).not.toHaveProperty("scopes");
-    expect(doc.components.securitySchemes.oidc).not.toHaveProperty("scopes");
+    expect(securitySchemesOf(doc).oauth).not.toHaveProperty("scopes");
+    expect(securitySchemesOf(doc).oidc).not.toHaveProperty("scopes");
   });
 });

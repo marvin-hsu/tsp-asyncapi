@@ -53,6 +53,29 @@ function section<T>(
   return value;
 }
 
+/**
+ * A field the document type makes optional, where the test needs it present.
+ *
+ * The readers above cover the top-level sections. This covers a field nested
+ * inside one, such as a channel's `bindings` or a security scheme's `flows`.
+ *
+ * `?.` is the wrong tool for those. It reads as caution but it changes what
+ * the assertion says: `expect(scheme.flows?.clientCredentials)
+ * .not.toHaveProperty("refreshUrl")` passes when there are no flows at all,
+ * which is the opposite of what the test means. This throws instead, and names
+ * the field so the failure points at the fixture rather than the claim.
+ *
+ * @param value - The optional field
+ * @param name - What to call it in the failure message
+ * @returns The field, once it is known to be there
+ */
+export function present<T>(value: T | undefined, name: string): T {
+  if (value === undefined) {
+    throw new Error(`This test needs \`${name}\`, and the document has none.`);
+  }
+  return value;
+}
+
 /** The servers of the document, keyed by server name. */
 export function serversOf(doc: AsyncAPIDocument | null): Record<string, ServerObject> {
   return section(doc, (d) => d.servers, "servers");
@@ -68,7 +91,8 @@ export function channelsOf(doc: AsyncAPIDocument | null): Record<string, Channel
   return section(doc, (d) => d.channels, "channels");
 }
 
-function componentsOf(doc: AsyncAPIDocument | null): ComponentsObject {
+/** The components object of the document. */
+export function componentsOf(doc: AsyncAPIDocument | null): ComponentsObject {
   return section(doc, (d) => d.components, "components");
 }
 

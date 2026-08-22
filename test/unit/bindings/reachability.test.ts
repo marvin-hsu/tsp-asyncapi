@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
+import { operationsOf } from "../../utils/document.js";
 
 const KAFKA_CONTRACT = `
   @service(#{ title: "Orders" })
@@ -25,7 +25,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // `interface C extends Base` copies each operation of `Base` and runs its
     // decorators again. The declaration in `Base` sits on no channel, and it
     // reaches the document through the copy. Its binding did too.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -44,14 +44,14 @@ describe("Unit: which bindings count as having reached the document", () => {
     `);
 
     expect(reportsUnattached(diagnostics)).toBe(false);
-    expect(doc.operations.OrderChannel_publish.bindings.kafka).toEqual({
+    expect(operationsOf(doc).OrderChannel_publish.bindings?.kafka).toEqual({
       groupId: { type: "string" },
       bindingVersion: "0.5.0",
     });
   });
 
   it("reports only the repeated id when a duplicate channel carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -80,7 +80,7 @@ describe("Unit: which bindings count as having reached the document", () => {
   });
 
   it("reports only the repeated id when a duplicate operation carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -104,7 +104,7 @@ describe("Unit: which bindings count as having reached the document", () => {
   });
 
   it("reports only the repeated key when a duplicate message carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @friendlyName("Shared")
@@ -137,7 +137,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // report. The decorator ran on each instantiation, so each carries its
     // own recorded binding, and the dropped one reached the document through
     // the surviving instantiation.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @kafkaMessage(#{ schemaIdLocation: "header" })
@@ -162,7 +162,7 @@ describe("Unit: which bindings count as having reached the document", () => {
 
   it("still reports a binding on a target that reaches nothing at all", async () => {
     // The three cases above must not silence the check itself.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -193,7 +193,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // One target can carry two bindings that both reach nothing. They are two
     // mistakes, so the author hears about both. The state layer stores the
     // entries of one target as a list, and the report flattens those lists.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -243,7 +243,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // reported. The server binding of the same namespace reaches nothing at
     // all, because the namespace declares no server. Marking by target alone
     // would silence it.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -276,7 +276,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // `@binding` records no level, so it reports a wording of its own. The
     // default wording interpolates the level, which would read "the any
     // level" here and name a position the author cannot look for.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message

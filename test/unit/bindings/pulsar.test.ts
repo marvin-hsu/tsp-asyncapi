@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
 import {
   buildAsyncAPIWithDiagnostics,
-  emitAsyncAPI,
-  emitAsyncAPIWithDiagnostics,
+  emitDocument,
+  emitDocumentWithDiagnostics,
 } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { channelsOf, serversOf } from "../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -26,7 +26,7 @@ const OPERATION = `
 describe("Unit: the Pulsar binding decorators", () => {
   describe("@pulsarServer", () => {
     it("emits the tenant with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @pulsarServer(#{ tenant: "orders" })
         @server("prod", #{ host: "pulsar.example.com:6650", protocol: "pulsar" })
@@ -43,7 +43,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(doc.servers.prod.bindings).toEqual({
+      expect(serversOf(doc).prod.bindings).toEqual({
         pulsar: { tenant: "orders", bindingVersion: "0.1.0" },
       });
     });
@@ -51,7 +51,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
   describe("@pulsarChannel", () => {
     it("emits every field with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @pulsarChannel(#{
@@ -69,7 +69,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(doc.channels["orders.created"].bindings).toEqual({
+      expect(channelsOf(doc)["orders.created"].bindings).toEqual({
         pulsar: {
           namespace: "orders",
           persistence: "persistent",
@@ -101,7 +101,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("namespace");
       expect(reported.severity).toBe("error");
-      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
+      expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
 
     it("drops the whole binding when the persistence is missing", async () => {
@@ -117,7 +117,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
       expect(reported.message).toContain("persistence");
-      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
+      expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
 
     it("drops the whole binding when the persistence is not one Pulsar defines", async () => {
@@ -137,7 +137,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       const invalid = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
       expect(invalid.message).toContain("persistent or non-persistent");
       findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
-      expect(doc.channels?.["orders.created"].bindings).toBeUndefined();
+      expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
 
     it("names both required fields when both are missing", async () => {
@@ -157,7 +157,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("keeps a retention of zero", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @pulsarChannel(#{
@@ -173,11 +173,11 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       // Zero disables retention on that measure, which is a statement rather
       // than an absent field.
-      expect(doc.channels["orders.created"].bindings.pulsar.retention).toEqual({ time: 0 });
+      expect(channelsOf(doc)["orders.created"].bindings?.pulsar.retention).toEqual({ time: 0 });
     });
 
     it("reports a negative retention and keeps the binding", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{
@@ -194,11 +194,11 @@ describe("Unit: the Pulsar binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
       expect(reported.message).toContain("retention.time");
       // The two required fields are still there, so the binding survives.
-      expect(doc.channels["orders.created"].bindings.pulsar.retention).toEqual({ size: 1000 });
+      expect(channelsOf(doc)["orders.created"].bindings?.pulsar.retention).toEqual({ size: 1000 });
     });
 
     it("drops a retention policy left with nothing in it", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{
@@ -213,7 +213,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       `);
 
       findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
-      expect(doc.channels["orders.created"].bindings.pulsar).toEqual({
+      expect(channelsOf(doc)["orders.created"].bindings?.pulsar).toEqual({
         namespace: "orders",
         persistence: "persistent",
         bindingVersion: "0.1.0",
@@ -221,7 +221,7 @@ describe("Unit: the Pulsar binding decorators", () => {
     });
 
     it("drops the blank entries of the replication list", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @pulsarChannel(#{
@@ -235,13 +235,13 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(doc.channels["orders.created"].bindings.pulsar["geo-replication"]).toEqual([
+      expect(channelsOf(doc)["orders.created"].bindings?.pulsar["geo-replication"]).toEqual([
         "us-east",
       ]);
     });
 
     it("reports a negative compaction threshold", async () => {
-      const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { diagnostics } = await emitDocumentWithDiagnostics(`
         ${SERVICE}
 
         @pulsarChannel(#{

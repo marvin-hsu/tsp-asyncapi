@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
+import { present, securitySchemesOf, serversOf } from "../../../utils/document.js";
 
 describe("Unit: server external docs", () => {
   it("copies the external docs of the namespace onto every server", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @externalDocs("https://example.com/brokers", "How to reach the brokers")
       @server("production", #{ host: "prod.example.com", protocol: "kafka" })
@@ -19,8 +19,8 @@ describe("Unit: server external docs", () => {
       url: "https://example.com/brokers",
       description: "How to reach the brokers",
     };
-    expect(doc.servers.production.externalDocs).toEqual(expected);
-    expect(doc.servers.sit.externalDocs).toEqual(expected);
+    expect(serversOf(doc).production.externalDocs).toEqual(expected);
+    expect(serversOf(doc).sit.externalDocs).toEqual(expected);
     // The same namespace feeds `info`, so the link appears there as well.
     // AsyncAPI defines the field on both objects, and a reader of a server
     // should not have to look at `info` to find it.
@@ -28,20 +28,20 @@ describe("Unit: server external docs", () => {
   });
 
   it("omits the external docs of a server when the namespace carries none", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{ host: "prod.example.com", protocol: "kafka" })
       namespace Test;
     `);
 
-    expect(doc.servers.production).not.toHaveProperty("externalDocs");
+    expect(serversOf(doc).production).not.toHaveProperty("externalDocs");
   });
 
   it("reports an external docs url that is not an absolute url", async () => {
     // The link is copied onto every server, so a relative one would make the
     // official parser reject the document at each of them. The diagnostic is
     // an error, so no document is written at all.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @externalDocs("/brokers")
       @server("production", #{ host: "prod.example.com", protocol: "kafka" })
@@ -77,7 +77,7 @@ describe("Unit: server external docs", () => {
   });
 
   it("emits the oauth2 flows in a fixed order, whatever order they are written in", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -107,7 +107,7 @@ describe("Unit: server external docs", () => {
     // The flows are written here in the reverse of the emitted order. An
     // assertion with `toEqual` ignores key order, so only this check can tell
     // that the emitter imposes one rather than following the author.
-    expect(Object.keys(doc.components.securitySchemes.oauth.flows)).toEqual([
+    expect(Object.keys(present(securitySchemesOf(doc).oauth.flows, "oauth flows"))).toEqual([
       "implicit",
       "password",
       "clientCredentials",
@@ -116,7 +116,7 @@ describe("Unit: server external docs", () => {
   });
 
   it("keeps an availableScopes key exactly as it was written", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -133,13 +133,16 @@ describe("Unit: server external docs", () => {
     // The value is trimmed and the key is not. The key pairs an entry with
     // the `scopes` list of a usage site, so trimming it would break that
     // pairing. Only the value half of this rule was covered before.
-    const flow = doc.components.securitySchemes.oauth.flows.clientCredentials;
+    const flow = present(
+      present(securitySchemesOf(doc).oauth.flows, "oauth flows").clientCredentials,
+      "clientCredentials flow",
+    );
     expect(Object.keys(flow.availableScopes)).toEqual([" orders:read "]);
     expect(flow.availableScopes[" orders:read "]).toBe("Read orders.");
   });
 
   it("drops a scheme whose required field is blank, whatever its type", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("h", #{ type: "http", scheme: "   " })
       @securityScheme("o", #{ type: "openIdConnect", openIdConnectUrl: "   " })
@@ -162,7 +165,7 @@ describe("Unit: server external docs", () => {
   });
 
   it("leaves out every optional field the author did not give", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("bearer", #{ type: "http", scheme: "bearer" })
       @securityScheme("oidc", #{
@@ -181,7 +184,7 @@ describe("Unit: server external docs", () => {
       namespace Test;
     `);
 
-    const schemes = doc.components.securitySchemes;
+    const schemes = securitySchemesOf(doc);
 
     // Every optional field is absent rather than present and empty. A reader
     // cannot tell a deliberate blank from an oversight, so the emitter never
@@ -192,11 +195,16 @@ describe("Unit: server external docs", () => {
     expect(schemes.oidc).not.toHaveProperty("description");
     expect(schemes.oauth).not.toHaveProperty("scopes");
     // `refreshUrl` is the one URL every flow allows and none requires.
-    expect(schemes.oauth.flows.clientCredentials).not.toHaveProperty("refreshUrl");
+    expect(
+      present(
+        present(schemes.oauth.flows, "oauth flows").clientCredentials,
+        "clientCredentials flow",
+      ),
+    ).not.toHaveProperty("refreshUrl");
   });
 
   it("reports a flow url that is not absolute and drops the flow", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -213,13 +221,13 @@ describe("Unit: server external docs", () => {
     // AsyncAPI requires an absolute URL. A relative one makes the official
     // parser reject the whole document, so the flow cannot be emitted.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-url");
-    expect(doc?.components?.securitySchemes?.oauth?.flows ?? {}).not.toHaveProperty(
+    expect(doc?.components?.securitySchemes?.oauth.flows ?? {}).not.toHaveProperty(
       "clientCredentials",
     );
   });
 
   it("reports a missing flow url", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -239,7 +247,7 @@ describe("Unit: server external docs", () => {
   });
 
   it("reports a useSecurity when the program declares no service at all", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @useSecurity("scram")
       @server("nested", #{ host: "nested.example.com", protocol: "kafka" })
       namespace Test {}
@@ -252,7 +260,7 @@ describe("Unit: server external docs", () => {
   });
 
   it("reports an undeclared scheme once, however many servers the namespace has", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @useSecurity("missing")
       @server("production", #{ host: "prod.example.com", protocol: "kafka" })
@@ -267,6 +275,6 @@ describe("Unit: server external docs", () => {
       (d) => d.code === "tsp-asyncapi/undeclared-security-scheme",
     );
     expect(reported).toHaveLength(1);
-    expect(Object.keys(doc.servers)).toEqual(["production", "sit"]);
+    expect(Object.keys(serversOf(doc))).toEqual(["production", "sit"]);
   });
 });
