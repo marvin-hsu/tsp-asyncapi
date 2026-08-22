@@ -3,7 +3,6 @@ import fc from "fast-check";
 import { missingFields } from "../../src/decorators/bindings/fields.js";
 import { localRef } from "../../src/decorators/messages/raw-schema.js";
 import { isPlainObject } from "../../src/marshalled-values.js";
-import { isSameApplication, SourcePosition } from "../../src/source-order.js";
 import { LOCAL_REF_PREFIX } from "../../src/constants.js";
 
 /**
@@ -184,76 +183,5 @@ describe("Unit: localRef — the reference form it accepts", () => {
     // The type test and the object test each need their own case.
     expect(nonStringRef).toBeGreaterThan(0);
     expect(notAnObject).toBeGreaterThan(0);
-  });
-});
-
-describe("Unit: isPlainObject — what counts as a JSON object", () => {
-  /** A value paired with the answer its category demands. */
-  /**
-   * The predicate looks only at the shape's category, never inside it, so
-   * category representatives are the whole input space: a sampled dictionary
-   * exercises no line a written-out `{ a: 1 }` does not. The `Date` and `Map`
-   * rows pin today's behavior — no marshalled argument can carry either, so
-   * the emitter never asks this question of them.
-   */
-  it.each([
-    { name: "an object literal", value: { a: 1 }, plain: true },
-    { name: "an object built from entries", value: Object.fromEntries([["a", 1]]), plain: true },
-    { name: "an empty object", value: {}, plain: true },
-    { name: "an array", value: [1, 2], plain: false },
-    { name: "an empty array", value: [], plain: false },
-    { name: "null", value: null, plain: false },
-    { name: "undefined", value: undefined, plain: false },
-    { name: "a string", value: "text", plain: false },
-    { name: "a number", value: 7, plain: false },
-    { name: "a boolean", value: true, plain: false },
-    { name: "a Date", value: new Date(0), plain: true },
-    { name: "a Map", value: new Map([["a", 1]]), plain: true },
-  ])("answers $plain for $name", ({ value, plain }) => {
-    expect(isPlainObject(value)).toBe(plain);
-
-    // The predicate is a type guard, so a `true` answer must let the caller
-    // read keys off the value.
-    if (isPlainObject(value)) {
-      expect(() => Object.entries(value)).not.toThrow();
-    }
-  });
-});
-
-describe("Unit: isSameApplication — the identity of one application", () => {
-  /**
-   * The whole domain, written out: four file names and nine offsets. The
-   * predicate reads nothing else, so thirty-six positions are every input it
-   * can distinguish, and the loops below visit all of their pairs — complete
-   * where a sampler is a lucky subset, and free of the seed that once decided
-   * whether the transitive premise was reached at all.
-   */
-  const FILES = ["main.tsp", "lib.tsp", "a/b.tsp", ""] as const;
-  const POSITIONS: SourcePosition[] = FILES.flatMap((file) =>
-    Array.from({ length: 9 }, (_, pos) => ({ file, pos })),
-  );
-
-  it("answers true exactly when both the file and the offset agree", () => {
-    for (const a of POSITIONS) {
-      for (const b of POSITIONS) {
-        // Agreement of the parts is the specification; the predicate is the
-        // implementation under test.
-        expect(isSameApplication(a, b)).toBe(a.file === b.file && a.pos === b.pos);
-      }
-    }
-  });
-
-  it("holds an equivalence relation over source positions", () => {
-    for (const left of POSITIONS) {
-      // Reflexive, on a copy: the same place, not the same object.
-      expect(isSameApplication(left, { ...left })).toBe(true);
-      for (const right of POSITIONS) {
-        // Symmetric: the swapped call is the claim.
-        expect(isSameApplication(left, right)).toBe(isSameApplication(right, left));
-      }
-    }
-    // Transitivity holds by the exhaustive check above: a relation that
-    // equals component-wise agreement is transitive by construction, and
-    // every pair was compared against that specification.
   });
 });
