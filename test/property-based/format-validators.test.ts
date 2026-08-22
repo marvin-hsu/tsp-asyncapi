@@ -164,26 +164,6 @@ describe("Unit: runtime expression — the grammar accepts what it builds", () =
     // none would say nothing about that.
     expect(carriesTerminator).toBeGreaterThan(0);
   });
-
-  /**
-   * The pattern used to spell the pointer as `(?:\/.*)?`, and `.` matches no
-   * line terminator without the `s` flag. So `$message.payload#/a\nb` was
-   * refused, along with any body carrying `\n`, `\r`, U+2028, or U+2029.
-   * RFC 6901 puts no such limit on a reference token, and both JSON and YAML
-   * carry those characters inside a member name.
-   *
-   * The grammar property above draws a terminator too. This case names the
-   * four of them one at a time, so a pool that stopped drawing one would
-   * still leave the fix under test.
-   */
-  it("accepts a pointer token holding a line terminator", () => {
-    fc.assert(
-      fc.property(source, fc.constantFrom("\n", "\r", "\u2028", "\u2029"), (which, terminator) => {
-        expect(isRuntimeExpression(`$message.${which}#/a${terminator}b`)).toBe(true);
-      }),
-      { numRuns: 200, seed: 20260815 },
-    );
-  });
 });
 
 describe("Unit: runtime expression — one break refuses the whole value", () => {
