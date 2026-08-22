@@ -1,22 +1,27 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../../src/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
 import { getSecuritySchemes } from "../../../../../src/decorators/index.js";
-import { emitAsyncAPI } from "../../../../utils/test-host.js";
+import { emitDocument } from "../../../../utils/test-host.js";
+import {
+  componentsOf,
+  messagesOf,
+  schemasOf,
+  securitySchemesOf,
+} from "../../../../utils/document.js";
 
 describe("Unit: security schemes — what reaches the document", () => {
   it("omits a description that is absent or blank", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("absent", #{ type: "plain" })
       @securityScheme("blank", #{ type: "plain", description: "   " })
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.absent).not.toHaveProperty("description");
-    expect(doc.components.securitySchemes.blank).not.toHaveProperty("description");
+    expect(securitySchemesOf(doc).absent).not.toHaveProperty("description");
+    expect(securitySchemesOf(doc).blank).not.toHaveProperty("description");
   });
 
   it("omits bearerFormat when it is blank, and from any scheme but bearer", async () => {
@@ -25,7 +30,7 @@ describe("Unit: security schemes — what reaches the document", () => {
     // rejects the field next to any other scheme before the builder sees it.
     // The two cases left to the builder are the blank value and the trimmed
     // comparison, and both are here.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("blankFormat", #{ type: "http", scheme: "bearer", bearerFormat: "   " })
       @securityScheme("padded", #{ type: "http", scheme: "  bearer  " })
@@ -33,18 +38,18 @@ describe("Unit: security schemes — what reaches the document", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.blankFormat).toEqual({
+    expect(securitySchemesOf(doc).blankFormat).toEqual({
       type: "http",
       scheme: "bearer",
     });
     // The trimmed value is the one the guard compares, so this scheme takes
     // the bearer branch and still emits no `bearerFormat`.
-    expect(doc.components.securitySchemes.padded).toEqual({ type: "http", scheme: "bearer" });
-    expect(doc.components.securitySchemes.basic).not.toHaveProperty("bearerFormat");
+    expect(securitySchemesOf(doc).padded).toEqual({ type: "http", scheme: "bearer" });
+    expect(securitySchemesOf(doc).basic).not.toHaveProperty("bearerFormat");
   });
 
   it("omits the securitySchemes key when the program declares none", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{ host: "kafka.example.com", protocol: "kafka" })
       namespace Test;
@@ -57,7 +62,7 @@ describe("Unit: security schemes — what reaches the document", () => {
     // `components` merges three sources. Every other scheme test declares a
     // program with no message and no schema, so this is the one case where
     // all three contribute at once.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("scram", #{ type: "scramSha512" })
       namespace Test;
@@ -72,16 +77,16 @@ describe("Unit: security schemes — what reaches the document", () => {
       }
     `);
 
-    expect(Object.keys(doc.components)).toEqual(["schemas", "messages", "securitySchemes"]);
-    expect(Object.keys(doc.components.schemas)).toEqual(["Item", "OrderPlaced"]);
-    expect(Object.keys(doc.components.messages)).toEqual(["OrderPlaced"]);
-    expect(doc.components.securitySchemes).toEqual({ scram: { type: "scramSha512" } });
+    expect(Object.keys(componentsOf(doc))).toEqual(["schemas", "messages", "securitySchemes"]);
+    expect(Object.keys(schemasOf(doc))).toEqual(["Item", "OrderPlaced"]);
+    expect(Object.keys(messagesOf(doc))).toEqual(["OrderPlaced"]);
+    expect(securitySchemesOf(doc)).toEqual({ scram: { type: "scramSha512" } });
   });
 
   it("collects a scheme declared outside the service namespace", async () => {
     // The schemes are a document-wide registry, unlike the servers, which
     // the emitter reads from the service namespace only.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -89,11 +94,11 @@ describe("Unit: security schemes — what reaches the document", () => {
       namespace Test.Sub {}
     `);
 
-    expect(doc.components.securitySchemes).toEqual({ scram: { type: "scramSha512" } });
+    expect(securitySchemesOf(doc)).toEqual({ scram: { type: "scramSha512" } });
   });
 
   it("emits the schemes in source order", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("aaa", #{ type: "plain" })
       @securityScheme("bbb", #{ type: "plain" })
@@ -102,11 +107,11 @@ describe("Unit: security schemes — what reaches the document", () => {
       @@securityScheme(Test, "ccc", #{ type: "plain" });
     `);
 
-    expect(Object.keys(doc.components.securitySchemes)).toEqual(["aaa", "bbb", "ccc"]);
+    expect(Object.keys(securitySchemesOf(doc))).toEqual(["aaa", "bbb", "ccc"]);
   });
 
   it("applies one augment decorator once when its namespace is reopened", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test {}
       namespace Test {}
@@ -114,7 +119,7 @@ describe("Unit: security schemes — what reaches the document", () => {
       @@securityScheme(Test, "only", #{ type: "plain" });
     `);
 
-    expect(doc.components.securitySchemes).toEqual({ only: { type: "plain" } });
+    expect(securitySchemesOf(doc)).toEqual({ only: { type: "plain" } });
   });
 
   it("keeps a scheme named __proto__ as a real entry", async () => {

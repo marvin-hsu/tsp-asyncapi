@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: content type (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -26,13 +27,11 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // The ambiguity is the same on both headers mechanisms, so the check
     // covers the @headers model too.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toMatch(/'content-type'/);
@@ -60,11 +59,9 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
   });
@@ -85,12 +82,10 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(0);
   });
 
@@ -113,11 +108,9 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostics = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-    );
+    const diagnostics = diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict");
     // Only the field that names the content type is reported. A header that
     // sits beside it is untouched, and still reaches the headers schema.
     expect(diagnostics).toHaveLength(1);
@@ -148,12 +141,10 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(0);
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -184,16 +175,14 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // The derived message adopts the header its base already lifts. The
     // conflict is about one property, so it is reported once. The message
     // text names no message, so a second report would be the same text on the
     // same squiggle.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(1);
   });
 });

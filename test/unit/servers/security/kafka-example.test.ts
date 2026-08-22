@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect } from "vitest";
-import { emitAsyncAPI } from "../../../utils/test-host.js";
+import { emitDocument } from "../../../utils/test-host.js";
+import { serversOf } from "../../../utils/document.js";
 import { ASYNCAPI_VERSION, DEFAULT_INFO_VERSION } from "../../../../src/constants.js";
 
 describe("Unit: Kafka acceptance example", () => {
   it("emits a prod and a sit Kafka broker that both use SCRAM", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("kafka-scram", #{
         type: "scramSha512",
@@ -72,7 +72,7 @@ describe("Unit: Kafka acceptance example", () => {
   });
 
   it("emits an apiKey and an X509 scheme that one server names together", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("byUser", #{ type: "apiKey", in: "user" })
       @securityScheme("cert", #{ type: "X509", description: "The client certificate." })
@@ -82,7 +82,7 @@ describe("Unit: Kafka acceptance example", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/byUser" },
       { $ref: "#/components/securitySchemes/cert" },
     ]);
@@ -90,7 +90,7 @@ describe("Unit: Kafka acceptance example", () => {
   });
 
   it("emits an oauth2 scheme with no scopes that a server names", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oauth", #{
         type: "oauth2",
@@ -106,7 +106,7 @@ describe("Unit: Kafka acceptance example", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/oauth" },
     ]);
     await expect(doc).toBeValidAsyncAPI();

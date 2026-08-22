@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import {
   ASYNCAPI_VERSION,
   MULTI_FORMAT_SCHEMA_FORMATS,
   NON_JSON_SCHEMA_FORMATS,
 } from "../../../../src/constants.js";
-import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
@@ -67,7 +67,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     `);
 
     // The table of the emitted release names 3.1.0, so 3.0.0 is outside it.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unknown-schema-format");
+    const reported = findDiagnostic(diagnostics, "unknown-schema-format");
     expect(reported.severity).toBe("warning");
   });
 
@@ -88,7 +88,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     `);
 
     expect(diagnostics).toHaveLength(0);
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: format,
       schema: NON_JSON_SCHEMA_FORMATS.includes(format) ? "message Order {}" : { type: "record" },
@@ -111,7 +111,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     // rather than as text waiting to be parsed. Only the non-JSON direction
     // was checked before, so a string reached the document and the official
     // parser rejected it while this emitter exited clean.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/string-raw-schema");
+    const reported = findDiagnostic(diagnostics, "string-raw-schema");
     expect(reported.severity).toBe("error");
     expect(reported.message).toContain(format);
     expect(targetText(reported)).toBe(`"{ \\"type\\": \\"record\\" }"`);
@@ -130,7 +130,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     `);
 
       // AsyncAPI states that a non-JSON schema MUST be inlined as a string.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/non-string-raw-schema");
+      const reported = findDiagnostic(diagnostics, "non-string-raw-schema");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain(format);
       // The squiggle sits on the schema argument, not on the format.
@@ -138,7 +138,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
       // The value is still written, so neither half disappears from the
       // document while the error is open.
-      const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+      const doc = documentFrom(runner.program);
       expect(doc.components?.messages?.OrderCreated.payload).toEqual({
         schemaFormat: format,
         schema: { type: "record" },
@@ -157,9 +157,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     `);
 
     // Both slots share one definition of the rule.
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/non-string-raw-schema").severity).toBe(
-      "error",
-    );
+    expect(findDiagnostic(diagnostics, "non-string-raw-schema").severity).toBe("error");
   });
 
   it("reports nothing for an array schema of a JSON based format", async () => {
@@ -194,12 +192,12 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
     // AsyncAPI requires both ends of a $ref to carry the same schemaFormat.
     // The target is an AsyncAPI Schema Object, so draft-07 disagrees with it.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/raw-schema-local-ref");
+    const reported = findDiagnostic(diagnostics, "raw-schema-local-ref");
     expect(reported.severity).toBe("error");
     expect(reported.message).toContain("#/components/schemas/Other");
     expect(reported.message).toContain("application/schema+json;version=draft-07");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: "application/schema+json;version=draft-07",
       schema: { $ref: "#/components/schemas/Other" },
@@ -265,7 +263,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unknown-schema-format");
+    const reported = findDiagnostic(diagnostics, "unknown-schema-format");
     expect(reported.severity).toBe("warning");
     expect(reported.message).toContain("application/vnd.example.custom;version=1");
     // The rule the emitter cannot check travels with the warning.
@@ -274,7 +272,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     expect(targetText(reported)).toBe(`"application/vnd.example.custom;version=1"`);
 
     // The spec allows a custom value, so the value still reaches the document.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: "application/vnd.example.custom;version=1",
       schema: { type: "record" },
@@ -291,7 +289,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unknown-schema-format");
+    const reported = findDiagnostic(diagnostics, "unknown-schema-format");
     expect(reported.severity).toBe("warning");
   });
 
@@ -307,12 +305,12 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-schema-format");
+    const reported = findDiagnostic(diagnostics, "empty-schema-format");
     expect(reported.severity).toBe("error");
 
     // Nothing was recorded, so the message keeps the payload built from the
     // model.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -330,10 +328,10 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-schema-format");
+    const reported = findDiagnostic(diagnostics, "empty-schema-format");
     expect(reported.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
   });
 
@@ -350,7 +348,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     // The blank check already trims, so the same value decides membership and
     // reaches the document. The padding is not part of the identifier.
     expect(diagnostics).toHaveLength(0);
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,
       schema: { type: "record" },
@@ -372,10 +370,10 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     // The spec requires the schema field, and the value must match the
     // format. A null is no Avro schema. So it takes the route of a value the
     // serializer cannot represent.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-raw-schema");
+    const reported = findDiagnostic(diagnostics, "invalid-raw-schema");
     expect(reported.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -393,9 +391,9 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/invalid-raw-schema").severity).toBe("error");
+    expect(findDiagnostic(diagnostics, "invalid-raw-schema").severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
   });
 
@@ -415,12 +413,12 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-raw-schema");
+    const reported = findDiagnostic(diagnostics, "invalid-raw-schema");
     expect(reported.severity).toBe("error");
     // The squiggle sits on the schema argument, not on the format.
     expect(targetText(reported)).toBe("ipv4.fromBytes(1, 2, 3, 4)");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -441,14 +439,10 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
     // The guard records that the decorator ran before the value is checked.
     // So the author is told about both mistakes.
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-schema-format")).toHaveLength(
-      1,
-    );
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-raw-payload-decorator"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "empty-schema-format")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "duplicate-raw-payload-decorator")).toHaveLength(1);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -464,7 +458,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,

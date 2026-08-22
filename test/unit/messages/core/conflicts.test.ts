@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Messages — decorator conflicts", () => {
   let runner: TesterInstance;
@@ -38,7 +39,7 @@ describe("Unit: Messages — decorator conflicts", () => {
     // ordinary schema reference, and reusing a schema is not a mistake.
     expect(diagnostics).toEqual([]);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.schemas?.OrderCreated.properties?.firstLine).toEqual({
       $ref: "#/components/schemas/OrderLine",
@@ -73,7 +74,7 @@ describe("Unit: Messages — decorator conflicts", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The emitter reports nothing about a type it never reaches. A model
     // without `@message` produces no Message Object at all, so the absence
@@ -104,17 +105,13 @@ describe("Unit: Messages — decorator conflicts", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // The key collision drops `B`, but the conflict inside `B` is a separate
     // mistake. Reporting it only after the collision is fixed would hand the
     // user one error at a time.
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
-    ).toHaveLength(1);
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-key")).toHaveLength(1);
+    const reported = diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.message).toMatch(/'description'/);
   });

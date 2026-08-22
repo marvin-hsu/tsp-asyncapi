@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Messages — declaration", () => {
   let runner: TesterInstance;
@@ -22,7 +23,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -50,7 +51,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.schemas ?? {})).toEqual(["OrderCreated"]);
     expect(doc.components?.schemas?.Unreferenced).toBeUndefined();
@@ -67,7 +68,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["custom-name"]);
     // The payload still points at the schema key the SchemaBuilder assigned,
@@ -97,7 +98,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Address",
@@ -120,7 +121,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const keys = Object.keys(doc.components?.messages ?? {});
     expect(keys).toEqual(["OrderSep47Created"]);
@@ -143,14 +144,12 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
-    );
-    expect(diagnostic?.severity).toBe("warning");
-    expect(String(diagnostic?.message)).toMatch(/'order\/created'/);
-    expect(String(diagnostic?.message)).toMatch(/'OrderSep47Created'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
+    expect(diagnostic.severity).toBe("warning");
+    expect(diagnostic.message).toMatch(/'order\/created'/);
+    expect(diagnostic.message).toMatch(/'OrderSep47Created'/);
   });
 
   it("does not warn when an explicit message name is already a legal key", async () => {
@@ -164,12 +163,10 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["order.created-v1"]);
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/sanitized-message-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "sanitized-message-key")).toHaveLength(0);
   });
 
   it("gives each instantiation of a message template its own key", async () => {
@@ -189,7 +186,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The message keys match the schema keys the SchemaBuilder assigned,
     // minus the namespace prefix that message keys deliberately omit.
@@ -202,9 +199,7 @@ describe("Unit: Messages — declaration", () => {
       name: "EnvelopeString",
       payload: { $ref: "#/components/schemas/EnvelopeString" },
     });
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-key")).toHaveLength(0);
   });
 
   it("reports an error when two unrelated models share a key through @friendlyName", async () => {
@@ -230,13 +225,10 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-key",
-    );
-    expect(diagnostic).toBeDefined();
-    expect(String(diagnostic?.message)).toMatch(/Duplicate message name: 'Shared'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
+    expect(diagnostic.message).toMatch(/Duplicate message name: 'Shared'/);
     // The first model to claim the key keeps it, and its own body stays
     // under that schema key.
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["Shared"]);
@@ -267,13 +259,10 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-key",
-    );
-    expect(diagnostic).toBeDefined();
-    expect(String(diagnostic?.message)).toMatch(/Duplicate message name: 'OrderCreated'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
+    expect(diagnostic.message).toMatch(/Duplicate message name: 'OrderCreated'/);
     // The first model to claim the key keeps it. Nothing is renamed.
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderCreated"]);
   });
@@ -294,7 +283,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const messages = doc.components?.messages ?? {};
     expect(Object.keys(messages).sort(byCodePoint)).toEqual(["B", "__proto__"]);
@@ -324,14 +313,12 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two instantiations are separate compiler types, but they share one
     // schema key, so they are one declaration in the document. No explicit
     // @message name could separate them.
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-key")).toHaveLength(0);
     const messageKeys = Object.keys(doc.components?.messages ?? {}).filter((k) => k !== "Holder");
     expect(messageKeys).toHaveLength(1);
     const key = messageKeys[0] ?? "";
@@ -362,13 +349,11 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
-    );
-    expect(diagnostic?.severity).toBe("warning");
-    expect(String(diagnostic?.message)).toMatch(/'Cat'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "message-key-shadows-schema-key");
+    expect(diagnostic.severity).toBe("warning");
+    expect(diagnostic.message).toMatch(/'Cat'/);
   });
 
   it("refs a message payload whose model has no compact composed name", async () => {
@@ -391,7 +376,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const messageKeys = Object.keys(doc.components?.messages ?? {}).filter((k) => k !== "Root");
     expect(messageKeys).toHaveLength(1);
@@ -440,7 +425,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.schemas?.Pet.discriminator).toBe("kind");
     // An indirect subtype is collected too. Only the model carrying
@@ -480,7 +465,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.schemas?.Pet.discriminator).toBeUndefined();
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
@@ -500,14 +485,12 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderCreated"]);
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
-    );
-    expect(diagnostic?.severity).toBe("warning");
-    expect(String(diagnostic?.message)).toMatch(/'OrderCreated'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
+    expect(diagnostic.severity).toBe("warning");
+    expect(diagnostic.message).toMatch(/'OrderCreated'/);
   });
 
   it("warns when a backtick-quoted model name has to be rewritten", async () => {
@@ -521,15 +504,13 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderSep47Created"]);
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/sanitized-message-key",
-    );
-    expect(diagnostic?.severity).toBe("warning");
-    expect(String(diagnostic?.message)).toMatch(/'order\/created'/);
-    expect(String(diagnostic?.message)).toMatch(/'OrderSep47Created'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
+    expect(diagnostic.severity).toBe("warning");
+    expect(diagnostic.message).toMatch(/'order\/created'/);
+    expect(diagnostic.message).toMatch(/'OrderSep47Created'/);
   });
 
   it("does not warn when a message key is composed from template arguments", async () => {
@@ -552,11 +533,9 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/sanitized-message-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "sanitized-message-key")).toHaveLength(0);
   });
 
   it("reports an error when @message is applied twice to one model", async () => {
@@ -571,12 +550,10 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const diagnostic = diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-decorator",
-    );
-    expect(diagnostic?.severity).toBe("error");
+    const diagnostic = findDiagnostic(diagnostics, "duplicate-message-decorator");
+    expect(diagnostic.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     // The first application to run keeps the model. Decorators run
     // bottom-up, so that is the one written last.
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["two"]);
@@ -600,17 +577,15 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.["Sales.Ev"]).toEqual({
       name: "Sales.Ev",
       payload: { $ref: "#/components/schemas/Other" },
     });
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
-    );
-    expect(diagnostic?.severity).toBe("warning");
-    expect(String(diagnostic?.message)).toMatch(/'Sales\.Ev'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "message-key-shadows-schema-key");
+    expect(diagnostic.severity).toBe("warning");
+    expect(diagnostic.message).toMatch(/'Sales\.Ev'/);
   });
 
   it("does not warn when a message key is its own model's schema key", async () => {
@@ -624,12 +599,10 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/message-key-shadows-schema-key",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "message-key-shadows-schema-key"),
     ).toHaveLength(0);
   });
 
@@ -643,7 +616,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components).toBeUndefined();
   });

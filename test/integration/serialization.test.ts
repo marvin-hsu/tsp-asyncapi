@@ -58,10 +58,17 @@ describe("Integration: YAML serialization", () => {
     // And no line anywhere carries a folded half of a pointer: every line
     // that mentions `$ref` also holds the fragment marker its value starts
     // with.
+    //
+    // The count is asserted afterwards. A document that emitted no `$ref` at
+    // all would run this loop zero times, and the claim would hold without
+    // ever looking at a pointer.
+    let refLines = 0;
     for (const line of content.split("\n")) {
       if (line.includes("$ref")) {
+        refLines++;
         expect(line).toContain("#/");
       }
     }
+    expect(refLines).toBeGreaterThan(0);
   });
 });

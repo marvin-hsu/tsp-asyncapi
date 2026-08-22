@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Operations (Phase 5.1)", () => {
   let runner: TesterInstance;
@@ -27,7 +27,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.sendOrderCreated).toEqual({
       action: "send",
@@ -52,7 +52,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.onOrderCreated).toEqual({
       action: "receive",
@@ -77,7 +77,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.created" });
   });
@@ -103,7 +103,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.inner" });
   });
@@ -129,13 +129,11 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The diagnostic is error severity, so no file is written and the
     // document has to be read from the builder.
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'publish'");
     expect(doc.operations).toEqual({});
     expect(doc.channels?.["orders.outer"].messages).toBeUndefined();
   });
@@ -156,7 +154,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["orders.send"]);
   });
@@ -177,7 +175,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders~1created" });
     expect(doc.operations?.publish.messages).toEqual([
@@ -191,7 +189,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       namespace Test;
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations).toEqual({});
   });
@@ -212,7 +210,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The operation still contributes its message to the channel.
     expect(doc.operations).toEqual({});
@@ -237,9 +235,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/empty-operation-id");
+    const diagnostic = findDiagnostic(diagnostics, "empty-operation-id");
     expect(targetText(diagnostic)).toBe(`"  "`);
     expect(doc.operations).toEqual({});
   });
@@ -266,11 +264,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-operation-id").message).toContain("'publish'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["publish"]);
     expect(doc.operations?.publish.messages).toEqual([
       { $ref: "#/channels/orders.created/messages/OrderCreated" },
@@ -318,16 +314,14 @@ describe("Unit: Operations (Phase 5.1)", () => {
       @@send(A.alpha, "dup");
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["dup"]);
     expect(doc.operations?.dup.channel).toEqual({ $ref: "#/channels/orders.b" });
     expect(doc.operations?.dup.messages).toEqual([
       { $ref: "#/channels/orders.b/messages/OrderShipped" },
     ]);
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id").message).toContain(
-      "'dup'",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-operation-id").message).toContain("'dup'");
   });
 
   it("reports an operation whose scope carries no channel", async () => {
@@ -345,11 +339,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'publish'");
     expect(doc.operations).toEqual({});
   });
 
@@ -377,7 +369,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       interface Us extends Base {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(Object.keys(doc.operations ?? {})).toEqual(["Eu_publish", "Us_publish"]);
@@ -407,7 +399,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["republish"]);
   });
@@ -434,11 +426,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'second'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'second'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["first"]);
   });
 
@@ -460,9 +450,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-send-decorator");
+    findDiagnostic(diagnostics, "duplicate-send-decorator");
     // Decorators run bottom-up, so the one written last runs first and wins.
     expect(Object.keys(doc.operations ?? {})).toEqual(["second"]);
   });
@@ -485,9 +475,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-receive-decorator");
+    findDiagnostic(diagnostics, "duplicate-receive-decorator");
     expect(doc.operations?.consume.action).toBe("receive");
   });
 
@@ -509,9 +499,9 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/conflicting-operation-actions");
+    findDiagnostic(diagnostics, "conflicting-operation-actions");
     expect(doc.operations).toEqual({});
   });
 
@@ -534,12 +524,8 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-send-decorator").severity).toBe(
-      "error",
-    );
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/conflicting-operation-actions").severity).toBe(
-      "error",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-send-decorator").severity).toBe("error");
+    expect(findDiagnostic(diagnostics, "conflicting-operation-actions").severity).toBe("error");
   });
 
   it("reports nothing at all for a program that exercises every operation field", async () => {
@@ -581,7 +567,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The build reports into the same list, so it is read after the build.
     expect(runner.program.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([]);
@@ -621,7 +607,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.hasOwn(doc.operations ?? {}, "__proto__")).toBe(true);
   });

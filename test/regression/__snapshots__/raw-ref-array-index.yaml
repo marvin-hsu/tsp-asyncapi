@@ -1,0 +1,25 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+channels:
+  orders.created:
+    address: orders.created
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders.created"
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        schemaFormat: application/vnd.aai.asyncapi+json;version=3.1.0
+        schema:
+          $ref: "#/components/schemas/Wrapper/oneOf/0x1"

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Operation reply (Phase 5.4)", () => {
   let runner: TesterInstance;
@@ -32,7 +32,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.messages).toEqual([
       { $ref: "#/channels/orders.create/messages/CreateOrder" },
@@ -64,7 +64,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.onCreateOrder.messages).toEqual([
       { $ref: "#/channels/orders.create/messages/CreateOrder" },
@@ -90,7 +90,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish).not.toHaveProperty("reply");
   });
@@ -118,7 +118,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish).not.toHaveProperty("reply");
   });
@@ -152,7 +152,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.reply).toEqual({
       channel: { $ref: "#/channels/ReplyChannel" },
@@ -190,7 +190,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.reply).toEqual({
       channel: { $ref: "#/channels/orders.reply" },
@@ -227,7 +227,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.reply).toEqual({
       address: { location: "$message.header#/replyTo", description: "Where the reply goes." },
@@ -264,7 +264,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.reply).toEqual({
       channel: { $ref: "#/channels/ReplyChannel" },
@@ -299,7 +299,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.createOrder.reply).toEqual({
       channel: { $ref: "#/channels/orders~1reply" },
@@ -339,7 +339,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.create"].messages).toEqual({
       CreateOrder: { $ref: "#/components/messages/CreateOrder" },
@@ -379,7 +379,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.create"].messages).toEqual({
       SubmitOrder: { $ref: "#/components/messages/SubmitOrder" },
@@ -415,12 +415,9 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = findDiagnostic(
-      diagnostics,
-      "tsp-asyncapi/reply-address-needs-dynamic-channel",
-    );
+    const diagnostic = findDiagnostic(diagnostics, "reply-address-needs-dynamic-channel");
     expect(diagnostic.message).toContain("@dynamicChannel");
     expect(targetText(diagnostic)).toBe(`"$message.header#/replyTo"`);
     // The address goes, and the rest of the reply stays.
@@ -465,7 +462,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.["orders.reply"].messages ?? {})).toEqual([
       "Ack",
@@ -508,7 +505,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.ReplyChannel.messages).toEqual({
       OrderAccepted: { $ref: "#/components/messages/OrderAccepted" },
@@ -518,11 +515,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       channel: { $ref: "#/channels/ReplyChannel" },
       messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
     });
-    expect(
-      runner.program.diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/channel-no-messages",
-      ),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "channel-no-messages")).toHaveLength(0);
   });
 
   it("reports a reply channel that carries no channel and drops the whole reply", async () => {
@@ -552,9 +545,9 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/reply-channel-not-a-channel");
+    const diagnostic = findDiagnostic(diagnostics, "reply-channel-not-a-channel");
     expect(diagnostic.message).toContain("'NotAChannel'");
     expect(targetText(diagnostic)).toBe("NotAChannel");
     expect(doc.operations?.createOrder).not.toHaveProperty("reply");
@@ -584,9 +577,9 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-reply-address-location");
+    const diagnostic = findDiagnostic(diagnostics, "invalid-reply-address-location");
     expect(diagnostic.message).toContain("$message.header#");
     expect(doc.operations?.createOrder.reply).not.toHaveProperty("address");
   });
@@ -622,10 +615,10 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-reply-channel-decorator");
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-reply-address-decorator");
+    findDiagnostic(diagnostics, "duplicate-reply-channel-decorator");
+    findDiagnostic(diagnostics, "duplicate-reply-address-decorator");
     // Decorators run bottom-up, so the one written last runs first and wins.
     // The two applications name two different channels, so the winner shows.
     expect(doc.operations?.createOrder.reply?.channel).toEqual({
@@ -653,9 +646,9 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/reply-without-action");
+    findDiagnostic(diagnostics, "reply-without-action");
     expect(doc.operations).toEqual({});
   });
 
@@ -694,9 +687,9 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/reply-without-action");
+    const diagnostic = findDiagnostic(diagnostics, "reply-without-action");
     expect(targetText(diagnostic)).toBe("ReplyChannel");
     expect(doc.operations).not.toHaveProperty("createOrder");
     expect(Object.keys(doc.channels?.["orders.create"].messages ?? {})).toEqual([
@@ -729,12 +722,8 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    expect(
-      runner.program.diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/reply-without-action",
-      ),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "reply-without-action")).toHaveLength(0);
   });
 });

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Operation documentation (Phase 5.3)", () => {
   let runner: TesterInstance;
@@ -32,7 +32,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish).toEqual({
       action: "send",
@@ -61,7 +61,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const operation = doc.operations?.publish ?? {};
 
     expect(operation).not.toHaveProperty("title");
@@ -91,7 +91,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish).not.toHaveProperty("title");
     expect(doc.operations?.publish).not.toHaveProperty("description");

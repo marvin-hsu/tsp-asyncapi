@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
+import { messagesOf } from "../../utils/document.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 
 describe("Unit: Message correlationId (Phase 3.4)", () => {
   let runner: TesterInstance;
@@ -27,9 +28,9 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/correlationId",
       description: "Ties a reply to its request.",
     });
@@ -47,9 +48,9 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.payload#/orderId",
     });
   });
@@ -65,11 +66,9 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "correlationId")).toBe(
-      false,
-    );
+    expect(Object.hasOwn(messagesOf(doc).OrderCreated, "correlationId")).toBe(false);
   });
 
   // The `#` is required, and the JSON Pointer after it may be empty or name
@@ -95,12 +94,10 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-correlation-id-location"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "invalid-correlation-id-location")).toHaveLength(0);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({ location });
+    const doc = documentFrom(runner.program);
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({ location });
   });
 
   // The bare form without a `#` reads as legal in the prose ABNF, but the
@@ -127,17 +124,13 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/invalid-correlation-id-location",
-    );
+    const reported = diagnosticsWith(diagnostics, "invalid-correlation-id-location");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
     // A location the emitter cannot parse produces no `correlationId` at all.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "correlationId")).toBe(
-      false,
-    );
+    const doc = documentFrom(runner.program);
+    expect(Object.hasOwn(messagesOf(doc).OrderCreated, "correlationId")).toBe(false);
   });
 
   // The format is all this emitter checks. AsyncAPI states no requirement
@@ -160,8 +153,8 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
 
     expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({
+    const doc = documentFrom(runner.program);
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/MQMD/CorrelId",
     });
   });
@@ -179,16 +172,14 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-correlation-id-decorator",
-    );
+    const reported = diagnosticsWith(diagnostics, "duplicate-correlation-id-decorator");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
     // Decorators run bottom-up, so the one written last in the source is the
     // one that reaches the state first, and it keeps the message.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({
+    const doc = documentFrom(runner.program);
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/second",
     });
   });
@@ -204,11 +195,11 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A blank description says nothing about the correlation id. The emitter
     // leaves the field out rather than claim the description is empty.
-    expect(doc.components?.messages?.OrderCreated.correlationId).toEqual({
+    expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#",
     });
   });
@@ -221,7 +212,7 @@ describe("Unit: single application guard", () => {
     // read that as "no decorator yet" and let the second one through in
     // silence, leaving the author told about the location and never told
     // they wrote the decorator twice.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @AsyncAPI.message
       @AsyncAPI.correlationId("$message.header#/second")
       @AsyncAPI.correlationId("not-a-runtime-expression")

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
-import { targetText } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -27,7 +27,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/missing-channel-param");
     // The map still covers the whole address, so the document stays readable.
@@ -56,8 +56,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/unused-channel-param");
+    documentFrom(runner.program);
+    const reported = diagnosticsWith(diagnostics, "unused-channel-param");
 
     // Each operation carries its own property, so each of them is a place
     // the author has to change.
@@ -86,8 +86,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/optional-channel-param");
+    const doc = documentFrom(runner.program);
+    const reported = diagnosticsWith(diagnostics, "optional-channel-param");
 
     // Every declaration of a name the address uses is checked. An optional
     // parameter is wrong wherever it sits, so which operation declares it
@@ -119,8 +119,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/non-string-channel-param");
+    const doc = documentFrom(runner.program);
+    const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
     // The two declarations also disagree, and that is reported too. The
     // disagreement alone would leave the author free to change the string
@@ -148,10 +148,10 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const conflict = diagnostics.find((d) => d.code === "tsp-asyncapi/conflicting-channel-param");
+    const doc = documentFrom(runner.program);
+    const conflict = findDiagnostic(diagnostics, "conflicting-channel-param");
 
-    expect(conflict?.message).toMatch(/description/);
+    expect(conflict.message).toMatch(/description/);
     expect(doc.channels?.["orders.{region}"].parameters).toEqual({
       region: { description: "First" },
     });
@@ -189,10 +189,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const conflicts = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/conflicting-channel-param",
-    );
+    const doc = documentFrom(runner.program);
+    const conflicts = diagnosticsWith(diagnostics, "conflicting-channel-param");
 
     expect(conflicts.map((d) => /a different '(\w+)'/.exec(d.message)?.[1])).toEqual([
       "type",
@@ -236,7 +234,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two unions are separate TypeSpec objects, because each operation
     // writes its own. They allow the same values, so they agree.
@@ -263,7 +261,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
   });
@@ -285,12 +283,12 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // The two declarations name the same set, so a comparison that sorted
     // first would call them equal. They are not: the order is the order the
     // emitted `enum` array carries, and only one of the two can be emitted.
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/conflicting-channel-param");
+    const reported = diagnosticsWith(diagnostics, "conflicting-channel-param");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toContain("type");
   });

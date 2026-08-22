@@ -253,19 +253,39 @@ describe("Unit: isSameApplication — the identity of one application", () => {
     isSameApplication(left, right);
 
   it("holds an equivalence relation over source positions", () => {
+    let transitiveHits = 0;
+
     fc.assert(
-      fc.property(position, position, position, (a, b, c) => {
-        // Reflexive. A copy is the same place as the original.
-        expect(same(a, { ...a })).toBe(true);
-        // Symmetric.
-        expect(same(a, b)).toBe(same(b, a));
-        // Transitive.
-        if (same(a, b) && same(b, c)) {
-          expect(same(a, c)).toBe(true);
-        }
-      }),
+      fc.property(
+        position,
+        // Each of these may be a copy of the position before it, so the
+        // transitive premise is reached by construction. Three independent
+        // draws reach it only by luck: the pool holds four files and nine
+        // offsets, so all three agreeing is rare, and how often it happens
+        // depends on the seed.
+        fc.oneof(fc.constant(undefined), position),
+        fc.oneof(fc.constant(undefined), position),
+        (a, second, third) => {
+          const b = second ?? { ...a };
+          const c = third ?? { ...b };
+          // Reflexive. A copy is the same place as the original.
+          expect(same(a, { ...a })).toBe(true);
+          // Symmetric.
+          expect(same(a, b)).toBe(same(b, a));
+          // Transitive.
+          if (same(a, b) && same(b, c)) {
+            transitiveHits++;
+            expect(same(a, c)).toBe(true);
+          }
+        },
+      ),
       { numRuns: 2000, seed: 20260815 },
     );
+
+    // The transitive branch is the only one of the three that a premise can
+    // skip. Without this counter the test passes while asserting nothing
+    // about transitivity, and a change of seed is enough to get there.
+    expect(transitiveHits).toBeGreaterThan(0);
   });
 
   it("needs both the file and the offset to agree", () => {

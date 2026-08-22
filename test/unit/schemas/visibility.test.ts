@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { compileSchemasWithDiagnostics } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { present, propertiesOf, schemaOf } from "../../utils/document.js";
 
 /**
  * An AsyncAPI message has one shape. It is not read, created, and updated in
@@ -21,7 +21,7 @@ describe("Unit: Schemas — visibility", () => {
       }
     `);
     context.builder.buildSchema(context.M);
-    const holder = context.builder.getSchemas().Holder as any;
+    const holder = context.builder.getSchemas().Holder;
     return { holder, diagnostics: context.diagnostics };
   }
 
@@ -63,7 +63,7 @@ describe("Unit: Schemas — visibility", () => {
 
     // The property is emitted in full, because there is no other shape to put
     // it in.
-    expect(holder.properties.serverAssigned).toEqual({ type: "string" });
+    expect(propertiesOf(holder).serverAssigned).toEqual({ type: "string" });
     expect(holder.required).toEqual(["serverAssigned"]);
     // Staying silent here would leave the author believing the field is
     // restricted while the document shows it to every reader.
@@ -100,7 +100,7 @@ describe("Unit: Schemas — visibility", () => {
 
     // Naming every phase restricts nothing, so nothing was dropped and there
     // is nothing to report.
-    expect(holder.properties.everywhere).toEqual({ type: "string" });
+    expect(propertiesOf(holder).everywhere).toEqual({ type: "string" });
     expect(diagnostics).toEqual([]);
   });
 
@@ -111,7 +111,7 @@ describe("Unit: Schemas — visibility", () => {
       }
     `);
 
-    expect(holder.properties.plain).toEqual({ type: "string" });
+    expect(propertiesOf(holder).plain).toEqual({ type: "string" });
     expect(diagnostics).toEqual([]);
   });
 
@@ -129,14 +129,15 @@ describe("Unit: Schemas — visibility", () => {
       }
     `);
     context.builder.buildSchema(context.M);
-    const schemas = context.builder.getSchemas() as unknown as Record<string, any>;
+    const schemas = context.builder.getSchemas();
 
     // A derived model refers to its base through `allOf`, so the base keeps
     // its own component. The omission has to happen there, or the hidden
     // property reaches the document through the reference.
     expect(Object.keys(schemas.Base.properties as object)).toEqual(["kept"]);
     expect(schemas.Base.required).toEqual(["kept"]);
-    expect(schemas.Holder.allOf[0]).toEqual({ $ref: "#/components/schemas/Base" });
-    expect(Object.keys(schemas.Holder.allOf[1].properties as object)).toEqual(["own"]);
+    const branches = present(schemas.Holder.allOf, "allOf");
+    expect(branches[0]).toEqual({ $ref: "#/components/schemas/Base" });
+    expect(Object.keys(propertiesOf(schemaOf(branches[1])))).toEqual(["own"]);
   });
 });

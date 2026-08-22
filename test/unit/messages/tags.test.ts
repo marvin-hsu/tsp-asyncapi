@@ -3,6 +3,8 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
   let runner: TesterInstance;
@@ -26,7 +28,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
@@ -53,7 +55,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A field the metadata leaves out is absent, rather than present and
     // empty.
@@ -77,7 +79,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Decorators run bottom-up, so the recorded order is the reverse of what
     // the reader sees. The emitted array follows the source.
@@ -100,7 +102,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.externalDocs).toEqual({
       url: "https://example.com/order-created",
@@ -119,7 +121,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const message = doc.components?.messages?.OrderCreated ?? {};
     expect(Object.keys(message)).toEqual(["name", "payload"]);
@@ -140,6 +142,8 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // The built-in @tag cannot target a Model, which is why @asyncTag
     // exists. The compiler rejects the application itself, so no tag of this
     // kind can ever reach a message.
+    // A compiler diagnostic, not one of ours, so `findDiagnostic` cannot type
+    // the code and the optional chain stays.
     const diagnostic = diagnostics.find((d) => d.code === "decorator-wrong-target");
     expect(diagnostic?.severity).toBe("error");
   });
@@ -188,13 +192,11 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Neither application says anything the other contradicts, so the two
     // merge into one Tag Object.
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/conflicting-tag-metadata")).toEqual(
-      [],
-    );
+    expect(diagnosticsWith(diagnostics, "conflicting-tag-metadata")).toEqual([]);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
         name: "orders",
@@ -217,7 +219,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       { name: "orders", description: "Everything about orders." },
@@ -237,14 +239,12 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
-    expect(diagnostic?.severity).toBe("error");
-    expect(String(diagnostic?.message)).toMatch(/Tag 'orders' is declared more than once/);
-    expect(String(diagnostic?.message)).toMatch(/'description'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toMatch(/Tag 'orders' is declared more than once/);
+    expect(diagnostic.message).toMatch(/'description'/);
     // The first application in source order keeps the field.
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       { name: "orders", description: "The first description." },
@@ -264,13 +264,11 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
-    expect(diagnostic?.severity).toBe("error");
-    expect(String(diagnostic?.message)).toMatch(/'externalDocs'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toMatch(/'externalDocs'/);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       { name: "orders", externalDocs: { url: "https://example.com/one" } },
     ]);
@@ -294,13 +292,11 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // AsyncAPI gives every object its own `tags` array, and those arrays are
     // independent. So one name may describe itself differently per message.
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/conflicting-tag-metadata")).toEqual(
-      [],
-    );
+    expect(diagnosticsWith(diagnostics, "conflicting-tag-metadata")).toEqual([]);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       { name: "orders", description: "As the order service sees it." },
     ]);
@@ -321,14 +317,14 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-tag-name");
+    const reported = diagnosticsWith(diagnostics, "empty-tag-name");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
     // `name` is required on a Tag Object, and a blank one names nothing a
     // consumer can match. The rejected tag reaches no document, and the tag
     // beside it is unaffected.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([{ name: "orders" }]);
   });
 
@@ -364,15 +360,13 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two applications agree about the only field both of them set. A
     // field that only one of them sets is taken from that one, the same rule
     // the other tag fields follow.
     expect(diagnostics).toEqual([]);
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/conflicting-tag-metadata"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata")).toHaveLength(0);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
         name: "orders",
@@ -398,13 +392,11 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
-    expect(diagnostic?.severity).toBe("error");
-    expect(String(diagnostic?.message)).toMatch(/'externalDocs'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toMatch(/'externalDocs'/);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
         name: "orders",
@@ -428,18 +420,16 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two applications disagree about `description` only. The first one
     // in source order keeps that field. Nothing disagrees about
     // `externalDocs`, so the field only the second one sets is still taken
     // from it. The merge is field by field, so one conflict does not discard
     // a whole application.
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
-    expect(diagnostic?.severity).toBe("error");
-    expect(String(diagnostic?.message)).toMatch(/'description'/);
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toMatch(/'description'/);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
         name: "orders",
@@ -464,7 +454,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A blank description says nothing. It claims the tag has an empty
     // description rather than none, so the emitter leaves the field out.
@@ -489,9 +479,7 @@ describe("Unit: tag conflicts are reported once per declaration", () => {
 
   /** The conflict reports of one compilation. */
   function conflicts(program: TesterInstance["program"]) {
-    return program.diagnostics.filter(
-      (diagnostic) => diagnostic.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
+    return diagnosticsWith(program.diagnostics, "conflicting-tag-metadata");
   }
 
   it("reports once when the namespace is only a service", async () => {

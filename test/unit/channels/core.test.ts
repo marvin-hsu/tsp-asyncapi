@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { $lib } from "../../../src/lib.js";
-import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
-import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { channelsOf } from "../../utils/document.js";
 
 describe("Unit: Channels (Phase 4.1)", () => {
   let runner: TesterInstance;
@@ -29,9 +29,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.["orders.created"]).toEqual({
+    expect(channelsOf(doc)["orders.created"]).toEqual({
       address: "orders.created",
       messages: { OrderCreated: { $ref: "#/components/messages/OrderCreated" } },
     });
@@ -53,9 +53,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
   });
 
   it("declares a channel on a namespace", async () => {
@@ -74,10 +74,10 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
-    expect(doc.channels?.["orders.created"].messages).toEqual({
+    expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });
@@ -100,10 +100,10 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.["orders.created"].messages).toBeUndefined();
-    expect(diagnostics.some((d) => d.code === "tsp-asyncapi/channel-no-messages")).toBe(true);
+    expect(channelsOf(doc)["orders.created"].messages).toBeUndefined();
+    expect(diagnosticsWith(diagnostics, "channel-no-messages").length).toBeGreaterThan(0);
   });
 
   it("emits an empty channels map when the program declares no channel", async () => {
@@ -112,9 +112,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       namespace Test;
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels).toEqual({});
+    expect(channelsOf(doc)).toEqual({});
   });
 
   it("emits address null for a dynamic channel", async () => {
@@ -133,10 +133,10 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.ReplyChannel.address).toBeNull();
-    expect(doc.channels?.ReplyChannel).not.toHaveProperty("parameters");
+    expect(channelsOf(doc).ReplyChannel.address).toBeNull();
+    expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
   });
 
   it("keys a dynamic channel by the explicit id argument", async () => {
@@ -155,9 +155,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["replies"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["replies"]);
   });
 
   it("accepts a full URL as an address", async () => {
@@ -176,9 +176,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.["wss://example.com/socket"].address).toBe("wss://example.com/socket");
+    expect(channelsOf(doc)["wss://example.com/socket"].address).toBe("wss://example.com/socket");
   });
 
   it("trims the address before it is stored", async () => {
@@ -197,9 +197,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
   });
 
   it("rejects a blank address", async () => {
@@ -212,7 +212,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-address");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects a blank explicit channel id", async () => {
@@ -225,7 +225,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-id");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects a blank explicit id on a dynamic channel", async () => {
@@ -238,7 +238,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-id");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an address that carries a query string", async () => {
@@ -250,10 +250,10 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/query/);
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an address that carries a fragment", async () => {
@@ -265,7 +265,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/fragment/);
   });
@@ -279,7 +279,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/unbalanced/);
   });
@@ -318,7 +318,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-channel-param-name");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an empty parameter name", async () => {
@@ -343,14 +343,14 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-decorator");
     // One application still wins, so the channel is emitted. Decorators on
     // one declaration run bottom-up, and the first to run claims the target,
     // so the application written last in the source is the one that wins.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders.updated"]);
-    expect(doc.channels?.["orders.updated"].address).toBe("orders.updated");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders.updated"]);
+    expect(channelsOf(doc)["orders.updated"].address).toBe("orders.updated");
   });
 
   it("reports a second @dynamicChannel on one interface", async () => {
@@ -363,15 +363,15 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain(
       "tsp-asyncapi/duplicate-dynamic-channel-decorator",
     );
     // The first application to run still claims the target, so one dynamic
     // channel is emitted.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["Broken"]);
-    expect(doc.channels?.Broken.address).toBeNull();
+    expect(Object.keys(channelsOf(doc))).toEqual(["Broken"]);
+    expect(channelsOf(doc).Broken.address).toBeNull();
   });
 
   it("reports the conflict once and the extra @channel on its own", async () => {
@@ -385,12 +385,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const conflicts = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/conflicting-channel-decorators",
-    );
-    const duplicates = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-channel-decorator",
-    );
+    const conflicts = diagnosticsWith(diagnostics, "conflicting-channel-decorators");
+    const duplicates = diagnosticsWith(diagnostics, "duplicate-channel-decorator");
 
     // Three applications make two mistakes. The two kinds together are one
     // conflict, whatever the number of applications, and the second @channel
@@ -398,7 +394,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // application would repeat one message and hide the duplicate.
     expect(conflicts).toHaveLength(1);
     expect(duplicates).toHaveLength(1);
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("points an address problem at the address argument", async () => {
@@ -410,7 +406,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-channel-address");
+    const reported = findDiagnostic(diagnostics, "invalid-channel-address");
 
     // The two arguments sit next to each other, so the code alone does not
     // say which one the author has to change.
@@ -426,7 +422,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-channel-id");
+    const reported = findDiagnostic(diagnostics, "empty-channel-id");
 
     expect(targetText(reported)).toBe(`"  "`);
   });
@@ -440,7 +436,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-channel-id");
+    const reported = findDiagnostic(diagnostics, "empty-channel-id");
 
     // `@dynamicChannel` carries no address, so its id is the first argument
     // rather than the second.
@@ -456,7 +452,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-channel-param-name");
+    const reported = findDiagnostic(diagnostics, "invalid-channel-param-name");
 
     expect(targetText(reported)).toBe(`"orders.{order id}"`);
   });
@@ -514,7 +510,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const channels = buildAsyncAPIDocument(runner.program, undefined, {}).channels;
+    const channels = documentFrom(runner.program).channels;
 
     // The map is built with `Object.fromEntries`, so the id becomes an own
     // property. An assignment would write to the prototype instead, and the
@@ -535,7 +531,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/conflicting-channel-decorators");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("keeps the first channel in source order when two claim one id", async () => {
@@ -559,11 +555,11 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-id");
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
-    expect(doc.channels?.orders.address).toBe("orders.first");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
+    expect(channelsOf(doc).orders.address).toBe("orders.first");
   });
 
   it("reports nothing for a plain parameter of a dynamic channel", async () => {
@@ -582,13 +578,13 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A dynamic channel has no address, so a declaration cannot be matched
     // against one. Reporting the parameter as unused would ask the author to
     // add `{correlationKey}` to an address the channel does not have.
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.ReplyChannel).not.toHaveProperty("parameters");
+    expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
   });
 
   it("ranks two files by import order when their channels claim one id", async () => {
@@ -627,10 +623,10 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(result.program, undefined, {});
+    const doc = documentFrom(result.program);
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
-    expect(doc.channels?.orders.address).toBe("orders.early");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
+    expect(channelsOf(doc).orders.address).toBe("orders.early");
   });
 
   it("keeps the channels map in the source order of the declarations", async () => {
@@ -654,12 +650,12 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The ids run against the alphabet, so this input fails if the map is
     // ever sorted by name. It fails too if the entries are reversed. Every
     // other test here declares one channel, where no order is visible.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["zzz.first", "aaa.second"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["zzz.first", "aaa.second"]);
   });
 });
 
@@ -674,7 +670,7 @@ describe("Unit: Channels — one address on two channels", () => {
    * Without it, the two collide on the key and the second one is dropped.
    */
   it("warns when two channels carry the same address", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -689,14 +685,14 @@ describe("Unit: Channels — one address on two channels", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address");
+    const reported = diagnosticsWith(diagnostics, "duplicate-channel-address");
     // Only the second channel is reported. One mistake, one report.
     expect(reported).toHaveLength(1);
     expect(reported[0].severity).toBe("warning");
   });
 
   it("does not warn about two dynamic channels", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -713,13 +709,11 @@ describe("Unit: Channels — one address on two channels", () => {
 
     // Their address is `null` because it is unknown until run time, so two of
     // them state nothing about each other.
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "duplicate-channel-address")).toHaveLength(0);
   });
 
   it("does not warn when two channels carry different addresses", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -733,8 +727,6 @@ describe("Unit: Channels — one address on two channels", () => {
       }
     `);
 
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "duplicate-channel-address")).toHaveLength(0);
   });
 });

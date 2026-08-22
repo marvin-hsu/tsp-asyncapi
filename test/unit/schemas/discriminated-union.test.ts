@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Ajv } from "ajv";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import type { SchemaObject } from "../../../src/types/index.js";
+import { present, propertiesOf, schemaOf } from "../../utils/document.js";
 
 /**
  * `@discriminated` states the shape a union travels in, not only the set of
@@ -15,7 +16,7 @@ import { t } from "@typespec/compiler/testing";
  * are what prove the difference, rather than only comparing object shapes.
  */
 describe("Unit: Schemas — @discriminated unions", () => {
-  async function schemasFor(body: string): Promise<Record<string, any>> {
+  async function schemasFor(body: string): Promise<Record<string, SchemaObject>> {
     const { builder, M } = await compileSchemas(t.code`
       ${body}
       model ${t.model("M")} {
@@ -27,10 +28,10 @@ describe("Unit: Schemas — @discriminated unions", () => {
   }
 
   /** Compiles the components into a real draft-07 validator for `Pet`. */
-  function validatorFor(components: Record<string, any>) {
+  function validatorFor(components: Record<string, SchemaObject>) {
     const ajv = new Ajv({ strict: false });
     for (const [key, schema] of Object.entries(components)) {
-      ajv.addSchema(schema as object, `#/components/schemas/${key}`);
+      ajv.addSchema(schema, `#/components/schemas/${key}`);
     }
     const validate = ajv.getSchema("#/components/schemas/Pet");
     if (validate === undefined) {
@@ -143,14 +144,17 @@ describe("Unit: Schemas — @discriminated unions", () => {
     `);
 
     expect(components.Pet.discriminator).toBe("dataKind");
-    expect(components.Pet.oneOf[0].properties.dataKind).toEqual({
+    expect(propertiesOf(schemaOf(present(components.Pet.oneOf, "oneOf")[0])).dataKind).toEqual({
       type: "string",
       enum: ["cat"],
     });
-    expect(components.Pet.oneOf[0].properties.data).toEqual({
+    expect(propertiesOf(schemaOf(present(components.Pet.oneOf, "oneOf")[0])).data).toEqual({
       $ref: "#/components/schemas/Cat",
     });
-    expect(components.Pet.oneOf[0].required).toEqual(["dataKind", "data"]);
+    expect(schemaOf(present(components.Pet.oneOf, "oneOf")[0]).required).toEqual([
+      "dataKind",
+      "data",
+    ]);
   });
 
   it("accepts a message using custom property names", async () => {

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Channel servers (Phase 4.6)", () => {
   let runner: TesterInstance;
@@ -27,7 +28,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
@@ -50,7 +51,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].servers).toEqual([
       { $ref: "#/servers/kafka-prod" },
@@ -74,7 +75,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("servers");
   });
@@ -97,10 +98,10 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const warning = diagnostics.find((d) => d.code === "tsp-asyncapi/duplicate-use-server");
+    const doc = documentFrom(runner.program);
+    const warning = findDiagnostic(diagnostics, "duplicate-use-server");
 
-    expect(warning?.severity).toBe("warning");
+    expect(warning.severity).toBe("warning");
     expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
 
@@ -120,11 +121,11 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
-    const warning = diagnostics.find((d) => d.code === "tsp-asyncapi/use-server-without-channel");
+    documentFrom(runner.program);
+    const warning = findDiagnostic(diagnostics, "use-server-without-channel");
 
-    expect(warning?.severity).toBe("warning");
-    expect(warning?.message).toMatch(/kafka-prod/);
+    expect(warning.severity).toBe("warning");
+    expect(warning.message).toMatch(/kafka-prod/);
   });
 
   it("names every server on a target that carries no channel", async () => {
@@ -144,11 +145,9 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/use-server-without-channel",
-    );
+    const reported = diagnosticsWith(diagnostics, "use-server-without-channel");
 
     // Each application names the server the author meant, so two stray
     // applications are two mistakes and get two reports. A single-application
@@ -175,7 +174,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/typo" }]);
@@ -198,7 +197,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `@useServer` takes a bare string and checks no character in it, unlike
     // `@server`. A raw `/` or `~` would make every conforming resolver read
@@ -237,7 +236,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       @@dynamicChannel(ReplyChannel);
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");

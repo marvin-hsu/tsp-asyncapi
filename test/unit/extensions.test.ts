@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
 import {
   buildAsyncAPIWithDiagnostics,
-  emitAsyncAPI,
-  emitAsyncAPIWithDiagnostics,
+  emitDocument,
+  emitDocumentWithDiagnostics,
 } from "../utils/test-host.js";
-import { findDiagnostic, targetText } from "../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../utils/diagnostics.js";
+import { channelsOf, infoOf, messagesOf, operationsOf } from "../utils/document.js";
+import { PUBLISH_ORDER_CREATED } from "../utils/source.js";
 
 /**
  * Unit tests of `@extension`, the `x-` specification extensions.
@@ -22,15 +23,10 @@ const MESSAGE = `
   }
 `;
 
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
 describe("Unit: @extension", () => {
   describe("the four targets", () => {
     it("puts an extension on the service namespace into info", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-owner", "orders-team")
         namespace Test;
@@ -39,15 +35,15 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.info["x-owner"]).toBe("orders-team");
+      expect(infoOf(doc)["x-owner"]).toBe("orders-team");
     });
 
     it("puts an extension on a @channel interface into that channel", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -56,15 +52,15 @@ describe("Unit: @extension", () => {
         @channel("orders")
         @extension("x-topic-owner", "platform")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.channels.orders["x-topic-owner"]).toBe("platform");
+      expect(channelsOf(doc).orders["x-topic-owner"]).toBe("platform");
     });
 
     it("puts an extension on an operation into that operation", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -78,11 +74,11 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      expect(doc.operations.publish["x-sla-ms"]).toBe(250);
+      expect(operationsOf(doc).publish["x-sla-ms"]).toBe(250);
     });
 
     it("puts an extension on a @message model into that message", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -94,17 +90,17 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.components.messages.OrderCreated["x-schema-id"]).toBe(4711);
+      expect(messagesOf(doc).OrderCreated["x-schema-id"]).toBe(4711);
     });
   });
 
   describe("value marshalling", () => {
     it("emits a nested object, an array, and the three primitives as written", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-object", #{
           team: "orders",
@@ -120,20 +116,20 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.info["x-object"]).toEqual({
+      expect(infoOf(doc)["x-object"]).toEqual({
         team: "orders",
         contact: { slack: "#orders", pager: ["primary", "secondary"] },
       });
-      expect(doc.info["x-array"]).toEqual(["a", 1, true, { nested: "deep" }]);
-      expect(doc.info["x-string"]).toBe("plain");
-      expect(doc.info["x-number"]).toBe(3.5);
+      expect(infoOf(doc)["x-array"]).toEqual(["a", 1, true, { nested: "deep" }]);
+      expect(infoOf(doc)["x-string"]).toBe("plain");
+      expect(infoOf(doc)["x-number"]).toBe(3.5);
       // A `false` must survive. An emitter that drops the empty values would
       // lose it, and no other primitive shows that.
-      expect(doc.info["x-boolean"]).toBe(false);
+      expect(infoOf(doc)["x-boolean"]).toBe(false);
     });
 
     // A member named `__proto__` is lost before this emitter sees the value.
@@ -144,7 +140,7 @@ describe("Unit: @extension", () => {
     // compiler stops losing the name. Reported upstream as
     // microsoft/typespec#11743.
     it.fails("emits a member named __proto__ as a real key", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-thing", #{ \`__proto__\`: "written", ok: 1 })
         namespace Test;
@@ -153,17 +149,17 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const thing: Record<string, unknown> = doc.info["x-thing"];
+      const thing = infoOf(doc)["x-thing"] as Record<string, unknown>;
       expect(Object.keys(thing)).toEqual(["__proto__", "ok"]);
       expect(Object.getOwnPropertyDescriptor(thing, "__proto__")?.value).toBe("written");
     });
 
     it("keeps the rest of an object value that names a member __proto__", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-thing", #{ \`__proto__\`: #{ polluted: true }, ok: 1 })
         namespace Test;
@@ -172,14 +168,14 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // The marshaller left that member on the prototype of the argument.
       // Reading own members only keeps it out of the document, so the loss
       // stays a loss and never becomes a stray key.
-      const thing: Record<string, unknown> = doc.info["x-thing"];
+      const thing = infoOf(doc)["x-thing"] as Record<string, unknown>;
       expect(Object.keys(thing)).toEqual(["ok"]);
       expect(Object.hasOwn(thing, "polluted")).toBe(false);
     });
@@ -187,7 +183,7 @@ describe("Unit: @extension", () => {
 
   describe("more than one key on one target", () => {
     it("emits every key, in source order, after the specification fields", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @info(#{ version: "2.0.0" })
         @extension("x-second", 2)
@@ -199,15 +195,20 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // The order is where the applications were written, not the order the
       // compiler ran them in, and not alphabetical. The specification fields
       // come first, because an `x-` key can never collide with one.
-      const info: Record<string, unknown> = doc.info;
-      expect(Object.keys(info)).toEqual(["title", "version", "x-second", "x-third", "x-first"]);
+      expect(Object.keys(infoOf(doc))).toEqual([
+        "title",
+        "version",
+        "x-second",
+        "x-third",
+        "x-first",
+      ]);
     });
   });
 
@@ -228,20 +229,20 @@ describe("Unit: @extension", () => {
         @extension("owner", "orders-team")
         @extension("x-owner", "orders-team")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-extension-key");
+      const reported = findDiagnostic(diagnostics, "invalid-extension-key");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("owner");
       // The squiggle sits on the key argument, not on the interface.
       expect(targetText(reported)).toBe(`"owner"`);
       // `ChannelObject` accepts an `x-` key alone, so a bare `owner` cannot
       // be read as a property. The key list shows it never arrived.
-      const channel = doc.channels?.orders;
-      expect(Object.keys(channel ?? {})).not.toContain("owner");
-      expect(channel?.["x-owner"]).toBe("orders-team");
+      const channel = channelsOf(doc).orders;
+      expect(Object.keys(channel)).not.toContain("owner");
+      expect(channel["x-owner"]).toBe("orders-team");
     });
 
     it("reports a repeated key and keeps the first one in source order", async () => {
@@ -255,20 +256,20 @@ describe("Unit: @extension", () => {
         @extension("x-owner", "first")
         @extension("x-owner", "second")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-extension-key");
+      const reported = findDiagnostic(diagnostics, "duplicate-extension-key");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("x-owner");
       // The squiggle sits on the losing application's key argument.
       expect(targetText(reported)).toBe(`"x-owner"`);
-      expect(doc.channels?.orders["x-owner"]).toBe("first");
+      expect(channelsOf(doc).orders["x-owner"]).toBe("first");
     });
 
     it("reports a repeated key once when the target emits two objects", async () => {
-      const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         @channel("orders")
         @extension("x-owner", "first")
@@ -277,14 +278,12 @@ describe("Unit: @extension", () => {
 
         ${MESSAGE}
 
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       `);
 
       // This namespace emits both `info` and a Channel Object. One clash is
       // one author mistake, so it gets one report, not one per object.
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/duplicate-extension-key",
-      );
+      const reported = diagnosticsWith(diagnostics, "duplicate-extension-key");
       expect(reported).toHaveLength(1);
     });
 
@@ -300,26 +299,24 @@ describe("Unit: @extension", () => {
         @extension("x-has space", "spaced")
         @extension("x-kept", "yes")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // The pattern is `^x-[\\w\\d.\\-_]+$`. A bare prefix has no name after
       // it, and a space is outside the charset. The official parser rejects
       // both, so neither may reach the document.
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/invalid-extension-key",
-      );
+      const reported = diagnosticsWith(diagnostics, "invalid-extension-key");
       expect(reported).toHaveLength(2);
       expect(reported.every((diagnostic) => diagnostic.severity === "error")).toBe(true);
-      const channel = doc.channels?.orders;
-      expect(Object.keys(channel ?? {})).not.toContain("x-");
-      expect(Object.keys(channel ?? {})).not.toContain("x-has space");
-      expect(channel?.["x-kept"]).toBe("yes");
+      const channel = channelsOf(doc).orders;
+      expect(Object.keys(channel)).not.toContain("x-");
+      expect(Object.keys(channel)).not.toContain("x-has space");
+      expect(channel["x-kept"]).toBe("yes");
     });
 
     it("keeps quiet about a message model a key collision dropped", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -345,15 +342,13 @@ describe("Unit: @extension", () => {
       // Both instantiations claim the key `Envelope`, so only the first one
       // becomes a Message Object. The extension of the losing instantiation
       // still reached the document through the winner.
-      expect(doc.components.messages.Envelope["x-owner"]).toBe("team");
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      expect(messagesOf(doc).Envelope["x-owner"]).toBe("team");
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(0);
     });
 
     it("reports an extension on a target that emits no object", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -368,11 +363,11 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/extension-target-not-emitted");
+      const reported = findDiagnostic(diagnostics, "extension-target-not-emitted");
       expect(reported.severity).toBe("warning");
       // A warning leaves the document standing, and nothing in it carries
       // the dropped key.
@@ -380,7 +375,7 @@ describe("Unit: @extension", () => {
     });
 
     it("reports one target once, however many keys it carries", async () => {
-      const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -394,18 +389,16 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(1);
     });
 
     it("keeps quiet about an operation declared in a base interface", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -424,15 +417,13 @@ describe("Unit: @extension", () => {
       // The compiler copies the operation into the extending interface. The
       // declaration in `Base` sits on no channel, and it reaches the document
       // through the copy. Its extension did too.
-      expect(doc.operations.OrderChannel_publish["x-sla-ms"]).toBe(250);
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      expect(operationsOf(doc).OrderChannel_publish["x-sla-ms"]).toBe(250);
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(0);
     });
 
     it("keeps quiet about a channel an id collision dropped", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -453,19 +444,13 @@ describe("Unit: @extension", () => {
       // becomes a Channel Object. The extension of the losing instantiation
       // still reached the document through the winner. The clash itself is
       // already reported once.
-      expect(doc.channels.orders["x-owner"]).toBe("team");
-      expect(
-        diagnostics.filter((diagnostic) => diagnostic.code === "tsp-asyncapi/duplicate-channel-id"),
-      ).toHaveLength(1);
-      expect(
-        diagnostics.filter(
-          (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-        ),
-      ).toHaveLength(0);
+      expect(channelsOf(doc).orders["x-owner"]).toBe("team");
+      expect(diagnosticsWith(diagnostics, "duplicate-channel-id")).toHaveLength(1);
+      expect(diagnosticsWith(diagnostics, "extension-target-not-emitted")).toHaveLength(0);
     });
 
     it("reports a value the serializer cannot represent and drops the key", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         @extension("x-ip", Test.ipv4.fromBytes(1, 2, 3, 4))
         @extension("x-after", "kept")
@@ -479,22 +464,22 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // The squiggle sits on the value argument, not on the namespace.
       expect(targetText(reported)).toBe("Test.ipv4.fromBytes(1, 2, 3, 4)");
       // A dropped application leaves no key behind, and the ones beside it
       // still arrive.
-      expect(Object.keys(doc.info as Record<string, unknown>)).not.toContain("x-ip");
-      expect(doc.info["x-after"]).toBe("kept");
+      expect(Object.keys(infoOf(doc))).not.toContain("x-ip");
+      expect(infoOf(doc)["x-after"]).toBe("kept");
     });
 
     it("reports an unrepresentable array element and writes no null", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         @extension("x-list", #[Test.ipv4.fromBytes(1, 2, 3, 4), "ok"])
         @extension("x-after", "kept")
@@ -508,20 +493,20 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // A hole in an array reaches the writer as `null`, so the whole
       // application is dropped instead.
-      expect(Object.keys(doc.info as Record<string, unknown>)).not.toContain("x-list");
-      expect(doc.info["x-after"]).toBe("kept");
+      expect(Object.keys(infoOf(doc))).not.toContain("x-list");
+      expect(infoOf(doc)["x-after"]).toBe("kept");
     });
 
     it("reports an unrepresentable object member and drops the whole value", async () => {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         @extension("x-obj", #{ ip: Test.ipv4.fromBytes(1, 2, 3, 4), ok: "yes" })
         @extension("x-after", "kept")
@@ -535,20 +520,20 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // A truncated object claims the author wrote fewer members than they
       // did, so nothing is written.
-      expect(Object.keys(doc.info as Record<string, unknown>)).not.toContain("x-obj");
-      expect(doc.info["x-after"]).toBe("kept");
+      expect(Object.keys(infoOf(doc))).not.toContain("x-obj");
+      expect(infoOf(doc)["x-after"]).toBe("kept");
     });
 
     it("keeps an object member the author left out", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-obj", #{ ok: "yes" })
         namespace Test;
@@ -557,16 +542,16 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // An absent member is not a serializer failure, so the value survives.
-      expect(doc.info["x-obj"]).toEqual({ ok: "yes" });
+      expect(infoOf(doc)["x-obj"]).toEqual({ ok: "yes" });
     });
 
     it("reports misplaced targets in source order", async () => {
-      const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { diagnostics } = await emitDocumentWithDiagnostics(`
         @service(#{ title: "Orders" })
         namespace Test;
 
@@ -591,22 +576,22 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // The state map hands the targets over in decorator run order. An
       // author reads the file top to bottom, so the reports follow that.
-      const names = diagnostics
-        .filter((diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted")
-        .map((diagnostic) => /model (\w+)/.exec(targetText(diagnostic))?.[1]);
+      const names = diagnosticsWith(diagnostics, "extension-target-not-emitted").map(
+        (diagnostic) => /model (\w+)/.exec(targetText(diagnostic))?.[1],
+      );
       expect(names).toEqual(["AlphaUnused", "BetaUnused", "GammaUnused"]);
     });
   });
 
   describe("a target that emits more than one object", () => {
     it("puts the keys of a service namespace that is also a channel into both", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @channel("orders")
         @extension("x-owner", "orders-team")
@@ -614,11 +599,11 @@ describe("Unit: @extension", () => {
 
         ${MESSAGE}
 
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       `);
 
-      expect(doc.info["x-owner"]).toBe("orders-team");
-      expect(doc.channels.orders["x-owner"]).toBe("orders-team");
+      expect(infoOf(doc)["x-owner"]).toBe("orders-team");
+      expect(channelsOf(doc).orders["x-owner"]).toBe("orders-team");
     });
   });
 });

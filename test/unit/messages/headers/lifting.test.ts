@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -27,7 +28,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -73,7 +74,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -103,7 +104,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -124,7 +125,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Every field went to `headers`, so the payload component is an object
     // with no properties. AsyncAPI still requires a payload, so the message
@@ -152,7 +153,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -175,7 +176,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       $ref: "#/components/schemas/StringHeaders",
@@ -205,12 +206,10 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostic = runner.program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-headers",
-    );
-    expect(diagnostic?.severity).toBe("error");
+    const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-headers");
+    expect(diagnostic.severity).toBe("error");
     // Neither source wins, so the message carries no headers at all, and the
     // marked field stays in the payload rather than disappearing.
     expect(doc.components?.messages?.OrderCreated).toEqual({
@@ -227,9 +226,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
     });
     // The cancelled field sits where the emitter does support it, so it must
     // not also be reported as a misplaced mark.
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/nested-header-ignored"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
   });
 
   it("warns about a @header that is not a top-level field of a message", async () => {
@@ -251,11 +248,9 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    const diagnostics = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/nested-header-ignored",
-    );
+    const diagnostics = diagnosticsWith(runner.program.diagnostics, "nested-header-ignored");
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.severity).toBe("warning");
     // The mark is ignored, so the field keeps its place in the payload.
@@ -286,11 +281,9 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/nested-header-ignored"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
   });
 
   it("keeps the documentation of a lifting message on its payload", async () => {
@@ -309,7 +302,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The payload component is the only schema this document emits for the
     // model, so the documentation of the model must land on it.

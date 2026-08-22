@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
-import { emitAsyncAPI } from "../../utils/test-host.js";
+import { documentFrom, emitDocument } from "../../utils/test-host.js";
+import { operationsOf, serversOf } from "../../utils/document.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Operation security (Phase 5.6)", () => {
   let runner: TesterInstance;
@@ -17,7 +16,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
     // AsyncAPI reads the two arrays together. A client satisfies the array of
     // the server and the array of the operation, so the server schemes are
     // not copied here.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("kafka-scram", #{ type: "scramSha512" })
       @securityScheme("op-token", #{ type: "httpApiKey", name: "x-token", in: "header" })
@@ -38,10 +37,10 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    expect(doc.operations?.publish.security).toEqual([
+    expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/op-token" },
     ]);
-    expect(doc.servers?.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/kafka-scram" },
     ]);
   });
@@ -67,9 +66,9 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.operations?.publish.security).toEqual([
+    expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/first" },
       { $ref: "#/components/securitySchemes/second" },
     ]);
@@ -93,9 +92,9 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(doc.operations?.publish).not.toHaveProperty("security");
+    expect(operationsOf(doc).publish).not.toHaveProperty("security");
   });
 
   it("reports a name that no securityScheme defines and drops the entry", async () => {
@@ -118,12 +117,12 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
-    expect(
-      findDiagnostic(diagnostics, "tsp-asyncapi/undeclared-security-scheme").message,
-    ).toContain("'missing'");
-    expect(doc.operations?.publish.security).toEqual([
+    expect(findDiagnostic(diagnostics, "undeclared-security-scheme").message).toContain(
+      "'missing'",
+    );
+    expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/known" },
     ]);
   });
@@ -151,10 +150,8 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    expect(
-      diagnostics.some((entry) => entry.code === "tsp-asyncapi/use-security-outside-server"),
-    ).toBe(false);
+    expect(diagnosticsWith(diagnostics, "use-security-outside-server")).toHaveLength(0);
   });
 });

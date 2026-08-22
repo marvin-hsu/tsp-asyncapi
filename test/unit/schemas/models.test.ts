@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { Ajv } from "ajv";
+import { propertiesOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — models, collections, and literals", () => {
   it("should omit `properties` for an empty model (omit-empty convention)", async () => {
@@ -24,7 +24,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(TestIntrinsics);
 
-    const props = builder.getSchemas().TestIntrinsics.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().TestIntrinsics);
     expect(props.n).toEqual({ type: "null" });
   });
 
@@ -38,19 +38,23 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(M);
 
-    const schema = builder.getSchemas().M as any;
+    const schema = builder.getSchemas().M;
     // A required `{ not: {} }` property would make NO payload validate, so
     // never-typed properties must be omitted entirely (as openapi3 does).
-    expect(Object.keys(schema.properties as Record<string, any>)).toEqual(["a"]);
+    expect(Object.keys(propertiesOf(schema))).toEqual(["a"]);
     expect(schema.required).toEqual(["a"]);
 
     // Standalone `never` still maps to `{ not: {} }`. Only the
     // property-level path skips emitting it.
-    const neverType = M.properties.get("b")?.type;
-    expect(neverType).toBeDefined();
-    if (neverType) {
-      expect(builder.buildSchema(neverType)).toEqual({ not: {} });
+    const neverProperty = M.properties.get("b");
+    expect(neverProperty).toBeDefined();
+    // The same narrowing this file already uses below: `expect` does not
+    // narrow, and an `if` around the real assertion would let it be skipped
+    // rather than fail.
+    if (neverProperty === undefined) {
+      throw new Error("unreachable: asserted above");
     }
+    expect(builder.buildSchema(neverProperty.type)).toEqual({ not: {} });
   });
 
   it("should build `{ not: {} }` for standalone `void`", async () => {
@@ -111,7 +115,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(W);
 
-    const schemas = builder.getSchemas() as Record<string, any>;
+    const schemas = builder.getSchemas();
     expect(Object.hasOwn(schemas, "__proto__")).toBe(true);
     // Dot notation is safe (not the `Object.prototype` accessor) because
     // `schemas` is null-prototype: this reads the plain own property.
@@ -121,7 +125,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
       required: ["a"],
     });
 
-    const wProps = schemas.W.properties as Record<string, any>;
+    const wProps = propertiesOf(schemas.W);
     expect(Object.hasOwn(wProps, "__proto__")).toBe(true);
     expect(wProps.__proto__).toEqual({ type: "string" });
     expect(wProps.p).toEqual({ $ref: "#/components/schemas/__proto__" });
@@ -136,7 +140,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(TestCollections);
 
-    const props = builder.getSchemas().TestCollections.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().TestCollections);
     expect(props.arr).toEqual({ type: "array", items: { type: "string" } });
     expect(props.rec).toEqual({
       type: "object",
@@ -166,7 +170,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
       additionalProperties: { type: "integer", format: "int32" },
     });
 
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
     expect(props.a).toEqual({ $ref: "#/components/schemas/Names" });
     expect(props.b).toEqual({ $ref: "#/components/schemas/Names" });
     expect(props.c).toEqual({ $ref: "#/components/schemas/Bag" });
@@ -182,7 +186,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // `enum` is used uniformly for literals and enums (one code path for
     // 2.6); it constrains the schema instead of accepting any value.
     expect(props.lit).toEqual({ type: "string", enum: ["active"] });
@@ -203,7 +207,7 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -224,10 +228,10 @@ describe("Unit: Schemas — models, collections, and literals", () => {
       }
     `);
     builder.buildSchema(M as Model);
-    const schema = builder.getSchemas().M as any;
+    const schema = builder.getSchemas().M;
 
-    expect(schema.properties.user_name).toEqual({ type: "string" });
-    expect(schema.properties.userName).toBeUndefined();
+    expect(propertiesOf(schema).user_name).toEqual({ type: "string" });
+    expect(propertiesOf(schema).userName).toBeUndefined();
     expect(schema.required).toEqual(["user_name"]);
   });
 
@@ -264,24 +268,24 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     `);
     builder.buildSchema(Order as Model);
     const components = builder.getSchemas();
-    const schema = components.Order as any;
+    const schema = components.Order;
 
     expect(schema.type).toBe("object");
     // This is an exact match, not `arrayContaining`. A regression that
     // puts the optional `note` field into `required` must fail this
     // assertion.
     expect(schema.required).toEqual(["id", "status", "shipTo", "total", "tags", "contact"]);
-    expect(schema.properties.id).toEqual({
+    expect(propertiesOf(schema).id).toEqual({
       type: "string",
       minLength: 1,
       maxLength: 64,
     });
-    expect(schema.properties.status).toEqual({ $ref: "#/components/schemas/Status" });
+    expect(propertiesOf(schema).status).toEqual({ $ref: "#/components/schemas/Status" });
     expect(components.Status).toEqual({
       type: "string",
       enum: ["Pending", "Shipped", "Delivered"],
     });
-    expect(schema.properties.shipTo).toEqual({ $ref: "#/components/schemas/Address" });
+    expect(propertiesOf(schema).shipTo).toEqual({ $ref: "#/components/schemas/Address" });
     expect(components.Address).toEqual({
       type: "object",
       properties: {
@@ -290,19 +294,19 @@ describe("Unit: Schemas — models, collections, and literals", () => {
       },
       required: ["city"],
     });
-    expect(schema.properties.total).toEqual({
+    expect(propertiesOf(schema).total).toEqual({
       type: "number",
       format: "double",
       minimum: 0,
     });
-    expect(schema.properties.tags).toEqual({
+    expect(propertiesOf(schema).tags).toEqual({
       type: "array",
       items: { type: "string" },
     });
-    expect(schema.properties.contact).toEqual({
+    expect(propertiesOf(schema).contact).toEqual({
       anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
     });
-    expect(schema.properties.note).toEqual({ type: "string" });
+    expect(propertiesOf(schema).note).toEqual({ type: "string" });
 
     // Actually run the assembled components through a real draft-07
     // validator. A `toEqual` shape assertion alone cannot catch a

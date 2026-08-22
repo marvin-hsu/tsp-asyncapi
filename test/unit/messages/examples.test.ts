@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { getSourceLocation } from "@typespec/compiler";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Message examples (Phase 3.5)", () => {
   let runner: TesterInstance;
@@ -34,7 +35,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([
       {
@@ -63,7 +64,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // AsyncAPI's `examples` is an array, so every application contributes its
     // own entry. Decorators run bottom-up, so this also asserts that the
@@ -91,7 +92,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A field with nothing to say is left out. An example with no `name` does
     // not emit an empty one.
@@ -112,7 +113,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "examples")).toBe(false);
   });
@@ -140,7 +141,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([
       {
@@ -167,7 +168,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The raw TypeSpec value keeps the scalar's type, so the emitter writes
     // the ISO form rather than the compiler's internal value object.
@@ -199,16 +200,14 @@ describe("Unit: Message examples (Phase 3.5)", () => {
     // The whole entry goes, including its serializable sibling field. An
     // entry that kept only half of its payload would show a message the
     // application never sends. The other example stays.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([
       { name: "kept", payload: { orderId: "o-2" } },
     ]);
 
     // The builder reports while it emits, so the diagnostic lands on the
     // program rather than in the compile result above.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/unserializable-message-example",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "unserializable-message-example");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
   });
@@ -225,12 +224,12 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example");
+    const reported = diagnosticsWith(diagnostics, "empty-message-example");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
     // The rejected example reaches no document at all.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "examples")).toBe(false);
   });
 
@@ -248,7 +247,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example");
+    const reported = diagnosticsWith(diagnostics, "empty-message-example");
     expect(reported).toHaveLength(1);
 
     // The model carries three applications, so a diagnostic on the model
@@ -277,11 +276,9 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/unserializable-message-example",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "unserializable-message-example");
     expect(reported).toHaveLength(1);
     const location = getSourceLocation(reported[0]?.target);
     expect(location?.file.text.slice(location.pos, location.pos + 15)).toBe("@messageExample");
@@ -301,11 +298,9 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example")).toHaveLength(
-      1,
-    );
+    expect(diagnosticsWith(diagnostics, "empty-message-example")).toHaveLength(1);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([
       { name: "kept", payload: { orderId: "o-1" } },
     ]);
@@ -329,7 +324,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "examples")).toBe(false);
   });
 
@@ -347,7 +342,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
 
     expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([{ payload: "o-1" }]);
   });
   it("leaves out example metadata that is an empty string", async () => {
@@ -362,7 +357,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A blank name names nothing and a blank summary summarises nothing. Both
     // fields are left out, the same rule every other prose field follows.

@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../../src/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
-import { emitAsyncAPI } from "../../../../utils/test-host.js";
+import { emitDocument } from "../../../../utils/test-host.js";
+import { securitySchemesOf } from "../../../../utils/document.js";
 
 describe("Unit: security schemes — required fields and urls", () => {
   it("reports a blank required field and drops the scheme", async () => {
@@ -233,7 +233,7 @@ describe("Unit: security schemes — required fields and urls", () => {
     // position. The sort is what keeps the emitted key order independent of
     // the order the compiler visited the namespaces in, so the case worth
     // testing interleaves the two namespaces.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("aaa", #{ type: "plain" })
       namespace Test {
@@ -244,6 +244,6 @@ describe("Unit: security schemes — required fields and urls", () => {
       @@securityScheme(Test, "ccc", #{ type: "plain" });
     `);
 
-    expect(Object.keys(doc.components.securitySchemes)).toEqual(["aaa", "bbb", "ccc"]);
+    expect(Object.keys(securitySchemesOf(doc))).toEqual(["aaa", "bbb", "ccc"]);
   });
 });

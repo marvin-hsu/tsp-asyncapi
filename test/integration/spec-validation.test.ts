@@ -1,12 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { emitAsyncAPI } from "../utils/test-host.js";
+import { emitDocument } from "../utils/test-host.js";
+import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../utils/document.js";
+import type { MultiFormatSchemaObject, SqsChannelBindingObject } from "../../src/types/index.js";
 
 describe("AsyncAPI emitted document", () => {
   it("should describe a service with a send and a receive operation end to end", async () => {
     // This is the Phase 5 milestone case. It carries a service, a server, a
     // channel, a message, and both actions.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Order Service" })
       @info(#{ version: "1.0.0" })
       @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
@@ -37,7 +38,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.operations).toEqual({
+    expect(operationsOf(doc)).toEqual({
       sendOrderCreated: {
         action: "send",
         channel: { $ref: "#/channels/orders.created" },
@@ -56,7 +57,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe a request and reply exchange end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Order Service" })
       @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       namespace OrderService;
@@ -83,7 +84,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.operations.createOrder.reply).toEqual({
+    expect(operationsOf(doc).createOrder.reply).toEqual({
       address: { location: "$message.header#/replyTo", description: "The reply topic." },
       channel: { $ref: "#/channels/ReplyChannel" },
       messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
@@ -92,7 +93,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe one Kafka topic end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       namespace TestService;
@@ -121,7 +122,7 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels).toEqual({
+    expect(channelsOf(doc)).toEqual({
       "orders.{region}.created": {
         address: "orders.{region}.created",
         title: "Order events",
@@ -137,7 +138,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe a Kafka contract with all four bindings end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       @kafkaServer(#{
@@ -172,14 +173,14 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.servers["kafka-prod"].bindings).toEqual({
+    expect(serversOf(doc)["kafka-prod"].bindings).toEqual({
       kafka: {
         schemaRegistryUrl: "https://registry.example.com",
         schemaRegistryVendor: "confluent",
         bindingVersion: "0.5.0",
       },
     });
-    expect(doc.channels["orders.created"].bindings).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({
       kafka: {
         topic: "orders.created",
         partitions: 12,
@@ -188,14 +189,14 @@ describe("AsyncAPI emitted document", () => {
         bindingVersion: "0.5.0",
       },
     });
-    expect(doc.operations.onOrderCreated.bindings).toEqual({
+    expect(operationsOf(doc).onOrderCreated.bindings).toEqual({
       kafka: {
         groupId: { type: "string" },
         clientId: { type: "string" },
         bindingVersion: "0.5.0",
       },
     });
-    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings).toEqual({
       kafka: {
         key: { type: "string" },
         schemaIdLocation: "payload",
@@ -208,7 +209,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe a WebSocket handshake end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Events" })
       @server("ws-prod", #{ host: "events.example.com", protocol: "ws" })
       namespace TestService;
@@ -233,7 +234,7 @@ describe("AsyncAPI emitted document", () => {
 
     // The member is `ws`. The official parser is the authority on that name,
     // so this test asserts the shape and then hands the document to it.
-    expect(doc.channels["/ticks"].bindings).toEqual({
+    expect(channelsOf(doc)["/ticks"].bindings).toEqual({
       ws: {
         method: "GET",
         query: { type: "object", properties: { token: { type: "string" } } },
@@ -245,7 +246,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe an MQTT contract with all three bindings end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{
         clientId: "sensor-gateway",
@@ -276,19 +277,19 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.servers["mqtt-prod"].bindings.mqtt.lastWill).toEqual({
+    expect(serversOf(doc)["mqtt-prod"].bindings?.mqtt.lastWill).toEqual({
       topic: "sensors/status",
       qos: 1,
       message: "offline",
       retain: true,
     });
-    expect(doc.operations.publish.bindings.mqtt.qos).toBe(2);
-    expect(doc.components.messages.Reading.bindings.mqtt.payloadFormatIndicator).toBe(1);
+    expect(operationsOf(doc).publish.bindings?.mqtt.qos).toBe(2);
+    expect(messagesOf(doc).Reading.bindings?.mqtt.payloadFormatIndicator).toBe(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe an AMQP topology end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Events" })
       @server("rabbit", #{ host: "rabbit.example.com:5672", protocol: "amqp" })
       namespace TestService;
@@ -312,18 +313,18 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels["events.created"].bindings.amqp.exchange).toEqual({
+    expect(channelsOf(doc)["events.created"].bindings?.amqp.exchange).toEqual({
       name: "events",
       type: "topic",
       durable: true,
     });
-    expect(doc.operations.publish.bindings.amqp.deliveryMode).toBe(2);
-    expect(doc.components.messages.EventCreated.bindings.amqp.contentEncoding).toBe("gzip");
+    expect(operationsOf(doc).publish.bindings?.amqp.deliveryMode).toBe(2);
+    expect(messagesOf(doc).EventCreated.bindings?.amqp.contentEncoding).toBe("gzip");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe an HTTP request and reply end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Notices" })
       @server("api", #{ host: "api.example.com", protocol: "https" })
       namespace TestService;
@@ -349,13 +350,13 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.operations.publish.bindings.http.method).toBe("POST");
-    expect(doc.components.messages.Notice.bindings.http.statusCode).toBe(201);
+    expect(operationsOf(doc).publish.bindings?.http.method).toBe("POST");
+    expect(messagesOf(doc).Notice.bindings?.http.statusCode).toBe(201);
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe a NATS and Pulsar contract end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @pulsarServer(#{ tenant: "orders" })
       @server("pulsar", #{ host: "pulsar.example.com:6650", protocol: "pulsar" })
@@ -380,13 +381,13 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.pulsar.namespace).toBe("orders");
-    expect(doc.operations.onOrderCreated.bindings.nats.queue).toBe("orders-workers");
+    expect(channelsOf(doc)["orders.created"].bindings?.pulsar.namespace).toBe("orders");
+    expect(operationsOf(doc).onOrderCreated.bindings?.nats.queue).toBe("orders-workers");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe a Google Cloud Pub/Sub topic end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("pubsub", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
       namespace TestService;
@@ -415,7 +416,7 @@ describe("AsyncAPI emitted document", () => {
 
     // `schemaSettings` is required. The parser is the authority on that, so
     // the document goes to it rather than only to a shape assertion here.
-    expect(doc.channels["orders-created"].bindings.googlepubsub.schemaSettings).toEqual({
+    expect(channelsOf(doc)["orders-created"].bindings?.googlepubsub.schemaSettings).toEqual({
       encoding: "json",
       name: "projects/p/schemas/order",
     });
@@ -423,7 +424,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe an Amazon SQS queue end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("sqs", #{ host: "sqs.eu-west-1.amazonaws.com", protocol: "sqs" })
       namespace TestService;
@@ -446,13 +447,16 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.orders.bindings.sqs.queue.name).toBe("orders");
-    expect(doc.operations.publish.bindings.sqs.queues).toHaveLength(1);
+    // A binding is an untyped record in the document type, so the test names
+    // the protocol shape it expects.
+    const sqsChannel = channelsOf(doc).orders.bindings?.sqs as SqsChannelBindingObject | undefined;
+    expect(present(sqsChannel, "sqs channel binding").queue.name).toBe("orders");
+    expect(operationsOf(doc).publish.bindings?.sqs.queues).toHaveLength(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe an IBM MQ and JMS contract end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @ibmMqServer(#{ groupId: "PRODCLSTR1", heartBeatInterval: 300 })
       @server("mq", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
@@ -479,13 +483,13 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.orders.bindings.ibmmq.destinationType).toBe("queue");
-    expect(doc.channels.orders.bindings.jms.destination).toBe("orders");
+    expect(channelsOf(doc).orders.bindings?.ibmmq.destinationType).toBe("queue");
+    expect(channelsOf(doc).orders.bindings?.jms.destination).toBe("orders");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe an Anypoint MQ and Solace contract end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @solaceServer(#{ msgVpn: "orders-vpn", clientName: "order-service" })
       @server("solace", #{ host: "solace.example.com:55555", protocol: "smf" })
@@ -512,13 +516,13 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.servers.solace.bindings.solace.msgVpn).toBe("orders-vpn");
-    expect(doc.operations.publish.bindings.solace.destinations).toHaveLength(1);
+    expect(serversOf(doc).solace.bindings?.solace.msgVpn).toBe("orders-vpn");
+    expect(operationsOf(doc).publish.bindings?.solace.destinations).toHaveLength(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should validate a channel that carries every optional field", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace TestService;
 
@@ -553,7 +557,7 @@ describe("AsyncAPI emitted document", () => {
     // document as a bare string, and the AsyncAPI JSON Schema is what
     // decides whether the '#' this emitter insists on is really required. A
     // regex of this emitter's own cannot answer that, so the parser does.
-    expect(doc.channels["orders.{region}.{tenant}.created"].parameters).toEqual({
+    expect(channelsOf(doc)["orders.{region}.{tenant}.created"].parameters).toEqual({
       region: {
         default: "eu",
         description: "The region the order was placed in.",
@@ -562,8 +566,8 @@ describe("AsyncAPI emitted document", () => {
       },
       tenant: { location: "$message.payload#" },
     });
-    expect(doc.channels["orders.{region}.{tenant}.created"].tags).toEqual([{ name: "orders" }]);
-    expect(doc.channels["orders.{region}.{tenant}.created"].externalDocs).toEqual({
+    expect(channelsOf(doc)["orders.{region}.{tenant}.created"].tags).toEqual([{ name: "orders" }]);
+    expect(channelsOf(doc)["orders.{region}.{tenant}.created"].externalDocs).toEqual({
       url: "https://example.com/orders",
       description: "How order events are routed.",
     });
@@ -571,7 +575,7 @@ describe("AsyncAPI emitted document", () => {
   });
 
   it("should describe a channel with an unknown address", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace TestService;
 
@@ -586,12 +590,12 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(doc.channels.replies.address).toBeNull();
+    expect(channelsOf(doc).replies.address).toBeNull();
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should describe a message whose payload is an Avro schema", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace TestService;
 
@@ -628,7 +632,7 @@ describe("AsyncAPI emitted document", () => {
 
     // The official parser is the judge of the container's shape. Both slots
     // of the Message Object carry the same two-field object.
-    expect(doc.components.messages.OrderCreated.payload).toEqual({
+    expect(messagesOf(doc).OrderCreated.payload).toEqual({
       schemaFormat: "application/vnd.apache.avro;version=1.9.0",
       schema: {
         type: "record",
@@ -640,17 +644,22 @@ describe("AsyncAPI emitted document", () => {
         ],
       },
     });
-    expect(doc.components.messages.OrderCreated.headers.schemaFormat).toBe(
+    // A message's `headers` may be a schema, a reference, or a multi-format
+    // schema. Only the last of the three carries `schemaFormat`, which is what
+    // this test is about.
+    const headers = present(messagesOf(doc).OrderCreated.headers, "OrderCreated headers");
+    expect((headers as MultiFormatSchemaObject).schemaFormat).toBe(
       "application/vnd.apache.avro;version=1.9.0",
     );
     // The raw schema is written into the message, so the document carries no
-    // components.schemas entry at all.
-    expect(doc.components.schemas).toBeUndefined();
+    // components.schemas entry at all. Read directly rather than through
+    // `schemasOf`: absence is the outcome under test, and the reader throws.
+    expect(doc.components?.schemas).toBeUndefined();
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should carry x- extensions on all four objects end to end", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @extension("x-owner", "orders-team")
       namespace TestService;
@@ -674,9 +683,9 @@ describe("AsyncAPI emitted document", () => {
     // the judge of whether an `x-` field is allowed where the emitter put it.
     await expect(doc).toBeValidAsyncAPI();
     expect(doc.info["x-owner"]).toBe("orders-team");
-    expect(doc.channels["orders.created"]["x-retention"]).toEqual({ days: 7, compacted: true });
-    expect(doc.operations.publish["x-tags"]).toEqual(["critical", "public"]);
-    expect(doc.components.messages.OrderCreated["x-schema-id"]).toBe(4711);
+    expect(channelsOf(doc)["orders.created"]["x-retention"]).toEqual({ days: 7, compacted: true });
+    expect(operationsOf(doc).publish["x-tags"]).toEqual(["critical", "public"]);
+    expect(messagesOf(doc).OrderCreated["x-schema-id"]).toBe(4711);
   });
 });
 

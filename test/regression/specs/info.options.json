@@ -1,0 +1,8 @@
+[
+  { "asyncapi-id": "urn:com:example:orders", "default-content-type": "application/json" },
+  {
+    "file-type": "json",
+    "asyncapi-id": "urn:com:example:orders",
+    "default-content-type": "application/json"
+  }
+]

@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
+import { schemasOf } from "../utils/document.js";
 import { byCodePoint } from "../utils/sort.js";
 import { createChainHarness, resolveSchema, winners, wireOf } from "./model-chain.js";
 
@@ -56,39 +56,24 @@ const harness = createChainHarness({
 
 describe("Integration: Schemas — declared property coverage", () => {
   /**
-   * Probe results, measured in this worktree at 200 runs with seed
-   * 20260815. They say the property reaches what it targets. They also say
-   * the resolution walk does real work, rather than restating a top-level
-   * key list.
+   * What this property is instrumented for. The counters say it reaches what
+   * it targets, and that the resolution walk does real work rather than
+   * restating a top-level key list.
    *
    * `fc.pre` rejections do not count toward `numRuns`. The runner keeps
-   * drawing until it has 200 executions that finished. So the two shape
-   * counters add up to 200, and the refused programs are extra draws on top
-   * of that.
+   * drawing until it has that many executions that finished, so the two
+   * shape counters partition the finished runs and the refused programs are
+   * extra draws on top of them. The refusals the generator provokes are all
+   * `override-property-mismatch`.
    *
-   *   documents emitted                            200
-   *   extra draws the compiler refused              12
-   *     (all with `override-property-mismatch`)
-   *   components in the `allOf` shape              162
-   *   components in the flattened shape             38
-   *   `never-typed-property-override` warnings      44
-   *   `encoded-name-override-conflict` warnings     15
-   *   documents holding a component that carries
-   *     `additionalProperties`                      98
-   *   flattened documents describing at least one
-   *     wire name the most-derived level does not
-   *     declare                                     26
-   *   documents where the component's own
-   *     top-level `properties` alone is not the
-   *     declared set                               157
+   * Three counters are asserted below: the `allOf` shape, the flattened
+   * shape, and the one that carries the weight here — a document where the
+   * component's own top-level `properties` alone is not the declared set. A
+   * check reading only `schema.properties` gives the wrong answer on most
+   * drawn documents, so the `allOf`/`$ref` walk is load-bearing.
    *
-   * That last number is the one that matters. A check reading only
-   * `schema.properties` would give the wrong answer for 157 of 200
-   * documents. So the `allOf`/`$ref` walk is load-bearing here.
-   *
-   * Three counters are asserted below: the two shapes, and the one that
-   * says the walk does real work. That keeps this record honest if the
-   * generator or the emitter moves.
+   * Asserting them rather than recording them is the point: a number in a
+   * comment goes stale, and a number in an `expect` fails.
    */
   it("describes every declared property, through allOf and $ref", async () => {
     let allOfShape = 0;
@@ -98,16 +83,22 @@ describe("Integration: Schemas — declared property coverage", () => {
     await fc.assert(
       fc.asyncProperty(harness.chainArb, async ({ levels, useIndexer }) => {
         const declared = harness.normalize(levels);
-        const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(
+        const { doc, diagnostics } = await emitDocumentWithDiagnostics(
           harness.render(declared, useIndexer),
         );
 
         // TypeSpec refuses some of these programs outright. The claim
         // starts once the emitter has answered with a document. Warnings
         // are kept: both fallback paths announce themselves with one.
-        fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+        // `fc.pre` throws to drop the draw, but TypeScript cannot see that
+        // through a call. Returning through it narrows `doc` for the rest of
+        // the body and drops the draw exactly as before.
+        if (doc === null || diagnostics.some((d) => d.severity === "error")) {
+          fc.pre(false);
+          return;
+        }
 
-        const schema = doc.components?.schemas?.["M" + String(declared.length - 1)];
+        const schema = schemasOf(doc)["M" + String(declared.length - 1)];
         expect(schema).toBeDefined();
 
         if (Array.isArray(schema.allOf)) allOfShape++;
@@ -120,9 +111,7 @@ describe("Integration: Schemas — declared property coverage", () => {
         // component's own top-level `properties` is compared against the
         // declared set. A difference means a check reading only that key
         // would answer wrongly for this document.
-        const ownProps = Object.keys((schema.properties ?? {}) as Record<string, unknown>).sort(
-          byCodePoint,
-        );
+        const ownProps = Object.keys(schema.properties ?? {}).sort(byCodePoint);
         if (JSON.stringify(ownProps) !== JSON.stringify(expected)) ownPropsNotDeclaredSet++;
 
         expect(found).toEqual(expected);

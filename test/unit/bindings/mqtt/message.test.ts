@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { messagesOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Sensors" })
@@ -19,7 +19,7 @@ const CHANNEL = `
 
 describe("Unit: the @mqttMessage decorator", () => {
   it("emits every field with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @mqttMessage(#{
@@ -36,7 +36,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.Reading.bindings).toEqual({
+    expect(messagesOf(doc).Reading.bindings).toEqual({
       mqtt: {
         payloadFormatIndicator: 1,
         correlationData: { type: "string", format: "uuid" },
@@ -48,7 +48,7 @@ describe("Unit: the @mqttMessage decorator", () => {
   });
 
   it("keeps a payload format indicator of zero", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @mqttMessage(#{ payloadFormatIndicator: 0 })
@@ -62,14 +62,14 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // Zero says the payload is unspecified bytes. That is one of the two
     // formats MQTT 5 defines, not an absent field.
-    expect(doc.components.messages.Reading.bindings.mqtt).toEqual({
+    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
       payloadFormatIndicator: 0,
       bindingVersion: "0.2.0",
     });
   });
 
   it("reports a payload format indicator outside the two MQTT 5 defines", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @mqttMessage(#{ payloadFormatIndicator: 2, contentType: "application/json" })
@@ -81,17 +81,17 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("payloadFormatIndicator");
     expect(reported.message).toContain("0, 1");
-    expect(doc.components.messages.Reading.bindings.mqtt).toEqual({
+    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
       contentType: "application/json",
       bindingVersion: "0.2.0",
     });
   });
 
   it("accepts a response topic written as a schema", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @mqttMessage(#{ responseTopic: #{ type: "string", pattern: "^sensors/" } })
@@ -105,14 +105,14 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // MQTT types the field as a topic name or a Schema Object. Kafka has no
     // field shaped this way, so the check is its own.
-    expect(doc.components.messages.Reading.bindings.mqtt.responseTopic).toEqual({
+    expect(messagesOf(doc).Reading.bindings?.mqtt.responseTopic).toEqual({
       type: "string",
       pattern: "^sensors/",
     });
   });
 
   it("reports a response topic that is neither a name nor a schema", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @mqttMessage(#{ responseTopic: 42 })
@@ -124,13 +124,13 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("responseTopic");
     expect(reported.message).toContain("a topic name or a schema object");
   });
 
   it("drops a blank response topic rather than emitting one", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @mqttMessage(#{ responseTopic: "   ", contentType: "application/json" })
@@ -144,14 +144,14 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // A blank topic names nothing. Emitting it would send replies to a topic
     // whose name is spaces.
-    expect(doc.components.messages.Reading.bindings.mqtt).toEqual({
+    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
       contentType: "application/json",
       bindingVersion: "0.2.0",
     });
   });
 
   it("reports correlation data that is not a schema", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @mqttMessage(#{ correlationData: "uuid" })
@@ -165,13 +165,13 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // MQTT types this one as a schema only. A bare string is not one, and
     // accepting it would write a document the parser rejects.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("correlationData");
     expect(reported.message).toContain("a schema object");
   });
 
   it("reports a binding on a model that carries no @message", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @mqttMessage(#{ contentType: "application/json" })
@@ -187,7 +187,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });
 });

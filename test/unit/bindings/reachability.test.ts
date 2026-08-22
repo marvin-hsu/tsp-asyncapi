@@ -1,23 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
+import { operationsOf } from "../../utils/document.js";
+import type { Diagnostic } from "@typespec/compiler";
+import { KAFKA_SERVICE } from "../../utils/source.js";
 
-const KAFKA_CONTRACT = `
-  @service(#{ title: "Orders" })
-  @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
-  namespace Test;
-`;
-
-const BINDING_OUTSIDE = "tsp-asyncapi/binding-outside-document";
+const BINDING_OUTSIDE = "binding-outside-document";
 
 /** Tells whether any diagnostic reports a binding that reached no object. */
-function reportsUnattached(diagnostics: readonly { code: string }[]): boolean {
-  return diagnostics.some((diagnostic) => diagnostic.code === BINDING_OUTSIDE);
+function reportsUnattached(diagnostics: readonly Diagnostic[]): boolean {
+  return diagnosticsWith(diagnostics, BINDING_OUTSIDE).length > 0;
 }
 
 describe("Unit: which bindings count as having reached the document", () => {
@@ -25,8 +20,8 @@ describe("Unit: which bindings count as having reached the document", () => {
     // `interface C extends Base` copies each operation of `Base` and runs its
     // decorators again. The declaration in `Base` sits on no channel, and it
     // reaches the document through the copy. Its binding did too.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -44,15 +39,15 @@ describe("Unit: which bindings count as having reached the document", () => {
     `);
 
     expect(reportsUnattached(diagnostics)).toBe(false);
-    expect(doc.operations.OrderChannel_publish.bindings.kafka).toEqual({
+    expect(operationsOf(doc).OrderChannel_publish.bindings?.kafka).toEqual({
       groupId: { type: "string" },
       bindingVersion: "0.5.0",
     });
   });
 
   it("reports only the repeated id when a duplicate channel carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -75,13 +70,13 @@ describe("Unit: which bindings count as having reached the document", () => {
 
     // The repeated id is the mistake, and it names itself exactly. A second
     // report about the binding would ask for a @channel the target carries.
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-channel-id");
+    findDiagnostic(diagnostics, "duplicate-channel-id");
     expect(reportsUnattached(diagnostics)).toBe(false);
   });
 
   it("reports only the repeated id when a duplicate operation carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -99,13 +94,13 @@ describe("Unit: which bindings count as having reached the document", () => {
       }
     `);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id");
+    findDiagnostic(diagnostics, "duplicate-operation-id");
     expect(reportsUnattached(diagnostics)).toBe(false);
   });
 
   it("reports only the repeated key when a duplicate message carries a binding", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @friendlyName("Shared")
       @message
@@ -127,7 +122,7 @@ describe("Unit: which bindings count as having reached the document", () => {
       }
     `);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-message-key");
+    findDiagnostic(diagnostics, "duplicate-message-key");
     expect(reportsUnattached(diagnostics)).toBe(false);
   });
 
@@ -137,8 +132,8 @@ describe("Unit: which bindings count as having reached the document", () => {
     // report. The decorator ran on each instantiation, so each carries its
     // own recorded binding, and the dropped one reached the document through
     // the surviving instantiation.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @kafkaMessage(#{ schemaIdLocation: "header" })
       @message
@@ -162,8 +157,8 @@ describe("Unit: which bindings count as having reached the document", () => {
 
   it("still reports a binding on a target that reaches nothing at all", async () => {
     // The three cases above must not silence the check itself.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -193,8 +188,8 @@ describe("Unit: which bindings count as having reached the document", () => {
     // One target can carry two bindings that both reach nothing. They are two
     // mistakes, so the author hears about both. The state layer stores the
     // entries of one target as a list, and the report flattens those lists.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -220,7 +215,7 @@ describe("Unit: which bindings count as having reached the document", () => {
       }
     `);
 
-    const reported = diagnostics.filter((diagnostic) => diagnostic.code === BINDING_OUTSIDE);
+    const reported = diagnosticsWith(diagnostics, BINDING_OUTSIDE);
     expect(reported).toHaveLength(4);
 
     // The order is asserted, not just the membership. The state layer hands
@@ -243,8 +238,8 @@ describe("Unit: which bindings count as having reached the document", () => {
     // reported. The server binding of the same namespace reaches nothing at
     // all, because the namespace declares no server. Marking by target alone
     // would silence it.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -266,8 +261,8 @@ describe("Unit: which bindings count as having reached the document", () => {
       }
     `);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-channel-id");
-    const reported = diagnostics.filter((diagnostic) => diagnostic.code === BINDING_OUTSIDE);
+    findDiagnostic(diagnostics, "duplicate-channel-id");
+    const reported = diagnosticsWith(diagnostics, BINDING_OUTSIDE);
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toContain("for the server level");
   });
@@ -276,8 +271,8 @@ describe("Unit: which bindings count as having reached the document", () => {
     // `@binding` records no level, so it reports a wording of its own. The
     // default wording interpolates the level, which would read "the any
     // level" here and name a position the author cannot look for.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -325,9 +320,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // Nothing was built, so this build placed nothing.
     reportUnattachedBindings(program, new BindingPlacements());
 
-    const reported = program.diagnostics.filter(
-      (diagnostic) => diagnostic.code === BINDING_OUTSIDE,
-    );
+    const reported = diagnosticsWith(program.diagnostics, BINDING_OUTSIDE);
     expect(reported).toHaveLength(2);
     const messages = reported.map((diagnostic) => diagnostic.message);
     expect(messages.some((message) => message.includes("for the channel level"))).toBe(true);
@@ -375,10 +368,8 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
     }
 
     const before = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = runner.program.diagnostics
-      .slice(before)
-      .filter((diagnostic) => diagnostic.code === BINDING_OUTSIDE);
+    documentFrom(runner.program);
+    const reported = diagnosticsWith(runner.program.diagnostics.slice(before), BINDING_OUTSIDE);
 
     expect(reported).toHaveLength(1);
   });
@@ -401,12 +392,12 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
     // Count within one build's own slice. Counting to the end of the list
     // instead would fold the second build's reports into the first's.
     const straysBetween = (from: number, to: number): number =>
-      runner.program.diagnostics.slice(from, to).filter((d) => d.code === BINDING_OUTSIDE).length;
+      diagnosticsWith(runner.program.diagnostics.slice(from, to), BINDING_OUTSIDE).length;
 
     const start = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const afterFirst = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const afterSecond = runner.program.diagnostics.length;
 
     // Two builds of one program describe the same program, so they have to

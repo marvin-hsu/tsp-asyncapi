@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { SchemaKeyRegistry } from "../../../src/lower/schemas/key-registration.js";
 import { t } from "@typespec/compiler/testing";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — schema keys and registration", () => {
   it("should Sep-encode `/` and `~` out of a backtick-declared model's own name, rather than leaking them into the schema key", async () => {
@@ -24,11 +25,11 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(M);
 
-    const components = builder.getSchemas() as Record<string, any>;
+    const components = builder.getSchemas();
     expect(Object.hasOwn(components, "x/y")).toBe(false);
     expect(Object.hasOwn(components, "a~b")).toBe(false);
 
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
     for (const ref of [props.q.$ref, props.r.$ref] as string[]) {
       const key = ref.replace("#/components/schemas/", "");
       expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
@@ -55,18 +56,15 @@ describe("Unit: Schemas — schema keys and registration", () => {
       @test("GlobalFoo")
       model Foo { z: string; }
     `);
-    const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
-    const ref2 = builder.buildSchema(NsFoo as Model) as any;
+    const ref1 = builder.buildSchema(GlobalFoo as Model);
+    const ref2 = builder.buildSchema(NsFoo as Model);
 
-    expect(ref1.$ref).toBe("#/components/schemas/Foo");
-    expect(ref2.$ref).toBe("#/components/schemas/ASep47B.Foo");
+    expect(refOf(ref1)).toBe("#/components/schemas/Foo");
+    expect(refOf(ref2)).toBe("#/components/schemas/ASep47B.Foo");
     expect(Object.hasOwn(builder.getSchemas(), "ASep47B.Foo")).toBe(true);
     expect(Object.hasOwn(builder.getSchemas(), "a/b.Foo")).toBe(false);
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("Sep-encodes a `#`-containing or space-containing namespace's name, keeping the key in the AsyncAPI charset and the $ref resolvable", async () => {
@@ -84,8 +82,8 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(M as Model);
 
-    const components = builder.getSchemas() as Record<string, any>;
-    const props = components.M.properties as Record<string, any>;
+    const components = builder.getSchemas();
+    const props = propertiesOf(components.M);
     for (const ref of [props.f.$ref, props.g.$ref] as string[]) {
       expect(ref.split("#")).toHaveLength(2);
       expect(ref).not.toContain(" ");
@@ -119,16 +117,13 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-    const ref1 = builder.buildSchema(Type1 as Model) as any;
-    const ref2 = builder.buildSchema(Type2 as Model) as any;
+    const ref1 = builder.buildSchema(Type1 as Model);
+    const ref2 = builder.buildSchema(Type2 as Model);
 
-    expect(ref1.$ref).toBe("#/components/schemas/NS1.Duplicate1");
-    expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
+    expect(refOf(ref1)).toBe("#/components/schemas/NS1.Duplicate1");
+    expect(refOf(ref2)).toBe("#/components/schemas/NS2.Duplicate1");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("gives a global-namespace model and a namespaced same-named model distinct keys (namespaced built first)", async () => {
@@ -148,16 +143,13 @@ describe("Unit: Schemas — schema keys and registration", () => {
         b: int32;
       }
     `);
-    const ref1 = builder.buildSchema(NsFoo as Model) as any;
-    const ref2 = builder.buildSchema(GlobalFoo as Model) as any;
+    const ref1 = builder.buildSchema(NsFoo as Model);
+    const ref2 = builder.buildSchema(GlobalFoo as Model);
 
-    expect(ref1.$ref).toBe("#/components/schemas/NS2.Foo");
-    expect(ref2.$ref).toBe("#/components/schemas/Foo");
+    expect(refOf(ref1)).toBe("#/components/schemas/NS2.Foo");
+    expect(refOf(ref2)).toBe("#/components/schemas/Foo");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("gives a global-namespace model and a namespaced same-named model distinct keys (global built first)", async () => {
@@ -173,16 +165,13 @@ describe("Unit: Schemas — schema keys and registration", () => {
         b: int32;
       }
     `);
-    const ref1 = builder.buildSchema(GlobalFoo as Model) as any;
-    const ref2 = builder.buildSchema(NsFoo as Model) as any;
+    const ref1 = builder.buildSchema(GlobalFoo as Model);
+    const ref2 = builder.buildSchema(NsFoo as Model);
 
-    expect(ref1.$ref).toBe("#/components/schemas/Foo");
-    expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
+    expect(refOf(ref1)).toBe("#/components/schemas/Foo");
+    expect(refOf(ref2)).toBe("#/components/schemas/NS2.Foo");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("leaves the service namespace out of a schema key, while still qualifying a namespace nested under it", async () => {
@@ -200,15 +189,15 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-    const ref1 = builder.buildSchema(Order as Model) as any;
-    const ref2 = builder.buildSchema(SubOrder as Model) as any;
+    const ref1 = builder.buildSchema(Order as Model);
+    const ref2 = builder.buildSchema(SubOrder as Model);
 
     // Nearly every declaration in a single-service spec lives under the
     // service namespace, so it carries no distinguishing information. The
     // official emitters drop it through their own `namespaceFilter`. A
     // namespace nested under it still qualifies the key.
-    expect(ref1.$ref).toBe("#/components/schemas/Order");
-    expect(ref2.$ref).toBe("#/components/schemas/Sub.Order");
+    expect(refOf(ref1)).toBe("#/components/schemas/Order");
+    expect(refOf(ref2)).toBe("#/components/schemas/Sub.Order");
   });
 
   it("gives two same-named templates in sibling namespaces distinct keys for the same type argument", async () => {
@@ -227,7 +216,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       }
     `);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
 
     // A template instantiation is qualified by its own declaring
     // namespace, exactly like a plain declaration. Only the arguments'
@@ -235,10 +224,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.x).toEqual({ $ref: "#/components/schemas/A.EnvOrder" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/B.EnvOrder" });
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("should give each template instantiation its own schema key", async () => {
@@ -260,8 +246,8 @@ describe("Unit: Schemas — schema keys and registration", () => {
     const components = builder.getSchemas();
     // `W` is itself a plain (non-template) declaration inside `NS`, so its
     // own key is namespace-qualified: "NS.W", not the bare "W".
-    const props = components["NS.W"].properties as Record<string, any>;
-    const refs = [props.a.$ref, props.b.$ref, props.c.$ref] as string[];
+    const props = propertiesOf(components["NS.W"]);
+    const refs = [refOf(props.a), refOf(props.b), refOf(props.c)];
     // Every instantiation of Page<T> is named from the template's own
     // name plus its type argument's display name, and is qualified by its
     // own declaring namespace exactly like a plain declaration. So each
@@ -277,8 +263,9 @@ describe("Unit: Schemas — schema keys and registration", () => {
 
     const itemTypes = refs.map((ref) => {
       const key = ref.replace("#/components/schemas/", "");
-      const schema = components[key] as any;
-      return schema.properties.items.items.type as string;
+      const schema = components[key];
+      // Two levels of `items`: the property is an array of arrays.
+      return schemaOf(schemaOf(propertiesOf(schema).items).items).type as string;
     });
     expect(itemTypes).toEqual(["string", "integer", "boolean"]);
   });
@@ -298,20 +285,17 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-    const ref1 = builder.buildSchema(GlobalModel as Model) as any;
-    const ref2 = builder.buildSchema(NestedModel as Model) as any;
+    const ref1 = builder.buildSchema(GlobalModel as Model);
+    const ref2 = builder.buildSchema(NestedModel as Model);
 
     // The global namespace contributes no prefix; the nested chain is
     // joined with '.' and separated from the declaration's own name by a
     // further '.' (see `namespacePrefix`), so the two no longer compute
     // the same candidate.
-    expect(ref1.$ref).toBe("#/components/schemas/Widget");
-    expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
+    expect(refOf(ref1)).toBe("#/components/schemas/Widget");
+    expect(refOf(ref2)).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("keeps a stable $ref, with no diagnostic, when a namespace-qualified model is referenced again from a sibling namespace", async () => {
@@ -349,9 +333,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       $ref: "#/components/schemas/NS2.Duplicate1",
     });
 
-    const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostics = diagnosticsWith(program.diagnostics, "duplicate-schema-key");
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -371,13 +353,11 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(W);
 
-    const props = builder.getSchemas().W.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().W);
     expect(props.x).toEqual({ $ref: "#/components/schemas/NS2.Foo" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
 
-    const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostics = diagnosticsWith(program.diagnostics, "duplicate-schema-key");
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -401,16 +381,13 @@ describe("Unit: Schemas — schema keys and registration", () => {
         }
       }
     `);
-    const ref1 = builder.buildSchema(FooWidget as Model) as any;
-    const ref2 = builder.buildSchema(BarWidget as Model) as any;
+    const ref1 = builder.buildSchema(FooWidget as Model);
+    const ref2 = builder.buildSchema(BarWidget as Model);
 
-    expect(ref1.$ref).toBe("#/components/schemas/Foo.Widget");
-    expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
+    expect(refOf(ref1)).toBe("#/components/schemas/Foo.Widget");
+    expect(refOf(ref2)).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("should Sep-encode a backtick-declared model's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
@@ -420,7 +397,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       model M { field: \`Foo/Bar\`; }
     `);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     const key = String(props.field.$ref).replace("#/components/schemas/", "");
 
     expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
@@ -437,7 +414,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       model M { field: \`Foo/Bar\`; }
     `);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     const key = String(props.field.$ref).replace("#/components/schemas/", "");
 
     expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
@@ -460,7 +437,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     // `@friendlyName("{name}Envelope")` resolves `{name}` to the type
     // argument's own name, `Order`, giving `OrderEnvelope` rather than the
@@ -485,11 +462,8 @@ describe("Unit: Schemas — schema keys and registration", () => {
       }
     `);
     builder.buildSchema(W as Model);
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("should still use the structural name for a template instantiation with no @friendlyName", async () => {
@@ -507,7 +481,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.order.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(components.EnvelopeOrder).toBeDefined();
@@ -546,7 +520,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.color.$ref).toBe("#/components/schemas/Renamed");
     expect(components.Renamed).toBeDefined();

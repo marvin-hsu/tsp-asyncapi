@@ -1,8 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { $lib } from "../../src/lib.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
+import {
+  infoOf,
+  messagesOf,
+  present,
+  schemasOf,
+  securitySchemesOf,
+  serversOf,
+} from "../utils/document.js";
 
 describe("AsyncAPI Emitter", () => {
   it("should have correct library name", () => {
@@ -11,22 +18,22 @@ describe("AsyncAPI Emitter", () => {
 
   it("should output basic asyncapi 3.1.0 document (YAML by default)", async () => {
     const code = ``;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
     expect(doc.asyncapi).toBe("3.1.0");
-    expect(doc.info.title).toBe("TestService");
+    expect(infoOf(doc).title).toBe("TestService");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output JSON when file-type is json", async () => {
     const code = ``;
-    const doc = await emitAsyncAPI(code, { "file-type": "json" });
+    const doc = await emitDocument(code, { "file-type": "json" });
     expect(doc.asyncapi).toBe("3.1.0");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output to custom file name", async () => {
     const code = ``;
-    const doc = await emitAsyncAPI(code, { "output-file": "custom.yaml" });
+    const doc = await emitDocument(code, { "output-file": "custom.yaml" });
     expect(doc.asyncapi).toBe("3.1.0");
     await expect(doc).toBeValidAsyncAPI();
   });
@@ -36,17 +43,17 @@ describe("AsyncAPI Emitter", () => {
       namespace S1 { @service(#{ title: "Service 1" }) namespace Inner1 {} }
       namespace S2 { @service(#{ title: "Service 2" }) namespace Inner2 {} }
     `;
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(code, {}, false);
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(code, {}, false);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].code).toBe("tsp-asyncapi/multiple-services");
-    expect(doc.info.title).toBe("Service 1");
+    expect(infoOf(doc).title).toBe("Service 1");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should output fallback document when no service is provided", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics("", {}, false);
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics("", {}, false);
     expect(diagnostics).toHaveLength(0);
-    expect(doc.info.title).toBe("AsyncAPI Document");
+    expect(infoOf(doc).title).toBe("AsyncAPI Document");
     await expect(doc).toBeValidAsyncAPI();
   });
 });
@@ -54,8 +61,8 @@ describe("AsyncAPI Emitter", () => {
 describe("Phase 1: Document Skeleton & Info", () => {
   it("should extract title from @service", async () => {
     const code = `@service(#{ title: "Order Events" }) namespace Orders;`;
-    const doc = await emitAsyncAPI(code);
-    expect(doc.info.title).toBe("Order Events");
+    const doc = await emitDocument(code);
+    expect(infoOf(doc).title).toBe("Order Events");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -65,15 +72,15 @@ describe("Phase 1: Document Skeleton & Info", () => {
       @AsyncAPI.info(#{ version: "1.0.0" })
       model InvalidTarget {}
     `;
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(code);
+    const { diagnostics } = await emitDocumentWithDiagnostics(code);
     expect(diagnostics.length).toBeGreaterThan(0);
     expect(diagnostics[0].code).toBe("decorator-wrong-target");
   });
 
   it("should fallback version to 0.0.0 without @info", async () => {
     const code = `@service(#{ title: "Order Events" }) namespace Orders;`;
-    const doc = await emitAsyncAPI(code);
-    expect(doc.info.version).toBe("0.0.0");
+    const doc = await emitDocument(code);
+    expect(infoOf(doc).version).toBe("0.0.0");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -89,12 +96,12 @@ describe("Phase 1: Document Skeleton & Info", () => {
       })
       namespace Orders;
     `;
-    const doc = await emitAsyncAPI(code);
-    expect(doc.info.version).toBe("1.2.3");
-    expect(doc.info.description).toBe("Order system events");
-    expect(doc.info.termsOfService).toBe("https://example.com/terms");
-    expect(doc.info.contact?.name).toBe("API Team");
-    expect(doc.info.license?.name).toBe("MIT");
+    const doc = await emitDocument(code);
+    expect(infoOf(doc).version).toBe("1.2.3");
+    expect(infoOf(doc).description).toBe("Order system events");
+    expect(infoOf(doc).termsOfService).toBe("https://example.com/terms");
+    expect(infoOf(doc).contact?.name).toBe("API Team");
+    expect(infoOf(doc).license?.name).toBe("MIT");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -106,17 +113,17 @@ describe("Phase 1: Document Skeleton & Info", () => {
       @AsyncAPI.externalDocs("https://example.com/docs", "Docs")
       namespace Orders;
     `;
-    const doc = await emitAsyncAPI(code);
-    expect(doc.info.tags).toHaveLength(2);
-    expect(doc.info.tags).toContainEqual({ name: "orders" });
-    expect(doc.info.tags).toContainEqual({ name: "events" });
-    expect(doc.info.externalDocs?.url).toBe("https://example.com/docs");
+    const doc = await emitDocument(code);
+    expect(infoOf(doc).tags).toHaveLength(2);
+    expect(infoOf(doc).tags).toContainEqual({ name: "orders" });
+    expect(infoOf(doc).tags).toContainEqual({ name: "events" });
+    expect(infoOf(doc).externalDocs?.url).toBe("https://example.com/docs");
     await expect(doc).toBeValidAsyncAPI();
   });
 
   it("should set id and defaultContentType from options", async () => {
     const code = ``;
-    const doc = await emitAsyncAPI(code, {
+    const doc = await emitDocument(code, {
       "asyncapi-id": "urn:com:example:events",
       "default-content-type": "application/json",
     });
@@ -152,19 +159,16 @@ describe("Phase 1: Document Skeleton & Info", () => {
         items: OrderItem[];
       }
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(Object.keys(doc.servers)).toEqual(["production", "sit"]);
-    expect(Object.keys(doc.components.messages)).toEqual(["OrderPlaced"]);
-    expect(doc.components.messages.OrderPlaced.payload).toEqual({
+    expect(Object.keys(serversOf(doc))).toEqual(["production", "sit"]);
+    expect(Object.keys(messagesOf(doc))).toEqual(["OrderPlaced"]);
+    expect(messagesOf(doc).OrderPlaced.payload).toEqual({
       $ref: "#/components/schemas/OrderPlaced",
     });
     // `OrderItem` has no `@message` of its own. It reaches the document only
     // because the `OrderPlaced` payload refers to it.
-    expect(Object.keys(doc.components.schemas).sort(byCodePoint)).toEqual([
-      "OrderItem",
-      "OrderPlaced",
-    ]);
+    expect(Object.keys(schemasOf(doc)).sort(byCodePoint)).toEqual(["OrderItem", "OrderPlaced"]);
 
     await expect(doc).toBeValidAsyncAPI();
   });
@@ -206,9 +210,9 @@ describe("Phase 1: Document Skeleton & Info", () => {
         id: string;
       }
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(doc.components.messages.OrderPlaced.headers).toEqual({
+    expect(messagesOf(doc).OrderPlaced.headers).toEqual({
       type: "object",
       properties: {
         correlationId: { type: "string" },
@@ -218,20 +222,22 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     // The lifting message points at a payload component of its own, and that
     // component holds the fields that stayed behind.
-    expect(doc.components.messages.OrderPlaced.payload).toEqual({
+    expect(messagesOf(doc).OrderPlaced.payload).toEqual({
       $ref: "#/components/schemas/OrderPlacedPayload",
     });
     expect(
-      Object.keys(doc.components.schemas.OrderPlacedPayload.properties).sort(byCodePoint),
+      Object.keys(
+        present(schemasOf(doc).OrderPlacedPayload.properties, "OrderPlacedPayload properties"),
+      ).sort(byCodePoint),
     ).toEqual(["amount", "id"]);
-    expect(doc.components.messages.OrderShipped.headers).toEqual({
+    expect(messagesOf(doc).OrderShipped.headers).toEqual({
       $ref: "#/components/schemas/ShippingHeaders",
     });
     // `OrderShipped` lifts nothing, so its payload stays its own model.
-    expect(doc.components.messages.OrderShipped.payload).toEqual({
+    expect(messagesOf(doc).OrderShipped.payload).toEqual({
       $ref: "#/components/schemas/OrderShipped",
     });
-    expect(Object.keys(doc.components.schemas).sort(byCodePoint)).toEqual([
+    expect(Object.keys(schemasOf(doc)).sort(byCodePoint)).toEqual([
       "MqmdFields",
       "OrderPlacedPayload",
       "OrderShipped",
@@ -272,13 +278,13 @@ describe("Phase 1: Document Skeleton & Info", () => {
         amount: float64;
       }
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(doc.components.messages.OrderPlaced.correlationId).toEqual({
+    expect(messagesOf(doc).OrderPlaced.correlationId).toEqual({
       location: "$message.header#/correlationId",
       description: "Ties a reply to its request.",
     });
-    expect(doc.components.messages.OrderPlaced.examples).toEqual([
+    expect(messagesOf(doc).OrderPlaced.examples).toEqual([
       {
         name: "smallOrder",
         summary: "One line, already paid.",
@@ -312,12 +318,12 @@ describe("Phase 1: Document Skeleton & Info", () => {
         id: string;
       }
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(doc.components.messages.WholeHeader.correlationId).toEqual({
+    expect(messagesOf(doc).WholeHeader.correlationId).toEqual({
       location: "$message.header#",
     });
-    expect(doc.components.messages.NestedPointer.correlationId).toEqual({
+    expect(messagesOf(doc).NestedPointer.correlationId).toEqual({
       location: "$message.header#/MQMD/CorrelId",
     });
 
@@ -346,12 +352,12 @@ describe("Phase 1: Document Skeleton & Info", () => {
         id: string;
       }
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(doc.info.tags).toEqual([
+    expect(infoOf(doc).tags).toEqual([
       { name: "orders", description: "The order domain as a whole." },
     ]);
-    expect(doc.components.messages.OrderPlaced.tags).toEqual([
+    expect(messagesOf(doc).OrderPlaced.tags).toEqual([
       {
         name: "orders",
         description: "Emitted by the order service.",
@@ -362,7 +368,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
       },
       { name: "public" },
     ]);
-    expect(doc.components.messages.OrderPlaced.externalDocs).toEqual({
+    expect(messagesOf(doc).OrderPlaced.externalDocs).toEqual({
       url: "https://example.com/order-placed",
       description: "How to consume this message.",
     });
@@ -405,17 +411,17 @@ describe("Phase 1: Document Skeleton & Info", () => {
       })
       namespace Orders;
     `;
-    const doc = await emitAsyncAPI(code);
+    const doc = await emitDocument(code);
 
-    expect(doc.servers.production.security).toEqual([
+    expect(serversOf(doc).production.security).toEqual([
       { $ref: "#/components/securitySchemes/kafka-scram" },
       { $ref: "#/components/securitySchemes/oauth" },
     ]);
-    expect(Object.keys(doc.servers.production.variables)).toEqual(["tenant", "stage"]);
-    expect(Object.keys(doc.components.securitySchemes).sort(byCodePoint)).toEqual([
-      "kafka-scram",
-      "oauth",
+    expect(Object.keys(present(serversOf(doc).production.variables, "server variables"))).toEqual([
+      "tenant",
+      "stage",
     ]);
+    expect(Object.keys(securitySchemesOf(doc)).sort(byCodePoint)).toEqual(["kafka-scram", "oauth"]);
 
     await expect(doc).toBeValidAsyncAPI();
   });

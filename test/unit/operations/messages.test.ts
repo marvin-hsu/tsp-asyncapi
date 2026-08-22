@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Operation messages (Phase 5.2)", () => {
   let runner: TesterInstance;
@@ -29,7 +29,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const messages = doc.operations?.publish.messages ?? [];
 
     expect(messages).toHaveLength(1);
@@ -58,7 +58,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.consume.messages).toEqual([
       { $ref: "#/channels/orders.events/messages/OrderCreated" },
@@ -94,7 +94,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.messages).toEqual([
       { $ref: "#/channels/orders.events/messages/First" },
@@ -124,7 +124,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.messages).toEqual([
       { $ref: "#/channels/orders.events/messages/First" },
@@ -148,7 +148,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.consume.messages).toEqual([
       { $ref: "#/channels/orders.created/messages/OrderCreated" },
@@ -175,7 +175,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.onAny).not.toHaveProperty("messages");
     expect(doc.operations?.onAny.action).toBe("receive");
@@ -197,7 +197,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.publish.messages).toEqual([
       { $ref: "#/channels/orders.{region}.created/messages/OrderCreated" },
@@ -226,7 +226,7 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.operations?.push.messages).toEqual([
       { $ref: "#/channels/orders.events/messages/Command" },

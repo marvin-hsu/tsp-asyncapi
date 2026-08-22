@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Messages — source order", () => {
   let runner: TesterInstance;
@@ -16,7 +16,7 @@ describe("Unit: Messages — source order", () => {
    */
   async function messageKeys(code: string): Promise<string[]> {
     await runner.compile(code);
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     return Object.keys(doc.components?.messages ?? {});
   }
 

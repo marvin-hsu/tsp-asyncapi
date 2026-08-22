@@ -1,7 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
-import { compileSchemas, compileSchemasWithDiagnostics } from "../../utils/schema-host.js";
+import {
+  compileSchemas,
+  compileSchemasWithDiagnostics,
+  holderProperties,
+} from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { present, propertiesOf, schemaOf } from "../../utils/document.js";
+import type { SchemaObject } from "../../../src/types/index.js";
 
 /**
  * The keywords that describe a value without constraining it: `default`,
@@ -12,20 +17,9 @@ import { t } from "@typespec/compiler/testing";
  * source says.
  */
 describe("Unit: Schemas — annotations", () => {
-  async function propertiesOf(body: string): Promise<Record<string, any>> {
-    const { builder, M } = await compileSchemas(t.code`
-      ${body}
-      model ${t.model("M")} {
-        target: Holder;
-      }
-    `);
-    builder.buildSchema(M);
-    return builder.getSchemas().Holder.properties as Record<string, any>;
-  }
-
   describe("@secret", () => {
     it("maps to the password format", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           @secret token: string;
         }
@@ -35,7 +29,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("lets an explicit @format win", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           @secret @format("uuid") id: string;
         }
@@ -47,7 +41,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("applies to a scalar declaration", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         @secret scalar Password extends string;
         model Holder {
           p: Password;
@@ -60,7 +54,7 @@ describe("Unit: Schemas — annotations", () => {
 
   describe("default values", () => {
     it("emits a string default", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           greeting?: string = "hello";
         }
@@ -70,7 +64,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("emits a numeric default", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           retries?: int32 = 3;
         }
@@ -80,7 +74,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("emits a boolean default", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           enabled?: boolean = false;
         }
@@ -91,18 +85,18 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("emits an enum member default", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         enum Level { Low: "low", High: "high" }
         model Holder {
           level?: Level = Level.Low;
         }
       `);
 
-      expect(props.level.default).toBe("low");
+      expect(schemaOf(props.level).default).toBe("low");
     });
 
     it("keeps a default alongside the property's own constraints", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           @minLength(2) name?: string = "ab";
         }
@@ -122,7 +116,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
       builder.buildSchema(M);
 
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const props = propertiesOf(builder.getSchemas().M);
       // A half-serialized default would put a value in the schema that the
       // schema itself rejects, so the keyword is left out entirely.
       expect("default" in props.ip).toBe(false);
@@ -133,7 +127,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("emits no default for a property that has none", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           name?: string;
         }
@@ -160,7 +154,7 @@ describe("Unit: Schemas — annotations", () => {
         }
       `);
       builder.buildSchema(M);
-      const schemas = builder.getSchemas() as unknown as Record<string, any>;
+      const schemas = builder.getSchemas();
 
       expect(schemas.Nested.externalDocs).toEqual({
         url: "https://example.com/nested",
@@ -169,7 +163,7 @@ describe("Unit: Schemas — annotations", () => {
     });
 
     it("reaches a scalar's use site", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         @externalDocs("https://example.com/code")
         scalar Code extends string;
         model Holder {
@@ -179,37 +173,38 @@ describe("Unit: Schemas — annotations", () => {
 
       // The decorator is on the scalar, so it has to travel down the
       // `baseScalar` chain to the property that uses it.
-      expect(props.c.externalDocs).toEqual({ url: "https://example.com/code" });
+      expect(schemaOf(props.c).externalDocs).toEqual({ url: "https://example.com/code" });
     });
 
     it("reaches a property of its own", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           @externalDocs("https://example.com/prop", "Prop docs")
           p: string;
         }
       `);
 
-      expect(props.p.externalDocs).toEqual({
+      expect(schemaOf(props.p).externalDocs).toEqual({
         url: "https://example.com/prop",
         description: "Prop docs",
       });
     });
 
     it("omits the description when none was given", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           @externalDocs("https://example.com/only-url")
           p: string;
         }
       `);
 
-      expect(props.p.externalDocs.url).toBe("https://example.com/only-url");
-      expect(props.p.externalDocs.description).toBeUndefined();
+      const onlyUrl = present(schemaOf(props.p).externalDocs, "externalDocs");
+      expect(onlyUrl.url).toBe("https://example.com/only-url");
+      expect(onlyUrl.description).toBeUndefined();
     });
 
     it("stays outside the allOf when the property wraps its scalar", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         @minLength(5)
         scalar Tight extends string;
         model Holder {
@@ -221,19 +216,22 @@ describe("Unit: Schemas — annotations", () => {
 
       // A property re-declaring a keyword its scalar already carries makes the
       // builder wrap the scalar's shape in `allOf`, so both constraints hold.
-      expect(props.p.allOf).toBeDefined();
+      expect(schemaOf(props.p).allOf).toBeDefined();
       // `externalDocs` describes the value, it does not constrain it. Left
       // inside the `allOf` branch, a reader looking at this property would
       // never see the link.
-      expect(props.p.externalDocs).toEqual({
+      expect(schemaOf(props.p).externalDocs).toEqual({
         url: "https://example.com/wrapped",
         description: "Wrapped docs",
       });
-      expect(props.p.allOf[0].externalDocs).toBeUndefined();
+      // The branch is a schema rather than a reference here, and that is the
+      // claim: the wrapper carries the docs, the branch does not.
+      const branch = present(schemaOf(props.p).allOf, "allOf")[0] as SchemaObject;
+      expect(branch.externalDocs).toBeUndefined();
     });
 
     it("emits nothing for a target with no @externalDocs", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           p: string;
         }
@@ -245,7 +243,7 @@ describe("Unit: Schemas — annotations", () => {
 
   describe("#deprecated", () => {
     it("marks a deprecated property", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           #deprecated "use fullName instead"
           name?: string;
@@ -269,12 +267,12 @@ describe("Unit: Schemas — annotations", () => {
       // warning is the message `#deprecated` carries; JSON Schema's
       // `deprecated` keyword is a bare boolean with nowhere to put it.
       expect(diagnostics.map((d) => d.code)).toEqual(["deprecated"]);
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const props = propertiesOf(builder.getSchemas().M);
       expect(props.e).toEqual({ type: "string", deprecated: true });
     });
 
     it("emits no deprecated keyword for a property that is not deprecated", async () => {
-      const props = await propertiesOf(`
+      const props = await holderProperties(`
         model Holder {
           name?: string;
         }
@@ -295,7 +293,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
       builder.buildSchema(M);
 
-      const old = builder.getSchemas().Old as any;
+      const old = builder.getSchemas().Old;
       expect(old.deprecated).toBe(true);
     });
   });

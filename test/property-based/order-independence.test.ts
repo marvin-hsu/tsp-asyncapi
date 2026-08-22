@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * The emitted document must not depend on the order declarations appear in.
@@ -75,8 +75,8 @@ describe("Property: order independence", () => {
           const beta = `@AsyncAPI.message model Beta { ${fieldsOf(rightIds)} }`;
           const head = `model Env<T> { data: T; }\n${aliases}`;
 
-          const a = await emitAsyncAPIWithDiagnostics(`${head}\n${alpha}\n${beta}`);
-          const b = await emitAsyncAPIWithDiagnostics(`${head}\n${beta}\n${alpha}`);
+          const a = await emitDocumentWithDiagnostics(`${head}\n${alpha}\n${beta}`);
+          const b = await emitDocumentWithDiagnostics(`${head}\n${beta}\n${alpha}`);
 
           fc.pre(a.doc !== null && b.doc !== null);
           fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
@@ -125,13 +125,9 @@ describe("Property: order independence", () => {
    * promote-on-second-use rule, and any state that rule keeps would go
    * unwatched.
    *
-   * Reachability, measured in this worktree at 120 runs with seed 20260815.
-   * The seed is pinned below, so these counts reproduce.
-   *
-   *   documents emitted and compared                    120
-   *   runs whose rotation really moved a declaration      81
-   *   runs whose `components.schemas` key order moved     81
-   *   runs carrying a promoted `Env...` component        120
+   * Reachability. Three counters: runs whose rotation really moved a
+   * declaration, runs whose `components.schemas` key order moved, and runs
+   * carrying a promoted `Env...` component.
    *
    * A run drawing an offset that is a multiple of three moves nothing and
    * compares a document with itself. All three counters are asserted below.
@@ -175,15 +171,15 @@ describe("Property: order independence", () => {
           if (moved) permuted++;
 
           const head = "model Env<T> { data: T; }";
-          const a = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...messages].join("\n"));
-          const b = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
+          const a = await emitDocumentWithDiagnostics([head, ...aliases, ...messages].join("\n"));
+          const b = await emitDocumentWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
 
           fc.pre(a.doc !== null && b.doc !== null);
           fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
           fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
 
-          const keysA = Object.keys(a.doc.components?.schemas ?? {});
-          const keysB = Object.keys(b.doc.components?.schemas ?? {});
+          const keysA = Object.keys(schemasOf(a.doc));
+          const keysB = Object.keys(schemasOf(b.doc));
           if (keysA.join(",") !== keysB.join(",")) keyOrderMoved++;
           // Alpha, Beta and Gamma are the declared messages. Any other key
           // is a shape that was inlined first and promoted on its second

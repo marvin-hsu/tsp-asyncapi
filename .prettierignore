@@ -3,6 +3,11 @@ coverage
 dist
 etc/
 
-# The output baselines of the Phase 9 refactor. They are the bytes the
-# emitter wrote, so a formatter must never touch them.
-test/integration/__snapshots__/
+# Every output baseline, at whatever depth it sits. They are the bytes the
+# emitter wrote, so a formatter must never touch one. Reformatting a baseline
+# would silently rewrite the only thing those tests are guarding.
+#
+# The pattern is deliberately wider than the one directory that holds them
+# today. A baseline that moves to another directory keeps its protection, and
+# the move is the moment the protection is easiest to forget.
+test/**/__snapshots__/

@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { buildAsyncAPIWithDiagnostics, emitAsyncAPI } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { buildAsyncAPIWithDiagnostics, emitDocument } from "../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { channelsOf, messagesOf } from "../../utils/document.js";
+import { PUBLISH_ORDER_CREATED } from "../../utils/source.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -14,17 +15,12 @@ const SERVICE = `
   }
 `;
 
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
 const SETTINGS = `#{ encoding: "json", name: "projects/p/schemas/order" }`;
 
 describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
   describe("@googlePubSubChannel", () => {
     it("emits every field with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{
@@ -40,11 +36,11 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.channels["orders-created"].bindings).toEqual({
+      expect(channelsOf(doc)["orders-created"].bindings).toEqual({
         googlepubsub: {
           schemaSettings: {
             encoding: "json",
@@ -67,11 +63,11 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         @googlePubSubChannel(#{ messageRetentionDuration: "86400s" })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schemaSettings");
       expect(reported.severity).toBe("error");
       expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
@@ -84,12 +80,12 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         @googlePubSubChannel(#{ schemaSettings: #{ firstRevisionId: "rev-1" } })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // Reporting only the first would send the author round the loop twice.
-      const missing = diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-binding-field");
+      const missing = diagnosticsWith(diagnostics, "missing-binding-field");
       expect(missing).toHaveLength(2);
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.encoding");
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.name");
@@ -105,35 +101,35 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // A name of spaces names no schema, so it is worth no more than an
       // absent field.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schemaSettings.name");
     });
 
     it("drops an empty label map rather than emitting one", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{ schemaSettings: ${SETTINGS}, labels: #{} })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.channels["orders-created"].bindings.googlepubsub).toEqual({
+      expect(channelsOf(doc)["orders-created"].bindings?.googlepubsub).toEqual({
         schemaSettings: { encoding: "json", name: "projects/p/schemas/order" },
         bindingVersion: "0.2.0",
       });
     });
 
     it("drops a storage policy that lists no region", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{
@@ -142,21 +138,23 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // An empty policy states no restriction, which is what an absent field
       // already says.
-      expect("messageStoragePolicy" in doc.channels["orders-created"].bindings.googlepubsub).toBe(
-        false,
-      );
+      const binding = channelsOf(doc)["orders-created"].bindings?.googlepubsub;
+      // `in` needs an object. Without the binding the claim would be vacuous,
+      // so say so here rather than reading `in` off undefined.
+      if (binding === undefined) throw new Error("The channel has no googlepubsub binding.");
+      expect("messageStoragePolicy" in binding).toBe(false);
     });
   });
 
   describe("@googlePubSubMessage", () => {
     it("emits every field with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
         namespace Test;
@@ -173,11 +171,11 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
-      expect(doc.components.messages.OrderCreated.bindings).toEqual({
+      expect(messagesOf(doc).OrderCreated.bindings).toEqual({
         googlepubsub: {
           attributes: { source: "checkout" },
           orderingKey: "customer-id",
@@ -201,13 +199,13 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // The object itself is optional, so only it goes. The binding still
       // says how the messages are ordered.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schema.name");
       expect(doc.components?.messages?.OrderCreated.bindings).toEqual({
         googlepubsub: { orderingKey: "customer-id", bindingVersion: "0.2.0" },
@@ -215,7 +213,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("emits the binding version on its own when no field was written", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
         namespace Test;
@@ -228,12 +226,12 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
       // No field of the message binding is required, unlike the channel one.
-      expect(doc.components.messages.OrderCreated.bindings.googlepubsub).toEqual({
+      expect(messagesOf(doc).OrderCreated.bindings?.googlepubsub).toEqual({
         bindingVersion: "0.2.0",
       });
     });

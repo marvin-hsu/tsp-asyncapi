@@ -1,16 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { findDiagnostic } from "../../utils/diagnostics.js";
+import { propertiesOf, refOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — enums and unions", () => {
   it("should build a string enum from members with no explicit value, using each member's own name as its value", async () => {
     const { builder, Color } = await compileSchemas(t.code`
       enum ${t.enum("Color")} { Red, Green }
     `);
-    const ref = builder.buildSchema(Color) as any;
+    const ref = builder.buildSchema(Color);
 
-    expect(ref.$ref).toBe("#/components/schemas/Color");
+    expect(refOf(ref)).toBe("#/components/schemas/Color");
     expect(builder.getSchemas().Color).toEqual({
       type: "string",
       enum: ["Red", "Green"],
@@ -63,7 +64,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.status).toEqual({ type: "string", enum: ["a", "b"] });
   });
 
@@ -75,7 +76,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({
       anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
     });
@@ -91,7 +92,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({ $ref: "#/components/schemas/Shape" });
     expect(builder.getSchemas().Shape).toEqual({
       oneOf: [{ type: "string" }, { type: "integer", format: "int32" }],
@@ -106,7 +107,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({
       anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
     });
@@ -117,9 +118,9 @@ describe("Unit: Schemas — enums and unions", () => {
       @AsyncAPI.oneOf
       union ${t.union("Named")} { string, int32 }
     `);
-    const ref = builder.buildSchema(Named) as any;
+    const ref = builder.buildSchema(Named);
 
-    expect(ref.$ref).toBe("#/components/schemas/Named");
+    expect(refOf(ref)).toBe("#/components/schemas/Named");
     expect(builder.getSchemas().Named).toEqual({
       oneOf: [{ type: "string" }, { type: "integer", format: "int32" }],
     });
@@ -133,7 +134,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({
       anyOf: [{ type: "string" }, { type: "null" }],
     });
@@ -143,9 +144,9 @@ describe("Unit: Schemas — enums and unions", () => {
     const { builder, Named } = await compileSchemas(t.code`
       union ${t.union("Named")} { string, int32 }
     `);
-    const ref = builder.buildSchema(Named) as any;
+    const ref = builder.buildSchema(Named);
 
-    expect(ref.$ref).toBe("#/components/schemas/Named");
+    expect(refOf(ref)).toBe("#/components/schemas/Named");
     expect(builder.getSchemas().Named).toEqual({
       anyOf: [{ type: "string" }, { type: "integer", format: "int32" }],
     });
@@ -155,9 +156,9 @@ describe("Unit: Schemas — enums and unions", () => {
     const { builder, Named } = await compileSchemas(t.code`
       union ${t.union("Named")} { "a", "b" }
     `);
-    const ref = builder.buildSchema(Named) as any;
+    const ref = builder.buildSchema(Named);
 
-    expect(ref.$ref).toBe("#/components/schemas/Named");
+    expect(refOf(ref)).toBe("#/components/schemas/Named");
     expect(builder.getSchemas().Named).toEqual({ type: "string", enum: ["a", "b"] });
   });
 
@@ -188,7 +189,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.c).toEqual({ type: "string", enum: ["Red"] });
   });
 
@@ -205,7 +206,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.level).toEqual({ type: "number", enum: [1] });
   });
 
@@ -218,7 +219,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.d).toEqual({
       anyOf: [
         { type: "string", enum: ["Red"] },
@@ -239,7 +240,7 @@ describe("Unit: Schemas — enums and unions", () => {
     expect(Object.hasOwn(builder.getSchemas(), "Wrap")).toBe(false);
 
     builder.buildSchema(M);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.x).toEqual({ $ref: "#/components/schemas/WrapInt32" });
     expect(builder.getSchemas().WrapInt32).toEqual({
       anyOf: [{ type: "integer", format: "int32" }, { type: "string" }],
@@ -281,15 +282,12 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({ $ref: "#/components/schemas/Color" });
     expect(props.b).toEqual({ $ref: "#/components/schemas/Color" });
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("should build $ref for named enum and named union fields on a model", async () => {
@@ -303,7 +301,7 @@ describe("Unit: Schemas — enums and unions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.c).toEqual({ $ref: "#/components/schemas/Color" });
     expect(props.n).toEqual({ $ref: "#/components/schemas/Named" });
     expect(builder.getSchemas().Color).toEqual({ type: "string", enum: ["Red", "Green"] });

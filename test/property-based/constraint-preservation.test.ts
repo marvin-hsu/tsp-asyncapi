@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * No declared constraint is erased by a more-derived level.
@@ -47,13 +47,11 @@ import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
  *     a property whose scalar declares `@minValue(5)` gives "Type '4' is
  *     not assignable to type 'Test.N2'". The generators below avoid all
  *     three, so no input is silently thrown away.
- *   - Over the 150 runs of each property, the counters record how many runs
- *     produced an `allOf` at all, and how many produced an `allOf` nested
- *     inside another `allOf`. Both are asserted non-zero. At the fixed seed
- *     below the measured values were 150 and 139 for the string property,
- *     and 122 and 58 for the numeric property. So the collision branch runs
- *     on nearly every input, and the two-level nesting that stacks
- *     `withDocs`'s wrap under `withPropertyDocs`'s wrap runs on most of
+ *   - Each property counts how many runs produced an `allOf` at all, and how
+ *     many produced an `allOf` nested inside another `allOf`. Both are
+ *     asserted non-zero. The collision branch runs on nearly every input,
+ *     and the two-level nesting that stacks `withDocs`'s wrap under
+ *     `withPropertyDocs`'s wrap runs on most of
  *     them.
  */
 describe("Property: no declared constraint is erased", () => {
@@ -114,7 +112,7 @@ describe("Property: no declared constraint is erased", () => {
         return `${level.decorators.join(" ")} scalar S${String(i)} extends ${parent};`;
       })
       .join("\n");
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${declarations}
       @AsyncAPI.message
       model Root {
@@ -125,7 +123,7 @@ describe("Property: no declared constraint is erased", () => {
     // An error here means the generator built illegal TypeSpec. Fail loudly
     // instead of skipping, so the property cannot starve unnoticed.
     expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.code)).toEqual([]);
-    const schema: unknown = doc?.components?.schemas?.Root?.properties?.v;
+    const schema: unknown = schemasOf(doc).Root.properties?.v;
     return schema;
   }
 
