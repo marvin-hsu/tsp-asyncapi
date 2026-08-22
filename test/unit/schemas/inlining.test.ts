@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { Model } from "@typespec/compiler";
@@ -6,7 +5,19 @@ import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
 import { byCodePoint } from "../../utils/sort.js";
-import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
+import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";
+import type { ReferenceObject, SchemaObject } from "../../../src/types/index.js";
+
+/**
+ * The `x` property of the `data` property of one built schema.
+ *
+ * Two levels of "this is a schema, not a reference, and it describes
+ * properties". Spelled out at both call sites it buries what is being
+ * compared.
+ */
+const dataX = (value: SchemaObject | ReferenceObject) =>
+  propertiesOf(schemaOf(propertiesOf(schemaOf(value)).data)).x;
 
 describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   it('inlines a template instantiation with a string-literal template argument (P<"created">) instead of registering a synthesized name', async () => {
@@ -24,7 +35,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.a).toEqual({
       type: "object",
@@ -49,7 +60,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(W2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.W2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.W2);
     expect(props2.a).toEqual(props.a);
     expect(props2.b).toEqual(props.b);
   });
@@ -72,7 +83,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     const inlineShape = {
       type: "object",
@@ -85,8 +96,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // included.
     expect(props.a).toEqual(props.b);
     expect(props.b).toEqual(props.c);
-    expect(props.b.$ref).toBeDefined();
-    const key = (props.b.$ref as string).replace("#/components/schemas/", "");
+    const key = refOf(props.b).replace("#/components/schemas/", "");
     expect(components[key]).toEqual(inlineShape);
     // The body is emitted once, as that component.
     expect(JSON.stringify(components.M)).not.toContain('"properties":{"x"');
@@ -103,7 +113,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.c).toEqual({
       type: "object",
@@ -129,7 +139,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -154,7 +164,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(M2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.M2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.M2);
     expect(props2.a).toEqual({
       type: "object",
       properties: { v: { type: "string", enum: [""] } },
@@ -179,7 +189,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -207,7 +217,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -239,19 +249,18 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a.$ref).toBe("#/components/schemas/PUnknown");
     expect(props.b.$ref).toBeUndefined();
-    expect(props.b.type).toBe("object");
+    expect(schemaOf(props.b).type).toBe("object");
     // The compiler substitutes the bare Tuple type directly for `T`.
     // `buildSchema` has no representation for a bare Tuple value; it
     // degrades to `{}` and reports the pre-existing
     // `unsupported-payload-type` diagnostic, the same as any other
     // unsupported payload type.
-    expect(props.b.properties.v).toEqual({});
-    const diagnostic = findDiagnostic(program.diagnostics, "unsupported-payload-type");
-    expect(diagnostic).toBeDefined();
+    expect(propertiesOf(schemaOf(props.b)).v).toEqual({});
+    expect(diagnosticsWith(program.diagnostics, "unsupported-payload-type")).toHaveLength(1);
   });
 
   it("distinguishes a tuple template argument from its bare element type: the bare type stays a named instantiation, the tuple argument inlines", async () => {
@@ -264,12 +273,12 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a.$ref).toBe("#/components/schemas/PString");
     expect(props.b.$ref).toBeUndefined();
-    expect(props.b.type).toBe("object");
-    expect(props.b.properties.v).toEqual({});
+    expect(schemaOf(props.b).type).toBe("object");
+    expect(propertiesOf(schemaOf(props.b)).v).toEqual({});
 
     const runnerReversed = await AsyncAPITester.createInstance();
     const { M: M2 } = await runnerReversed.compile(t.code`
@@ -279,7 +288,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder2 = new SchemaBuilder(runnerReversed.program);
     builder2.buildSchema(M2 as Model);
-    const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+    const props2 = propertiesOf(builder2.getSchemas().M);
 
     expect(props2.a.$ref).toBe("#/components/schemas/PString");
     expect(props2.b).toEqual(props.b);
@@ -298,7 +307,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -342,7 +351,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder2 = new SchemaBuilder(runnerReversed.program);
     builder2.buildSchema(M2 as Model);
-    const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+    const props2 = propertiesOf(builder2.getSchemas().M);
 
     expect(props2.a).toEqual(props.a);
     expect(props2.b).toEqual(props.b);
@@ -363,7 +372,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
       model M { a: Envelope<{x: string}>; b: Envelope<{x: string}>; }
     `);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
 
     const expected = {
       type: "object",
@@ -386,7 +395,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
       model M { a: P<"a b">; b: P<"a#b">; }
     `);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -409,7 +418,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -434,11 +443,11 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
 
     expect(props.a).not.toEqual(props.b);
-    expect(props.a.properties.data.properties.x).toEqual({ type: "string" });
-    expect(props.b.properties.data.properties.x).toEqual({
+    expect(dataX(props.a)).toEqual({ type: "string" });
+    expect(dataX(props.b)).toEqual({
       type: "integer",
       format: "int32",
     });
@@ -451,7 +460,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder2 = new SchemaBuilder(runnerReversed.program);
     builder2.buildSchema(M2 as Model);
-    const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+    const props2 = propertiesOf(builder2.getSchemas().M);
 
     expect(props2.a).toEqual(props.a);
     expect(props2.b).toEqual(props.b);
@@ -470,7 +479,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
 
     expect(props.a).toEqual({
       type: "object",
@@ -492,7 +501,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     const builder2 = new SchemaBuilder(runnerReversed.program);
     builder2.buildSchema(M2 as Model);
-    const props2 = builder2.getSchemas().M.properties as Record<string, any>;
+    const props2 = propertiesOf(builder2.getSchemas().M);
 
     expect(props2.a).toEqual(props.a);
     expect(props2.b).toEqual(props.b);
@@ -511,7 +520,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     // Only `M` itself is registered. No `PAbc` or similar key exists.
     expect(Object.keys(components)).toEqual(["M"]);
@@ -545,7 +554,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(Object.keys(components).sort(byCodePoint)).toEqual([
       "InnerString",
@@ -581,7 +590,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(Object.keys(components)).toEqual(["M"]);
     const inlined = {
@@ -607,7 +616,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     // The speakable neighbour keeps its compact composed name.
     expect(props.b.$ref).toBe("#/components/schemas/NodeString");
@@ -618,14 +627,14 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     const key = "NodeSep123Sep32XSep58Sep32StringSep32Sep125";
     const selfRef = `#/components/schemas/${key}`;
     expect(props.a.$ref).toBe(selfRef);
-    const promoted = components[key] as any;
+    const promoted = components[key];
     expect(promoted).toBeDefined();
-    expect(promoted.properties.v).toEqual({
+    expect(propertiesOf(promoted).v).toEqual({
       type: "object",
       properties: { x: { type: "string" } },
       required: ["x"],
     });
-    expect(promoted.properties.children).toEqual({
+    expect(propertiesOf(promoted).children).toEqual({
       type: "array",
       items: { $ref: selfRef },
     });
@@ -647,7 +656,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     const key = "NodeSep123Sep32XSep58Sep32StringSep32Sep125";
     expect(props.a.$ref).toBe(`#/components/schemas/${key}`);
@@ -693,8 +702,8 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(diagnosticsWith(program.diagnostics, "unsupported-payload-type")).toHaveLength(1);
 
     // Both properties resolve to the one registered component.
-    const components = builder.getSchemas() as Record<string, any>;
-    const props = components.M.properties as Record<string, any>;
+    const components = builder.getSchemas();
+    const props = propertiesOf(components.M);
     expect(props.a.$ref).toBe(props.b.$ref);
     const key = String(props.a.$ref).replace("#/components/schemas/", "");
     expect(Object.hasOwn(components, key)).toBe(true);
@@ -727,7 +736,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(Object.keys(components)).toEqual(["M"]);
     const inlined = {
@@ -752,17 +761,17 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     const keyA = "ChainSep123Sep32XSep58Sep32StringSep32Sep125";
     const keyB = "ChainSep123Sep32YSep58Sep32Int32Sep32Sep125";
     expect(props.a.$ref).toBe(`#/components/schemas/${keyA}`);
     expect(props.b.$ref).toBe(`#/components/schemas/${keyB}`);
-    expect((components[keyA] as any).anyOf).toEqual([
+    expect(components[keyA].anyOf).toEqual([
       { type: "object", properties: { x: { type: "string" } }, required: ["x"] },
       { $ref: `#/components/schemas/${keyA}` },
     ]);
-    expect((components[keyB] as any).anyOf).toEqual([
+    expect(components[keyB].anyOf).toEqual([
       {
         type: "object",
         properties: { y: { type: "integer", format: "int32" } },

@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { t } from "@typespec/compiler/testing";
 import { buildDocSchema, compileSchemas } from "../../utils/schema-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { propertiesOf, schemaOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — validation keywords and extensions", () => {
   it("merges two separate applications' key/value pairs alongside a model's own properties", async () => {
@@ -34,7 +34,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.name).toEqual({ type: "string", deprecated: true });
   });
 
@@ -62,7 +62,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     `);
     builder.buildSchema(M);
 
-    const schema = builder.getSchemas().M as Record<string, any>;
+    const schema = builder.getSchemas().M;
     expect(schema.type).toBe("override");
   });
 
@@ -75,7 +75,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.name).toEqual({ type: "string", minLength: 2, maxLength: 20 });
   });
 
@@ -87,7 +87,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.name).toEqual({ type: "string", pattern: "^[a-z]+$" });
   });
 
@@ -99,7 +99,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.id).toEqual({ type: "string", format: "uuid" });
   });
 
@@ -115,7 +115,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.name).toEqual({
       type: "string",
       minLength: 2,
@@ -135,7 +135,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({ type: "string", format: "uri" });
   });
 
@@ -148,7 +148,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({ type: "string", format: "uri-reference" });
   });
 
@@ -163,7 +163,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.u).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       description: "A username",
@@ -194,7 +194,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.id).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       title: "The key",
@@ -216,7 +216,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.v).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       description: "Tight",
@@ -233,7 +233,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.age).toEqual({ type: "integer", format: "int32", minimum: 18, maximum: 200 });
   });
 
@@ -246,7 +246,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.distance).toEqual({
       type: "number",
       format: "double",
@@ -265,7 +265,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.age).toEqual({ type: "integer", format: "int32", minimum: 18, maximum: 200 });
   });
 
@@ -278,7 +278,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.tags).toEqual({
       type: "array",
       items: { type: "string" },
@@ -314,7 +314,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.endpoints).toEqual({
       allOf: [{ $ref: "#/components/schemas/Endpoints" }],
       minItems: 1,
@@ -331,7 +331,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({ type: "string", minLength: 2 });
   });
 
@@ -347,7 +347,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // Tight's stricter minLength(5)/pattern must still be enforced
     // alongside Loose's own (weaker) minLength(2). Losing them would let
     // "ab" validate, even though Tight forbids it.
@@ -368,7 +368,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.v).toEqual({
       allOf: [{ type: "integer", format: "int32", minimum: 10 }],
       minimum: 1,
@@ -385,7 +385,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.name).toEqual({
       allOf: [{ type: "string", minLength: 2 }],
       minLength: 5,
@@ -404,7 +404,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // The scalar's own (stricter) constraints must still be enforced
     // alongside the property's own (weaker) ones. Losing them would let
     // `"AB"` validate, even though `Username` forbids it.
@@ -427,7 +427,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.u).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       description: "prop doc",
@@ -444,11 +444,11 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // The exact bound cannot be represented as a JS number, so it is not
     // emitted as `minimum`/`maximum`. But the drop must be diagnosed.
-    expect(props.v.minimum).toBeUndefined();
-    expect(props.v.maximum).toBeUndefined();
+    expect(schemaOf(props.v).minimum).toBeUndefined();
+    expect(schemaOf(props.v).maximum).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "unrepresentable-numeric-constraint").length,
     ).toBeGreaterThan(0);
@@ -462,7 +462,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.at).toEqual({ type: "string", format: "date-time" });
     expect(
       diagnosticsWith(program.diagnostics, "unsupported-temporal-range-constraint").length,
@@ -477,7 +477,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.v).toEqual({ type: "string", minLength: 3 });
   });
 
@@ -489,8 +489,8 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.name.maxLength).toBeUndefined();
+    const props = propertiesOf(builder.getSchemas().M);
+    expect(schemaOf(props.name).maxLength).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "unrepresentable-numeric-constraint").length,
     ).toBeGreaterThan(0);
@@ -504,8 +504,8 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.tags.minItems).toBeUndefined();
+    const props = propertiesOf(builder.getSchemas().M);
+    expect(schemaOf(props.tags).minItems).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "unrepresentable-numeric-constraint").length,
     ).toBeGreaterThan(0);
@@ -586,11 +586,11 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
 
-    expect((components.WrapperOrder.properties as Record<string, any>).label).toEqual({
+    expect(propertiesOf(components.WrapperOrder).label).toEqual({
       type: "string",
       minLength: 3,
     });
-    expect((components.WrapperProduct.properties as Record<string, any>).label).toEqual({
+    expect(propertiesOf(components.WrapperProduct).label).toEqual({
       type: "string",
       minLength: 3,
     });

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { Model } from "@typespec/compiler";
@@ -6,6 +5,7 @@ import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — template instantiation naming", () => {
   it("should name a template model instantiation from the template name plus its type argument (Envelope<Order> -> EnvelopeOrder)", async () => {
@@ -26,12 +26,12 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.order.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(components.EnvelopeOrder).toBeDefined();
-    const envelopeSchema = components.EnvelopeOrder as any;
-    expect(envelopeSchema.properties.data).toEqual({ $ref: "#/components/schemas/Order" });
+    const envelopeSchema = components.EnvelopeOrder;
+    expect(propertiesOf(envelopeSchema).data).toEqual({ $ref: "#/components/schemas/Order" });
 
     // The same instantiation reached through another field must reuse the
     // exact same key/schema rather than being registered a second time.
@@ -50,7 +50,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(W2 as Model);
-    const props2 = builder2.getSchemas().W2.properties as Record<string, any>;
+    const props2 = propertiesOf(builder2.getSchemas().W2);
     expect(props2.a.$ref).toBe(props2.b.$ref);
     expect(Object.keys(builder2.getSchemas()).filter((k) => k.startsWith("Envelope"))).toHaveLength(
       1,
@@ -66,7 +66,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.a.$ref).toBe("#/components/schemas/PColorRed");
     expect(props.b.$ref).toBe("#/components/schemas/PColorGreen");
@@ -82,7 +82,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.x.$ref).toBe("#/components/schemas/WrapperInt32");
     expect(props.y.$ref).toBe("#/components/schemas/WrapperBoolean");
@@ -96,7 +96,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(W2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.W2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.W2);
     expect(props2.x.$ref).toBe("#/components/schemas/WrapperInt32");
     expect(props2.y.$ref).toBe("#/components/schemas/WrapperBoolean");
   });
@@ -121,13 +121,12 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     builder.buildSchema(W as Model);
     const components = builder.getSchemas();
-    const props = components.W.properties as Record<string, any>;
+    const props = propertiesOf(components.W);
 
     expect(props.a.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder");
 
     const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
-    expect(diagnostic).toBeDefined();
     expect(diagnostic.severity).toBe("error");
   });
 
@@ -143,7 +142,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.Order");
     expect(props.y.$ref).toBe("#/components/schemas/EnvelopeB.Order");
@@ -159,7 +158,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(M2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.M2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.M2);
     expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.Order");
     expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeB.Order");
   });
@@ -176,7 +175,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.B.Order");
     expect(props.y.$ref).toBe("#/components/schemas/EnvelopeAB.Order");
@@ -192,7 +191,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(M2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.M2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.M2);
     expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.B.Order");
     expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeAB.Order");
   });
@@ -209,7 +208,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder = new SchemaBuilder(runner.program);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.x.$ref).toBe("#/components/schemas/EnvelopeA.Status");
     expect(props.y.$ref).toBe("#/components/schemas/EnvelopeB.Status");
@@ -225,7 +224,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder2 = new SchemaBuilder(runner.program);
     builder2.buildSchema(M2 as Model);
     const components2 = builder2.getSchemas();
-    const props2 = components2.M2.properties as Record<string, any>;
+    const props2 = propertiesOf(components2.M2);
     expect(props2.x.$ref).toBe("#/components/schemas/EnvelopeA.Status");
     expect(props2.y.$ref).toBe("#/components/schemas/EnvelopeB.Status");
 
@@ -240,7 +239,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     const builder3 = new SchemaBuilder(runner.program);
     builder3.buildSchema(M3 as Model);
     const components3 = builder3.getSchemas();
-    const props3 = components3.M3.properties as Record<string, any>;
+    const props3 = propertiesOf(components3.M3);
     expect(props3.x.$ref).toBe("#/components/schemas/Envelope2A.Email");
     expect(props3.y.$ref).toBe("#/components/schemas/Envelope2B.Email");
   });
@@ -254,8 +253,8 @@ describe("Unit: Schemas — template instantiation naming", () => {
       model M { x: Env<\`a/b\`>; y: Env<\`c#d\`>; }
     `);
     builder.buildSchema(M as Model);
-    const components = builder.getSchemas() as Record<string, any>;
-    const props = components.M.properties as Record<string, any>;
+    const components = builder.getSchemas();
+    const props = propertiesOf(components.M);
 
     for (const ref of [props.x.$ref, props.y.$ref] as string[]) {
       expect(ref.split("#")).toHaveLength(2);
@@ -276,7 +275,7 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a.$ref).toBe("#/components/schemas/EnvelopeArrayOrder");
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeRecordString");
@@ -296,10 +295,10 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     expect(props.a.$ref).toBe("#/components/schemas/EnvelopeStatus");
-    expect((components.EnvelopeStatus as any).properties.body).toEqual({
+    expect(propertiesOf(components.EnvelopeStatus).body).toEqual({
       $ref: "#/components/schemas/Status",
     });
   });
@@ -318,11 +317,11 @@ describe("Unit: Schemas — template instantiation naming", () => {
     `);
     builder.buildSchema(M as Model);
     const components = builder.getSchemas();
-    const props = components.M.properties as Record<string, any>;
+    const props = propertiesOf(components.M);
 
     // The instantiation carries no `$ref`. It is written in place instead.
     expect(props.a.$ref).toBeUndefined();
-    expect(props.a.properties.body).toEqual({ type: "string", enum: ["a", "b"] });
+    expect(propertiesOf(schemaOf(props.a)).body).toEqual({ type: "string", enum: ["a", "b"] });
     // No key was registered for it, under any name.
     expect(Object.keys(components)).toEqual(["M"]);
   });
@@ -340,12 +339,12 @@ describe("Unit: Schemas — template instantiation naming", () => {
       model M { a: Envelope<"a" | "b">; }
     `);
     const instantiation = (M as Model).properties.get("a")?.type as Model;
-    const ref = builder.buildDeclarationRef(instantiation) as any;
+    const ref = builder.buildDeclarationRef(instantiation);
 
     const key = "EnvelopeSep34ASep34Sep32Sep124Sep32Sep34BSep34";
-    expect(ref.$ref).toBe(`#/components/schemas/${key}`);
+    expect(refOf(ref)).toBe(`#/components/schemas/${key}`);
     expect(key).toMatch(/^[a-zA-Z0-9.\-_]+$/);
-    const components = builder.getSchemas() as Record<string, any>;
-    expect(components[key].properties.body).toEqual({ type: "string", enum: ["a", "b"] });
+    const components = builder.getSchemas();
+    expect(propertiesOf(components[key]).body).toEqual({ type: "string", enum: ["a", "b"] });
   });
 });

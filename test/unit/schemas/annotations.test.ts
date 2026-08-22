@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import {
   compileSchemas,
@@ -6,7 +5,7 @@ import {
   holderProperties,
 } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { present } from "../../utils/document.js";
+import { present, propertiesOf, schemaOf } from "../../utils/document.js";
 import type { SchemaObject } from "../../../src/types/index.js";
 
 /**
@@ -93,7 +92,7 @@ describe("Unit: Schemas — annotations", () => {
         }
       `);
 
-      expect(props.level.default).toBe("low");
+      expect(schemaOf(props.level).default).toBe("low");
     });
 
     it("keeps a default alongside the property's own constraints", async () => {
@@ -117,7 +116,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
       builder.buildSchema(M);
 
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const props = propertiesOf(builder.getSchemas().M);
       // A half-serialized default would put a value in the schema that the
       // schema itself rejects, so the keyword is left out entirely.
       expect("default" in props.ip).toBe(false);
@@ -155,7 +154,7 @@ describe("Unit: Schemas — annotations", () => {
         }
       `);
       builder.buildSchema(M);
-      const schemas = builder.getSchemas() as unknown as Record<string, any>;
+      const schemas = builder.getSchemas();
 
       expect(schemas.Nested.externalDocs).toEqual({
         url: "https://example.com/nested",
@@ -174,7 +173,7 @@ describe("Unit: Schemas — annotations", () => {
 
       // The decorator is on the scalar, so it has to travel down the
       // `baseScalar` chain to the property that uses it.
-      expect(props.c.externalDocs).toEqual({ url: "https://example.com/code" });
+      expect(schemaOf(props.c).externalDocs).toEqual({ url: "https://example.com/code" });
     });
 
     it("reaches a property of its own", async () => {
@@ -185,7 +184,7 @@ describe("Unit: Schemas — annotations", () => {
         }
       `);
 
-      expect(props.p.externalDocs).toEqual({
+      expect(schemaOf(props.p).externalDocs).toEqual({
         url: "https://example.com/prop",
         description: "Prop docs",
       });
@@ -199,7 +198,7 @@ describe("Unit: Schemas — annotations", () => {
         }
       `);
 
-      const onlyUrl = present(props.p.externalDocs, "externalDocs");
+      const onlyUrl = present(schemaOf(props.p).externalDocs, "externalDocs");
       expect(onlyUrl.url).toBe("https://example.com/only-url");
       expect(onlyUrl.description).toBeUndefined();
     });
@@ -217,17 +216,17 @@ describe("Unit: Schemas — annotations", () => {
 
       // A property re-declaring a keyword its scalar already carries makes the
       // builder wrap the scalar's shape in `allOf`, so both constraints hold.
-      expect(props.p.allOf).toBeDefined();
+      expect(schemaOf(props.p).allOf).toBeDefined();
       // `externalDocs` describes the value, it does not constrain it. Left
       // inside the `allOf` branch, a reader looking at this property would
       // never see the link.
-      expect(props.p.externalDocs).toEqual({
+      expect(schemaOf(props.p).externalDocs).toEqual({
         url: "https://example.com/wrapped",
         description: "Wrapped docs",
       });
       // The branch is a schema rather than a reference here, and that is the
       // claim: the wrapper carries the docs, the branch does not.
-      const branch = present(props.p.allOf, "allOf")[0] as SchemaObject;
+      const branch = present(schemaOf(props.p).allOf, "allOf")[0] as SchemaObject;
       expect(branch.externalDocs).toBeUndefined();
     });
 
@@ -268,7 +267,7 @@ describe("Unit: Schemas — annotations", () => {
       // warning is the message `#deprecated` carries; JSON Schema's
       // `deprecated` keyword is a bare boolean with nowhere to put it.
       expect(diagnostics.map((d) => d.code)).toEqual(["deprecated"]);
-      const props = builder.getSchemas().M.properties as Record<string, any>;
+      const props = propertiesOf(builder.getSchemas().M);
       expect(props.e).toEqual({ type: "string", deprecated: true });
     });
 
@@ -294,7 +293,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
       builder.buildSchema(M);
 
-      const old = builder.getSchemas().Old as any;
+      const old = builder.getSchemas().Old;
       expect(old.deprecated).toBe(true);
     });
   });

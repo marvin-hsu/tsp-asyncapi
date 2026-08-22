@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect, vi } from "vitest";
 import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
 import { buildDocSchema, compileSchemas } from "../../utils/schema-host.js";
+import { propertiesOf, schemaOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — documentation and examples", () => {
   it("should map a model's doc comment to description and @summary to title", async () => {
@@ -67,7 +67,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const field = builder.getSchemas().M.properties?.field as Record<string, any>;
+    const field = schemaOf(propertiesOf(builder.getSchemas().M).field);
     expect(Object.hasOwn(field, "title")).toBe(false);
     expect(Object.hasOwn(field, "description")).toBe(false);
     expect(Object.hasOwn(field, "examples")).toBe(false);
@@ -93,7 +93,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({
       type: "string",
       title: "Name",
@@ -109,7 +109,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({ type: "string", examples: ["hello"] });
   });
 
@@ -124,7 +124,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.widget).toEqual({
       allOf: [{ $ref: "#/components/schemas/Widget" }],
       description: "The referenced widget.",
@@ -143,8 +143,8 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     expect(builder.getSchemas().M.examples).toEqual([{ field: "a" }, { field: "b" }]);
-    const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.field.examples).toEqual(["x", "y"]);
+    const props = propertiesOf(builder.getSchemas().M);
+    expect(schemaOf(props.field).examples).toEqual(["x", "y"]);
   });
 
   it("should not throw and should skip an example whose value cannot be serialized", async () => {
@@ -159,7 +159,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
   });
 
@@ -174,7 +174,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.ip).toEqual({ type: "string" });
   });
 
@@ -189,7 +189,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.ips).toEqual({ type: "array", items: { type: "string" } });
   });
 
@@ -224,7 +224,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.e).toEqual({
       type: "string",
       title: "Email",
@@ -243,7 +243,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.e).toEqual({ type: "string", title: "PropTitle" });
   });
 
@@ -254,7 +254,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.field).toEqual({ type: "string" });
   });
 
@@ -267,14 +267,14 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // `@encode` says this moment travels as an integer count of seconds. The
     // schema has to say so, or a valid message fails to validate against it.
-    expect(props.ts.type).toBe("integer");
-    expect(props.ts.format).toBe("unixtime");
+    expect(schemaOf(props.ts).type).toBe("integer");
+    expect(schemaOf(props.ts).format).toBe("unixtime");
     // The example has to be encoded the same way. An example encoded one way
     // and described the other would not validate against its own schema.
-    expect(props.ts.examples).toEqual([1577836800]);
+    expect(schemaOf(props.ts).examples).toEqual([1577836800]);
   });
 
   it("should keep an inherited scalar's title/description when a property only adds its own @example", async () => {
@@ -288,7 +288,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.e).toEqual({
       type: "string",
       title: "Email",
@@ -306,8 +306,8 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const schema = builder.getSchemas().M as any;
-    const properties = schema.properties as Record<string, unknown>;
+    const schema = builder.getSchemas().M;
+    const properties = propertiesOf(schema);
     expect(schema.examples).toEqual([{ user_name: "bob" }]);
     expect(Object.keys(properties)).toEqual(["user_name"]);
     expect(schema.required).toEqual(["user_name"]);
@@ -322,8 +322,8 @@ describe("Unit: Schemas — documentation and examples", () => {
       @@example(M.a, "aug2");
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.a.examples).toEqual(["aug1", "aug2"]);
+    const props = propertiesOf(builder.getSchemas().M);
+    expect(schemaOf(props.a).examples).toEqual(["aug1", "aug2"]);
   });
 
   it("should encode a nested property inside a model-level @example", async () => {
@@ -335,8 +335,8 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const schema = builder.getSchemas().M as any;
-    expect(schema.properties.ts).toEqual({ type: "integer", format: "unixtime" });
+    const schema = builder.getSchemas().M;
+    expect(propertiesOf(schema).ts).toEqual({ type: "integer", format: "unixtime" });
     // The example is one level up from the encoded property, so this proves
     // the encoding is applied while walking into an object value, not only
     // at the top of one.
@@ -355,10 +355,10 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
-    expect(props.p.examples).toEqual([{ ts: 1577836800 }]);
-    const inner = builder.getSchemas().Inner as any;
-    expect(inner.properties.ts).toEqual({ type: "integer", format: "unixtime" });
+    const props = propertiesOf(builder.getSchemas().M);
+    expect(schemaOf(props.p).examples).toEqual([{ ts: 1577836800 }]);
+    const inner = builder.getSchemas().Inner;
+    expect(propertiesOf(inner).ts).toEqual({ type: "integer", format: "unixtime" });
   });
 
   it("should encode a scalar's own @encode in both its schema and its @example", async () => {
@@ -371,12 +371,12 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // The encoding is declared on the scalar, not on the property. It has to
     // reach the use site through the `baseScalar` chain.
-    expect(props.a.type).toBe("integer");
-    expect(props.a.format).toBe("unixtime");
-    expect(props.a.examples).toEqual([1577836800]);
+    expect(schemaOf(props.a).type).toBe("integer");
+    expect(schemaOf(props.a).format).toBe("unixtime");
+    expect(schemaOf(props.a).examples).toEqual([1577836800]);
   });
 
   it("should not let unrelated edits in a different file reorder cross-file @@example augment decorators", async () => {
@@ -394,7 +394,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     const MA = resultA.M;
     const builderA = new SchemaBuilder(resultA.program);
     builderA.buildSchema(MA);
-    const examplesA = (builderA.getSchemas().M as any).examples;
+    const examplesA = builderA.getSchemas().M.examples;
 
     const testerB = AsyncAPITester.files({
       "aug.tsp": `
@@ -415,7 +415,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     const MB = resultB.M;
     const builderB = new SchemaBuilder(resultB.program);
     builderB.buildSchema(MB);
-    const examplesB = (builderB.getSchemas().M as any).examples;
+    const examplesB = builderB.getSchemas().M.examples;
 
     expect(examplesB).toEqual(examplesA);
   });
@@ -429,8 +429,8 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const schema = builder.getSchemas().M as any;
-    const properties = schema.properties as Record<string, unknown>;
+    const schema = builder.getSchemas().M;
+    const properties = propertiesOf(schema);
     expect(Object.keys(properties)).toEqual(["u_json"]);
     expect(schema.required).toEqual(["u_json"]);
   });
@@ -519,7 +519,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
     expect(program.diagnostics).toHaveLength(1);
     expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");
@@ -561,7 +561,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.e).toEqual({
       type: "string",
       title: "Email",

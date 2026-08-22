@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { propertiesOf, schemaOf } from "../../utils/document.js";
 
 describe("Unit: Schemas edge cases (regression)", () => {
   it("self-referential model does not blow the stack", async () => {
@@ -13,8 +13,8 @@ describe("Unit: Schemas edge cases (regression)", () => {
       }
     `);
     expect(() => builder.buildSchema(Node)).not.toThrow();
-    const schema = builder.getSchemas().Node as any;
-    expect(schema.properties.next).toEqual({ $ref: "#/components/schemas/Node" });
+    const schema = builder.getSchemas().Node;
+    expect(propertiesOf(schema).next).toEqual({ $ref: "#/components/schemas/Node" });
     expect(schema.required).toEqual(["value"]);
   });
 
@@ -42,8 +42,8 @@ describe("Unit: Schemas edge cases (regression)", () => {
     // through a union variant, since a union variant is itself just
     // another `buildSchema` call.
     expect(() => builder.buildSchema(Node)).not.toThrow();
-    const schema = builder.getSchemas().Node as any;
-    expect(schema.properties.children).toEqual({
+    const schema = builder.getSchemas().Node;
+    expect(propertiesOf(schema).children).toEqual({
       anyOf: [{ $ref: "#/components/schemas/Node" }, { $ref: "#/components/schemas/Leaf" }],
     });
   });
@@ -63,11 +63,10 @@ describe("Unit: Schemas edge cases (regression)", () => {
       }
     `);
     builder.buildSchema(M);
-    const fieldSchema = (builder.getSchemas().M as any).properties.field;
+    const fieldSchema = schemaOf(propertiesOf(builder.getSchemas().M).field);
 
     expect(fieldSchema).toEqual({});
     const diagnostic = findDiagnostic(program.diagnostics, "unsupported-payload-type");
-    expect(diagnostic).toBeDefined();
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.message).toContain("Interface");
   });
@@ -87,11 +86,10 @@ describe("Unit: Schemas edge cases (regression)", () => {
       }
     `);
     expect(() => builder.buildSchema(M)).not.toThrow();
-    const fieldSchema = (builder.getSchemas().M as any).properties.field;
+    const fieldSchema = schemaOf(propertiesOf(builder.getSchemas().M).field);
     expect(fieldSchema.type).toBe("object");
-    expect(fieldSchema.properties.a).toEqual({});
+    expect(propertiesOf(fieldSchema).a).toEqual({});
     const diagnostic = findDiagnostic(program.diagnostics, "unrepresentable-circular-reference");
-    expect(diagnostic).toBeDefined();
     expect(diagnostic.severity).toBe("error");
   });
 
@@ -109,7 +107,7 @@ describe("Unit: Schemas edge cases (regression)", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.options.$ref).toBe("#/components/schemas/ServiceOptions");
     expect(builder.getSchemas().ServiceOptions).toBeDefined();
   });
@@ -121,9 +119,9 @@ describe("Unit: Schemas edge cases (regression)", () => {
       }
     `);
     builder.buildSchema(Outer);
-    const props = builder.getSchemas().Outer.properties as Record<string, any>;
-    expect(props.inline.type).toBe("object");
-    expect(props.inline.properties.x).toEqual({ type: "string" });
-    expect(props.inline.required).toEqual(["x"]);
+    const props = propertiesOf(builder.getSchemas().Outer);
+    expect(schemaOf(props.inline).type).toBe("object");
+    expect(propertiesOf(schemaOf(props.inline)).x).toEqual({ type: "string" });
+    expect(schemaOf(props.inline).required).toEqual(["x"]);
   });
 });

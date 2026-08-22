@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { compileSchemas } from "../../utils/schema-host.js";
@@ -118,8 +117,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     // must not be buried inside `allOf`'s second (own-shape) branch,
     // where no AsyncAPI 3.x consumer would ever look for it.
     expect(components.Dog).toMatchObject({ discriminator: "breed" });
-    expect((components.Dog as any).allOf).toBeDefined();
-    expect((components.Dog as any).discriminator).toBe("breed");
+    expect(components.Dog.allOf).toBeDefined();
+    expect(components.Dog.discriminator).toBe("breed");
   });
 
   it("should report a diagnostic and omit discriminator when the discriminating property does not exist on the model", async () => {
@@ -130,7 +129,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
-    expect((components.Pet as any).discriminator).toBeUndefined();
+    expect(components.Pet.discriminator).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
     ).toBeGreaterThan(0);
@@ -144,7 +143,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
-    expect((components.Pet as any).discriminator).toBeUndefined();
+    expect(components.Pet.discriminator).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "optional-discriminator-property").length,
     ).toBeGreaterThan(0);
@@ -204,7 +203,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     builder.buildSchema(Pet);
 
     const components = builder.getSchemas();
-    expect((components.Pet as any).discriminator).toBeUndefined();
+    expect(components.Pet.discriminator).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
     ).toBeGreaterThan(0);
@@ -334,7 +333,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     `);
 
     const builder = new SchemaBuilder(program);
-    const schema = builder.buildSchema(D) as any;
+    const schema = builder.buildSchema(D);
 
     const components = builder.getSchemas();
     expect(schema).toEqual({ $ref: "#/components/schemas/D" });
@@ -419,7 +418,6 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       program.diagnostics,
       "encoded-name-override-conflict",
     );
-    expect(overrideDiagnostic).toBeDefined();
     // The message must describe *this* case (an override diverging from
     // its ancestor's wire name), not the unrelated-collision case.
     expect(overrideDiagnostic.message).toMatch(
@@ -449,7 +447,6 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       program.diagnostics,
       "encoded-name-override-conflict",
     );
-    expect(collisionDiagnostic).toBeDefined();
     // The message must describe *this* case (an unrelated wire-name
     // collision), not the diverging-override case.
     expect(collisionDiagnostic.message).toMatch(
@@ -512,7 +509,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     builder.buildSchema(Names);
 
     const components = builder.getSchemas();
-    expect((components.Names as any).discriminator).toBeUndefined();
+    expect(components.Names.discriminator).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
     ).toBeGreaterThan(0);

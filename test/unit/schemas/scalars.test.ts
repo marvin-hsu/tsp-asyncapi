@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { propertiesOf, refOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — scalars", () => {
   it("should build string scalar schema", async () => {
@@ -10,9 +10,9 @@ describe("Unit: Schemas — scalars", () => {
         field: string;
       }
     `);
-    const schema = builder.buildSchema(TestModel) as any;
+    const schema = builder.buildSchema(TestModel);
 
-    expect(schema.$ref).toBe("#/components/schemas/TestModel");
+    expect(refOf(schema)).toBe("#/components/schemas/TestModel");
 
     const components = builder.getSchemas();
     expect(components.TestModel).toBeDefined();
@@ -54,7 +54,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(TestScalars);
 
-    const props = builder.getSchemas().TestScalars.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().TestScalars);
     expect(props.str).toEqual({ type: "string" });
     expect(props.bool).toEqual({ type: "boolean" });
     expect(props.num8).toEqual({ type: "integer", format: "int8" });
@@ -97,7 +97,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // Derived scalars fall back to their base scalar's mapping.
     expect(props.e).toEqual({ type: "string" });
     expect(props.a).toEqual({ type: "integer", format: "int32" });
@@ -119,7 +119,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     // These names collide with built-in `duration`/`url`, but these are
     // user-declared scalars in `MyLib`, not the TypeSpec built-ins. They
     // must resolve via their own baseScalar chain, not the lookup table.
@@ -146,7 +146,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({ type: "integer", format: "int32" });
   });
 
@@ -162,7 +162,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = builder.getSchemas().M.properties as Record<string, any>;
+    const props = propertiesOf(builder.getSchemas().M);
     expect(props.a).toEqual({});
   });
 });

@@ -3,6 +3,7 @@ import type {
   ChannelObject,
   ComponentsObject,
   InfoObject,
+  ReferenceObject,
   MessageObject,
   OperationObject,
   SchemaObject,
@@ -75,6 +76,77 @@ export function present<T>(value: T | undefined, name: string): T {
     throw new Error(`This test needs \`${name}\`, and the document has none.`);
   }
   return value;
+}
+
+/**
+ * The `$ref` of a value the test expects to be a reference.
+ *
+ * Anywhere the document holds a schema it may hold a reference instead, so the
+ * type is a union and `$ref` is on one arm of it. A test that reads `$ref` has
+ * already decided which arm it wants; this says so, and fails naming the other
+ * one when the emitter inlined instead of referring.
+ *
+ * @param value - A schema or a reference
+ * @param name - What to call it in the failure message
+ * @returns The pointer
+ */
+export function refOf(
+  value: SchemaObject | ReferenceObject | undefined,
+  name = "the value",
+): string {
+  if (value === undefined) {
+    throw new Error(`This test needs ${name} to be a reference, and there is nothing there.`);
+  }
+  // `SchemaObject` declares `$ref` as well, so the two arms of the union
+  // overlap and `"$ref" in value` narrows nothing. The value of the field is
+  // what tells them apart: a reference always has one.
+  if (value.$ref === undefined) {
+    throw new Error(`This test needs ${name} to be a reference, but the emitter inlined a schema.`);
+  }
+  return value.$ref;
+}
+
+/**
+ * The schema of a value the test expects to be inline rather than a reference.
+ *
+ * The counterpart to `refOf`, for the other arm of the same union.
+ *
+ * @param value - A schema or a reference
+ * @param name - What to call it in the failure message
+ * @returns The schema
+ */
+export function schemaOf(
+  value: SchemaObject | ReferenceObject | undefined,
+  name = "the value",
+): SchemaObject {
+  if (value === undefined) {
+    throw new Error(`This test needs ${name} to be a schema, and there is nothing there.`);
+  }
+  if (value.$ref !== undefined) {
+    throw new Error(`This test needs ${name} to be a schema, but the emitter wrote a reference.`);
+  }
+  return value;
+}
+
+/**
+ * The properties of a schema the test needs to have some.
+ *
+ * `properties` is optional, because a schema need not describe any. A test
+ * reading one has decided it should, so a missing `properties` is a failure
+ * here rather than an `undefined` two members further along.
+ *
+ * @param schema - The schema to read
+ * @param name - What to call it in the failure message
+ * @returns The properties, keyed by name
+ */
+export function propertiesOf(
+  schema: SchemaObject,
+  name = "the schema",
+): Record<string, SchemaObject | ReferenceObject> {
+  if (schema.properties === undefined) {
+    throw new Error(`This test needs ${name} to describe properties, and it describes none.`);
+  }
+  return schema.properties;
 }
 
 /** The info object of the document. */

@@ -228,7 +228,6 @@ describe("Unit: Messages — declaration", () => {
     const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
-    expect(diagnostic).toBeDefined();
     expect(diagnostic.message).toMatch(/Duplicate message name: 'Shared'/);
     // The first model to claim the key keeps it, and its own body stays
     // under that schema key.
@@ -263,7 +262,6 @@ describe("Unit: Messages — declaration", () => {
     const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
-    expect(diagnostic).toBeDefined();
     expect(diagnostic.message).toMatch(/Duplicate message name: 'OrderCreated'/);
     // The first model to claim the key keeps it. Nothing is renamed.
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderCreated"]);
