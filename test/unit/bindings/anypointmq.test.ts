@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { channelsOf, messagesOf } from "../../utils/document.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 
 const MESSAGE = `
@@ -27,7 +27,7 @@ function service(protocol: string): string {
 
 describe("Unit: the Anypoint MQ binding decorators", () => {
   it("emits both levels with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "broker.example.com", protocol: "anypointmq" })
       namespace Test;
@@ -45,19 +45,19 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.channels.orders.bindings.anypointmq).toEqual({
+    expect(channelsOf(doc).orders.bindings?.anypointmq).toEqual({
       destination: "orders",
       destinationType: "fifo-queue",
       bindingVersion: "0.0.1",
     });
-    expect(doc.components.messages.OrderCreated.bindings.anypointmq).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings?.anypointmq).toEqual({
       headers: { type: "object" },
       bindingVersion: "0.0.1",
     });
   });
 
   it("reports a destination type Anypoint MQ does not define", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("anypointmq")}
 
       @anypointMqChannel(#{ destination: "orders", destinationType: "topic" })
