@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return */
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import type { Diagnostic, Program } from "@typespec/compiler";
 import { AsyncAPITester } from "../../src/testing/index.js";
@@ -149,39 +148,10 @@ export async function emitDocument(
   return doc;
 }
 
-export async function emitAsyncAPIWithDiagnostics(
-  code: TestSource,
-  options: Record<string, unknown> = {},
-  includeService = true,
-) {
-  // Untyped. Every caller is moving to `emitDocumentWithDiagnostics`, and
-  // this one goes away once the last of them has.
-  const { content, fileType, diagnostics, program } = await emitOutput(
-    code,
-    options,
-    includeService,
-  );
-  if (content === undefined) {
-    return { doc: null, diagnostics, program };
-  }
-  return {
-    doc: fileType === "json" ? JSON.parse(content) : yaml.parse(content),
-    diagnostics,
-    program,
-  };
-}
-
-/** Untyped. Callers are moving to `emitDocument`, which replaces this. */
-export async function emitAsyncAPI(code: TestSource, options: Record<string, unknown> = {}) {
-  const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(code, options);
-  expectDiagnosticEmpty(diagnostics);
-  return doc;
-}
-
 /**
  * Builds a document from source without writing a file.
  *
- * `emitAsyncAPIWithDiagnostics` goes through the emitter, and the emitter
+ * `emitDocumentWithDiagnostics` goes through the emitter, and the emitter
  * writes nothing once an error is reported. So a test about an error cannot
  * use it to look at what the document still holds.
  *
