@@ -4,6 +4,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
   let runner: TesterInstance;
@@ -27,7 +28,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       {
@@ -54,7 +55,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A field the metadata leaves out is absent, rather than present and
     // empty.
@@ -78,7 +79,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Decorators run bottom-up, so the recorded order is the reverse of what
     // the reader sees. The emitted array follows the source.
@@ -101,7 +102,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.externalDocs).toEqual({
       url: "https://example.com/order-created",
@@ -120,7 +121,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const message = doc.components?.messages?.OrderCreated ?? {};
     expect(Object.keys(message)).toEqual(["name", "payload"]);
@@ -191,7 +192,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Neither application says anything the other contradicts, so the two
     // merge into one Tag Object.
@@ -218,7 +219,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([
       { name: "orders", description: "Everything about orders." },
@@ -238,7 +239,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
@@ -263,7 +264,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
@@ -291,7 +292,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // AsyncAPI gives every object its own `tags` array, and those arrays are
     // independent. So one name may describe itself differently per message.
@@ -323,7 +324,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // `name` is required on a Tag Object, and a blank one names nothing a
     // consumer can match. The rejected tag reaches no document, and the tag
     // beside it is unaffected.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.tags).toEqual([{ name: "orders" }]);
   });
 
@@ -359,7 +360,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two applications agree about the only field both of them set. A
     // field that only one of them sets is taken from that one, the same rule
@@ -391,7 +392,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
@@ -419,7 +420,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two applications disagree about `description` only. The first one
     // in source order keeps that field. Nothing disagrees about
@@ -453,7 +454,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A blank description says nothing. It claims the tag has an empty
     // description rather than none, so the emitter leaves the field out.

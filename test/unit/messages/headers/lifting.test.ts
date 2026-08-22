@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -28,7 +28,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -74,7 +74,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -104,7 +104,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -125,7 +125,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Every field went to `headers`, so the payload component is an object
     // with no properties. AsyncAPI still requires a payload, so the message
@@ -153,7 +153,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -176,7 +176,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       $ref: "#/components/schemas/StringHeaders",
@@ -206,7 +206,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-headers");
     expect(diagnostic.severity).toBe("error");
@@ -248,7 +248,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostics = diagnosticsWith(runner.program.diagnostics, "nested-header-ignored");
     expect(diagnostics).toHaveLength(1);
@@ -281,7 +281,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
   });
@@ -302,7 +302,7 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The payload component is the only schema this document emits for the
     // model, so the documentation of the model must land on it.

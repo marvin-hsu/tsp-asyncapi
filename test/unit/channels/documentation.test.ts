@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Channel documentation (Phase 4.4)", () => {
   let runner: TesterInstance;
@@ -31,7 +31,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"]).toEqual({
       address: "orders.created",
@@ -61,7 +61,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("summary");
   });
@@ -82,7 +82,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const channel = doc.channels?.["orders.created"];
 
     expect(channel).not.toHaveProperty("title");
@@ -109,7 +109,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].description).toBe(
       "Every event about the life of an order.",

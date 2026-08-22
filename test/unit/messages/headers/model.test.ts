@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -31,7 +31,7 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -70,7 +70,7 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       type: "object",
@@ -93,7 +93,7 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(
       [...diagnostics, ...runner.program.diagnostics],
@@ -126,7 +126,7 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Every field of a `@headers` model is already a header. So the mark
     // there neither adds nor removes a field, and it is not a misplaced one.
@@ -168,7 +168,7 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
     const diagnostic = findDiagnostic(diagnostics, "duplicate-headers-decorator");
     expect(diagnostic.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     // The first application to run keeps the model. Decorators run
     // bottom-up, so that is the one written last.
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({

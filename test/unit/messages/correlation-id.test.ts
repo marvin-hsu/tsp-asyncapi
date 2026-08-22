@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { messagesOf } from "../../utils/document.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
@@ -29,7 +28,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/correlationId",
@@ -49,7 +48,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.payload#/orderId",
@@ -67,7 +66,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.hasOwn(messagesOf(doc).OrderCreated, "correlationId")).toBe(false);
   });
@@ -97,7 +96,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
 
     expect(diagnosticsWith(diagnostics, "invalid-correlation-id-location")).toHaveLength(0);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({ location });
   });
 
@@ -130,7 +129,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
     expect(reported[0]?.severity).toBe("error");
 
     // A location the emitter cannot parse produces no `correlationId` at all.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(messagesOf(doc).OrderCreated, "correlationId")).toBe(false);
   });
 
@@ -154,7 +153,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
 
     expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/MQMD/CorrelId",
     });
@@ -179,7 +178,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
 
     // Decorators run bottom-up, so the one written last in the source is the
     // one that reaches the state first, and it keeps the message.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({
       location: "$message.header#/second",
     });
@@ -196,7 +195,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A blank description says nothing about the correlation id. The emitter
     // leaves the field out rather than claim the description is empty.

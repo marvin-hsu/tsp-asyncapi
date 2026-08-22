@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -26,7 +26,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
     expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
@@ -52,7 +52,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.{region}.{tenant}"].parameters).toEqual({
@@ -77,7 +77,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The normative JSON Schema of AsyncAPI requires the `#`, and the
     // official parser rejects a document without it.

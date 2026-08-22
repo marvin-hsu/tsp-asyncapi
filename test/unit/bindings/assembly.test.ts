@@ -4,6 +4,7 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 /**
  * These drive the builder directly, the way the other unit suites do.
@@ -40,7 +41,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
     // The members read in the order the author wrote the decorators, so the
@@ -73,7 +74,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // An empty Bindings Object states nothing, so the field is left out.
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("bindings");
@@ -99,7 +100,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two are never merged, and the later one never wins.
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;

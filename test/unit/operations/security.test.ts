@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { emitDocument } from "../../utils/test-host.js";
+import { documentFrom, emitDocument } from "../../utils/test-host.js";
 import { operationsOf, serversOf } from "../../utils/document.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
@@ -67,7 +66,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/first" },
@@ -93,7 +92,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(operationsOf(doc).publish).not.toHaveProperty("security");
   });
@@ -118,7 +117,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(findDiagnostic(diagnostics, "undeclared-security-scheme").message).toContain(
       "'missing'",
@@ -151,7 +150,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnosticsWith(diagnostics, "use-security-outside-server")).toHaveLength(0);
   });

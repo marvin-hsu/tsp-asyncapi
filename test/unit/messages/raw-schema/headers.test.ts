@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { getRawHeaders, listMessages } from "../../../../src/decorators/index.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
@@ -30,7 +30,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -64,7 +64,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const message = doc.components?.messages?.OrderCreated;
 
     // The two slots are filled from one function, so identical input produces
@@ -92,7 +92,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // This is the recommended pair, so nothing is reported. The headers model
     // still gets its own component, because it goes through the schema layer.
@@ -116,7 +116,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.schemas).toBeUndefined();
   });

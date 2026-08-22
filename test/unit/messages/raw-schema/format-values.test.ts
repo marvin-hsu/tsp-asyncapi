@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import {
   ASYNCAPI_VERSION,
   MULTI_FORMAT_SCHEMA_FORMATS,
   NON_JSON_SCHEMA_FORMATS,
 } from "../../../../src/constants.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
@@ -88,7 +88,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     `);
 
     expect(diagnostics).toHaveLength(0);
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: format,
       schema: NON_JSON_SCHEMA_FORMATS.includes(format) ? "message Order {}" : { type: "record" },
@@ -138,7 +138,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
       // The value is still written, so neither half disappears from the
       // document while the error is open.
-      const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+      const doc = documentFrom(runner.program);
       expect(doc.components?.messages?.OrderCreated.payload).toEqual({
         schemaFormat: format,
         schema: { type: "record" },
@@ -197,7 +197,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     expect(reported.message).toContain("#/components/schemas/Other");
     expect(reported.message).toContain("application/schema+json;version=draft-07");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: "application/schema+json;version=draft-07",
       schema: { $ref: "#/components/schemas/Other" },
@@ -272,7 +272,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     expect(targetText(reported)).toBe(`"application/vnd.example.custom;version=1"`);
 
     // The spec allows a custom value, so the value still reaches the document.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: "application/vnd.example.custom;version=1",
       schema: { type: "record" },
@@ -310,7 +310,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
     // Nothing was recorded, so the message keeps the payload built from the
     // model.
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -331,7 +331,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     const reported = findDiagnostic(diagnostics, "empty-schema-format");
     expect(reported.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
   });
 
@@ -348,7 +348,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     // The blank check already trims, so the same value decides membership and
     // reaches the document. The padding is not part of the identifier.
     expect(diagnostics).toHaveLength(0);
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,
       schema: { type: "record" },
@@ -373,7 +373,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     const reported = findDiagnostic(diagnostics, "invalid-raw-schema");
     expect(reported.severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -393,7 +393,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
     expect(findDiagnostic(diagnostics, "invalid-raw-schema").severity).toBe("error");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
   });
 
@@ -418,7 +418,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     // The squiggle sits on the schema argument, not on the format.
     expect(targetText(reported)).toBe("ipv4.fromBytes(1, 2, 3, 4)");
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -442,7 +442,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
     expect(diagnosticsWith(diagnostics, "empty-schema-format")).toHaveLength(1);
     expect(diagnosticsWith(diagnostics, "duplicate-raw-payload-decorator")).toHaveLength(1);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       $ref: "#/components/schemas/OrderCreated",
     });
@@ -458,7 +458,7 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
 import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -27,7 +27,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "inherited-header-ignored");
     expect(reported).toHaveLength(1);
@@ -68,7 +68,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A spread copies the property into the message model, so it is the
     // message's own top-level field and it is lifted. This is the half of the
@@ -118,7 +118,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `Base` lifts `traceId`, and `Derived` inherits the field. A reader of
     // `Derived` expects the specialisation to describe the field where the
@@ -188,7 +188,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A discriminator on the payload would name the subtype components
     // through its implicit mapping. Those still require the lifted field,
@@ -256,7 +256,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // `Outer` pulls in the model's own component, so `@discriminator` is
     // resolved twice for `Base`. One model with one missing property is one
@@ -282,7 +282,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The payload component is flattened, so it has no branch back to `Bag`.
     // The constraint on the extra properties must be merged in, or the
@@ -315,7 +315,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The conflict belongs to the model. Nothing else reads `M` here, so the
     // payload component is the only one built. The check must still run, or
@@ -355,7 +355,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // `Outer` builds the model's own component and the message builds the
     // payload component. The conflict is one mistake in one model, so the
@@ -384,7 +384,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(
       diagnosticsWith(runner.program.diagnostics, "never-typed-property-override"),
@@ -423,7 +423,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The payload component is flattened, so it never builds `Base`. A
     // subtype is reachable through the `extends` link alone, so nothing else
@@ -503,7 +503,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `@headers` describes the whole headers object of `D`, so the inherited
     // lift is cancelled and `h` stays in the payload of `D`. The same field is

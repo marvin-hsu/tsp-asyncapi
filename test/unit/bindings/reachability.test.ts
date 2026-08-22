@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
 import { operationsOf } from "../../utils/document.js";
 import type { Diagnostic } from "@typespec/compiler";
@@ -369,7 +368,7 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
     }
 
     const before = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const reported = diagnosticsWith(runner.program.diagnostics.slice(before), BINDING_OUTSIDE);
 
     expect(reported).toHaveLength(1);
@@ -396,9 +395,9 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
       diagnosticsWith(runner.program.diagnostics.slice(from, to), BINDING_OUTSIDE).length;
 
     const start = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const afterFirst = runner.program.diagnostics.length;
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const afterSecond = runner.program.diagnostics.length;
 
     // Two builds of one program describe the same program, so they have to

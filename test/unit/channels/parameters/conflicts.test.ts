@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -27,7 +27,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/missing-channel-param");
     // The map still covers the whole address, so the document stays readable.
@@ -56,7 +56,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unused-channel-param");
 
     // Each operation carries its own property, so each of them is a place
@@ -86,7 +86,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "optional-channel-param");
 
     // Every declaration of a name the address uses is checked. An optional
@@ -119,7 +119,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
     // The two declarations also disagree, and that is reported too. The
@@ -148,7 +148,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const conflict = findDiagnostic(diagnostics, "conflicting-channel-param");
 
     expect(conflict.message).toMatch(/description/);
@@ -189,7 +189,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const conflicts = diagnosticsWith(diagnostics, "conflicting-channel-param");
 
     expect(conflicts.map((d) => /a different '(\w+)'/.exec(d.message)?.[1])).toEqual([
@@ -234,7 +234,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The two unions are separate TypeSpec objects, because each operation
     // writes its own. They allow the same values, so they agree.
@@ -261,7 +261,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
   });
@@ -283,7 +283,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     // The two declarations name the same set, so a comparison that sorted
     // first would call them equal. They are not: the order is the order the

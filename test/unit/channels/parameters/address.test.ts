@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -27,7 +27,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("parameters");
   });
@@ -48,7 +48,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/unused-channel-param");
   });
@@ -69,7 +69,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/optional-channel-param");
   });
@@ -90,7 +90,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/optional-channel-param");
   });
@@ -111,7 +111,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const reported = findDiagnostic(diagnostics, "non-string-channel-param");
 
     expect(targetText(reported)).toBe("orderId: int32");
@@ -133,7 +133,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
     const reported = findDiagnostic(diagnostics, "missing-channel-param");
 
     // The address is the place the author has to change, and no property
@@ -157,7 +157,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.{region}.created.{region}"].parameters).toEqual({ region: {} });
@@ -179,7 +179,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    buildAsyncAPIDocument(runner.program, undefined, {});
+    documentFrom(runner.program);
 
     expect(diagnosticsWith(diagnostics, "missing-channel-param")).toHaveLength(1);
   });
@@ -200,7 +200,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The operation declares the three in the opposite order to the address.
     // The address decides the emitted order, so this input fails if the map

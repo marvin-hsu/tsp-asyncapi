@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { $lib } from "../../../src/lib.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
-import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { channelsOf } from "../../utils/document.js";
 
 describe("Unit: Channels (Phase 4.1)", () => {
@@ -30,7 +29,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)["orders.created"]).toEqual({
       address: "orders.created",
@@ -54,7 +53,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
   });
@@ -75,7 +74,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
     expect(channelsOf(doc)["orders.created"].messages).toEqual({
@@ -101,7 +100,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)["orders.created"].messages).toBeUndefined();
     expect(diagnosticsWith(diagnostics, "channel-no-messages").length).toBeGreaterThan(0);
@@ -113,7 +112,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       namespace Test;
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)).toEqual({});
   });
@@ -134,7 +133,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc).ReplyChannel.address).toBeNull();
     expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
@@ -156,7 +155,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(Object.keys(channelsOf(doc))).toEqual(["replies"]);
   });
@@ -177,7 +176,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)["wss://example.com/socket"].address).toBe("wss://example.com/socket");
   });
@@ -198,7 +197,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
   });
@@ -213,7 +212,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-address");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects a blank explicit channel id", async () => {
@@ -226,7 +225,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-id");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects a blank explicit id on a dynamic channel", async () => {
@@ -239,7 +238,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/empty-channel-id");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an address that carries a query string", async () => {
@@ -254,7 +253,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/query/);
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an address that carries a fragment", async () => {
@@ -319,7 +318,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-channel-param-name");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("rejects an empty parameter name", async () => {
@@ -344,7 +343,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-decorator");
     // One application still wins, so the channel is emitted. Decorators on
@@ -364,7 +363,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain(
       "tsp-asyncapi/duplicate-dynamic-channel-decorator",
@@ -395,7 +394,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // application would repeat one message and hide the duplicate.
     expect(conflicts).toHaveLength(1);
     expect(duplicates).toHaveLength(1);
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("points an address problem at the address argument", async () => {
@@ -511,7 +510,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const channels = buildAsyncAPIDocument(runner.program, undefined, {}).channels;
+    const channels = documentFrom(runner.program).channels;
 
     // The map is built with `Object.fromEntries`, so the id becomes an own
     // property. An assignment would write to the prototype instead, and the
@@ -532,7 +531,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     `);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/conflicting-channel-decorators");
-    expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
+    expect(documentFrom(runner.program).channels).toEqual({});
   });
 
   it("keeps the first channel in source order when two claim one id", async () => {
@@ -556,7 +555,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-id");
     expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
@@ -579,7 +578,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // A dynamic channel has no address, so a declaration cannot be matched
     // against one. Reporting the parameter as unused would ask the author to
@@ -624,7 +623,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(result.program, undefined, {});
+    const doc = documentFrom(result.program);
 
     expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
     expect(channelsOf(doc).orders.address).toBe("orders.early");
@@ -651,7 +650,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The ids run against the alphabet, so this input fails if the map is
     // ever sorted by name. It fails too if the entries are reversed. Every

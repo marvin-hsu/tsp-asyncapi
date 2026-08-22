@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
 import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message headers: the derived payload component (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -30,7 +30,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Lifting is local to the message that declares the header. The entry of
     // `OrderCreated` is shared with the payload of `OrderBatch`, so it keeps
@@ -88,7 +88,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     expect(doc.components?.messages?.Renamed.payload).toEqual({
       $ref: "#/components/schemas/RenamedPayload",
@@ -122,7 +122,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Lifting is local to the message. `Inner` keeps its whole shape for
     // every other reader, and the message points at a payload component of
@@ -178,7 +178,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The derived key goes through the same collision rule as every other
     // schema key. So a model the author named `InnerPayload` is reported
@@ -240,7 +240,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Same clash, reached from the other side. The derived key is claimed
     // before the author's model is built, so the model is the one reported.
@@ -283,7 +283,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // The payload graph of `Inner` runs through `Wrapper` and back to
     // `Inner`. The arrival is an ordinary schema reference, so the entry it
@@ -350,7 +350,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `B` refers to the one entry of `A`, and that entry keeps `h`. So the
     // headers schema of `B` describes every field the source of `A` does.
@@ -401,7 +401,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `Inner` lifts a field, so it gets a derived payload component. `Outer`
     // lifts nothing, so its payload stays a reference to its own model and no
@@ -438,7 +438,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // `@friendlyName` decides the component key of the model, so the derived
     // payload key must be built from that key. A payload keyed `MPayload`

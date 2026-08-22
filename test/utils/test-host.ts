@@ -149,6 +149,23 @@ export async function emitDocument(
 }
 
 /**
+ * Builds the document from a program the test compiled itself.
+ *
+ * The two arguments this fills in are the same at every call site: no explicit
+ * service, and no emitter options. Spelled out, they were the longest
+ * repetition in the suite and said nothing about the case under test.
+ *
+ * A test that needs to name the service, as the multiple-service cases do,
+ * calls `buildAsyncAPIDocument` directly.
+ *
+ * @param program - The compiled program
+ * @returns The built document
+ */
+export function documentFrom(program: Program): AsyncAPIDocument {
+  return buildAsyncAPIDocument(program, undefined, {});
+}
+
+/**
  * Builds a document from source without writing a file.
  *
  * `emitDocumentWithDiagnostics` goes through the emitter, and the emitter
@@ -169,5 +186,5 @@ export async function emitDocument(
 export async function buildAsyncAPIWithDiagnostics(code: string) {
   const runner = await AsyncAPITester.createInstance();
   const [, diagnostics] = await runner.compileAndDiagnose(code);
-  return { doc: buildAsyncAPIDocument(runner.program, undefined, {}), diagnostics };
+  return { doc: documentFrom(runner.program), diagnostics };
 }

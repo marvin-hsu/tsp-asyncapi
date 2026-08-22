@@ -8,6 +8,7 @@ import { buildTags } from "../../../src/resolve/tags.js";
 import { buildExternalDocs } from "../../../src/external-docs.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
+import { documentFrom } from "../../utils/test-host.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;
@@ -155,7 +156,7 @@ describe("Unit: Builders (Phase 1)", () => {
 
     it("should generate fallback document when no service provided", async () => {
       await runner.compile(``);
-      const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+      const doc = documentFrom(runner.program);
 
       expect(doc.asyncapi).toBe("3.1.0");
       expect(doc.info.title).toBe("AsyncAPI Document");

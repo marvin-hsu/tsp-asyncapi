@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
-import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -31,7 +31,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     expect(reported).toHaveLength(1);
@@ -55,7 +55,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // AsyncAPI types `examples` as strings, so the number has no place in it.
     // The type itself is the mistake the author is told about.
@@ -84,7 +84,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     // Two operations declare `source`, so the first declaration is read
@@ -111,7 +111,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, undefined, {});
+    const doc = documentFrom(runner.program);
 
     // Stacked decorators run bottom-up, so the recorded order is `us` then
     // `eu`. The emitted array is sorted back into source order.
