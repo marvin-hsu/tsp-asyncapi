@@ -5,9 +5,8 @@ import type { Program } from "@typespec/compiler";
 import { lowerDocument } from "../../src/lower/document.js";
 import { resolvesInDocument } from "../../src/lower/json-pointer.js";
 import { ASYNCAPI_VERSION } from "../../src/constants.js";
-import { trimmed } from "../../src/optional-fields.js";
 import type { AsyncAPIEmitterOptions } from "../../src/lib.js";
-import { infoNode, requiredText, service } from "./ir-arbitraries.js";
+import { infoNode, service } from "./ir-arbitraries.js";
 
 /**
  * Properties of the document assembly.
@@ -198,24 +197,71 @@ describe("Integration: document assembly — nothing is dropped or merged", () =
 });
 
 describe("Integration: document assembly — the options that reach the head", () => {
-  /** The three states of one option: absent, set, or blank. */
-  const optionValue = fc.oneof(
-    { arbitrary: fc.constant(undefined), weight: 2 },
-    { arbitrary: requiredText, weight: 3 },
+  /**
+   * Text with nothing `trim` would strip, so it is already its own trimmed
+   * form. The `minLength` and the equality together rule out a blank string:
+   * a whitespace-only draw trims to empty and fails the comparison.
+   */
+  const coreText = fc.string({ minLength: 1 }).filter((value) => value === value.trim());
+
+  /**
+   * Only characters `trim` strips, written as escapes so that none of them is
+   * invisible in this file. The non-ASCII three are here because `trim` takes
+   * every Unicode space and line terminator, not only the ASCII five, and an
+   * implementation that hand-rolled the set would keep them.
+   */
+  const padding = fc.string({
+    unit: fc.constantFrom(" ", "\t", "\n", "\r", "\f", "\v", "\u00a0", "\u2028", "\ufeff"),
+    maxLength: 3,
+  });
+
+  /** One option, drawn together with the answer it must produce. */
+  interface OptionDraw {
+    readonly input: string | undefined;
+    readonly expected: string | undefined;
+  }
+
+  /**
+   * Draws an option and its answer at the same time.
+   *
+   * Asking `trimmed` for the expected value would have stated the rule by
+   * running the function that implements it, so the input is built out of the
+   * answer instead: a core with nothing to strip, wrapped in padding that is
+   * nothing but strippable characters. The core is the trimmed form by
+   * construction, and no assertion below consults the module it checks.
+   *
+   * Two of the three states an option can be in are single points -- absent,
+   * and blank in each of its spellings -- and both are written out in
+   * `test/unit/lower/document.test.ts`, which owns them. What is left for a
+   * property, and reachable only here, is arbitrary text.
+   */
+  const optionDraw = fc.oneof(
+    { arbitrary: fc.constant<OptionDraw>({ input: undefined, expected: undefined }), weight: 2 },
+    {
+      arbitrary: fc.tuple(padding, coreText, padding).map(([before, core, after]): OptionDraw => ({
+        input: `${before}${core}${after}`,
+        expected: core,
+      })),
+      weight: 3,
+    },
   );
 
-  it("writes an option field when the option has a value, and never otherwise", () => {
+  it("writes an option field trimmed when it carries text, and never otherwise", () => {
     let bothSet = 0;
     let neitherSet = 0;
+    let paddedDraws = 0;
 
     fc.assert(
-      fc.property(shapedService, optionValue, optionValue, (model, id, contentType) => {
+      fc.property(shapedService, optionDraw, optionDraw, (model, id, contentType) => {
         const options: AsyncAPIEmitterOptions = {
-          ...(id === undefined ? {} : { "asyncapi-id": id }),
-          ...(contentType === undefined ? {} : { "default-content-type": contentType }),
+          ...(id.input === undefined ? {} : { "asyncapi-id": id.input }),
+          ...(contentType.input === undefined ? {} : { "default-content-type": contentType.input }),
         };
-        if (id !== undefined && contentType !== undefined) bothSet++;
-        if (id === undefined && contentType === undefined) neitherSet++;
+        if (id.input !== undefined && contentType.input !== undefined) bothSet++;
+        if (id.input === undefined && contentType.input === undefined) neitherSet++;
+        for (const draw of [id, contentType]) {
+          if (draw.input !== draw.expected) paddedDraws++;
+        }
 
         const document = lowerDocument(stubProgram, model, options);
 
@@ -223,15 +269,15 @@ describe("Integration: document assembly — the options that reach the head", (
         expect(document.asyncapi).toBe(ASYNCAPI_VERSION);
 
         // An option answers to the rule every other text field answers to:
-        // a blank one is absent, and one that says something is trimmed.
-        expect(Object.hasOwn(document, "id")).toBe(trimmed(id) !== undefined);
-        if (trimmed(id) !== undefined) expect(document.id).toBe(trimmed(id));
+        // it reaches the document trimmed, or it does not reach it.
+        expect(Object.hasOwn(document, "id")).toBe(id.expected !== undefined);
+        if (id.expected !== undefined) expect(document.id).toBe(id.expected);
 
         expect(Object.hasOwn(document, "defaultContentType")).toBe(
-          trimmed(contentType) !== undefined,
+          contentType.expected !== undefined,
         );
-        if (trimmed(contentType) !== undefined) {
-          expect(document.defaultContentType).toBe(trimmed(contentType));
+        if (contentType.expected !== undefined) {
+          expect(document.defaultContentType).toBe(contentType.expected);
         }
 
         // `output-file` and `file-type` name the artifact, not the document.
@@ -245,5 +291,11 @@ describe("Integration: document assembly — the options that reach the head", (
     // both directions.
     expect(bothSet).toBeGreaterThan(0);
     expect(neitherSet).toBeGreaterThan(0);
+
+    // The padding is constructed, so this counter is not hoping for it. It is
+    // here because the trimming half of the rule is unchecked on any run where
+    // every draw arrives already trimmed, and a later edit to `padding` could
+    // make that every run without failing anything else.
+    expect(paddedDraws).toBeGreaterThan(0);
   });
 });
