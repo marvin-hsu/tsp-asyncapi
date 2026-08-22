@@ -165,56 +165,52 @@ describe("Unit: runtime expression — the grammar accepts what it builds", () =
 });
 
 describe("Unit: runtime expression — one break refuses the whole value", () => {
-  /** The five ways an author writes a runtime expression wrong. */
-  const breakages = [
-    "no-fragment",
-    "wrong-case",
-    "wrong-prefix",
-    "pointer-without-slash",
-    "leading-whitespace",
-  ] as const;
+  /**
+   * The five ways an author writes a runtime expression wrong. The kinds are
+   * a closed list, so each gets its own case rather than a draw — a sampled
+   * version needed a per-kind counter to promise every kind had been applied.
+   * The body inside each case stays drawn: the break must refuse the value
+   * whatever legal pointer it carries.
+   */
+  const BREAKAGES: readonly { kind: string; break: (which: string, pointer: string) => string }[] =
+    [
+      { kind: "no fragment marker", break: (which, pointer) => `$message.${which}${pointer}` },
+      {
+        kind: "wrong case in the source",
+        break: (which, pointer) => `$message.${which.toUpperCase()}#${pointer}`,
+      },
+      { kind: "wrong prefix", break: (which, pointer) => `$msg.${which}#${pointer}` },
+      {
+        kind: "leading whitespace",
+        // Only the leading side breaks the value. A trailing space is a legal
+        // reference token character, so it stays accepted.
+        break: (which, pointer) => ` $message.${which}#${pointer}`,
+      },
+    ];
 
-  it("refuses a legal expression with any single part broken", () => {
-    const applied = new Map<string, number>();
-
+  it.each(BREAKAGES)("refuses an expression with $kind", ({ break: damage }) => {
     fc.assert(
-      fc.property(source, pointerBody, fc.constantFrom(...breakages), (which, body, breakage) => {
+      fc.property(source, pointerBody, (which, body) => {
         const pointer = body === "" ? "" : `/${body}`;
-
-        let broken: string;
-        switch (breakage) {
-          case "no-fragment":
-            broken = `$message.${which}${pointer}`;
-            break;
-          case "wrong-case":
-            broken = `$message.${which.toUpperCase()}#${pointer}`;
-            break;
-          case "wrong-prefix":
-            broken = `$msg.${which}#${pointer}`;
-            break;
-          case "pointer-without-slash":
-            // Dropping the slash breaks the value only when a body follows it
-            // and the body opens with no slash of its own.
-            fc.pre(body !== "" && !body.startsWith("/"));
-            broken = `$message.${which}#${body}`;
-            break;
-          case "leading-whitespace":
-            // Only the leading side breaks the value. A trailing space is a
-            // legal reference token character, so it stays accepted.
-            broken = ` $message.${which}#${pointer}`;
-            break;
-        }
-
-        applied.set(breakage, (applied.get(breakage) ?? 0) + 1);
-        expect(isRuntimeExpression(broken)).toBe(false);
+        expect(isRuntimeExpression(damage(which, pointer))).toBe(false);
       }),
-      { numRuns: 2000, seed: 20260815 },
+      { numRuns: 400, seed: 20260815 },
     );
+  });
 
-    // A breakage the run never applied is a breakage the property never
-    // tested, whatever the total count says.
-    for (const breakage of breakages) {
-      expect(applied.get(breakage) ?? 0).toBeGreaterThan(0);
-    }
+  it("refuses a pointer that opens without a slash", () => {
+    fc.assert(
+      fc.property(
+        source,
+        // Dropping the slash breaks the value only when a body follows it and
+        // the body opens with no slash of its own, so the draw is filtered
+        // rather than the case skipped at run time.
+        pointerBody.filter((body) => body !== "" && !body.startsWith("/")),
+        (which, body) => {
+          expect(isRuntimeExpression(`$message.${which}#${body}`)).toBe(false);
+        },
+      ),
+      { numRuns: 400, seed: 20260815 },
+    );
   });
 });
