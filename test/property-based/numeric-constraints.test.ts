@@ -100,7 +100,7 @@ describe("Property: numeric constraints", () => {
     // is where a wrong step changes the bound.
     expect(large).toBeGreaterThan(0);
     expect(largest).toBeGreaterThan(2 ** 52);
-  }, 180000);
+  });
 
   it("never emits a bound that differs from the one declared", async () => {
     // Values past the safe range are the interesting ones: they are legal
@@ -154,5 +154,5 @@ describe("Property: numeric constraints", () => {
     // emitted anything would never compare a bound at all.
     expect(dropped).toBeGreaterThan(0);
     expect(emittedCount).toBeGreaterThan(0);
-  }, 180000);
+  });
 });

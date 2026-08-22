@@ -152,7 +152,7 @@ describe("Integration: emitted document properties", () => {
     // counters are asserted, so both recorded numbers have a live check.
     expect(rewrittenKeys).toBeGreaterThan(0);
     expect(rewrittenDocs).toBeGreaterThan(0);
-  }, 120000);
+  });
 
   /**
    * Distinct declarations must stay distinct in the output.
@@ -239,5 +239,5 @@ describe("Integration: emitted document properties", () => {
     // duplicate count is asserted too, so the reported path stays reached.
     expect(checked).toBeGreaterThan(0);
     expect(duplicates).toBeGreaterThan(0);
-  }, 120000);
+  });
 });

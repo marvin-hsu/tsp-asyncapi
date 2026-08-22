@@ -87,7 +87,7 @@ describe("Property: order independence", () => {
       ),
       { numRuns: 80, seed: 20260815 },
     );
-  }, 180000);
+  });
 
   /**
    * Rotating the message declarations must not change the document, once
@@ -200,5 +200,5 @@ describe("Property: order independence", () => {
     expect(permuted).toBeGreaterThan(0);
     expect(keyOrderMoved).toBeGreaterThan(0);
     expect(promoted).toBeGreaterThan(0);
-  }, 180000);
+  });
 });
