@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
-import { compileSchemas } from "../../utils/schema-host.js";
-import { t } from "@typespec/compiler/testing";
+import { holderProperties } from "../../utils/schema-host.js";
 
 /**
  * `@encode` says how a value travels, which is a separate question from what
@@ -14,19 +12,8 @@ import { t } from "@typespec/compiler/testing";
  * travels.
  */
 describe("Unit: Schemas — @encode", () => {
-  async function encodedProperties(body: string): Promise<Record<string, any>> {
-    const { builder, M } = await compileSchemas(t.code`
-      ${body}
-      model ${t.model("M")} {
-        target: Holder;
-      }
-    `);
-    builder.buildSchema(M);
-    return builder.getSchemas().Holder.properties as Record<string, any>;
-  }
-
   it("turns a unixTimestamp date-time into an integer", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("unixTimestamp", int32)
         ts: utcDateTime;
@@ -39,7 +26,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("keeps the integer type when the encode target is a wider integer", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("unixTimestamp", int64)
         ts: utcDateTime;
@@ -50,7 +37,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("maps an rfc7231 date-time to the http-date format", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode(DateTimeKnownEncoding.rfc7231)
         ts: utcDateTime;
@@ -63,7 +50,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("leaves an explicit rfc3339 date-time as the default shape", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("rfc3339")
         ts: utcDateTime;
@@ -76,7 +63,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("turns a seconds-encoded duration into an integer", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("seconds", int32)
         d: duration;
@@ -89,7 +76,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("leaves an ISO8601 duration as the default shape", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode(DurationKnownEncoding.ISO8601)
         d: duration;
@@ -100,7 +87,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("carries a bytes encoding into the format", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("base64url")
         b: bytes;
@@ -113,7 +100,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("applies an encoding declared on a scalar to every use site", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       @encode("unixTimestamp", int32)
       scalar Epoch extends utcDateTime;
       model Holder {
@@ -127,7 +114,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("inherits an encoding through a chain of derived scalars", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       @encode("unixTimestamp", int32)
       scalar Epoch extends utcDateTime;
       scalar EventTime extends Epoch;
@@ -140,7 +127,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("lets a derived scalar's own encoding override the one it inherits", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       @encode("unixTimestamp", int32)
       scalar Epoch extends utcDateTime;
       @encode(DateTimeKnownEncoding.rfc7231)
@@ -156,7 +143,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("lets a property's encoding override the scalar's", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       @encode("unixTimestamp", int32)
       scalar Epoch extends utcDateTime;
       model Holder {
@@ -169,7 +156,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("encodes two properties of one scalar independently", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       @encode("unixTimestamp", int32)
       scalar Epoch extends utcDateTime;
       model Holder {
@@ -186,7 +173,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("carries the property's documentation through the encoding", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         /** When the order was placed. */
         @encode("unixTimestamp", int32)
@@ -202,7 +189,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("encodes a default value the same way it encodes the schema", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         @encode("unixTimestamp", int32)
         ts?: utcDateTime = utcDateTime.fromISO("2020-01-01T00:00:00Z");
@@ -219,7 +206,7 @@ describe("Unit: Schemas — @encode", () => {
   });
 
   it("leaves a property with no encoding untouched", async () => {
-    const props = await encodedProperties(`
+    const props = await holderProperties(`
       model Holder {
         ts: utcDateTime;
         d: duration;

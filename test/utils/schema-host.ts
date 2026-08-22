@@ -1,7 +1,8 @@
 import { Model } from "@typespec/compiler";
-import { TemplateWithMarkers } from "@typespec/compiler/testing";
+import { t, TemplateWithMarkers } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { SchemaBuilder } from "../../src/lower/schemas.js";
+import type { SchemaObject } from "../../src/types/index.js";
 
 /**
  * A `t.code` template, whatever types it marks. The argument has to be
@@ -62,4 +63,34 @@ export async function buildDocSchema<T extends MarkedTemplate & TemplateWithMark
   const context = await compileSchemas(code);
   context.builder.buildSchema(context.M);
   return context;
+}
+
+/**
+ * Builds the schema of a `Holder` the source declares, and returns its
+ * properties.
+ *
+ * Two suites had a byte-identical copy of this: the annotation suite and the
+ * encoding suite. Both ask the same question — what does one decorator do to
+ * the property it sits on — so both wrap the body in a model that refers to
+ * `Holder`, build that, and read the properties back.
+ *
+ * The other schema suites that look similar are not. One returns every
+ * schema rather than one model's properties, and one needs the diagnostics
+ * alongside, so they keep their own openings.
+ *
+ * A keyword is read by name here, so the values are `unknown`: `SchemaObject`
+ * declares its keywords as fields rather than through an index signature.
+ *
+ * @param body - The declarations under test, including a `Holder` model
+ * @returns The properties of `Holder`'s emitted schema
+ */
+export async function holderProperties(body: string): Promise<Record<string, SchemaObject>> {
+  const { builder, M } = await compileSchemas(t.code`
+    ${body}
+    model ${t.model("M")} {
+      target: Holder;
+    }
+  `);
+  builder.buildSchema(M);
+  return builder.getSchemas().Holder.properties as Record<string, SchemaObject>;
 }
