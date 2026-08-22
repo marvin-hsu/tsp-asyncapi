@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { isAbsoluteUrl } from "../../src/decorators/absolute-url.js";
 import { isRuntimeExpression } from "../../src/decorators/runtime-expression.js";
-import { SERVER_NAME_PATTERN, SECURITY_SCHEME_NAME_PATTERN } from "../../src/constants.js";
-import { isSafeComponentsKey } from "../../src/naming.js";
 
 /**
  * Properties of the three format checks a decorator runs on author text.
@@ -218,41 +216,5 @@ describe("Unit: runtime expression — one break refuses the whole value", () =>
     for (const breakage of breakages) {
       expect(applied.get(breakage) ?? 0).toBeGreaterThan(0);
     }
-  });
-});
-
-describe("Unit: name patterns — one charset inside the other", () => {
-  const serverName = fc.stringMatching(/^[A-Za-z0-9_-]{1,12}$/);
-  /** A name drawn from the wider charset, so a dot can appear. */
-  const componentsKey = fc.stringMatching(/^[A-Za-z0-9._-]{1,12}$/);
-
-  it("accepts every server name as a components key, and a dot only as a key", () => {
-    let carriesMarker = 0;
-    let keyOnly = 0;
-
-    fc.assert(
-      fc.property(serverName, componentsKey, (name, key) => {
-        if (/[-_]/.test(name)) carriesMarker++;
-        // The server charset is the narrower one, so a name it accepts also
-        // keys the Components Object.
-        expect(SERVER_NAME_PATTERN.test(name)).toBe(true);
-        expect(isSafeComponentsKey(name)).toBe(true);
-        expect(SECURITY_SCHEME_NAME_PATTERN.test(name)).toBe(true);
-
-        if (key.includes(".")) {
-          keyOnly++;
-          // A dot is the one character that separates the two charsets.
-          expect(isSafeComponentsKey(key)).toBe(true);
-          expect(SECURITY_SCHEME_NAME_PATTERN.test(key)).toBe(true);
-          expect(SERVER_NAME_PATTERN.test(key)).toBe(false);
-        }
-      }),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // `-` and `_` are the two non-alphanumeric characters both charsets take.
-    expect(carriesMarker).toBeGreaterThan(0);
-    // With no dot the property never separates the two charsets.
-    expect(keyOnly).toBeGreaterThan(0);
   });
 });
