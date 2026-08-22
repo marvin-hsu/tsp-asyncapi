@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Messages — description fields", () => {
   let runner: TesterInstance;
@@ -71,9 +72,7 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-content-type-decorator",
-    );
+    const reported = diagnosticsWith(diagnostics, "duplicate-content-type-decorator");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -96,7 +95,7 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-content-type");
+    const reported = diagnosticsWith(diagnostics, "empty-content-type");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -124,10 +123,8 @@ describe("Unit: Messages — description fields", () => {
     // The second application is still a second application, so it is
     // reported. Otherwise the value written first in the source would win,
     // the opposite of the rule every sibling decorator follows.
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-content-type")).toHaveLength(1);
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-content-type-decorator"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "empty-content-type")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "duplicate-content-type-decorator")).toHaveLength(1);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "contentType")).toBe(false);
@@ -156,12 +153,8 @@ describe("Unit: Messages — description fields", () => {
     // The header check runs while the headers are planned, so its diagnostic
     // lands on the program rather than in the compile result.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/content-type-header-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(0);
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-content-type"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(runner.program.diagnostics, "empty-content-type")).toHaveLength(1);
   });
 });

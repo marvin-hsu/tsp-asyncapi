@@ -3,6 +3,7 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { findDiagnostic } from "../../../utils/diagnostics.js";
 
 describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -94,11 +95,12 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = [...diagnostics, ...runner.program.diagnostics].find(
-      (d) => d.code === "tsp-asyncapi/headers-not-object",
+    const diagnostic = findDiagnostic(
+      [...diagnostics, ...runner.program.diagnostics],
+      "headers-not-object",
     );
-    expect(diagnostic?.severity).toBe("error");
-    expect(String(diagnostic?.message)).toMatch(/'HeaderList'/);
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toMatch(/'HeaderList'/);
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
       payload: { $ref: "#/components/schemas/OrderCreated" },
@@ -163,10 +165,8 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
       }
     `);
 
-    const diagnostic = diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-headers-decorator",
-    );
-    expect(diagnostic?.severity).toBe("error");
+    const diagnostic = findDiagnostic(diagnostics, "duplicate-headers-decorator");
+    expect(diagnostic.severity).toBe("error");
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
     // The first application to run keeps the model. Decorators run

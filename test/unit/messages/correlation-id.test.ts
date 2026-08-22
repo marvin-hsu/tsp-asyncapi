@@ -5,6 +5,7 @@ import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { messagesOf } from "../../utils/document.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 
 describe("Unit: Message correlationId (Phase 3.4)", () => {
   let runner: TesterInstance;
@@ -94,9 +95,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-correlation-id-location"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "invalid-correlation-id-location")).toHaveLength(0);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({ location });
@@ -126,9 +125,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/invalid-correlation-id-location",
-    );
+    const reported = diagnosticsWith(diagnostics, "invalid-correlation-id-location");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -176,9 +173,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-correlation-id-decorator",
-    );
+    const reported = diagnosticsWith(diagnostics, "duplicate-correlation-id-decorator");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 

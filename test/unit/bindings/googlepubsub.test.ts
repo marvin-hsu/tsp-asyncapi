@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildAsyncAPIWithDiagnostics, emitDocument } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf } from "../../utils/document.js";
 
 const SERVICE = `
@@ -89,7 +89,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       `);
 
       // Reporting only the first would send the author round the loop twice.
-      const missing = diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-binding-field");
+      const missing = diagnosticsWith(diagnostics, "missing-binding-field");
       expect(missing).toHaveLength(2);
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.encoding");
       expect(missing.map((d) => d.message).join(" ")).toContain("schemaSettings.name");

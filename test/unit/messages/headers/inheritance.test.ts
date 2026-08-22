@@ -3,6 +3,7 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -28,17 +29,13 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/inherited-header-ignored",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "inherited-header-ignored");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
     expect(reported[0]?.message).toMatch(/'OrderCreated'/);
     // The ordinary nested message would send the user to a fix that does not
     // apply, so it must not fire here.
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/nested-header-ignored"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
 
     // Nothing is lifted. The base model is a declaration of its own, and the
     // payload refers to it through `allOf`.
@@ -197,9 +194,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     // through its implicit mapping. Those still require the lifted field,
     // which only ever travels in `headers`, so no payload could satisfy the
     // schema. The emitter names the conflict and leaves the keyword off.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/discriminated-lifted-header",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "discriminated-lifted-header");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toMatch(/'Base'/);
@@ -267,9 +262,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     // resolved twice for `Base`. One model with one missing property is one
     // mistake, so the user sees one diagnostic.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/missing-discriminator-property",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "missing-discriminator-property"),
     ).toHaveLength(1);
   });
 
@@ -328,9 +321,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     // payload component is the only one built. The check must still run, or
     // the payload keeps the derived wire name in silence.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "encoded-name-override-conflict"),
     ).toHaveLength(1);
     expect(doc.components?.schemas?.MPayload).toEqual({
       type: "object",
@@ -370,9 +361,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     // payload component. The conflict is one mistake in one model, so the
     // two builds speak once between them.
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "encoded-name-override-conflict"),
     ).toHaveLength(1);
   });
 
@@ -398,9 +387,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/never-typed-property-override",
-      ),
+      diagnosticsWith(runner.program.diagnostics, "never-typed-property-override"),
     ).toHaveLength(1);
     // The payload keeps the inherited field the override left alone, and
     // describes neither the removed one nor the lifted one.
@@ -522,9 +509,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     // lift is cancelled and `h` stays in the payload of `D`. The same field is
     // a header of `B`. One field in two roles is a mistake the author cannot
     // see in the emitted document, so the emitter names it.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/inherited-header-overridden",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "inherited-header-overridden");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
     expect(reported[0]?.message).toMatch(/'h'/);

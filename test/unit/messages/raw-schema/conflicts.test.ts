@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
@@ -29,9 +30,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-raw-payload-decorator",
-    );
+    const reported = diagnosticsWith(diagnostics, "duplicate-raw-payload-decorator");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -57,9 +56,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-raw-headers-decorator",
-    );
+    const reported = diagnosticsWith(diagnostics, "duplicate-raw-headers-decorator");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -87,9 +84,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-headers",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toContain("@rawHeaders");
@@ -126,9 +121,9 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-headers"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers")).toHaveLength(
+      1,
+    );
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
   });
 
@@ -149,9 +144,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/raw-payload-lifted-header",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "raw-payload-lifted-header");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toContain("'OrderCreated'");
@@ -193,9 +186,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/raw-payload-lifted-header",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "raw-payload-lifted-header");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.message).toContain("'OrderCreated'");
   });
@@ -225,9 +216,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
     // The base message lifts `traceId`, and `@rawHeaders` describes the whole
     // headers object. So the lift is cancelled and the field stays in the
     // payload of the derived message.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/inherited-header-overridden",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "inherited-header-overridden");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.message).toContain("traceId");
 
@@ -269,18 +258,14 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
     // A message with an unresolved conflict must not adopt the lift of its
     // base message, because that would emit a `headers` object next to the
     // error that says none was emitted.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-message-headers",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers");
     expect(reported).toHaveLength(1);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);
     // The conflict is the only thing reported. The cancelled lift is not a
     // second mistake to name.
-    expect(
-      runner.program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/inherited-header-overridden",
-      ),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "inherited-header-overridden")).toHaveLength(
+      0,
+    );
   });
 
   it("reports nothing for a raw payload beside @headers or @rawHeaders", async () => {
@@ -348,9 +333,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/nested-header-ignored",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "nested-header-ignored");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
   });

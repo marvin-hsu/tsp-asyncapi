@@ -3,6 +3,7 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Message headers: the derived payload component (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -65,9 +66,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       },
       required: ["orders"],
     });
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/nested-header-ignored"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
   });
 
   it("derives the payload key from the resolved schema key, not the declared name", async () => {
@@ -186,16 +185,12 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     // rather than silently replaced by the derived payload of `Inner`. The
     // author wrote no second `InnerPayload`, so the report names the message
     // whose payload needs the key.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/payload-schema-key-taken",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "payload-schema-key-taken");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toMatch(/'InnerPayload'/);
     expect(reported[0]?.message).toMatch(/'Inner'/);
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-schema-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
     // The author's model keeps the key, so `Outer` still describes its field.
     expect(doc.components?.schemas?.InnerPayload).toEqual({
       type: "object",
@@ -251,16 +246,12 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     // before the author's model is built, so the model is the one reported.
     // Either order reports the clash, and either report names the message
     // that needs the derived key, which is the half the author cannot see.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/payload-schema-key-taken",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "payload-schema-key-taken");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
     expect(reported[0]?.message).toMatch(/'InnerPayload'/);
     expect(reported[0]?.message).toMatch(/'Inner'/);
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-schema-key"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
     // The first claimant keeps the key, the same rule every other schema key
     // collision follows.
     expect(doc.components?.schemas?.InnerPayload).toEqual({

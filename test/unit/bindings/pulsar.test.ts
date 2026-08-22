@@ -4,7 +4,7 @@ import {
   emitDocument,
   emitDocumentWithDiagnostics,
 } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, serversOf } from "../../utils/document.js";
 
 const SERVICE = `
@@ -152,7 +152,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       `);
 
       // Reporting only the first would send the author round the loop twice.
-      const missing = diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-binding-field");
+      const missing = diagnosticsWith(diagnostics, "missing-binding-field");
       expect(missing).toHaveLength(2);
     });
 

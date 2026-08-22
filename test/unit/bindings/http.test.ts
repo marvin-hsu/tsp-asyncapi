@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { messagesOf, operationsOf } from "../../utils/document.js";
 
 const SERVICE = `
@@ -198,9 +198,7 @@ describe("Unit: the HTTP binding decorators", () => {
 
         // The range is inclusive at both ends. An off-by-one check would
         // reject a code the specification allows.
-        expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
-          [],
-        );
+        expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
         expect(messagesOf(doc).Notice.bindings?.http.statusCode).toBe(code);
       }
     });

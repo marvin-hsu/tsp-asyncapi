@@ -3,6 +3,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 
 /**
  * These drive the builder directly, the way the other unit suites do.
@@ -103,9 +104,9 @@ describe("Unit: assembling a Bindings Object", () => {
     // The two are never merged, and the later one never wins.
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
     expect(bindings.kafka).toEqual({ topic: "first" });
-    expect(
-      runner.program.diagnostics.some((d) => d.code === "tsp-asyncapi/duplicate-binding"),
-    ).toBe(true);
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-binding").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("reaches a server, a message, and an operation from one program", async () => {

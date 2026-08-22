@@ -4,7 +4,7 @@ import {
   emitDocument,
   emitDocumentWithDiagnostics,
 } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, operationsOf, present } from "../../utils/document.js";
 import type { SqsChannelBindingObject } from "../../../src/types/index.js";
 
@@ -97,7 +97,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      const missing = diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-binding-field");
+      const missing = diagnosticsWith(diagnostics, "missing-binding-field");
       expect(missing).toHaveLength(2);
       const joined = missing.map((d) => d.message).join(" ");
       expect(joined).toContain("queue.name");
@@ -287,7 +287,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // An emitted `queues: []` would fail validation, so the author is told
       // the field is missing rather than left with an invalid document.
-      const missing = diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-binding-field");
+      const missing = diagnosticsWith(diagnostics, "missing-binding-field");
       expect(missing.map((d) => d.message).join(" ")).toContain("queues[0].name");
       expect(missing.map((d) => d.message).join(" ")).toContain("the field 'queues'");
       expect(operationsOf(doc).publish.bindings).toBeUndefined();

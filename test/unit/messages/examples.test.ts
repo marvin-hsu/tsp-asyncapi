@@ -3,6 +3,7 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { getSourceLocation } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 
 describe("Unit: Message examples (Phase 3.5)", () => {
   let runner: TesterInstance;
@@ -206,9 +207,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
 
     // The builder reports while it emits, so the diagnostic lands on the
     // program rather than in the compile result above.
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/unserializable-message-example",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "unserializable-message-example");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
   });
@@ -225,7 +224,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example");
+    const reported = diagnosticsWith(diagnostics, "empty-message-example");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
@@ -248,7 +247,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example");
+    const reported = diagnosticsWith(diagnostics, "empty-message-example");
     expect(reported).toHaveLength(1);
 
     // The model carries three applications, so a diagnostic on the model
@@ -279,9 +278,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/unserializable-message-example",
-    );
+    const reported = diagnosticsWith(runner.program.diagnostics, "unserializable-message-example");
     expect(reported).toHaveLength(1);
     const location = getSourceLocation(reported[0]?.target);
     expect(location?.file.text.slice(location.pos, location.pos + 15)).toBe("@messageExample");
@@ -301,9 +298,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-message-example")).toHaveLength(
-      1,
-    );
+    expect(diagnosticsWith(diagnostics, "empty-message-example")).toHaveLength(1);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../utils/document.js";
 
 const MESSAGE = `
@@ -110,9 +110,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       `);
 
       // The range is inclusive at both ends.
-      expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
-        [],
-      );
+      expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
       expect(channelsOf(doc).orders.bindings?.ibmmq.maxMsgLength).toBe(length);
     }
   });

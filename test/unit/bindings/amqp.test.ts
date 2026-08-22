@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf, operationsOf, present } from "../../utils/document.js";
 import type { AmqpChannelBindingObject } from "../../../src/types/index.js";
 
@@ -110,9 +110,7 @@ describe("Unit: the AMQP binding decorators", () => {
 
       // The limit is inclusive. An off-by-one check would reject a name the
       // broker accepts.
-      expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
-        [],
-      );
+      expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
       // `bindings` is a record of untyped records in the document type, on
       // purpose: a binding is whatever its protocol says. The test names the
       // shape it expects, which is the same shape the emitter writes.

@@ -7,7 +7,7 @@ import {
   MULTI_FORMAT_SCHEMA_FORMATS,
   NON_JSON_SCHEMA_FORMATS,
 } from "../../../../src/constants.js";
-import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
@@ -439,12 +439,8 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
 
     // The guard records that the decorator ran before the value is checked.
     // So the author is told about both mistakes.
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/empty-schema-format")).toHaveLength(
-      1,
-    );
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-raw-payload-decorator"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "empty-schema-format")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "duplicate-raw-payload-decorator")).toHaveLength(1);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({

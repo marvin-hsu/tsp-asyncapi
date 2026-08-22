@@ -3,6 +3,7 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { byCodePoint } from "../../../utils/sort.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Messages — decorator conflicts", () => {
   let runner: TesterInstance;
@@ -109,12 +110,8 @@ describe("Unit: Messages — decorator conflicts", () => {
     // The key collision drops `B`, but the conflict inside `B` is a separate
     // mistake. Reporting it only after the collision is fixed would hand the
     // user one error at a time.
-    expect(
-      runner.program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-message-key"),
-    ).toHaveLength(1);
-    const reported = runner.program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-    );
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-key")).toHaveLength(1);
+    const reported = diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.message).toMatch(/'description'/);
   });
