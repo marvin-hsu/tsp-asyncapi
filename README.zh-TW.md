@@ -276,8 +276,10 @@ decorator 之前會逐個成員賦值。在 JavaScript 裡，對 `__proto__` 賦
 所有接受 object value 的 decorator 都受影響，`@extension` 與 `@binding` 都在內。
 這個 emitter 救不回那個成員，因為值送到時就已經被改過了。
 
-不要用 `__proto__` 當成員名稱。`test/unit/extensions.test.ts` 用 `it.fails` 記錄了
-這個案例，等 compiler 不再弄丟這個名稱，那條測試就會轉綠。
+不要用 `__proto__` 當成員名稱。這個問題已回報給上游：
+[microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743)。
+`test/unit/extensions.test.ts` 用 `it.fails` 記錄了這個案例，等 compiler 不再弄丟
+這個名稱，那條測試就會轉綠。
 
 ## 開發
 

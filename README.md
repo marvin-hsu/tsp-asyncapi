@@ -280,9 +280,10 @@ Every decorator that takes an object value is affected, `@extension` and
 `@binding` among them. This emitter cannot recover the member, because the
 value arrives already changed.
 
-Do not use `__proto__` as a member name. `test/unit/extensions.test.ts`
-carries the case as `it.fails`, so it turns green if the compiler stops
-losing the name.
+Do not use `__proto__` as a member name. This is reported upstream as
+[microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743).
+`test/unit/extensions.test.ts` carries the case as `it.fails`, so it turns
+green if the compiler stops losing the name.
 
 ## Development
 

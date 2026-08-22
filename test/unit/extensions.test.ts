@@ -141,7 +141,8 @@ describe("Unit: @extension", () => {
     // and that assignment writes the prototype instead of adding the member.
     // So the argument that reaches `@extension` already holds `ok` alone.
     // This case states what the author asked for, and fails until the
-    // compiler stops losing the name.
+    // compiler stops losing the name. Reported upstream as
+    // microsoft/typespec#11743.
     it.fails("emits a member named __proto__ as a real key", async () => {
       const doc = await emitAsyncAPI(`
         @service(#{ title: "Orders" })
