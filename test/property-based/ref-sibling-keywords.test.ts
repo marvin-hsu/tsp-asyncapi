@@ -27,25 +27,20 @@ import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
  * The walk covers the whole document, not only `components.schemas`. An
  * AsyncAPI reference object forbids siblings for the same reason.
  *
- * REACHABILITY, measured in this worktree.
+ * REACHABILITY.
  *
- * A probe first emitted 34 hand-written programs and scanned each one
- * with this same walk. It measured:
+ * A probe first scanned a set of hand-written programs with this same walk,
+ * and found no `$ref` object carrying a sibling key anywhere.
  *
- *   programs that produced an `allOf` wrapper holding a bare `$ref`   18
- *   programs with no such wrapper                                     15
- *   programs the compiler refused                                      1
- *   `$ref` objects carrying a sibling key                              0
- *
- * The 18 wrapping programs reach all four paths: `@doc`, `@summary`,
+ * The programs that wrap reach all four paths: `@doc`, `@summary`,
  * `@example`, and `@jsonSchemaExtension` on a model-typed property;
  * `extends`; an empty derived model; `@discriminator` over a two-level
  * and a three-level chain; a self-referencing model; an `@oneOf` union
  * and an enum behind a documented property; a union variant's own `@doc`.
  *
- * The 15 non-wrapping programs matter as much. They reach the same
+ * The programs that do not wrap matter as much. They reach the same
  * document region by a different route, so a regression there would not
- * show up in a wrapper count. Measured shapes, for `@doc("x")
+ * show up in a wrapper count. Their shapes, for `@doc("x")
  * @minItems(1) @maxItems(3) i: Inner[]`:
  *
  *   { type: "array", items: { $ref }, description, minItems, maxItems }
