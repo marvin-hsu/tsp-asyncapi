@@ -79,6 +79,17 @@ const shapedService = fc.oneof(
   },
 );
 
+/** The empty service: every section a model can leave empty, left empty. */
+const EMPTY_SERVICE = {
+  info: { title: "T", version: "1", tags: [], extensions: {} },
+  servers: [],
+  securitySchemes: [],
+  messages: [],
+  messageKeys: new Map(),
+  channels: [],
+  operations: [],
+};
+
 describe("Integration: document assembly — a section exists when the model has one", () => {
   it("mirrors the model, and omits an empty components section", () => {
     let allEmpty = 0;
@@ -128,25 +139,14 @@ describe("Integration: document assembly — a section exists when the model has
 
 describe("Integration: document assembly — the two required sections", () => {
   it("emits channels and operations even when the model has none", () => {
-    let empty = 0;
+    // AsyncAPI states both fields as required. An omitted `channels` is an
+    // invalid document, so the empty map is emitted instead. "None" is a
+    // single point, so it is stated; the counts over drawn models are the
+    // keying property below, which pins the keys and with them the counts.
+    const document = lowerDocument(stubProgram, EMPTY_SERVICE, {});
 
-    fc.assert(
-      fc.property(shapedService, (model) => {
-        if (model.channels.length === 0 && model.operations.length === 0) empty++;
-
-        const document = lowerDocument(stubProgram, model, {});
-
-        // AsyncAPI states both fields as required. An omitted `channels` is
-        // an invalid document, so the empty map is emitted instead.
-        expect(Object.hasOwn(document, "channels")).toBe(true);
-        expect(Object.hasOwn(document, "operations")).toBe(true);
-        expect(ownKeys(requiredSection(document.channels))).toHaveLength(model.channels.length);
-        expect(ownKeys(requiredSection(document.operations))).toHaveLength(model.operations.length);
-      }),
-      RUNS,
-    );
-
-    expect(empty).toBeGreaterThan(0);
+    expect(document.channels).toEqual({});
+    expect(document.operations).toEqual({});
   });
 });
 
@@ -281,23 +281,17 @@ describe("Integration: document assembly — the options that reach the head", (
    * the rest, and the two options now go through it as well. The options
    * schema sets no minimum length, so an author can write either one.
    */
-  it("treats a blank option the way it treats blank prose", () => {
-    const model = {
-      info: { title: "T", version: "1", tags: [], extensions: {} },
-      servers: [],
-      securitySchemes: [],
-      messages: [],
-      messageKeys: new Map(),
-      channels: [],
-      operations: [],
-    };
-
-    fc.assert(
-      fc.property(fc.constantFrom(" ", "   ", "\t", "  x  "), (value) => {
-        const document = lowerDocument(stubProgram, model, { "asyncapi-id": value });
-        expect(document.id).toBe(value.trim() === "" ? undefined : value.trim());
-      }),
-      { numRuns: 100, seed: 20260815 },
-    );
+  it.each([
+    { option: " ", id: undefined },
+    { option: "   ", id: undefined },
+    { option: "\t", id: undefined },
+    { option: "  x  ", id: "x" },
+  ])("treats the blank or padded option %j the way it treats blank prose", ({ option, id }) => {
+    // The four spellings were the whole pool of a property that sampled them
+    // a hundred times. Blank and padded are the two ways an option carries
+    // whitespace, and the corpus case `blank-root-options` pins the same rule
+    // end to end.
+    const document = lowerDocument(stubProgram, EMPTY_SERVICE, { "asyncapi-id": option });
+    expect(document.id).toBe(id);
   });
 });
