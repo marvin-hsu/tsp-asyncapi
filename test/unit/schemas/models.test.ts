@@ -46,11 +46,15 @@ describe("Unit: Schemas — models, collections, and literals", () => {
 
     // Standalone `never` still maps to `{ not: {} }`. Only the
     // property-level path skips emitting it.
-    const neverType = M.properties.get("b")?.type;
-    expect(neverType).toBeDefined();
-    if (neverType) {
-      expect(builder.buildSchema(neverType)).toEqual({ not: {} });
+    const neverProperty = M.properties.get("b");
+    expect(neverProperty).toBeDefined();
+    // The same narrowing this file already uses below: `expect` does not
+    // narrow, and an `if` around the real assertion would let it be skipped
+    // rather than fail.
+    if (neverProperty === undefined) {
+      throw new Error("unreachable: asserted above");
     }
+    expect(builder.buildSchema(neverProperty.type)).toEqual({ not: {} });
   });
 
   it("should build `{ not: {} }` for standalone `void`", async () => {
