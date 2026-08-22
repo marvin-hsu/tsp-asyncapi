@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { channelsOf, present, serversOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -16,7 +16,7 @@ const SERVICE = `
 
 describe("Unit: the @kafkaChannel decorator", () => {
   it("emits every field with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{
@@ -32,7 +32,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({
       kafka: {
         topic: "orders.created.v2",
         partitions: 12,
@@ -44,7 +44,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("keeps a vendor key with dots inside topicConfiguration", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{
@@ -57,13 +57,13 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
       "confluent.value.schema.validation": true,
     });
   });
 
   it("reaches a namespace channel as well as an interface channel", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "orders.created" })
@@ -74,11 +74,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
   });
 
   it("reports a partition count that is not positive, and keeps the rest", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "orders.created", partitions: 0, replicas: 3 })
@@ -94,7 +94,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     expect(reported.message).toContain("a positive integer");
     // The message promises the rest of the binding survives, so the document
     // has to be there to show it. The rejected field is the only loss.
-    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
       topic: "orders.created",
       replicas: 3,
       bindingVersion: "0.5.0",
@@ -102,7 +102,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("drops a blank topic rather than emitting one", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "   ", partitions: 3 })
@@ -115,14 +115,14 @@ describe("Unit: the @kafkaChannel decorator", () => {
 
     // A blank topic names nothing, and emitting it would claim the channel
     // uses a topic whose name is spaces.
-    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
       partitions: 3,
       bindingVersion: "0.5.0",
     });
   });
 
   it("trims a padded topic", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "  orders.created  " })
@@ -133,11 +133,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
   });
 
   it("reports a replica count that is negative", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ replicas: -1 })
@@ -160,7 +160,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("reports a cleanup policy outside the two values Kafka allows", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{ \`cleanup.policy\`: #["archive"] } })
@@ -177,7 +177,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("keeps the rest of the topic configuration when the cleanup policy is rejected", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{
@@ -211,7 +211,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("accepts both values Kafka allows in the cleanup policy", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{ \`cleanup.policy\`: #["delete", "compact"] } })
@@ -222,13 +222,13 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
       "cleanup.policy": ["delete", "compact"],
     });
   });
 
   it("reports a plain interface that carries no channel", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "orders.created" })
@@ -249,7 +249,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("reports a second application on one channel", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "one" })
@@ -267,7 +267,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("keeps a generic binding for another protocol beside the kafka one", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topic: "orders.created" })
@@ -280,13 +280,13 @@ describe("Unit: the @kafkaChannel decorator", () => {
     `);
 
     expect(
-      Object.keys(doc.channels["orders.created"].bindings).sort((a: string, b: string) =>
-        a.localeCompare(b),
+      Object.keys(present(channelsOf(doc)["orders.created"].bindings, "channel bindings")).sort(
+        (a: string, b: string) => a.localeCompare(b),
       ),
     ).toEqual(["kafka", "mqtt"]);
   });
   it("drops an empty topic configuration rather than emitting an empty object", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{} })
@@ -297,13 +297,15 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({
+      kafka: { bindingVersion: "0.5.0" },
+    });
   });
 
   it("emits a cleanup policy written as one value as a one-entry list", async () => {
     // The Kafka binding types this field as an array. A bare string is
     // accepted from the author and written as the list the parser expects.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{ \`cleanup.policy\`: "compact" } })
@@ -314,13 +316,13 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topicConfiguration).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
       "cleanup.policy": ["compact"],
     });
   });
 
   it("reports a cleanup policy list that mixes an allowed and a rejected entry", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{ \`cleanup.policy\`: #["compact", "archive"] } })
@@ -336,7 +338,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("reports a cleanup policy written as one value outside the allowed set", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaChannel(#{ topicConfiguration: #{ \`cleanup.policy\`: "archive" } })
@@ -352,7 +354,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("emits the version alone when every field is left out", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaChannel(#{})
@@ -363,7 +365,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings).toEqual({ kafka: { bindingVersion: "0.5.0" } });
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({
+      kafka: { bindingVersion: "0.5.0" },
+    });
   });
 
   it("records one augment decorator once, however often the namespace reopens", async () => {
@@ -371,8 +375,8 @@ describe("Unit: the @kafkaChannel decorator", () => {
     // Two blocks of one namespace therefore run one `@@kafkaChannel` twice.
     // Those runs are one application, not a repeated one. Recording both
     // would report a protocol claimed twice that the author never wrote.
-    // `emitAsyncAPI` fails on any diagnostic, so it asserts that too.
-    const doc = await emitAsyncAPI(`
+    // `emitDocument` fails on any diagnostic, so it asserts that too.
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -385,7 +389,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       @@kafkaChannel(Test.OrderChannel, #{ topic: "orders.created" });
     `);
 
-    expect(doc.channels["orders.created"].bindings.kafka.topic).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
   });
 
   it("keeps a server binding and a channel binding apart on one namespace", async () => {
@@ -393,7 +397,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     // Kafka bindings then sit on one target and both name the protocol
     // `kafka`. They are two members of two different objects, so neither is
     // a repeated protocol and neither reaches the other object.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       @kafkaServer(#{ schemaRegistryUrl: "https://registry.example.com" })
@@ -410,11 +414,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       op publish(event: OrderCreated): void;
     `);
 
-    expect(doc.servers.prod.bindings.kafka).toEqual({
+    expect(serversOf(doc).prod.bindings?.kafka).toEqual({
       schemaRegistryUrl: "https://registry.example.com",
       bindingVersion: "0.5.0",
     });
-    expect(doc.channels["orders.created"].bindings.kafka).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
       topic: "orders.created",
       bindingVersion: "0.5.0",
     });

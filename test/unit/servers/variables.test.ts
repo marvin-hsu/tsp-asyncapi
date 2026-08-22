@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildServersFrom } from "../../utils/servers.js";
 import { getServers } from "../../../src/decorators/index.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { present, serversOf } from "../../utils/document.js";
 
 describe("Unit: server variables", () => {
   it("emits a variable used by a host template", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com:9092",
@@ -25,7 +25,7 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production).toEqual({
+    expect(serversOf(doc).production).toEqual({
       host: "{env}.kafka.example.com:9092",
       protocol: "kafka",
       variables: {
@@ -40,7 +40,7 @@ describe("Unit: server variables", () => {
   });
 
   it("emits a variable that only a pathname template uses", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "kafka.example.com:9092",
@@ -51,12 +51,12 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.pathname).toBe("/{tenant}/orders");
-    expect(doc.servers.production.variables).toEqual({ tenant: { default: "acme" } });
+    expect(serversOf(doc).production.pathname).toBe("/{tenant}/orders");
+    expect(serversOf(doc).production.variables).toEqual({ tenant: { default: "acme" } });
   });
 
   it("reads the templates of host and pathname as one set", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -71,11 +71,15 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(Object.keys(doc.servers.production.variables)).toEqual(["env", "tenant", "stage"]);
+    expect(Object.keys(present(serversOf(doc).production.variables, "server variables"))).toEqual([
+      "env",
+      "tenant",
+      "stage",
+    ]);
   });
 
   it("emits a variable with no field at all as an empty object", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -85,7 +89,7 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.variables).toEqual({ env: {} });
+    expect(serversOf(doc).production.variables).toEqual({ env: {} });
   });
 
   it("emits each variable field on its own, without the other three", async () => {
@@ -95,7 +99,7 @@ describe("Unit: server variables", () => {
     // tell the four guards apart. Four variables that each carry one field
     // pin them separately. `enum` alone must not pull in a `default`, and a
     // lone `description` must survive with no sibling.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{a}.{b}.{c}.{d}.example.com",
@@ -110,7 +114,7 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       a: { enum: ["one", "two"] },
       b: { default: "only-default" },
       c: { description: "Only a description." },
@@ -119,17 +123,17 @@ describe("Unit: server variables", () => {
   });
 
   it("omits the variables field when the server declares none", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{ host: "kafka.example.com", protocol: "kafka" })
       namespace Test;
     `);
 
-    expect(doc.servers.production).not.toHaveProperty("variables");
+    expect(serversOf(doc).production).not.toHaveProperty("variables");
   });
 
   it("trims a variable field and drops it when it is blank", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -150,13 +154,13 @@ describe("Unit: server variables", () => {
         message: /The `enum` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       env: { enum: ["prod"], default: "prod" },
     });
   });
 
   it("emits the examples of a variable", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -170,13 +174,13 @@ describe("Unit: server variables", () => {
 
     // `examples` carries no `uniqueItems` in the specification, unlike
     // `enum`, so it is emitted as written.
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       env: { examples: ["prod", "sit"], default: "prod" },
     });
   });
 
   it("drops a repeated enum value and reports it", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -198,7 +202,7 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       env: { enum: ["prod", "sit"], default: "prod" },
     });
   });
@@ -208,7 +212,7 @@ describe("Unit: server variables", () => {
     // reporter remembers the values it has already named, so the third
     // occurrence adds no second diagnostic. Two occurrences never reach
     // that guard, so this needs a third one.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -227,13 +231,13 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       env: { enum: ["prod", "sit"], default: "prod" },
     });
   });
 
   it("reports a repeat that only the trim creates", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -255,13 +259,13 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(doc.servers.production.variables).toEqual({
+    expect(serversOf(doc).production.variables).toEqual({
       env: { enum: ["prod"], default: "prod" },
     });
   });
 
   it("trims the examples of a variable and drops the blank ones", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -278,11 +282,13 @@ describe("Unit: server variables", () => {
         message: /The `examples` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(doc.servers.production.variables.env.examples).toEqual(["v1"]);
+    expect(present(serversOf(doc).production.variables, "server variables").env.examples).toEqual([
+      "v1",
+    ]);
   });
 
   it("reports and drops the examples field when every entry is blank", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com",
@@ -299,7 +305,9 @@ describe("Unit: server variables", () => {
         message: /The `examples` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(doc.servers.production.variables.env).not.toHaveProperty("examples");
+    expect(present(serversOf(doc).production.variables, "server variables").env).not.toHaveProperty(
+      "examples",
+    );
   });
 
   it("reports an enum whose entries are all blank, rather than dropping it in silence", async () => {
@@ -307,7 +315,7 @@ describe("Unit: server variables", () => {
     // all. That is the opposite of what the author wrote. The whole list is
     // also what the `default`-not-in-`enum` check reads, so a silent drop
     // would take that check out as well.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "{env}.kafka.example.com:9092",
@@ -324,7 +332,9 @@ describe("Unit: server variables", () => {
         message: /The `enum` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(doc.servers.production.variables.env).toEqual({ default: "prod" });
+    expect(present(serversOf(doc).production.variables, "server variables").env).toEqual({
+      default: "prod",
+    });
   });
 
   it("never receives a variable named __proto__, because the compiler drops the key", async () => {
@@ -478,7 +488,7 @@ describe("Unit: server variables", () => {
     // server then carries no `variables` key at all. An empty map is the
     // shortest input that reaches that return: the host has no template, so
     // nothing is reported, and the map contributes no entry either.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "kafka.example.com:9092",
@@ -489,7 +499,7 @@ describe("Unit: server variables", () => {
     `);
 
     expectDiagnosticEmpty(diagnostics);
-    expect(doc.servers.production).not.toHaveProperty("variables");
+    expect(serversOf(doc).production).not.toHaveProperty("variables");
   });
 
   it("keeps the recorded variables safe from a change to the returned copy", async () => {

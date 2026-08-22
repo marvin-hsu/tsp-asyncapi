@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
+import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../../utils/document.js";
 
 const KAFKA_CONTRACT = `
   @service(#{ title: "Orders" })
@@ -12,7 +12,7 @@ const KAFKA_CONTRACT = `
 
 describe("Unit: the generic @binding decorator", () => {
   it("emits the config verbatim on a channel, and adds no bindingVersion", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -28,11 +28,11 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings).toEqual({ mqtt: { qos: 2, retain: true } });
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({ mqtt: { qos: 2, retain: true } });
   });
 
   it("reaches a server, an operation, and a message", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       @binding("kafka", #{ schemaRegistryUrl: "https://registry.example.com" })
@@ -52,17 +52,17 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.servers.prod.bindings).toEqual({
+    expect(serversOf(doc).prod.bindings).toEqual({
       kafka: { schemaRegistryUrl: "https://registry.example.com" },
     });
-    expect(doc.operations.publish.bindings).toEqual({ amqp: { expiration: 100 } });
-    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+    expect(operationsOf(doc).publish.bindings).toEqual({ amqp: { expiration: 100 } });
+    expect(messagesOf(doc).OrderCreated.bindings).toEqual({
       googlepubsub: { orderingKey: "tenant" },
     });
   });
 
   it("keeps every protocol of one target, in source order", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -79,11 +79,13 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(Object.keys(doc.channels["orders.created"].bindings)).toEqual(["mqtt", "amqp"]);
+    expect(
+      Object.keys(present(channelsOf(doc)["orders.created"].bindings, "channel bindings")),
+    ).toEqual(["mqtt", "amqp"]);
   });
 
   it("gives every server of the namespace its own copy of the binding", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       @server("sit", #{ host: "kafka.sit.example.com:9092", protocol: "kafka" })
@@ -102,18 +104,18 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.servers.prod.bindings).toEqual(doc.servers.sit.bindings);
-    expect(doc.servers.prod.bindings).not.toBe(doc.servers.sit.bindings);
+    expect(serversOf(doc).prod.bindings).toEqual(serversOf(doc).sit.bindings);
+    expect(serversOf(doc).prod.bindings).not.toBe(serversOf(doc).sit.bindings);
     // A binding is a nested object, so the copy has to be deep. A shallow
     // copy still passes the check above, and a later in-place edit of one
     // server's protocol member would then reach every other server.
-    expect(doc.servers.prod.bindings.kafka).not.toBe(doc.servers.sit.bindings.kafka);
+    expect(serversOf(doc).prod.bindings?.kafka).not.toBe(serversOf(doc).sit.bindings?.kafka);
   });
 
   it("lands at both levels when one namespace is the service and a channel", async () => {
     // The generic decorator names no level, so a namespace that emits a
     // server and a channel carries the binding on both objects.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       @channel("orders.created")
@@ -129,15 +131,15 @@ describe("Unit: the generic @binding decorator", () => {
       op publish(event: OrderCreated): void;
     `);
 
-    expect(doc.servers.prod.bindings).toEqual({ mqtt: { qos: 1 } });
-    expect(doc.channels["orders.created"].bindings).toEqual({ mqtt: { qos: 1 } });
+    expect(serversOf(doc).prod.bindings).toEqual({ mqtt: { qos: 1 } });
+    expect(channelsOf(doc)["orders.created"].bindings).toEqual({ mqtt: { qos: 1 } });
   });
 
   it("trims a padded protocol name before it becomes a member name", async () => {
     // The name is checked after it is trimmed, so it has to be recorded after
     // it is trimmed too. Recording the raw name would write a member keyed
     // with the spaces the author typed around it.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -153,11 +155,13 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(Object.keys(doc.channels["orders.created"].bindings)).toEqual(["mqtt"]);
+    expect(
+      Object.keys(present(channelsOf(doc)["orders.created"].bindings, "channel bindings")),
+    ).toEqual(["mqtt"]);
   });
 
   it("reports a blank protocol name and drops the binding", async () => {
-    const { doc, diagnostics, program } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics, program } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -185,7 +189,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("reports a config that is not an object and drops the binding", async () => {
-    const { doc, diagnostics, program } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics, program } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -209,7 +213,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("reports an array config, because a Bindings Object member is an object", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -230,7 +234,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("reports one protocol claimed twice on one target, and keeps the first", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -253,13 +257,13 @@ describe("Unit: the generic @binding decorator", () => {
     // level, so the level the builder was asked for is the one to report.
     expect(reported.message).toContain("at the channel level");
     // The first application in source order keeps the member.
-    expect(doc.channels["orders.created"].bindings.mqtt).toEqual({ qos: 1 });
+    expect(channelsOf(doc)["orders.created"].bindings?.mqtt).toEqual({ qos: 1 });
   });
 
   it("reports the dropped duplicate once, and not again as unattached", async () => {
     // The dropped binding did reach the channel. Reporting it a second time
     // as a binding that reaches nothing would state the opposite.
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -282,7 +286,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("reports a binding whose target emits no object", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -307,7 +311,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("serializes a scalar the compiler does not flatten", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -323,10 +327,10 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.mqtt.since).toBe("2026-01-01T00:00:00Z");
+    expect(channelsOf(doc)["orders.created"].bindings?.mqtt.since).toBe("2026-01-01T00:00:00Z");
   });
   it("converts a nested object, a list, and a null through the same rule", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -345,7 +349,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.mqtt).toEqual({
+    expect(channelsOf(doc)["orders.created"].bindings?.mqtt).toEqual({
       will: { topic: "down", qos: 1 },
       hops: [1, 2, 3],
       lastSeen: null,
@@ -357,7 +361,7 @@ describe("Unit: the generic @binding decorator", () => {
     // converted. Only a value the compiler did not flatten shows that the
     // conversion reaches inside the list. Without it the compiler's own
     // value object would be written into the document.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${KAFKA_CONTRACT}
 
       @message
@@ -373,6 +377,6 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(doc.channels["orders.created"].bindings.mqtt.seen).toEqual(["2026-01-01T00:00:00Z"]);
+    expect(channelsOf(doc)["orders.created"].bindings?.mqtt.seen).toEqual(["2026-01-01T00:00:00Z"]);
   });
 });
