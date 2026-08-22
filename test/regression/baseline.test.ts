@@ -4,6 +4,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { AsyncAPITester } from "../../src/testing/index.js";
 import { LIBRARY_NAME } from "../../src/lib.js";
 import { byCodePoint } from "../utils/sort.js";
+import { $lib } from "../../src/lib.js";
+import type { DiagnosticCode } from "../utils/diagnostics.js";
 
 /**
  * The byte-for-byte output baseline, driven by a corpus on disk.
@@ -39,6 +41,8 @@ const SNAPSHOTS = "./__snapshots__";
 interface Variant {
   options: Record<string, unknown>;
   fileType: string;
+  /** The codes the case must report, without the library prefix. */
+  diagnostics: DiagnosticCode[];
 }
 
 /**
@@ -61,8 +65,17 @@ function variantsOf(name: string): Variant[] {
   }
   const seen = new Set<string>();
   return raw.map((entry) => {
-    const options = entry as Record<string, unknown>;
+    const { diagnostics = [], ...options } = entry as Record<string, unknown> & {
+      diagnostics?: string[];
+    };
     const fileType = options["file-type"] === "json" ? "json" : "yaml";
+    // A code that does not exist would make the case assert nothing, and the
+    // sidecar is JSON so the compiler cannot catch the typo.
+    for (const code of diagnostics) {
+      if (!(code in $lib.diagnostics)) {
+        throw new Error(`${name}.options.json names ${code}, which is not a diagnostic.`);
+      }
+    }
     // Two variants writing one snapshot would leave one of them unchecked,
     // and the failure would look like a stale baseline rather than a broken
     // sidecar.
@@ -70,7 +83,7 @@ function variantsOf(name: string): Variant[] {
       throw new Error(`${name} has two variants that both write ${name}.${fileType}.`);
     }
     seen.add(fileType);
-    return { options, fileType };
+    return { options, fileType, diagnostics: diagnostics as DiagnosticCode[] };
   });
 }
 
@@ -82,16 +95,27 @@ const names = readdirSync(SPECS)
 describe("Output baseline", () => {
   for (const name of names) {
     const code = readFileSync(new URL(`${name}.tsp`, SPECS), "utf8");
-    for (const { options, fileType } of variantsOf(name)) {
+    for (const { options, fileType, diagnostics: expected } of variantsOf(name)) {
       it(`${name}.${fileType}`, async () => {
         const [result, diagnostics] = await AsyncAPITester.emit(
           LIBRARY_NAME,
           options,
         ).compileAndDiagnose(code);
         // A baseline taken from a program that also reported a diagnostic
-        // would freeze a half-built document. Every program here is meant to
-        // compile clean.
-        expectDiagnosticEmpty(diagnostics);
+        // would freeze a half-built document, so a case that reports has to
+        // say which codes it means. Most report nothing.
+        //
+        // A case is here because it once produced the wrong document. Some of
+        // those also report, and the document they still produce is the half
+        // worth pinning: the emitter is meant to keep what it can and tell the
+        // author about the rest.
+        if (expected.length === 0) {
+          expectDiagnosticEmpty(diagnostics);
+        } else {
+          const reported = diagnostics.map((d) => d.code).sort(byCodePoint);
+          const wanted = expected.map((code) => `${LIBRARY_NAME}/${code}`).sort(byCodePoint);
+          expect(reported).toEqual(wanted);
+        }
 
         const outputs: Record<string, string | undefined> = result.outputs;
         const content = outputs[`asyncapi.${fileType}`];
