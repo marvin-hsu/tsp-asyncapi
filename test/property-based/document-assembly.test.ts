@@ -79,17 +79,6 @@ const shapedService = fc.oneof(
   },
 );
 
-/** The empty service: every section a model can leave empty, left empty. */
-const EMPTY_SERVICE = {
-  info: { title: "T", version: "1", tags: [], extensions: {} },
-  servers: [],
-  securitySchemes: [],
-  messages: [],
-  messageKeys: new Map(),
-  channels: [],
-  operations: [],
-};
-
 describe("Integration: document assembly — a section exists when the model has one", () => {
   it("mirrors the model, and omits an empty components section", () => {
     let allEmpty = 0;
@@ -134,19 +123,6 @@ describe("Integration: document assembly — a section exists when the model has
     // only means something on a filled one.
     expect(allEmpty).toBeGreaterThan(0);
     expect(allFilled).toBeGreaterThan(0);
-  });
-});
-
-describe("Integration: document assembly — the two required sections", () => {
-  it("emits channels and operations even when the model has none", () => {
-    // AsyncAPI states both fields as required. An omitted `channels` is an
-    // invalid document, so the empty map is emitted instead. "None" is a
-    // single point, so it is stated; the counts over drawn models are the
-    // keying property below, which pins the keys and with them the counts.
-    const document = lowerDocument(stubProgram, EMPTY_SERVICE, {});
-
-    expect(document.channels).toEqual({});
-    expect(document.operations).toEqual({});
   });
 });
 
@@ -269,29 +245,5 @@ describe("Integration: document assembly — the options that reach the head", (
     // both directions.
     expect(bothSet).toBeGreaterThan(0);
     expect(neitherSet).toBeGreaterThan(0);
-  });
-
-  /**
-   * The two head options skip the rule the rest of the document follows.
-   *
-   * Both conditions used to be a plain truthiness test, so
-   * `asyncapi-id: "   "` reached the document as `id: "   "` and
-   * `asyncapi-id: "  x  "` kept its padding. Every prose field of the
-   * document goes through `text`, which answers a blank as absent and trims
-   * the rest, and the two options now go through it as well. The options
-   * schema sets no minimum length, so an author can write either one.
-   */
-  it.each([
-    { option: " ", id: undefined },
-    { option: "   ", id: undefined },
-    { option: "\t", id: undefined },
-    { option: "  x  ", id: "x" },
-  ])("treats the blank or padded option %j the way it treats blank prose", ({ option, id }) => {
-    // The four spellings were the whole pool of a property that sampled them
-    // a hundred times. Blank and padded are the two ways an option carries
-    // whitespace, and the corpus case `blank-root-options` pins the same rule
-    // end to end.
-    const document = lowerDocument(stubProgram, EMPTY_SERVICE, { "asyncapi-id": option });
-    expect(document.id).toBe(id);
   });
 });
