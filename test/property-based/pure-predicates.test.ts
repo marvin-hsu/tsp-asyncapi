@@ -189,136 +189,71 @@ describe("Unit: localRef — the reference form it accepts", () => {
 
 describe("Unit: isPlainObject — what counts as a JSON object", () => {
   /** A value paired with the answer its category demands. */
-  const labelled = fc.oneof(
-    fc.dictionary(fc.string(), fc.integer()).map((value) => ({ value, plain: true })),
-    fc.record({ type: fc.constant("object") }).map((value) => ({ value, plain: true })),
-    fc.constant({ value: {}, plain: true }),
-    fc.array(fc.integer()).map((value) => ({ value, plain: false })),
-    fc.constant({ value: [], plain: false }),
-    fc.constant({ value: null, plain: false }),
-    fc.oneof(fc.string(), fc.integer(), fc.double(), fc.boolean()).map((value) => ({
-      value,
-      plain: false,
-    })),
-    fc.constant({ value: undefined, plain: false }),
-    // Both answers below pin today's behavior. No marshalled argument can
-    // carry either one, so the emitter never asks this question of them.
-    fc.date().map((value) => ({ value, plain: true })),
-    fc.constant({ value: new Map([["a", 1]]), plain: true }),
-  );
+  /**
+   * The predicate looks only at the shape's category, never inside it, so
+   * category representatives are the whole input space: a sampled dictionary
+   * exercises no line a written-out `{ a: 1 }` does not. The `Date` and `Map`
+   * rows pin today's behavior — no marshalled argument can carry either, so
+   * the emitter never asks this question of them.
+   */
+  it.each([
+    { name: "an object literal", value: { a: 1 }, plain: true },
+    { name: "an object built from entries", value: Object.fromEntries([["a", 1]]), plain: true },
+    { name: "an empty object", value: {}, plain: true },
+    { name: "an array", value: [1, 2], plain: false },
+    { name: "an empty array", value: [], plain: false },
+    { name: "null", value: null, plain: false },
+    { name: "undefined", value: undefined, plain: false },
+    { name: "a string", value: "text", plain: false },
+    { name: "a number", value: 7, plain: false },
+    { name: "a boolean", value: true, plain: false },
+    { name: "a Date", value: new Date(0), plain: true },
+    { name: "a Map", value: new Map([["a", 1]]), plain: true },
+  ])("answers $plain for $name", ({ value, plain }) => {
+    expect(isPlainObject(value)).toBe(plain);
 
-  it("accepts an object, and refuses an array, a null and a scalar", () => {
-    let plainObjects = 0;
-    let arrays = 0;
-    let nulls = 0;
-    let scalars = 0;
-    let hostObjects = 0;
-
-    fc.assert(
-      fc.property(labelled, ({ value, plain }) => {
-        if (Array.isArray(value)) arrays++;
-        else if (value === null) nulls++;
-        else if (value instanceof Date || value instanceof Map) hostObjects++;
-        else if (typeof value === "object") plainObjects++;
-        else scalars++;
-
-        expect(isPlainObject(value)).toBe(plain);
-
-        // The predicate is a type guard, so a `true` answer must let the
-        // caller read keys off the value.
-        if (isPlainObject(value)) {
-          expect(() => Object.entries(value)).not.toThrow();
-        }
-      }),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // The array case is the one the `!Array.isArray` mutation turns red.
-    expect(arrays).toBeGreaterThan(0);
-    expect(nulls).toBeGreaterThan(0);
-    expect(plainObjects).toBeGreaterThan(0);
-    expect(scalars).toBeGreaterThan(0);
-    expect(hostObjects).toBeGreaterThan(0);
+    // The predicate is a type guard, so a `true` answer must let the caller
+    // read keys off the value.
+    if (isPlainObject(value)) {
+      expect(() => Object.entries(value)).not.toThrow();
+    }
   });
 });
 
 describe("Unit: isSameApplication — the identity of one application", () => {
-  const position: fc.Arbitrary<SourcePosition> = fc.record({
-    file: fc.constantFrom("main.tsp", "lib.tsp", "a/b.tsp", ""),
-    pos: fc.nat({ max: 8 }),
-  });
+  /**
+   * The whole domain, written out: four file names and nine offsets. The
+   * predicate reads nothing else, so thirty-six positions are every input it
+   * can distinguish, and the loops below visit all of their pairs — complete
+   * where a sampler is a lucky subset, and free of the seed that once decided
+   * whether the transitive premise was reached at all.
+   */
+  const FILES = ["main.tsp", "lib.tsp", "a/b.tsp", ""] as const;
+  const POSITIONS: SourcePosition[] = FILES.flatMap((file) =>
+    Array.from({ length: 9 }, (_, pos) => ({ file, pos })),
+  );
 
-  /** An alias, so the symmetry check below reads in both directions. */
-  const same = (left: SourcePosition, right: SourcePosition): boolean =>
-    isSameApplication(left, right);
+  it("answers true exactly when both the file and the offset agree", () => {
+    for (const a of POSITIONS) {
+      for (const b of POSITIONS) {
+        // Agreement of the parts is the specification; the predicate is the
+        // implementation under test.
+        expect(isSameApplication(a, b)).toBe(a.file === b.file && a.pos === b.pos);
+      }
+    }
+  });
 
   it("holds an equivalence relation over source positions", () => {
-    let transitiveHits = 0;
-
-    fc.assert(
-      fc.property(
-        position,
-        // Each of these may be a copy of the position before it, so the
-        // transitive premise is reached by construction. Three independent
-        // draws reach it only by luck: the pool holds four files and nine
-        // offsets, so all three agreeing is rare, and how often it happens
-        // depends on the seed.
-        fc.oneof(fc.constant(undefined), position),
-        fc.oneof(fc.constant(undefined), position),
-        (a, second, third) => {
-          const b = second ?? { ...a };
-          const c = third ?? { ...b };
-          // Reflexive. A copy is the same place as the original.
-          expect(same(a, { ...a })).toBe(true);
-          // Symmetric.
-          expect(same(a, b)).toBe(same(b, a));
-          // Transitive.
-          if (same(a, b) && same(b, c)) {
-            transitiveHits++;
-            expect(same(a, c)).toBe(true);
-          }
-        },
-      ),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // The transitive branch is the only one of the three that a premise can
-    // skip. Without this counter the test passes while asserting nothing
-    // about transitivity, and a change of seed is enough to get there.
-    expect(transitiveHits).toBeGreaterThan(0);
-  });
-
-  it("needs both the file and the offset to agree", () => {
-    let sameFileOtherPos = 0;
-    let otherFileSamePos = 0;
-    let bothSame = 0;
-    let bothDiffer = 0;
-
-    fc.assert(
-      fc.property(
-        position,
-        // Half the pairs are a copy of the first position.
-        fc.oneof(fc.constant(undefined), position),
-        (a, second) => {
-          const b = second ?? { ...a };
-          const sameFile = a.file === b.file;
-          const samePos = a.pos === b.pos;
-
-          if (sameFile && samePos) bothSame++;
-          else if (sameFile) sameFileOtherPos++;
-          else if (samePos) otherFileSamePos++;
-          else bothDiffer++;
-
-          expect(isSameApplication(a, b)).toBe(sameFile && samePos);
-        },
-      ),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // These two shapes are what an `||` in place of the `&&` turns red.
-    expect(sameFileOtherPos).toBeGreaterThan(0);
-    expect(otherFileSamePos).toBeGreaterThan(0);
-    expect(bothSame).toBeGreaterThan(0);
-    expect(bothDiffer).toBeGreaterThan(0);
+    for (const left of POSITIONS) {
+      // Reflexive, on a copy: the same place, not the same object.
+      expect(isSameApplication(left, { ...left })).toBe(true);
+      for (const right of POSITIONS) {
+        // Symmetric: the swapped call is the claim.
+        expect(isSameApplication(left, right)).toBe(isSameApplication(right, left));
+      }
+    }
+    // Transitivity holds by the exhaustive check above: a relation that
+    // equals component-wise agreement is transitive by construction, and
+    // every pair was compared against that specification.
   });
 });
