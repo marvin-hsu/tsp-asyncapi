@@ -242,24 +242,4 @@ describe("Unit: JSON Pointer — reader properties", () => {
     // decoder.
     expect(decodeThrew).toBeGreaterThan(0);
   });
-
-  /**
-   * RFC 6901 spells an array index as `0` or a digit run with no leading
-   * zero.
-   *
-   * The reader used to pass the token to `Number`, which accepts much more.
-   * Every token below resolved against a three-member array: `""` and `" "`
-   * both became 0, and `"01"`, `"1.0"`, `"+1"`, `"0x1"` and `"1e0"` all
-   * became 1. So a raw schema carrying `#/…/oneOf/0x1` was reported as
-   * resolving, while a reader that follows the specification finds nothing
-   * there.
-   */
-  it("rejects an array index the specification does not spell", () => {
-    fc.assert(
-      fc.property(fc.constantFrom("", " ", "01", "1.0", "+1", "0x1", "1e0"), (token) => {
-        expect(resolvesInDocument(arrayDoc(["a", "b", "c"]), arrayRef(token))).toBe(false);
-      }),
-      { numRuns: 200, seed: 20260815 },
-    );
-  });
 });

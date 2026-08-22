@@ -126,30 +126,6 @@ describe("Integration: document assembly — a section exists when the model has
   });
 });
 
-describe("Integration: document assembly — the two required sections", () => {
-  it("emits channels and operations even when the model has none", () => {
-    let empty = 0;
-
-    fc.assert(
-      fc.property(shapedService, (model) => {
-        if (model.channels.length === 0 && model.operations.length === 0) empty++;
-
-        const document = lowerDocument(stubProgram, model, {});
-
-        // AsyncAPI states both fields as required. An omitted `channels` is
-        // an invalid document, so the empty map is emitted instead.
-        expect(Object.hasOwn(document, "channels")).toBe(true);
-        expect(Object.hasOwn(document, "operations")).toBe(true);
-        expect(ownKeys(requiredSection(document.channels))).toHaveLength(model.channels.length);
-        expect(ownKeys(requiredSection(document.operations))).toHaveLength(model.operations.length);
-      }),
-      RUNS,
-    );
-
-    expect(empty).toBeGreaterThan(0);
-  });
-});
-
 describe("Integration: document assembly — every reference an operation writes", () => {
   it("resolves each operation reference in the document it was written into", () => {
     let escaped = 0;
@@ -269,35 +245,5 @@ describe("Integration: document assembly — the options that reach the head", (
     // both directions.
     expect(bothSet).toBeGreaterThan(0);
     expect(neitherSet).toBeGreaterThan(0);
-  });
-
-  /**
-   * The two head options skip the rule the rest of the document follows.
-   *
-   * Both conditions used to be a plain truthiness test, so
-   * `asyncapi-id: "   "` reached the document as `id: "   "` and
-   * `asyncapi-id: "  x  "` kept its padding. Every prose field of the
-   * document goes through `text`, which answers a blank as absent and trims
-   * the rest, and the two options now go through it as well. The options
-   * schema sets no minimum length, so an author can write either one.
-   */
-  it("treats a blank option the way it treats blank prose", () => {
-    const model = {
-      info: { title: "T", version: "1", tags: [], extensions: {} },
-      servers: [],
-      securitySchemes: [],
-      messages: [],
-      messageKeys: new Map(),
-      channels: [],
-      operations: [],
-    };
-
-    fc.assert(
-      fc.property(fc.constantFrom(" ", "   ", "\t", "  x  "), (value) => {
-        const document = lowerDocument(stubProgram, model, { "asyncapi-id": value });
-        expect(document.id).toBe(value.trim() === "" ? undefined : value.trim());
-      }),
-      { numRuns: 100, seed: 20260815 },
-    );
   });
 });

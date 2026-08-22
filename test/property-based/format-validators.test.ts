@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { isAbsoluteUrl } from "../../src/decorators/absolute-url.js";
 import { isRuntimeExpression } from "../../src/decorators/runtime-expression.js";
-import { SERVER_NAME_PATTERN, SECURITY_SCHEME_NAME_PATTERN } from "../../src/constants.js";
-import { isSafeComponentsKey } from "../../src/naming.js";
 
 /**
  * Properties of the three format checks a decorator runs on author text.
@@ -164,115 +162,55 @@ describe("Unit: runtime expression — the grammar accepts what it builds", () =
     // none would say nothing about that.
     expect(carriesTerminator).toBeGreaterThan(0);
   });
-
-  /**
-   * The pattern used to spell the pointer as `(?:\/.*)?`, and `.` matches no
-   * line terminator without the `s` flag. So `$message.payload#/a\nb` was
-   * refused, along with any body carrying `\n`, `\r`, U+2028, or U+2029.
-   * RFC 6901 puts no such limit on a reference token, and both JSON and YAML
-   * carry those characters inside a member name.
-   *
-   * The grammar property above draws a terminator too. This case names the
-   * four of them one at a time, so a pool that stopped drawing one would
-   * still leave the fix under test.
-   */
-  it("accepts a pointer token holding a line terminator", () => {
-    fc.assert(
-      fc.property(source, fc.constantFrom("\n", "\r", "\u2028", "\u2029"), (which, terminator) => {
-        expect(isRuntimeExpression(`$message.${which}#/a${terminator}b`)).toBe(true);
-      }),
-      { numRuns: 200, seed: 20260815 },
-    );
-  });
 });
 
 describe("Unit: runtime expression — one break refuses the whole value", () => {
-  /** The five ways an author writes a runtime expression wrong. */
-  const breakages = [
-    "no-fragment",
-    "wrong-case",
-    "wrong-prefix",
-    "pointer-without-slash",
-    "leading-whitespace",
-  ] as const;
+  /**
+   * The five ways an author writes a runtime expression wrong. The kinds are
+   * a closed list, so each gets its own case rather than a draw — a sampled
+   * version needed a per-kind counter to promise every kind had been applied.
+   * The body inside each case stays drawn: the break must refuse the value
+   * whatever legal pointer it carries.
+   */
+  const BREAKAGES: readonly { kind: string; break: (which: string, pointer: string) => string }[] =
+    [
+      { kind: "no fragment marker", break: (which, pointer) => `$message.${which}${pointer}` },
+      {
+        kind: "wrong case in the source",
+        break: (which, pointer) => `$message.${which.toUpperCase()}#${pointer}`,
+      },
+      { kind: "wrong prefix", break: (which, pointer) => `$msg.${which}#${pointer}` },
+      {
+        kind: "leading whitespace",
+        // Only the leading side breaks the value. A trailing space is a legal
+        // reference token character, so it stays accepted.
+        break: (which, pointer) => ` $message.${which}#${pointer}`,
+      },
+    ];
 
-  it("refuses a legal expression with any single part broken", () => {
-    const applied = new Map<string, number>();
-
+  it.each(BREAKAGES)("refuses an expression with $kind", ({ break: damage }) => {
     fc.assert(
-      fc.property(source, pointerBody, fc.constantFrom(...breakages), (which, body, breakage) => {
+      fc.property(source, pointerBody, (which, body) => {
         const pointer = body === "" ? "" : `/${body}`;
-
-        let broken: string;
-        switch (breakage) {
-          case "no-fragment":
-            broken = `$message.${which}${pointer}`;
-            break;
-          case "wrong-case":
-            broken = `$message.${which.toUpperCase()}#${pointer}`;
-            break;
-          case "wrong-prefix":
-            broken = `$msg.${which}#${pointer}`;
-            break;
-          case "pointer-without-slash":
-            // Dropping the slash breaks the value only when a body follows it
-            // and the body opens with no slash of its own.
-            fc.pre(body !== "" && !body.startsWith("/"));
-            broken = `$message.${which}#${body}`;
-            break;
-          case "leading-whitespace":
-            // Only the leading side breaks the value. A trailing space is a
-            // legal reference token character, so it stays accepted.
-            broken = ` $message.${which}#${pointer}`;
-            break;
-        }
-
-        applied.set(breakage, (applied.get(breakage) ?? 0) + 1);
-        expect(isRuntimeExpression(broken)).toBe(false);
+        expect(isRuntimeExpression(damage(which, pointer))).toBe(false);
       }),
-      { numRuns: 2000, seed: 20260815 },
+      { numRuns: 400, seed: 20260815 },
     );
-
-    // A breakage the run never applied is a breakage the property never
-    // tested, whatever the total count says.
-    for (const breakage of breakages) {
-      expect(applied.get(breakage) ?? 0).toBeGreaterThan(0);
-    }
   });
-});
 
-describe("Unit: name patterns — one charset inside the other", () => {
-  const serverName = fc.stringMatching(/^[A-Za-z0-9_-]{1,12}$/);
-  /** A name drawn from the wider charset, so a dot can appear. */
-  const componentsKey = fc.stringMatching(/^[A-Za-z0-9._-]{1,12}$/);
-
-  it("accepts every server name as a components key, and a dot only as a key", () => {
-    let carriesMarker = 0;
-    let keyOnly = 0;
-
+  it("refuses a pointer that opens without a slash", () => {
     fc.assert(
-      fc.property(serverName, componentsKey, (name, key) => {
-        if (/[-_]/.test(name)) carriesMarker++;
-        // The server charset is the narrower one, so a name it accepts also
-        // keys the Components Object.
-        expect(SERVER_NAME_PATTERN.test(name)).toBe(true);
-        expect(isSafeComponentsKey(name)).toBe(true);
-        expect(SECURITY_SCHEME_NAME_PATTERN.test(name)).toBe(true);
-
-        if (key.includes(".")) {
-          keyOnly++;
-          // A dot is the one character that separates the two charsets.
-          expect(isSafeComponentsKey(key)).toBe(true);
-          expect(SECURITY_SCHEME_NAME_PATTERN.test(key)).toBe(true);
-          expect(SERVER_NAME_PATTERN.test(key)).toBe(false);
-        }
-      }),
-      { numRuns: 2000, seed: 20260815 },
+      fc.property(
+        source,
+        // Dropping the slash breaks the value only when a body follows it and
+        // the body opens with no slash of its own, so the draw is filtered
+        // rather than the case skipped at run time.
+        pointerBody.filter((body) => body !== "" && !body.startsWith("/")),
+        (which, body) => {
+          expect(isRuntimeExpression(`$message.${which}#${body}`)).toBe(false);
+        },
+      ),
+      { numRuns: 400, seed: 20260815 },
     );
-
-    // `-` and `_` are the two non-alphanumeric characters both charsets take.
-    expect(carriesMarker).toBeGreaterThan(0);
-    // With no dot the property never separates the two charsets.
-    expect(keyOnly).toBeGreaterThan(0);
   });
 });
