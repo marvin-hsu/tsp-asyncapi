@@ -49,6 +49,46 @@ const nestedType = fc.letrec<{ type: string }>((tie) => ({
   ),
 })).type;
 
+/**
+ * A declaration whose schema body is decided by a count rather than a shape.
+ *
+ * An empty union and an empty enum are the two places this emitter has to
+ * stand something in: `anyOf: []` and `enum: []` are what "no variant" and "no
+ * member" literally mean, and neither is a legal draft-07 schema, so both
+ * guards return `{ not: {} }` instead. Those two guards are the only edits in
+ * the schema walk that turn a document the official parser accepts into one it
+ * rejects, which is why they are generated here rather than only at the top
+ * level.
+ *
+ * The three non-empty kinds are here so the empty ones are not the only thing
+ * the parser ever sees on this path: a string-literal union collapses to one
+ * `enum`, a mixed union becomes `anyOf`, and an enum carries its members.
+ */
+type AuxKind = "empty-union" | "empty-enum" | "string-union" | "mixed-union" | "enum";
+
+const auxKind = fc.constantFrom<AuxKind>(
+  "empty-union",
+  "empty-enum",
+  "string-union",
+  "mixed-union",
+  "enum",
+);
+
+function auxDeclaration(kind: AuxKind, name: string): string {
+  switch (kind) {
+    case "empty-union":
+      return `union ${name} { }`;
+    case "empty-enum":
+      return `enum ${name} { }`;
+    case "string-union":
+      return `union ${name} { "a", "b" }`;
+    case "mixed-union":
+      return `union ${name} { string, int32 }`;
+    case "enum":
+      return `enum ${name} { A, B }`;
+  }
+}
+
 /** How many times one ladder level refers to the level below it. */
 const useCount = fc.oneof(
   { arbitrary: fc.constant(2), weight: 3 },
@@ -81,6 +121,8 @@ interface Generated {
   readonly cycle: CycleKind;
   /** How many ladder levels another level refers to twice. */
   readonly twiceUsed: number;
+  /** The count-decided declarations the program holds, at whatever level. */
+  readonly aux: readonly AuxKind[];
 }
 
 /**
@@ -92,9 +134,13 @@ interface Generated {
  * level that is never referred to twice inlines instead. Both outcomes are
  * correct; what is not correct is emitting one level's body more than once.
  */
-function ladder(uses: readonly number[]): { lines: string[]; markers: string[] } {
+function ladder(
+  uses: readonly number[],
+  extras: readonly (readonly string[])[],
+): { lines: string[]; markers: string[] } {
   const markers = ["leaf0"];
-  const lines = ["model Env<T> { v: T; }", "alias S0 = Env<{ leaf0: string }>;"];
+  const at = (level: number): string => (extras[level] ?? []).map((field) => `, ${field}`).join("");
+  const lines = ["model Env<T> { v: T; }", `alias S0 = Env<{ leaf0: string${at(0)} }>;`];
   uses.forEach((count, index) => {
     const level = index + 1;
     const marker = `leaf${String(level)}`;
@@ -102,7 +148,7 @@ function ladder(uses: readonly number[]): { lines: string[]; markers: string[] }
       { length: count },
       (_, slot) => `f${String(level)}x${String(slot)}: S${String(level - 1)}`,
     ).join(", ");
-    lines.push(`alias S${String(level)} = Env<{ ${refs}, ${marker}: string }>;`);
+    lines.push(`alias S${String(level)} = Env<{ ${refs}, ${marker}: string${at(level)} }>;`);
     markers.push(marker);
   });
   return { lines, markers };
@@ -139,22 +185,36 @@ const generated: fc.Arbitrary<Generated> = fc
     fc.array(useCount, { minLength: 1, maxLength: 6 }),
     cycleKind,
     fc.array(nestedType, { minLength: 1, maxLength: 3 }),
+    fc.array(auxKind, { maxLength: 3 }),
   )
-  .map(([uses, cycle, nested]): Generated => {
-    const { lines, markers } = ladder(uses);
+  .map(([uses, cycle, nested, aux]): Generated => {
+    // Each auxiliary declaration is referred to from a ladder level rather
+    // than from `Root`, so its schema sits under as many wrappers as that
+    // level is deep. Level 0 is the deepest, so the first one goes there.
+    const extras: string[][] = Array.from({ length: uses.length + 1 }, () => []);
+    const auxLines = aux.map((kind, index) => {
+      const name = `Aux${String(index)}`;
+      extras[index % extras.length]?.push(`a${String(index)}?: ${name}`);
+      return auxDeclaration(kind, name);
+    });
+    const { lines, markers } = ladder(uses, extras);
     const arm = cycleArm(cycle);
     const plain = nested.map((type, index) => `p${String(index)}: ${type}`);
     const fields = [`r: S${String(uses.length)}`, ...plain, arm.field].filter(
       (field) => field !== "",
     );
     return {
-      code: [...lines, ...arm.lines, `@AsyncAPI.message model Root { ${fields.join("; ")}; }`].join(
-        "\n",
-      ),
+      code: [
+        ...auxLines,
+        ...lines,
+        ...arm.lines,
+        `@AsyncAPI.message model Root { ${fields.join("; ")}; }`,
+      ].join("\n"),
       depth: uses.length,
       markers,
       cycle,
       twiceUsed: uses.filter((count) => count === 2).length,
+      aux,
     };
   });
 
@@ -266,5 +326,65 @@ describe("Property: nested depth", () => {
     expect(deep).toBeGreaterThan(0);
     expect(promoted).toBeGreaterThan(0);
     expect(markersCounted).toBeGreaterThan(0);
+  });
+  /**
+   * The official parser accepts whatever the emitter produced.
+   *
+   * This is the only property in the directory whose oracle is another
+   * implementation. Every other one states a rule this repository wrote down,
+   * so every other one can be wrong in the same direction as the code it
+   * checks. `@asyncapi/parser` cannot be: it was written against the
+   * specification by people who never saw this emitter.
+   *
+   * What it is aimed at is narrow and was measured rather than assumed. The
+   * parser validates payload schemas at any depth -- a misspelled `type` four
+   * levels down is rejected -- but almost nothing this emitter can be made to
+   * emit is actually invalid. A schema missing `type` is weaker, not illegal.
+   * An empty `required` or `properties` is legal. The two edits that do cross
+   * the line are the guards for an empty union and an empty enum, where
+   * `anyOf: []` and `enum: []` are what the input literally means and neither
+   * is a legal draft-07 schema, so both stand `{ not: {} }` in instead.
+   *
+   * Those two guards are also pinned by name in `enum-union.test.ts`, with a
+   * stronger assertion than validity: it fixes the stand-in value. What this
+   * adds is reach. Those tests state the guard on a top-level declaration; here
+   * the empty union sits under as many wrappers as the ladder is deep, and it
+   * is the parser rather than this repository deciding whether the result is a
+   * document at all.
+   *
+   * One parse costs roughly ten compilations, so the run count sits at the
+   * floor that still reaches both guards, and the claims the cheap properties
+   * above already make are not repeated here.
+   */
+  it("emits a document the official parser accepts, at any depth", async () => {
+    let deep = 0;
+    let emptyUnion = 0;
+    let emptyEnum = 0;
+
+    await fc.assert(
+      fc.asyncProperty(generated, async ({ code, depth, aux }) => {
+        const { doc, diagnostics } = await emitDocumentWithDiagnostics(code);
+
+        // The unrepresentable cycle is reported as an error, and a document
+        // the emitter has already refused says nothing about the parser. The
+        // first property is the one that pins that case.
+        fc.pre(!diagnostics.some((diagnostic) => diagnostic.severity === "error"));
+
+        if (depth >= 4) deep++;
+        if (aux.includes("empty-union")) emptyUnion++;
+        if (aux.includes("empty-enum")) emptyEnum++;
+
+        await expect(doc).toBeValidAsyncAPI();
+      }),
+      { numRuns: 60, seed: 20260815 },
+    );
+
+    // The two counters below are the reason this property is worth its cost.
+    // A run that drew neither empty declaration would hand the parser only
+    // documents no plausible edit can make invalid, and would pass whatever
+    // the schema walk did.
+    expect(deep).toBeGreaterThan(0);
+    expect(emptyUnion).toBeGreaterThan(0);
+    expect(emptyEnum).toBeGreaterThan(0);
   });
 });
