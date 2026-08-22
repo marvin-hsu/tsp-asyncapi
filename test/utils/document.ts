@@ -190,3 +190,56 @@ export function securitySchemesOf(
 ): Record<string, SecuritySchemeObject> {
   return section(doc, (d) => componentsOf(d).securitySchemes, "components.securitySchemes");
 }
+
+/**
+ * Collects every `$ref` string anywhere in a document.
+ *
+ * The walk is untyped on purpose. A `$ref` can sit at any depth, inside a
+ * schema, a message, a channel, or an array of any of them, and the document
+ * types state each of those positions separately. A reader that followed the
+ * types would need one branch per position and would miss the next one added.
+ *
+ * @param node - Any part of an emitted document
+ * @param found - The accumulator, for the recursive calls
+ * @returns Every `$ref` value the subtree holds, in walk order
+ */
+export function collectRefs(node: unknown, found: string[] = []): string[] {
+  if (Array.isArray(node)) {
+    for (const item of node) collectRefs(item, found);
+    return found;
+  }
+  if (node !== null && typeof node === "object") {
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "$ref" && typeof value === "string") found.push(value);
+      else collectRefs(value, found);
+    }
+  }
+  return found;
+}
+
+/**
+ * Counts how many times `key` appears as an object key anywhere in a document.
+ *
+ * A shape the emitter copied rather than referenced shows up as a repeated
+ * key. So a property name only one declaration uses is a marker for that
+ * declaration's body, and its count is the number of copies emitted.
+ *
+ * Only keys are counted. A name that appears as a string inside `required` is
+ * a value, not a key, and does not add to the count.
+ *
+ * @param node - Any part of an emitted document
+ * @param key - The object key to count
+ * @returns The number of occurrences
+ */
+export function countKey(node: unknown, key: string): number {
+  if (Array.isArray(node)) {
+    return node.reduce<number>((total, item) => total + countKey(item, key), 0);
+  }
+  if (node === null || typeof node !== "object") return 0;
+  let total = 0;
+  for (const [candidate, value] of Object.entries(node)) {
+    if (candidate === key) total++;
+    total += countKey(value, key);
+  }
+  return total;
+}

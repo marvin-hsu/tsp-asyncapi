@@ -31,6 +31,27 @@ export default defineConfig({
     // Lower this when a property stops compiling TypeSpec, not when it gets
     // faster.
     testTimeout: 20000,
+    // Test files share one module registry per worker instead of getting a
+    // fresh one each. Measured on the full suite with coverage: 27.31s to
+    // 13.02s, because `setup` falls from 74.03s of worker time to 4.68s and
+    // `import` from 46.17s to 13.76s. Over half of all worker time was
+    // re-importing the same modules 114 times.
+    //
+    // This is safe here for a reason the architecture already required, not by
+    // luck. Sharing a registry only leaks when a module holds mutable state at
+    // its top level, and neither `src/` nor `test/` has any: no module-level
+    // `let`, no module-level `Map` or `Set`. That is the same rule that lets
+    // the pipeline be resolved and lowered more than once in one process, and
+    // it is why the binding consumption marks were moved off the program into
+    // a collector the build passes explicitly.
+    //
+    // File-level parallelism is unaffected and was never the bottleneck: CI
+    // already ran at 2.74 of the 3 workers a four-vCPU runner allows.
+    //
+    // Introduce a module-level mutable value and this has to go back to true.
+    // The symptom will be a test that passes alone and fails in the suite, or
+    // one whose result depends on which file ran before it.
+    isolate: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],
