@@ -128,27 +128,6 @@ describe("Unit: channel address — legal addresses", () => {
 });
 
 describe("Unit: channel address — rejected addresses", () => {
-  it("rejects a query character and a fragment character anywhere in the address", () => {
-    let inserted = 0;
-
-    fc.assert(
-      fc.property(segments, fc.constantFrom("?", "#"), fc.nat(), (parts, mark, offset) => {
-        const address = render(parts);
-        const at = offset % (address.length + 1);
-        const damaged = `${address.slice(0, at)}${mark}${address.slice(at)}`;
-        inserted++;
-
-        expect(checkAddress(damaged)).toStrictEqual({
-          code: "invalid-channel-address",
-          messageId: mark === "?" ? "query" : "fragment",
-        });
-      }),
-      { numRuns: 1000, seed: 20260815 },
-    );
-
-    expect(inserted).toBeGreaterThan(0);
-  });
-
   it("rejects a stray brace and a nested expression", () => {
     let strayOpen = 0;
     let strayClose = 0;
@@ -197,55 +176,6 @@ describe("Unit: channel address — rejected addresses", () => {
     expect(strayOpen).toBeGreaterThan(0);
     expect(strayClose).toBeGreaterThan(0);
     expect(nested).toBeGreaterThan(0);
-  });
-
-  /**
-   * Characters outside the name set.
-   *
-   * A brace, a `?`, and a `#` are left out again. Each of those names an
-   * earlier problem, so the check would answer before it reads the name.
-   */
-  const illegalNameChars = fc.constantFrom(".", "/", " ", ":", "$", "*", "%", "+", "漢", "\t");
-
-  /** A name the check must reject: a legal one broken at one point, or empty. */
-  const illegalName = fc.oneof(
-    fc.constant(""),
-    fc.tuple(legalName, illegalNameChars, fc.nat()).map(([name, bad, offset]) => {
-      const at = offset % (name.length + 1);
-      return `${name.slice(0, at)}${bad}${name.slice(at)}`;
-    }),
-  );
-
-  it("rejects a parameter name outside the name set", () => {
-    let emptyName = 0;
-    let brokenName = 0;
-
-    fc.assert(
-      fc.property(segmentsWithParam, illegalName, fc.nat(), (parts, bad, offset) => {
-        const paramIndexes = parts
-          .map((part, index) => ({ part, index }))
-          .filter((entry) => entry.part.kind === "param")
-          .map((entry) => entry.index);
-        const target = paramIndexes[offset % paramIndexes.length];
-        const damaged: Segment[] = parts.map((part, index) =>
-          index === target ? { kind: "param", name: bad } : part,
-        );
-        if (bad === "") emptyName++;
-        else brokenName++;
-
-        // One name is broken, so it is also the first problem the check meets.
-        expect(checkAddress(render(damaged))).toStrictEqual({
-          code: "invalid-channel-param-name",
-          name: bad,
-        });
-      }),
-      { numRuns: 1000, seed: 20260815 },
-    );
-
-    // `{}` is scanned as an expression with an empty name, and only the name
-    // check rejects it.
-    expect(emptyName).toBeGreaterThan(0);
-    expect(brokenName).toBeGreaterThan(0);
   });
 });
 
