@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
 import { isSafeComponentsKey } from "../../src/naming.js";
-import { schemasOf } from "../utils/document.js";
+import { collectRefs, schemasOf } from "../utils/document.js";
 
 /**
  * Properties of a whole emitted document.
@@ -14,21 +14,6 @@ import { schemasOf } from "../utils/document.js";
  * every property here is conditional: it only claims something once the
  * emitter has answered with a document and no error.
  */
-
-/** Collects every `$ref` string anywhere in the document. */
-function collectRefs(node: unknown, found: string[] = []): string[] {
-  if (Array.isArray(node)) {
-    for (const item of node) collectRefs(item, found);
-    return found;
-  }
-  if (node !== null && typeof node === "object") {
-    for (const [key, value] of Object.entries(node)) {
-      if (key === "$ref" && typeof value === "string") found.push(value);
-      else collectRefs(value, found);
-    }
-  }
-  return found;
-}
 
 /** A field type that needs no other declaration. */
 const leafType = fc.constantFrom(
