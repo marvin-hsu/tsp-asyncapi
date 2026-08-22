@@ -1,7 +1,6 @@
 import fc from "fast-check";
 
 import type { DiagnosticTarget, Model } from "@typespec/compiler";
-import type { BindingRenderer } from "../../src/decorators/bindings/state.js";
 import type {
   AsyncAPIService,
   BindingNode,
@@ -18,6 +17,7 @@ import type {
   ServerVariableNode,
 } from "../../src/resolve/service.js";
 import type { SecuritySchemeObject } from "../../src/types/index.js";
+import { RENDERERS } from "../utils/renderers.js";
 
 /**
  * Generators of hand-written semantic model nodes.
@@ -93,32 +93,6 @@ const documentKey = fc.oneof(
   { arbitrary: inheritedKey, weight: 1 },
   { arbitrary: escapeNeedingKey, weight: 2 },
 );
-
-/**
- * Every binding renderer, taken from a record keyed by the union.
- *
- * The record is the enforcement. A renderer added to the union without a line
- * here fails the build, so the sampling cannot silently miss one.
- */
-const RENDERER_TABLE: Record<BindingRenderer, null> = {
-  verbatim: null,
-  kafka: null,
-  websocket: null,
-  mqtt: null,
-  http: null,
-  amqp: null,
-  nats: null,
-  pulsar: null,
-  googlepubsub: null,
-  sqs: null,
-  anypointmq: null,
-  jms: null,
-  ibmmq: null,
-  solace: null,
-};
-
-/** The renderer names, in the order the table lists them. */
-export const RENDERERS = Object.keys(RENDERER_TABLE) as readonly BindingRenderer[];
 
 /**
  * A recorded binding configuration. It is already plain JSON.

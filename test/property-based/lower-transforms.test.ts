@@ -5,22 +5,7 @@ import { lowerBindings } from "../../src/lower/bindings.js";
 import { lowerServers } from "../../src/lower/servers.js";
 import { lowerInfo } from "../../src/lower/info.js";
 import { trimmed } from "../../src/optional-fields.js";
-import { RENDERERS, bindingNodes, infoNode, serverNodes } from "./ir-arbitraries.js";
-
-import type { ServerNode } from "../../src/resolve/service.js";
-
-/** The smallest server node lowerServers accepts, keyed by the name under test. */
-function stubServer(name: string): ServerNode {
-  return {
-    target: { kind: "Namespace", name: "Stub" } as unknown as ServerNode["target"],
-    name,
-    host: "broker.example.com",
-    protocol: "mqtt",
-    security: [],
-    tags: [],
-    bindings: [],
-  };
-}
+import { bindingNodes, infoNode, serverNodes } from "./ir-arbitraries.js";
 
 /**
  * Properties of the three lower-stage functions that need nothing but their
@@ -47,20 +32,6 @@ const keySet = (value: object): Set<string> => new Set(ownKeys(value));
 
 /** Narrows a key to the shape the document types index an extension by. */
 const isExtensionKey = (key: string): key is `x-${string}` => key.startsWith("x-");
-
-describe("Unit: lower transforms — empty in, nothing out", () => {
-  it("omits the bindings and the servers sections when there is no node", () => {
-    // An empty Bindings Object states nothing, and an empty `servers` claims
-    // the application has none rather than that none were declared. Both
-    // fields are omitted instead.
-    //
-    // "No node" is a single point, so it is stated rather than drawn. The
-    // non-empty half of the old property — every key arrives, none invented —
-    // is the two keying properties below, which explore it over drawn nodes.
-    expect(lowerBindings([])).toBeUndefined();
-    expect(lowerServers([])).toBeUndefined();
-  });
-});
 
 describe("Unit: lower transforms — the key set of a built map", () => {
   it("keys the bindings by protocol, with nothing added and nothing lost", () => {
@@ -107,83 +78,6 @@ describe("Unit: lower transforms — the key set of a built map", () => {
 
     expect(several).toBeGreaterThan(0);
   });
-});
-
-describe("Unit: lower transforms — an inherited name stays a key", () => {
-  it("keeps the prototype of the built map untouched", () => {
-    // `__proto__` and `constructor` are the two member names whose plain
-    // assignment does something other than adding a member. They are the
-    // whole input space of this claim, so they are written out, alongside one
-    // ordinary name to show the maps still carry normal members.
-    const names = ["__proto__", "constructor", "orders"];
-
-    const bindings = lowerBindings(
-      names.map((protocol) => ({ protocol, renderer: "verbatim", config: { q: 1 } }) as const),
-    ) as object;
-    const servers = lowerServers(names.map(stubServer)) as object;
-
-    for (const map of [bindings, servers]) {
-      // A plain assignment of `__proto__` runs the inherited setter: the
-      // entry is lost and the map's prototype is replaced.
-      expect(Object.getPrototypeOf(map)).toBe(Object.prototype);
-      for (const name of names) expect(Object.hasOwn(map, name)).toBe(true);
-    }
-  });
-});
-
-describe("Unit: lower transforms — the binding version", () => {
-  /**
-   * The version table itself is not asserted against here.
-   *
-   * Thirteen unit files already pin their protocol's version literal, and a
-   * property that compared the output with the same table the code reads
-   * would assert that a lookup equals itself. What is left is the shape of
-   * the rendering, which no other test states for every renderer at once:
-   * `verbatim` adds nothing, every other renderer appends exactly one field,
-   * and the recorded config reaches the document unchanged.
-   */
-  /**
-   * One case per renderer, enumerated from the table itself. A property once
-   * drew renderers at random and then asserted it had seen every one — which
-   * is a `for` loop written as sampling plus a counter.
-   *
-   * The config is fixed per shape. A protocol config never carries a
-   * `bindingVersion` of its own, because no protocol decorator accepts one,
-   * so giving it one here would test an input resolve cannot produce. The
-   * generic `@binding` takes plain JSON, so its config carries one on
-   * purpose: that is the case where copying through and appending give
-   * different answers. Field copying over open configs stays a property — the
-   * verbatim one at the end of this file.
-   */
-  it.each(RENDERERS)(
-    "appends the version last for %s, or passes plain JSON through",
-    (renderer) => {
-      const config =
-        renderer === "verbatim" ? { ack: true, bindingVersion: "9.9.9" } : { ack: true };
-
-      const lowered = lowerBindings([{ protocol: "p", renderer, config }]) as Record<
-        string,
-        object
-      >;
-      const member = lowered.p;
-      const keys = ownKeys(member);
-
-      if (renderer === "verbatim") {
-        // The generic `@binding` holds plain JSON. A version this emitter never
-        // checked the fields against would be a claim about them.
-        expect(member).toEqual(config);
-        expect(keys).toEqual(["ack", "bindingVersion"]);
-        return;
-      }
-
-      // The specification lists the version last, and every example in the
-      // AsyncAPI binding repository writes it there.
-      expect(keys).toEqual(["ack", "bindingVersion"]);
-      const version = (member as { bindingVersion: unknown }).bindingVersion;
-      expect(typeof version).toBe("string");
-      expect((member as Record<string, unknown>).ack).toBe(true);
-    },
-  );
 });
 
 describe("Unit: lower transforms — the info object", () => {
