@@ -112,77 +112,41 @@ describe("Unit: optional fields — text", () => {
 });
 
 describe("Unit: optional fields — present", () => {
-  it("keeps every value that is not absent, falsy ones included", () => {
-    let falseSeen = 0;
-    let zeroSeen = 0;
-    let emptyStringSeen = 0;
+  /**
+   * The falsy values are the whole point: a truthiness test drops exactly
+   * these, and the set is finite, so it is enumerated rather than drawn. Two
+   * truthy values ride along to show presence is not the inverse mistake.
+   * `NaN` and `-0` are compared through `Object.is`, because both are values
+   * an author may write and both have to survive.
+   */
+  it.each([false, 0, "", null, Number.NaN, -0, 0n, "text", 7])(
+    "keeps %p, which is present even when falsy",
+    (value) => {
+      const result: Record<string, unknown> = present("key", value);
+      expect(Object.keys(result)).toEqual(["key"]);
+      expect(Object.is(result.key, value)).toBe(true);
+    },
+  );
 
-    const notAbsent = fc.oneof(
-      { weight: 3, arbitrary: fc.constantFrom(false, 0, "", null, Number.NaN, -0, 0n) },
-      { weight: 1, arbitrary: fc.anything() },
-    );
+  /**
+   * The six names below are the input space of this claim: every member
+   * `Object.prototype` already carries, where a plain assignment does
+   * something other than adding a property. The value is an object on
+   * purpose — only an object value makes the inherited `__proto__` setter
+   * act, so that pairing is the one that separates the two ways of writing
+   * the key.
+   */
+  it.each(["__proto__", "constructor", "prototype", "toString", "hasOwnProperty", "valueOf"])(
+    "writes %j as an own property and leaves the prototype alone",
+    (key) => {
+      const value = { type: "string" };
 
-    fc.assert(
-      fc.property(fc.string({ minLength: 1 }), notAbsent, (key, value) => {
-        fc.pre(value !== undefined);
-        if (value === false) falseSeen++;
-        if (typeof value === "number" && value === 0) zeroSeen++;
-        if (value === "") emptyStringSeen++;
-
-        const result: Record<string, unknown> = present(key, value);
-        expect(Object.keys(result)).toEqual([key]);
-        // `Object.is` rather than `toBe` semantics in prose: `NaN` and `-0`
-        // are values an author may write, and both survive.
-        expect(Object.is(result[key], value)).toBe(true);
-      }),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // These three are the values a truthiness test would drop.
-    expect(falseSeen).toBeGreaterThan(0);
-    expect(zeroSeen).toBeGreaterThan(0);
-    expect(emptyStringSeen).toBeGreaterThan(0);
-  });
-
-  it("writes the key as an own property and leaves the prototype alone", () => {
-    let dangerousWithObject = 0;
-
-    const dangerousKey = fc.constantFrom(
-      "__proto__",
-      "constructor",
-      "prototype",
-      "toString",
-      "hasOwnProperty",
-      "valueOf",
-    );
-    const objectValue = fc.oneof(
-      fc.record({ type: fc.constant("string") }),
-      fc.constant(null),
-      fc.array(fc.integer(), { maxLength: 3 }),
-    );
-
-    fc.assert(
-      fc.property(
-        fc.oneof(dangerousKey, fc.string({ minLength: 1 })),
-        fc.oneof(objectValue, fc.integer(), fc.string()),
-        (key, value) => {
-          if (key === "__proto__" && typeof value === "object" && value !== null) {
-            dangerousWithObject++;
-          }
-
-          const result: Record<string, unknown> = present(key, value);
-          // An assignment would hand `__proto__` to the inherited setter,
-          // which moves the prototype and defines no property at all.
-          expect(Object.getOwnPropertyNames(result)).toEqual([key]);
-          expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
-          expect(Object.is(result[key], value)).toBe(true);
-        },
-      ),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // Only an object value makes the inherited setter act, so this pairing
-    // is the one that separates the two ways of writing the key.
-    expect(dangerousWithObject).toBeGreaterThan(0);
-  });
+      const result: Record<string, unknown> = present(key, value);
+      // An assignment would hand `__proto__` to the inherited setter, which
+      // moves the prototype and defines no property at all.
+      expect(Object.getOwnPropertyNames(result)).toEqual([key]);
+      expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+      expect(Object.is(result[key], value)).toBe(true);
+    },
+  );
 });
