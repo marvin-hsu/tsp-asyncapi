@@ -190,7 +190,7 @@ describe("Property: no declared constraint is erased", () => {
     // A property that never reaches the collision branch proves nothing.
     expect(withAllOf).toBeGreaterThan(0);
     expect(withNestedAllOf).toBeGreaterThan(0);
-  }, 180000);
+  });
 
   it("keeps every numeric bound declared along a scalar chain", async () => {
     // Each level's bounds sit inside its ancestor's, because the compiler
@@ -249,5 +249,5 @@ describe("Property: no declared constraint is erased", () => {
 
     expect(withAllOf).toBeGreaterThan(0);
     expect(withNestedAllOf).toBeGreaterThan(0);
-  }, 180000);
+  });
 });

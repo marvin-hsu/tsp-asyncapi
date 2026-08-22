@@ -322,5 +322,5 @@ describe("Integration: Schemas — no $ref carries sibling keywords", () => {
     // branch is where annotations merge next to a buried `$ref`.
     expect(wrapDocs).toBeGreaterThan(0);
     expect(buryDocs).toBeGreaterThan(0);
-  }, 120000);
+  });
 });

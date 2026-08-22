@@ -17,6 +17,20 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", ".claude/**", ".gemini/**", "**/plan/**"],
     // Registers the AsyncAPI matchers before any test file runs.
     setupFiles: ["./test/setup.ts"],
+    // The default is 5 seconds, and the slowest property runs 3.4 of them on
+    // a warm machine: seven property files compile TypeSpec inside `fc.assert`,
+    // so one test is hundreds of compilations. That leaves too little room for
+    // a cold CI runner.
+    //
+    // Twenty seconds is about six times the slowest measurement, which is room
+    // for a slower machine without being a ceiling that hides a real
+    // regression. Eleven per-test ceilings of two and three minutes used to
+    // carry this, and a test that started taking a minute would have passed
+    // under every one of them.
+    //
+    // Lower this when a property stops compiling TypeSpec, not when it gets
+    // faster.
+    testTimeout: 20000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],

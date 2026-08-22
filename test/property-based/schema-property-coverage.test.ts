@@ -125,5 +125,5 @@ describe("Integration: Schemas — declared property coverage", () => {
     expect(allOfShape).toBeGreaterThan(0);
     expect(flatShape).toBeGreaterThan(0);
     expect(ownPropsNotDeclaredSet).toBeGreaterThan(0);
-  }, 120000);
+  });
 });

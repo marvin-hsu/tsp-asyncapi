@@ -4,8 +4,7 @@ import fc from "fast-check";
 import { lowerBindings } from "../../src/lower/bindings.js";
 import { lowerServers } from "../../src/lower/servers.js";
 import { lowerInfo } from "../../src/lower/info.js";
-import { trimmed } from "../../src/optional-fields.js";
-import { bindingNodes, infoNode, serverNodes } from "./ir-arbitraries.js";
+import { bindingNodes, infoNode, requiredText, serverNodes } from "./ir-arbitraries.js";
 
 /**
  * Properties of the three lower-stage functions that need nothing but their
@@ -80,6 +79,48 @@ describe("Unit: lower transforms — the key set of a built map", () => {
   });
 });
 
+/**
+ * An optional text field paired with the answer it must produce.
+ *
+ * Reading the answer from `trimmed` would make the property compare the
+ * module against the helper it is built on: `lowerInfo` calls `text`, which
+ * calls `trimmed`, so an oracle that calls `trimmed` too moves whenever the
+ * blank rule moves. The answer is carried alongside the input instead, so
+ * nothing here states the rule.
+ *
+ * The rule itself is enumerated in `test/unit/optional-fields.test.ts`. What
+ * this pairing is for is the field wiring: that `lowerInfo` applies the rule
+ * at all, to the fields it is meant to apply it to.
+ */
+const labelledText = fc.oneof(
+  // Text that already says something: the answer is the text.
+  {
+    arbitrary: requiredText.map((written) => ({ written, answer: written.trim() })),
+    weight: 3,
+  },
+  // Padded text: the answer is the body inside the padding.
+  {
+    arbitrary: fc
+      .tuple(
+        fc.constantFrom("", " ", "  ", "\t"),
+        fc.stringMatching(/^[a-z]{1,8}$/),
+        fc.constantFrom("", " ", "\n "),
+      )
+      .map(([before, body, after]) => ({ written: `${before}${body}${after}`, answer: body })),
+    weight: 2,
+  },
+  // Blank text names nothing, so the field is absent.
+  {
+    arbitrary: fc.constantFrom(" ", "   ", "\t", "\n  ").map((written) => ({
+      written,
+      answer: undefined,
+    })),
+    weight: 1,
+  },
+  // No field at all.
+  { arbitrary: fc.constant({ written: undefined, answer: undefined }), weight: 2 },
+);
+
 describe("Unit: lower transforms — the info object", () => {
   /** The fields the Info Object may hold. Nothing else may reach it. */
   const INFO_KEYS = [
@@ -99,7 +140,14 @@ describe("Unit: lower transforms — the info object", () => {
     let extended = 0;
 
     fc.assert(
-      fc.property(infoNode, (node) => {
+      fc.property(infoNode, labelledText, labelledText, (drawn, description, termsOfService) => {
+        // The two optional text fields carry their own expected answers, so
+        // the assertions below never restate the blank rule.
+        const node = {
+          ...drawn,
+          description: description.written,
+          termsOfService: termsOfService.written,
+        };
         const info = lowerInfo(node);
         const keys = ownKeys(info);
 
@@ -120,15 +168,17 @@ describe("Unit: lower transforms — the info object", () => {
         expect(info.title).toBe(node.title);
         expect(info.version).toBe(node.version);
 
-        for (const field of ["description", "termsOfService"] as const) {
-          const value = node[field];
-          if (value === undefined) absent++;
-          else if (value.trim() === "") blank++;
+        for (const [field, drawnField] of [
+          ["description", description],
+          ["termsOfService", termsOfService],
+        ] as const) {
+          if (drawnField.written === undefined) absent++;
+          else if (drawnField.answer === undefined) blank++;
 
           // A blank field names nothing, so it takes the same answer as an
-          // absent one. A field that says something is trimmed.
-          expect(Object.hasOwn(info, field)).toBe(trimmed(value) !== undefined);
-          if (trimmed(value) !== undefined) expect(info[field]).toBe(trimmed(value));
+          // absent one.
+          expect(Object.hasOwn(info, field)).toBe(drawnField.answer !== undefined);
+          if (drawnField.answer !== undefined) expect(info[field]).toBe(drawnField.answer);
         }
 
         for (const field of ["contact", "license", "externalDocs"] as const) {

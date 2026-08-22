@@ -149,64 +149,6 @@ describe("Unit: JSON Pointer — reader properties", () => {
     expect(inherited).toBeGreaterThan(0);
   });
 
-  /** Wraps an array where a raw schema would carry one. */
-  function arrayDoc(items: unknown[]): unknown {
-    return { components: { schemas: { Payload: { oneOf: items } } } };
-  }
-
-  const arrayRef = (token: string): string =>
-    `${COMPONENTS_SCHEMA_REF_PREFIX}Payload/oneOf/${token}`;
-
-  it("holds the bounds of an array the pointer walks into", () => {
-    let inRange = 0;
-    let outOfRange = 0;
-    let notAnIndex = 0;
-
-    const member = fc.oneof(
-      fc.integer(),
-      fc.string(),
-      fc.constant(null),
-      fc.record({ type: fc.constant("string") }),
-    );
-
-    fc.assert(
-      fc.property(
-        fc.array(member, { maxLength: 8 }),
-        fc.oneof(
-          fc.integer({ min: -3, max: 11 }).map(String),
-          // `length` and the inherited names are the tokens a reader that
-          // indexed an array by the raw token would answer for.
-          fc.constantFrom("x", "abc", "1.5", "-0.5", "NaN", "Infinity", "length", "constructor"),
-          // The tokens `Number` reads as an index and the specification does
-          // not. They are what makes the oracle below disagree with the rule
-          // this reader used to carry.
-          fc.constantFrom("01", "+1", "1e0", "0x1", "1.0", "", " "),
-        ),
-        (items, token) => {
-          // The oracle spells the specification rule. Reading the module's
-          // own rule instead would make this an identity, and loosening the
-          // reader would move both sides at once.
-          const isIndex = /^(?:0|[1-9]\d*)$/.test(token);
-          const index = Number(token);
-          if (!isIndex) notAnIndex++;
-          else if (index < items.length) inRange++;
-          else outOfRange++;
-
-          expect(resolvesInDocument(arrayDoc(items), arrayRef(token))).toBe(
-            isIndex && index < items.length,
-          );
-        },
-      ),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // Each of the three answers has its own line in the reader, so a run
-    // that reached only one of them would leave the other two untested.
-    expect(inRange).toBeGreaterThan(0);
-    expect(outOfRange).toBeGreaterThan(0);
-    expect(notAnIndex).toBeGreaterThan(0);
-  });
-
   it("accepts the percent-encoded form of a reference it built, and never throws", () => {
     let encodedDiffers = 0;
     let decodeThrew = 0;

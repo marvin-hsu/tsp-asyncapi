@@ -3,6 +3,14 @@ import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { Ajv } from "ajv";
+// `ajv-formats` is CommonJS and sets both `module.exports` and
+// `module.exports.default` to the same function, so the `.default` hop is
+// what typechecks under NodeNext without changing what runs. Collapsing it
+// to a plain default import compiles to the namespace object instead, which
+// is not callable.
+import addFormatsModule from "ajv-formats";
+
+const addFormats = addFormatsModule.default;
 import { propertiesOf } from "../../utils/document.js";
 
 describe("Unit: Schemas — models, collections, and literals", () => {
@@ -312,7 +320,17 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     // validator. A `toEqual` shape assertion alone cannot catch a
     // regression that produces a shape-correct but schema-invalid
     // document (e.g. `enum: []`/`anyOf: []`).
-    const ajv = new Ajv({ strict: false });
+    // `addFormats` teaches the validator the `format` keywords the emitter
+    // writes. Draft-07 leaves `format` as an annotation, so a bare Ajv does
+    // not implement `int32` or `double` and says so on stderr once per
+    // schema. Those four lines per run looked like failures on a green build,
+    // which is how a log stops being read.
+    //
+    // Registering them is the better answer than silencing the logger,
+    // because it makes the validator enforce what the assertions above only
+    // name: `format: "int32"` now rejects a value outside 32 bits, not just
+    // a non-integer.
+    const ajv = addFormats(new Ajv({ strict: false }));
     for (const [key, componentSchema] of Object.entries(components)) {
       ajv.addSchema(componentSchema, `#/components/schemas/${key}`);
     }
@@ -343,6 +361,22 @@ describe("Unit: Schemas — models, collections, and literals", () => {
         total: -5,
         tags: ["a"],
         contact: 1,
+      }),
+    ).toBe(false);
+
+    // Exceeds `int32` on the integer branch of `contact`, and is not a
+    // string, so neither branch of the `anyOf` accepts it. This is the
+    // assertion that the registered formats are doing work: without
+    // `addFormats` a bare draft-07 validator ignores `format` and calls
+    // this document valid.
+    expect(
+      validate({
+        id: "abc",
+        status: "Pending",
+        shipTo: { city: "Taipei" },
+        total: 12.5,
+        tags: ["a"],
+        contact: 999999999999,
       }),
     ).toBe(false);
   });

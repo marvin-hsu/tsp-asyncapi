@@ -215,5 +215,5 @@ describe("Integration: Schemas — optionality and required", () => {
     expect(splitRequired).toBeGreaterThan(0);
     expect(guardReached).toBeGreaterThan(0);
     expect(ownRequiredNotUnion).toBeGreaterThan(0);
-  }, 120000);
+  });
 });
