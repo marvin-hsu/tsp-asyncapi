@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { operationsOf, serversOf } from "../../utils/document.js";
 
 const MESSAGE = `
   @message
@@ -27,7 +27,7 @@ function service(protocol: string): string {
 
 describe("Unit: the Solace binding decorators", () => {
   it("emits both levels with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @solaceServer(#{ msgVpn: "orders-vpn", clientName: "order-service" })
       @server("prod", #{ host: "solace.example.com:55555", protocol: "smf" })
@@ -56,12 +56,12 @@ describe("Unit: the Solace binding decorators", () => {
 
     // The field is `msgVpn`. Version 0.2.0 of the binding spells it
     // `msvVpn`, and this library emits 0.4.0.
-    expect(doc.servers.prod.bindings.solace).toEqual({
+    expect(serversOf(doc).prod.bindings?.solace).toEqual({
       msgVpn: "orders-vpn",
       clientName: "order-service",
       bindingVersion: "0.4.0",
     });
-    expect(doc.operations.publish.bindings.solace).toEqual({
+    expect(operationsOf(doc).publish.bindings?.solace).toEqual({
       destinations: [
         {
           deliveryMode: "persistent",
@@ -77,7 +77,7 @@ describe("Unit: the Solace binding decorators", () => {
   });
 
   it("reports a delivery mode Solace does not define, and keeps the entry", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("smf")}
 
       @channel("orders")
@@ -94,13 +94,13 @@ describe("Unit: the Solace binding decorators", () => {
     expect(reported.message).toContain("destinations[0].deliveryMode");
     expect(reported.message).toContain("direct or persistent");
     // The entry still names the destination the author wrote.
-    expect(doc.operations.publish.bindings.solace.destinations).toEqual([
+    expect(operationsOf(doc).publish.bindings?.solace.destinations).toEqual([
       { destinationType: "topic" },
     ]);
   });
 
   it("reports a client name longer than Solace allows", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @solaceServer(#{ clientName: "${"c".repeat(161)}" })
       @server("prod", #{ host: "solace.example.com:55555", protocol: "smf" })
@@ -120,7 +120,7 @@ describe("Unit: the Solace binding decorators", () => {
   });
 
   it("reports a negative priority", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("smf")}
 
       @channel("orders")
@@ -137,7 +137,7 @@ describe("Unit: the Solace binding decorators", () => {
   });
 
   it("drops a destination list left with no entry", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("smf")}
 
       @channel("orders")
@@ -149,7 +149,7 @@ describe("Unit: the Solace binding decorators", () => {
     `);
 
     findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
-    expect(doc.operations.publish.bindings.solace).toEqual({
+    expect(operationsOf(doc).publish.bindings?.solace).toEqual({
       timeToLive: 60000,
       bindingVersion: "0.4.0",
     });

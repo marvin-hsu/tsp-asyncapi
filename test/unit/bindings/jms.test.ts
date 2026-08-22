@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
 import {
   buildAsyncAPIWithDiagnostics,
-  emitAsyncAPI,
-  emitAsyncAPIWithDiagnostics,
+  emitDocument,
+  emitDocumentWithDiagnostics,
 } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { channelsOf, messagesOf, serversOf } from "../../utils/document.js";
 
 const MESSAGE = `
   @message
@@ -31,7 +31,7 @@ function service(protocol: string): string {
 
 describe("Unit: the JMS binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @jmsServer(#{
         jmsConnectionFactory: "org.apache.activemq.ActiveMQConnectionFactory",
@@ -54,14 +54,14 @@ describe("Unit: the JMS binding decorators", () => {
       }
     `);
 
-    expect(doc.servers.prod.bindings.jms).toEqual({
+    expect(serversOf(doc).prod.bindings?.jms).toEqual({
       jmsConnectionFactory: "org.apache.activemq.ActiveMQConnectionFactory",
       properties: [{ name: "disableTimeStampsByDefault", value: false }],
       clientID: "order-service",
       bindingVersion: "0.0.1",
     });
-    expect(doc.channels.orders.bindings.jms.destinationType).toBe("queue");
-    expect(doc.components.messages.OrderCreated.bindings.jms.headers).toEqual({
+    expect(channelsOf(doc).orders.bindings?.jms.destinationType).toBe("queue");
+    expect(messagesOf(doc).OrderCreated.bindings?.jms.headers).toEqual({
       type: "object",
     });
   });
@@ -88,7 +88,7 @@ describe("Unit: the JMS binding decorators", () => {
   });
 
   it("rejects a destination type JMS does not define but Anypoint MQ does", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("jms")}
 
       @jmsChannel(#{ destination: "orders", destinationType: "exchange" })
@@ -105,7 +105,7 @@ describe("Unit: the JMS binding decorators", () => {
   });
 
   it("drops an empty property list rather than emitting one", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @jmsServer(#{ jmsConnectionFactory: "com.example.Factory", properties: #[] })
       @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })
@@ -119,7 +119,7 @@ describe("Unit: the JMS binding decorators", () => {
       }
     `);
 
-    expect(doc.servers.prod.bindings.jms).toEqual({
+    expect(serversOf(doc).prod.bindings?.jms).toEqual({
       jmsConnectionFactory: "com.example.Factory",
       bindingVersion: "0.0.1",
     });

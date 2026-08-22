@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { operationsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -16,7 +16,7 @@ const SERVICE = `
 
 describe("Unit: the @kafkaOperation decorator", () => {
   it("emits both schema fields with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -30,7 +30,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    expect(doc.operations.onOrderCreated.bindings).toEqual({
+    expect(operationsOf(doc).onOrderCreated.bindings).toEqual({
       kafka: {
         groupId: { type: "string", description: "The consumer group." },
         clientId: { type: "string" },
@@ -40,7 +40,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
   });
 
   it("emits the version alone when every field is left out", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -51,13 +51,13 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    expect(doc.operations.onOrderCreated.bindings).toEqual({
+    expect(operationsOf(doc).onOrderCreated.bindings).toEqual({
       kafka: { bindingVersion: "0.5.0" },
     });
   });
 
   it("reports a group id that is not a schema object", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -78,14 +78,14 @@ describe("Unit: the @kafkaOperation decorator", () => {
       '#{ groupId: "order-workers", clientId: #{ type: "string" } }',
     );
     // The rejected field is dropped, and the rest of the binding is emitted.
-    expect(doc.operations.onOrderCreated.bindings.kafka).toEqual({
+    expect(operationsOf(doc).onOrderCreated.bindings?.kafka).toEqual({
       clientId: { type: "string" },
       bindingVersion: "0.5.0",
     });
   });
 
   it("reports a client id that is an array", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -101,7 +101,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
   });
 
   it("reports an operation that carries no action", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("orders.created")
@@ -120,7 +120,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
   });
 
   it("reports a generic @binding that claims the kafka member at this level", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("orders.created")

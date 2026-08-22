@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { operationsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Sensors" })
@@ -16,7 +16,7 @@ const SERVICE = `
 
 describe("Unit: the @mqttOperation decorator", () => {
   it("emits every field with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -27,13 +27,13 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    expect(doc.operations.publish.bindings).toEqual({
+    expect(operationsOf(doc).publish.bindings).toEqual({
       mqtt: { qos: 2, retain: true, messageExpiryInterval: 300, bindingVersion: "0.2.0" },
     });
   });
 
   it("keeps a qos of zero", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -46,11 +46,11 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // Zero is at most once delivery, which is a real mode. A truthiness check
     // would drop it and leave the document claiming the default instead.
-    expect(doc.operations.publish.bindings.mqtt).toEqual({ qos: 0, bindingVersion: "0.2.0" });
+    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({ qos: 0, bindingVersion: "0.2.0" });
   });
 
   it("keeps a retain of false", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -63,14 +63,14 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // `false` says the broker must not retain. That is the opposite of saying
     // nothing, so it has to reach the document.
-    expect(doc.operations.publish.bindings.mqtt).toEqual({
+    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({
       retain: false,
       bindingVersion: "0.2.0",
     });
   });
 
   it("reports a qos outside the three MQTT defines, and keeps the rest", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -85,7 +85,7 @@ describe("Unit: the @mqttOperation decorator", () => {
     expect(reported.message).toContain("qos");
     expect(reported.message).toContain("0, 1, 2");
     expect(reported.message).toContain("mqtt binding field");
-    expect(doc.operations.publish.bindings.mqtt).toEqual({
+    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({
       retain: true,
       bindingVersion: "0.2.0",
     });
@@ -94,7 +94,7 @@ describe("Unit: the @mqttOperation decorator", () => {
   });
 
   it("accepts a message expiry written as a schema", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -107,14 +107,14 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // MQTT 5 types the field as a number or a Schema Object. A schema says
     // what the value may be rather than what it is.
-    expect(doc.operations.publish.bindings.mqtt.messageExpiryInterval).toEqual({
+    expect(operationsOf(doc).publish.bindings?.mqtt.messageExpiryInterval).toEqual({
       type: "integer",
       minimum: 60,
     });
   });
 
   it("reports a message expiry that is neither a number nor a schema", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("sensors/readings")
@@ -131,7 +131,7 @@ describe("Unit: the @mqttOperation decorator", () => {
   });
 
   it("reports a binding on an operation that neither sends nor receives", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @channel("sensors/readings")

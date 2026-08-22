@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../../src/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
-import { emitAsyncAPI } from "../../../../utils/test-host.js";
+import { emitDocument } from "../../../../utils/test-host.js";
+import { securitySchemesOf } from "../../../../utils/document.js";
 
 describe("Unit: security schemes — the shape of each type", () => {
   it("emits the eight schemes that carry only a type", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("userPassword", #{ type: "userPassword" })
       @securityScheme("x509", #{ type: "X509" })
@@ -20,7 +20,7 @@ describe("Unit: security schemes — the shape of each type", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes).toEqual({
+    expect(securitySchemesOf(doc)).toEqual({
       userPassword: { type: "userPassword" },
       // The specification spells this one with a capital X. The emitter
       // writes every type value exactly as the specification does.
@@ -35,21 +35,21 @@ describe("Unit: security schemes — the shape of each type", () => {
   });
 
   it("emits an apiKey scheme with a user or password location and no name", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("byUser", #{ type: "apiKey", in: "user" })
       @securityScheme("byPassword", #{ type: "apiKey", in: "password" })
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes).toEqual({
+    expect(securitySchemesOf(doc)).toEqual({
       byUser: { type: "apiKey", in: "user" },
       byPassword: { type: "apiKey", in: "password" },
     });
   });
 
   it("emits an httpApiKey scheme with its name and location", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("hdr", #{ type: "httpApiKey", name: "X-Api-Key", in: "header" })
       @securityScheme("qry", #{ type: "httpApiKey", name: "api_key", in: "query" })
@@ -57,7 +57,7 @@ describe("Unit: security schemes — the shape of each type", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes).toEqual({
+    expect(securitySchemesOf(doc)).toEqual({
       hdr: { type: "httpApiKey", name: "X-Api-Key", in: "header" },
       qry: { type: "httpApiKey", name: "api_key", in: "query" },
       cke: { type: "httpApiKey", name: "sid", in: "cookie" },
@@ -65,14 +65,14 @@ describe("Unit: security schemes — the shape of each type", () => {
   });
 
   it("emits an http scheme with its bearer format", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("bearer", #{ type: "http", scheme: "bearer", bearerFormat: "JWT" })
       @securityScheme("basic", #{ type: "http", scheme: "basic" })
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes).toEqual({
+    expect(securitySchemesOf(doc)).toEqual({
       bearer: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       basic: { type: "http", scheme: "basic" },
     });
@@ -94,7 +94,7 @@ describe("Unit: security schemes — the shape of each type", () => {
   });
 
   it("emits a scheme description and drops a blank bearer format", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("bearer", #{
         type: "http",
@@ -106,14 +106,14 @@ describe("Unit: security schemes — the shape of each type", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes).toEqual({
+    expect(securitySchemesOf(doc)).toEqual({
       bearer: { type: "http", scheme: "bearer", description: "A bearer token." },
       basic: { type: "http", scheme: "basic" },
     });
   });
 
   it("emits an openIdConnect scheme with its url and scopes", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @securityScheme("oidc", #{
         type: "openIdConnect",
@@ -123,7 +123,7 @@ describe("Unit: security schemes — the shape of each type", () => {
       namespace Test;
     `);
 
-    expect(doc.components.securitySchemes.oidc).toEqual({
+    expect(securitySchemesOf(doc).oidc).toEqual({
       type: "openIdConnect",
       openIdConnectUrl: "https://example.com/.well-known/openid-configuration",
       scopes: ["orders:read"],

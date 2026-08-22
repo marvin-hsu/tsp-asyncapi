@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * A numeric constraint is emitted exactly, or it is not emitted at all.
@@ -30,7 +30,7 @@ import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
 describe("Property: numeric constraints", () => {
   /** Compiles one scalar property carrying one constraint. */
   async function emitConstraint(decorator: string, literal: string) {
-    return emitAsyncAPIWithDiagnostics(`
+    return emitDocumentWithDiagnostics(`
       @AsyncAPI.message
       model Root {
         @${decorator}(${literal})
@@ -74,9 +74,18 @@ describe("Property: numeric constraints", () => {
           if (magnitude > largest) largest = magnitude;
 
           const { doc, diagnostics } = await emitConstraint(decorator, String(value));
-          fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+          // `fc.pre` drops the draw at run time, but narrows nothing for the
+          // compiler. An `if` that drops and returns narrows `doc` for the
+          // rest of the body and behaves the same way.
+          if (doc === null || diagnostics.some((d) => d.severity === "error")) {
+            fc.pre(false);
+            return;
+          }
 
-          const schema = doc.components?.schemas?.Root?.properties?.v;
+          // The keyword is chosen by the drawn decorator, so it is read by
+          // name. `SchemaObject` names its keywords as fields rather than
+          // through an index signature, hence the view.
+          const schema = schemasOf(doc).Root.properties?.v as Record<string, unknown> | undefined;
           // A value JavaScript represents exactly must arrive intact. The
           // emitter has no reason to report or drop it.
           expect(schema?.[keywordOf[decorator]]).toBe(value);
@@ -110,9 +119,13 @@ describe("Property: numeric constraints", () => {
         wideLiteral,
         async (decorator, literal) => {
           const { doc, diagnostics } = await emitConstraint(decorator, literal);
-          fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+          if (doc === null || diagnostics.some((d) => d.severity === "error")) {
+            fc.pre(false);
+            return;
+          }
 
-          const emitted = doc.components?.schemas?.Root?.properties?.v?.[keywordOf[decorator]];
+          const schema = schemasOf(doc).Root.properties?.v as Record<string, unknown> | undefined;
+          const emitted = schema?.[keywordOf[decorator]];
           if (emitted === undefined) {
             dropped++;
             // Dropping is allowed, and the author has to be told.
@@ -126,7 +139,10 @@ describe("Property: numeric constraints", () => {
           // Anything emitted has to mean the same number that was written.
           // Comparing through BigInt avoids asking one imprecise value
           // whether it equals another imprecise value.
-          expect(BigInt(String(emitted))).toBe(BigInt(literal));
+          // A keyword read by name is `unknown`. A bound is written as a JSON
+          // number, and anything else makes `BigInt` throw, which is the
+          // failure this comparison is for.
+          expect(BigInt(String(emitted as number | string))).toBe(BigInt(literal));
         },
       ),
       { numRuns: 200, seed: 20260815 },
