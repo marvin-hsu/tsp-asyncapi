@@ -78,23 +78,16 @@ describe("Integration: emitted document properties", () => {
    * `components.schemas` key lies inside the Components Object charset, and
    * every `$ref` in the document resolves to a node.
    *
-   * Reachability, measured in this worktree at 120 runs with seed 20260815.
-   * The seed is pinned in the call below, so these counts reproduce.
+   * Reachability. The run is instrumented for documents emitted, programs
+   * refused, documents holding at least one key the sanitizer rewrote, keys
+   * rewritten, and `$ref` strings collected and resolved. A refused program
+   * is retried by `fc.pre`, so the emitted and refused counts do not add up
+   * to `numRuns`.
    *
-   *   documents emitted                            120
-   *   programs refused, or reported an error         4
-   *   documents holding at least one key the
-   *     sanitizer rewrote                           73
-   *   keys the sanitizer rewrote                    93
-   *   `$ref` strings collected and resolved        410
-   *
-   * A refused program is retried by `fc.pre`, so the two top counts do not
-   * add up to 120.
-   *
-   * The 73 is what makes the charset claim mean anything. Drawing plain
-   * identifiers only, as an earlier version of this property did, gives 0
-   * rewritten keys out of 120 runs, and the charset assertion then passes
-   * without ever running the escaping code.
+   * The rewritten-key counter is what makes the charset claim mean anything.
+   * An earlier version of this property drew plain identifiers only, and
+   * rewrote no key at all: the charset assertion passed without ever running
+   * the escaping code.
    *
    * No collected `$ref` carries an RFC 6901 escape, because the sanitizer
    * encodes `/` and `~` out of the key before a `$ref` is ever built. The
@@ -182,11 +175,8 @@ describe("Integration: emitted document properties", () => {
    * names include the shapes the sanitizer treats specially, since a
    * generic identifier never reaches them.
    *
-   * Reachability, measured in this worktree at 150 runs with seed 20260815.
-   * The seed is pinned in the call below, so these counts reproduce.
-   *
-   *   runs that reported `duplicate-schema-key`      8
-   *   runs that reached the length assertion       142
+   * Reachability. Two counters split the runs: those that reported
+   * `duplicate-schema-key`, and those that reached the length assertion.
    *
    * `checked` counts the runs that reach the length assertion. `duplicates`
    * counts the runs that took the early return. Both are asserted after the
