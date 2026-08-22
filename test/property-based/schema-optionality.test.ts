@@ -39,9 +39,9 @@ import { createChainHarness, resolveSchema, winners, wireOf, PropDecl } from "./
  * no collision it follows from the other two properties: claim 1 already
  * pins the required union to the declared non-optional set, and the
  * coverage property beside this one pins the described set to the declared
- * set. Measured at 200 runs with seed 20260815: the property body ran 200
- * times, and 10 of those documents reach the collision guard. So this claim
- * says something new on 10 documents out of 200.
+ * set. Only a slice of the drawn documents reaches the collision guard, so
+ * this claim is what covers that slice. A counter below asserts the slice is
+ * never empty.
  *
  * The chain generator and renderer live in `./model-chain.js`. The coverage
  * property drives the same shape and shares them.
@@ -61,8 +61,8 @@ import { createChainHarness, resolveSchema, winners, wireOf, PropDecl } from "./
  *
  * `a` and `aw` are drawn twice as often as the rest. Both must appear in one
  * chain for the collision guard to run, so the pair needs the extra weight.
- * Leaving both flags free instead of forcing them made the guard run in 1
- * document out of 200 instead of 10.
+ * Leaving both flags free instead of forcing them made the guard run an
+ * order of magnitude less often.
  */
 const NAME_TYPE: Record<string, string> = {
   a: "string",
@@ -94,40 +94,32 @@ function expectedRequired(props: readonly PropDecl[]): string[] {
 
 describe("Integration: Schemas — optionality and required", () => {
   /**
-   * Probe results, measured in this worktree at 200 runs with seed
-   * 20260815. They say the property reaches what it targets.
+   * What this property is instrumented for, and what the probes established.
    *
    * `fc.pre` rejections do not count toward `numRuns`. The runner keeps
-   * drawing until it has 200 executions that finished. So the shape
-   * counters below add up to 200, and the refused programs are extra draws
-   * on top of that.
+   * drawing until it has that many executions that finished, so the shape
+   * counters below partition the finished runs and the refused programs are
+   * extra draws on top of them.
    *
-   *   documents emitted                            200
-   *   extra draws the compiler refused              15
-   *   components in the `allOf` shape              163
-   *   components in the flattened shape             37
-   *   documents whose resolution holds more than
-   *     one `required` array                        91
-   *   documents where the component's own
-   *     top-level `required` alone is not the
-   *     union                                      150
-   *   flattened documents whose `required` holds a
-   *     wire name the most-derived level does not
-   *     declare                                     19
-   *   documents reaching the `claimedWireNames`
-   *     guard inside one build call                 10
-   *   `never-typed-property-override` warnings      40
-   *   `encoded-name-override-conflict` warnings     18
+   * The counters cover the two component shapes (`allOf` and flattened),
+   * resolutions holding more than one `required` array, documents where the
+   * component's own top-level `required` is not the whole union, flattened
+   * documents whose `required` holds a wire name the most-derived level does
+   * not declare, and documents reaching the `claimedWireNames` guard. They
+   * are asserted, not recorded here, because a number in a comment goes stale
+   * and a number in an `expect` does not.
    *
-   * The 150 is the number that matters for the union form. A check reading
-   * only the component's own `required` would give the wrong answer for 150
-   * of 200 documents. Probes also showed `required` really does split
+   * The union form is the one that matters. A check reading only the
+   * component's own `required` gives the wrong answer on most drawn
+   * documents, which is why the counter for it is asserted. Probes also
+   * showed `required` really does split
    * across `allOf` branches. For `model A { a1: string; @encodedName(...,
    * "a2w") a2: string; }` and `model C extends A { c1: string; c2?: string;
    * }`, `A` requires `["a1","a2w"]` and `C`'s own branch requires only
    * `["c1"]`.
    *
-   * The guard was probed on its own, since 10 of 200 is thin cover. For
+   * The guard was probed on its own, because the generator reaches it on
+   * only a small slice of documents. For
    * `model D0 { aw: int32; x: string; }` and `model D1 extends D0
    * { @encodedName("application/json", "aw") a: string; x: never; }` the
    * emitter reports `tsp-asyncapi/encoded-name-override-conflict` at
@@ -150,8 +142,9 @@ describe("Integration: Schemas — optionality and required", () => {
    * Note that the test host compiles against the built `dist/`, not `src/`.
    * Run `pnpm build` before judging a source change by this property.
    *
-   * Five counters are asserted below. That keeps this record honest if the
-   * generator or the emitter moves.
+   * Every claim above that depends on the generator reaching a shape has a
+   * counter asserted below. That keeps this record honest when the generator
+   * or the emitter moves.
    */
   it("keeps declared optionality and requires only described keys", async () => {
     let allOfShape = 0;
