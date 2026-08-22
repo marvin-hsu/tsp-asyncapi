@@ -23,9 +23,9 @@ import { isSafeComponentsKey, refFor, sanitizeDeclarationName } from "../../src/
 /**
  * A name built from the pieces the sanitizer treats specially.
  *
- * A generic string generator does not reach the interesting region. Measured
- * over 2000 draws of `fc.string({ minLength: 1 })` at seed 20260815: 0 draws
- * carried `Sep` followed by a digit, so the marker escape was never run. This
+ * A generic string generator does not reach the interesting region: probing
+ * `fc.string({ minLength: 1 })` on its own produced no draw at all carrying
+ * `Sep` followed by a digit, so the marker escape was never run. This
  * generator spends its draws on the marker text, on the separator characters,
  * and on short alphanumeric runs, so both the encoding branch and the escape
  * branch are reached.
@@ -56,22 +56,19 @@ function carriesMarkerRun(name: string): boolean {
 
 describe("Unit: Schemas — key sanitizer properties", () => {
   /**
-   * Reachability, measured in this worktree at 2000 runs with seed 20260815:
+   * Reachability. The generator is instrumented for three shapes: draws
+   * already inside the key charset, draws reaching `sanitizeNameSegment`,
+   * and draws carrying the marker inside an alphanumeric run so the
+   * `SepSep` escape runs.
    *
-   *   draws already inside the key charset          811
-   *   draws reaching `sanitizeNameSegment`         1189
-   *   draws carrying the marker inside an
-   *     alphanumeric run, so the `SepSep` escape
-   *     runs                                        163
+   * The last one is why the pool is shaped the way it is. The `SepSep`
+   * escape is the most delicate line in the sanitizer, and an earlier
+   * version of this property drew `fc.string({ minLength: 1 })` alone, which
+   * never reached that line at all while sending a large share of its draws
+   * back from the sanitizer's first line. A draw that returns early makes
+   * the assertion restate that line rather than test it.
    *
-   * The last count is the one that matters. The `SepSep` escape is the most
-   * delicate line in the sanitizer. An earlier version of this property drew
-   * `fc.string({ minLength: 1 })` alone, and measured 0 of 2000 draws
-   * reaching that line, plus 389 of 2000 draws returning from the
-   * sanitizer's first line. A draw that returns early makes the assertion
-   * restate that line rather than test it.
-   *
-   * The two counters are asserted below, so this record stays honest if the
+   * The counters are asserted below, so the claim stays honest if the
    * generator or the sanitizer moves.
    */
   it("produces a key inside the Components Object charset for any name", () => {
@@ -145,9 +142,9 @@ describe("Unit: Schemas — $ref properties", () => {
    *
    * A key with neither `~` nor `/` is copied into the token untouched, and
    * both properties below then assert only that an unescaped string equals
-   * itself. Measured over 3000 draws of `fc.string({ minLength: 1 })` at seed
-   * 20260815: 377 draws, 12.6%, carried one of the two characters. Mixing in
-   * a pool built from them raises that.
+   * itself. A plain `fc.string({ minLength: 1 })` carries one of the two
+   * characters in only a small share of its draws, so the pool mixes in
+   * pieces built from them to raise the rate.
    */
   const pointerKey = fc.oneof(
     fc.string({ minLength: 1 }),
@@ -163,11 +160,11 @@ describe("Unit: Schemas — $ref properties", () => {
   );
 
   /**
-   * Reachability, measured in this worktree at 3000 runs with seed 20260815:
-   * 1399 of 3000 draws produced a token that differs from the key, so the
-   * escaping in `toJsonPointerToken` really ran. The rest assert that an
-   * already-safe key survives unchanged, which is worth holding but proves
-   * nothing about the escaping. The counter is asserted below.
+   * Reachability: a draw counts only when the token differs from the key,
+   * which is what says the escaping in `toJsonPointerToken` really ran. A
+   * draw where they match asserts that an already-safe key survives
+   * unchanged, which is worth holding but proves nothing about the escaping.
+   * The counter is asserted below.
    */
   it("builds a reference whose token decodes back to the key", () => {
     let escaped = 0;
@@ -186,11 +183,10 @@ describe("Unit: Schemas — $ref properties", () => {
   });
 
   /**
-   * Reachability, measured in this worktree at 3000 runs with seed 20260815:
-   * 719 of 3000 draws carried a `/` in the key, so the token had to be
-   * rewritten for this claim to mean anything. A draw with no slash asserts
-   * only that a string with no slash has no slash. The counter is asserted
-   * below.
+   * Reachability: the claim only means something on a key that carries a
+   * `/`, because that is what forces the token to be rewritten. A draw with
+   * no slash asserts only that a string with no slash has no slash. The
+   * counter is asserted below.
    */
   it("leaves no bare slash inside the token, so the pointer keeps its depth", () => {
     let hadSlash = 0;
