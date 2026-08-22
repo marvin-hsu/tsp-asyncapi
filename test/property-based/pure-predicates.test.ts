@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { missingFields } from "../../src/decorators/bindings/fields.js";
 import { localRef } from "../../src/decorators/messages/raw-schema.js";
-import { isPlainObject } from "../../src/marshalled-values.js";
 import { LOCAL_REF_PREFIX } from "../../src/constants.js";
 
 /**
@@ -93,76 +92,49 @@ describe("Unit: missingFields — set semantics", () => {
   });
 });
 
-describe("Unit: localRef — the reference form it accepts", () => {
+describe("Unit: localRef — a sibling key beside the reference", () => {
   /** A reference that points into this document. */
   const localReference = fc
     .string()
     .map((tail) => `${LOCAL_REF_PREFIX}${tail}`)
     .map((ref) => ({ $ref: ref }));
 
-  /** A reference the predicate must refuse, plus the shapes around one. */
-  const rejectedShape = fc.oneof(
-    fc.constantFrom<Record<string, unknown>>(
-      // A bare fragment names the whole document, not a schema in it.
-      { $ref: "#" },
-      { $ref: "#components" },
-      { $ref: "#anchor" },
-      { $ref: "http://example.com/schema.json" },
-      { $ref: "./other.json#/components/schemas/Order" },
-      { $ref: "components/schemas/Order" },
-      { $ref: "" },
-      { $ref: 5 },
-      { $ref: null },
-      { $ref: { $ref: "#/x" } },
-      { $ref: ["#/x"] },
-      { type: "object" },
-      {},
-    ),
-    fc.constantFrom<unknown>(null, "#/components/schemas/Order", 7, true, undefined, [
-      { $ref: "#/x" },
-    ]),
-    fc.anything({ withDate: true, withMap: true, withSet: true, withBigInt: true }),
-  );
-
-  it("reads back only a fragment that opens with the local prefix", () => {
-    let accepted = 0;
-    let rejected = 0;
-    let bareHash = 0;
-    let nonStringRef = 0;
-    let notAnObject = 0;
+  /**
+   * Which shapes are read back and which are refused is enumerated in
+   * `test/unit/messages/raw-schema-ref.test.ts`. What is drawn here is the
+   * dimension that rule says nothing about: a raw schema is written by an
+   * author, so a `$ref` can arrive with other keys beside it, and the answer
+   * must not depend on them.
+   */
+  it("answers the same whatever keys sit beside the reference", () => {
+    let withSiblings = 0;
+    let alone = 0;
 
     fc.assert(
       fc.property(
-        fc.oneof(fc.constant(undefined), fc.string({ maxLength: 3 })),
-        fc.oneof(localReference, rejectedShape),
-        (extra, base) => {
-          // A sibling key must not change the answer.
-          const value =
-            isPlainObject(base) && extra !== undefined ? { ...base, title: extra } : base;
+        localReference,
+        fc.dictionary(
+          fc.string({ minLength: 1 }).filter((key) => key !== "$ref"),
+          fc.string(),
+          {
+            maxKeys: 3,
+          },
+        ),
+        (reference, siblings) => {
+          const keys = Object.keys(siblings);
+          if (keys.length > 0) withSiblings++;
+          else alone++;
 
-          const held = isPlainObject(value) ? value.$ref : undefined;
-          const expected =
-            typeof held === "string" && held.startsWith(LOCAL_REF_PREFIX) ? held : undefined;
-
-          if (expected !== undefined) accepted++;
-          else rejected++;
-          if (held === "#") bareHash++;
-          if (isPlainObject(value) && "$ref" in value && typeof held !== "string") nonStringRef++;
-          if (!isPlainObject(value)) notAnObject++;
-
-          expect(localRef(value)).toBe(expected);
+          // The reference is the same in both, so the answer has to be too.
+          expect(localRef({ ...reference, ...siblings })).toBe(reference.$ref);
+          expect(localRef({ ...siblings, ...reference })).toBe(reference.$ref);
         },
       ),
       { numRuns: 2000, seed: 20260815 },
     );
 
-    // Without both answers the property fixes nothing.
-    expect(accepted).toBeGreaterThan(0);
-    expect(rejected).toBeGreaterThan(0);
-    // A prefix relaxed to `#` is the mutation this case turns red.
-    expect(bareHash).toBeGreaterThan(0);
-    // The type test and the object test each need their own case.
-    expect(nonStringRef).toBeGreaterThan(0);
-    expect(notAnObject).toBeGreaterThan(0);
+    // Without a sibling the property says nothing about siblings.
+    expect(withSiblings).toBeGreaterThan(0);
+    expect(alone).toBeGreaterThan(0);
   });
 });
