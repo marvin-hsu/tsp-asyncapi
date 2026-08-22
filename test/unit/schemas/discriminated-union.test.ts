@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { Ajv } from "ajv";
+// `ajv-formats` is CommonJS and sets both `module.exports` and
+// `module.exports.default` to the same function, so the `.default` hop is
+// what typechecks under NodeNext without changing what runs. Collapsing it
+// to a plain default import compiles to the namespace object instead, which
+// is not callable.
+import addFormatsModule from "ajv-formats";
+
+const addFormats = addFormatsModule.default;
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import type { SchemaObject } from "../../../src/types/index.js";
@@ -29,7 +37,9 @@ describe("Unit: Schemas — @discriminated unions", () => {
 
   /** Compiles the components into a real draft-07 validator for `Pet`. */
   function validatorFor(components: Record<string, SchemaObject>) {
-    const ajv = new Ajv({ strict: false });
+    // See the note in `models.test.ts` for why the formats are registered
+    // rather than the warning silenced.
+    const ajv = addFormats(new Ajv({ strict: false }));
     for (const [key, schema] of Object.entries(components)) {
       ajv.addSchema(schema, `#/components/schemas/${key}`);
     }
