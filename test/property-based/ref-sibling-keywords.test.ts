@@ -57,29 +57,24 @@ import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
  * already-constrained scalar takes the collision branch of
  * `withPropertyDocs` instead of the `$ref` branch.
  *
- * The generator below was then instrumented over its 150 runs, with seed
- * 20260815 pinned in the call. It measured:
+ * The generator below is instrumented for two shapes: a drawn property
+ * holding a bare-`$ref` wrapper, and a drawn property that buries a `$ref`.
+ * Both counters are scoped to the drawn properties `p0` to `p4`, and both
+ * are asserted after the search.
  *
- *   documents emitted                                                150
- *   programs the compiler refused                                      0
- *   documents with a drawn property holding a bare-`$ref` wrapper     117
- *   documents with a drawn property that buries a `$ref`               87
+ * The scoping is the point. An earlier version counted wrappers anywhere in
+ * the document, and that count was constant-true: `render` always writes
+ * `model Derived extends Inner` and `d: Derived`, and `applyExtends` turns
+ * that pair into a bare-`$ref` `allOf` wrapper on every draw, so even the
+ * smallest program the generator can produce already has one. The old guard
+ * fired on the hardcoded lines alone and watched none of the drawn
+ * dimensions.
  *
- * Both counts are scoped to the drawn properties `p0` to `p4`, and both
- * are asserted after the search. An earlier version counted wrappers
- * anywhere in the document. That count was constant-true: `render` always
- * writes `model Derived extends Inner` and `d: Derived`, and `applyExtends`
- * turns that pair into a bare-`$ref` `allOf` wrapper on every draw. The
- * smallest program the generator can produce was measured at one wrapper.
- * So the old guard fired on the hardcoded lines alone, and watched none of
- * the drawn dimensions.
- *
- * Also measured, by running the official AsyncAPI parser over a
- * hand-made document whose message payload is
- * `{ $ref: "#/components/schemas/Inner", description: "sibling" }`: the
- * parser returns one diagnostic, at severity 2 (information), about the
- * document version. It reports no error. So neither the parser nor
- * anything else in this suite guards this rule.
+ * The official AsyncAPI parser was run over a hand-made document whose
+ * message payload is
+ * `{ $ref: "#/components/schemas/Inner", description: "sibling" }`. It
+ * reports no error, only an informational note about the document version.
+ * So neither the parser nor anything else in this suite guards this rule.
  *
  * The two final assertions keep that reachability claim alive at run time.
  * If the generator or the emitter drifts so that no drawn property reaches
