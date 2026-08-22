@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { buildAsyncAPIWithDiagnostics, emitAsyncAPI } from "../../utils/test-host.js";
+import { buildAsyncAPIWithDiagnostics, emitDocument } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { channelsOf, messagesOf } from "../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -24,7 +24,7 @@ const SETTINGS = `#{ encoding: "json", name: "projects/p/schemas/order" }`;
 describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
   describe("@googlePubSubChannel", () => {
     it("emits every field with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{
@@ -44,7 +44,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(doc.channels["orders-created"].bindings).toEqual({
+      expect(channelsOf(doc)["orders-created"].bindings).toEqual({
         googlepubsub: {
           schemaSettings: {
             encoding: "json",
@@ -116,7 +116,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("drops an empty label map rather than emitting one", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{ schemaSettings: ${SETTINGS}, labels: #{} })
@@ -126,14 +126,14 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(doc.channels["orders-created"].bindings.googlepubsub).toEqual({
+      expect(channelsOf(doc)["orders-created"].bindings?.googlepubsub).toEqual({
         schemaSettings: { encoding: "json", name: "projects/p/schemas/order" },
         bindingVersion: "0.2.0",
       });
     });
 
     it("drops a storage policy that lists no region", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         ${SERVICE}
 
         @googlePubSubChannel(#{
@@ -148,15 +148,17 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
       // An empty policy states no restriction, which is what an absent field
       // already says.
-      expect("messageStoragePolicy" in doc.channels["orders-created"].bindings.googlepubsub).toBe(
-        false,
-      );
+      const binding = channelsOf(doc)["orders-created"].bindings?.googlepubsub;
+      // `in` needs an object. Without the binding the claim would be vacuous,
+      // so say so here rather than reading `in` off undefined.
+      if (binding === undefined) throw new Error("The channel has no googlepubsub binding.");
+      expect("messageStoragePolicy" in binding).toBe(false);
     });
   });
 
   describe("@googlePubSubMessage", () => {
     it("emits every field with the binding version", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
         namespace Test;
@@ -177,7 +179,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(doc.components.messages.OrderCreated.bindings).toEqual({
+      expect(messagesOf(doc).OrderCreated.bindings).toEqual({
         googlepubsub: {
           attributes: { source: "checkout" },
           orderingKey: "customer-id",
@@ -215,7 +217,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
     });
 
     it("emits the binding version on its own when no field was written", async () => {
-      const doc = await emitAsyncAPI(`
+      const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
         namespace Test;
@@ -233,7 +235,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       `);
 
       // No field of the message binding is required, unlike the channel one.
-      expect(doc.components.messages.OrderCreated.bindings.googlepubsub).toEqual({
+      expect(messagesOf(doc).OrderCreated.bindings?.googlepubsub).toEqual({
         bindingVersion: "0.2.0",
       });
     });

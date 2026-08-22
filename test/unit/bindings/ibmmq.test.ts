@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
+import { channelsOf, messagesOf, serversOf } from "../../utils/document.js";
 
 const MESSAGE = `
   @message
@@ -27,7 +27,7 @@ function service(protocol: string): string {
 
 describe("Unit: the IBM MQ binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @ibmMqServer(#{
         groupId: "PRODCLSTR1",
@@ -56,7 +56,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.servers.prod.bindings.ibmmq).toEqual({
+    expect(serversOf(doc).prod.bindings?.ibmmq).toEqual({
       groupId: "PRODCLSTR1",
       ccdtQueueManagerName: "*",
       cipherSpec: "ANY_TLS12_OR_HIGHER",
@@ -64,19 +64,17 @@ describe("Unit: the IBM MQ binding decorators", () => {
       heartBeatInterval: 300,
       bindingVersion: "0.1.0",
     });
-    expect(doc.channels.orders.bindings.ibmmq.queue).toEqual({
+    expect(channelsOf(doc).orders.bindings?.ibmmq.queue).toEqual({
       objectName: "ORDERS.QUEUE",
       exclusive: true,
     });
     // `headers` is a comma-separated list here, not a Schema Object. IBM MQ
     // is the one binding in this library that states the field that way.
-    expect(doc.components.messages.OrderCreated.bindings.ibmmq.headers).toBe(
-      "Content-Type,Trace-Id",
-    );
+    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq.headers).toBe("Content-Type,Trace-Id");
   });
 
   it("reports a heartbeat interval above the range IBM MQ states", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @ibmMqServer(#{ groupId: "PRODCLSTR1", heartBeatInterval: 1000000 })
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
@@ -93,7 +91,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
     const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
     expect(reported.message).toContain("heartBeatInterval");
     expect(reported.message).toContain("a value from 0 to 999999");
-    expect(doc.servers.prod.bindings.ibmmq).toEqual({
+    expect(serversOf(doc).prod.bindings?.ibmmq).toEqual({
       groupId: "PRODCLSTR1",
       bindingVersion: "0.1.0",
     });
@@ -101,7 +99,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
   it("accepts both ends of the message length range", async () => {
     for (const length of [0, 104857600]) {
-      const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+      const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
         ${service("ibmmq")}
 
         @ibmMqChannel(#{ maxMsgLength: ${String(length)} })
@@ -115,12 +113,12 @@ describe("Unit: the IBM MQ binding decorators", () => {
       expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-binding-field")).toEqual(
         [],
       );
-      expect(doc.channels.orders.bindings.ibmmq.maxMsgLength).toBe(length);
+      expect(channelsOf(doc).orders.bindings?.ibmmq.maxMsgLength).toBe(length);
     }
   });
 
   it("reports a message length above 100 MB", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${service("ibmmq")}
 
       @ibmMqChannel(#{ maxMsgLength: 104857601 })
@@ -135,7 +133,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
   });
 
   it("reports a negative expiry", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
@@ -158,7 +156,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
   });
 
   it("drops headers on a payload IBM MQ does not allow them on", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
@@ -182,7 +180,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
     const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain("a binary payload");
-    expect(doc.components.messages.OrderCreated.bindings.ibmmq).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq).toEqual({
       type: "jms",
       expiry: 60000,
       bindingVersion: "0.1.0",
@@ -190,7 +188,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
   });
 
   it("keeps headers on a binary payload", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
@@ -207,13 +205,11 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings.ibmmq.headers).toBe(
-      "Content-Type,X-Trace",
-    );
+    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq.headers).toBe("Content-Type,X-Trace");
   });
 
   it("keeps headers when the binding names no type", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
@@ -232,14 +228,14 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
     // The specification leaves this valid: its `binary` branch matches when
     // the type is absent, so the parser accepts the pair.
-    expect(doc.components.messages.OrderCreated.bindings.ibmmq).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq).toEqual({
       headers: "Content-Type",
       bindingVersion: "0.1.0",
     });
   });
 
   it("drops an empty queue object rather than emitting one", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${service("ibmmq")}
 
       @ibmMqChannel(#{ destinationType: "queue", queue: #{} })
@@ -249,7 +245,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(doc.channels.orders.bindings.ibmmq).toEqual({
+    expect(channelsOf(doc).orders.bindings?.ibmmq).toEqual({
       destinationType: "queue",
       bindingVersion: "0.1.0",
     });

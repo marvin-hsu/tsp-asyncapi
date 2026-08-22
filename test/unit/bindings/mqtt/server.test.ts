@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { serversOf } from "../../../utils/document.js";
 
 const BODY = `
   @message
@@ -18,7 +18,7 @@ const BODY = `
 
 describe("Unit: the @mqttServer decorator", () => {
   it("emits every field with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{
         clientId: "sensor-gateway",
@@ -34,7 +34,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    expect(doc.servers.prod.bindings).toEqual({
+    expect(serversOf(doc).prod.bindings).toEqual({
       mqtt: {
         clientId: "sensor-gateway",
         cleanSession: true,
@@ -48,7 +48,7 @@ describe("Unit: the @mqttServer decorator", () => {
   });
 
   it("gives every server of the namespace its own copy", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ clientId: "sensor-gateway" })
       @server("prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
@@ -60,12 +60,12 @@ describe("Unit: the @mqttServer decorator", () => {
 
     // `@server` is repeatable and keyed by name, so no decorator target can
     // single one server out. Both therefore carry the binding.
-    expect(doc.servers.prod.bindings.mqtt.clientId).toBe("sensor-gateway");
-    expect(doc.servers.staging.bindings.mqtt.clientId).toBe("sensor-gateway");
+    expect(serversOf(doc).prod.bindings?.mqtt.clientId).toBe("sensor-gateway");
+    expect(serversOf(doc).staging.bindings?.mqtt.clientId).toBe("sensor-gateway");
   });
 
   it("reports a last will qos outside the three MQTT defines, and keeps the will", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{
         lastWill: #{ topic: "sensors/status", qos: 7, message: "offline" },
@@ -82,14 +82,14 @@ describe("Unit: the @mqttServer decorator", () => {
     // The rejected field goes on its own. The rest of the will still says
     // which topic the broker posts to, and losing that as well would take
     // away something the author wrote correctly.
-    expect(doc.servers.prod.bindings.mqtt.lastWill).toEqual({
+    expect(serversOf(doc).prod.bindings?.mqtt.lastWill).toEqual({
       topic: "sensors/status",
       message: "offline",
     });
   });
 
   it("keeps a last will retain of false", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ lastWill: #{ topic: "sensors/status", retain: false } })
       @server("prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
@@ -98,14 +98,14 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    expect(doc.servers.prod.bindings.mqtt.lastWill).toEqual({
+    expect(serversOf(doc).prod.bindings?.mqtt.lastWill).toEqual({
       topic: "sensors/status",
       retain: false,
     });
   });
 
   it("drops a last will that has nothing left in it", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ clientId: "gateway", lastWill: #{ qos: 9 } })
       @server("prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
@@ -117,14 +117,14 @@ describe("Unit: the @mqttServer decorator", () => {
     // The only field the will carried was rejected. An empty object states no
     // will at all, so emitting it would claim the client configured one.
     findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
-    expect(doc.servers.prod.bindings.mqtt).toEqual({
+    expect(serversOf(doc).prod.bindings?.mqtt).toEqual({
       clientId: "gateway",
       bindingVersion: "0.2.0",
     });
   });
 
   it("accepts a session expiry written as a schema", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ sessionExpiryInterval: #{ type: "integer", minimum: 30 } })
       @server("prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
@@ -133,14 +133,14 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    expect(doc.servers.prod.bindings.mqtt.sessionExpiryInterval).toEqual({
+    expect(serversOf(doc).prod.bindings?.mqtt.sessionExpiryInterval).toEqual({
       type: "integer",
       minimum: 30,
     });
   });
 
   it("reports a maximum packet size that is neither a number nor a schema", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ maximumPacketSize: "65535" })
       @server("prod", #{ host: "mqtt.example.com:1883", protocol: "mqtt" })
@@ -155,7 +155,7 @@ describe("Unit: the @mqttServer decorator", () => {
   });
 
   it("reports a binding on a namespace that declares no server", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Sensors" })
       @mqttServer(#{ clientId: "gateway" })
       namespace Test;

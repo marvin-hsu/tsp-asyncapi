@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, expect, it } from "vitest";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { messagesOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -19,7 +19,7 @@ const CHANNEL = `
 
 describe("Unit: the @kafkaMessage decorator", () => {
   it("emits every field with the binding version", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaMessage(#{
@@ -36,7 +36,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings).toEqual({
       kafka: {
         key: { type: "string" },
         schemaIdLocation: "payload",
@@ -48,7 +48,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
   });
 
   it("accepts a header schema id location", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaMessage(#{ schemaIdLocation: "header" })
@@ -60,11 +60,11 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings.kafka.schemaIdLocation).toBe("header");
+    expect(messagesOf(doc).OrderCreated.bindings?.kafka.schemaIdLocation).toBe("header");
   });
 
   it("reports a schema id location outside the two the binding allows", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaMessage(#{ schemaIdLocation: "trailer", schemaLookupStrategy: "TopicIdStrategy" })
@@ -84,14 +84,14 @@ describe("Unit: the @kafkaMessage decorator", () => {
       `#{ schemaIdLocation: "trailer", schemaLookupStrategy: "TopicIdStrategy" }`,
     );
     // The rejected field is dropped, and the rest of the binding is emitted.
-    expect(doc.components.messages.OrderCreated.bindings.kafka).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings?.kafka).toEqual({
       schemaLookupStrategy: "TopicIdStrategy",
       bindingVersion: "0.5.0",
     });
   });
 
   it("reports a key that is not a schema object", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaMessage(#{ key: 42, schemaIdLocation: "payload" })
@@ -105,14 +105,14 @@ describe("Unit: the @kafkaMessage decorator", () => {
 
     const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
     expect(reported.message).toContain("key");
-    expect(doc.components.messages.OrderCreated.bindings.kafka).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings?.kafka).toEqual({
       schemaIdLocation: "payload",
       bindingVersion: "0.5.0",
     });
   });
 
   it("reports a model that carries no @message", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaMessage(#{ key: #{ type: "string" } })
@@ -134,7 +134,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
   });
 
   it("reports a generic @binding that claims the kafka member at this level", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}
 
       @kafkaMessage(#{ key: #{ type: "string" } })
@@ -152,7 +152,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
     expect(reported.message).toContain("at the message level");
   });
   it("emits the version alone when every field is left out", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaMessage(#{})
@@ -164,7 +164,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings).toEqual({
       kafka: { bindingVersion: "0.5.0" },
     });
   });
@@ -173,7 +173,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
     // The allowed set holds `header` and `payload`. The value is trimmed
     // first, so spacing around the word does not turn a legal location into
     // a rejected one.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaMessage(#{ schemaIdLocation: " payload " })
@@ -185,11 +185,11 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings.kafka.schemaIdLocation).toBe("payload");
+    expect(messagesOf(doc).OrderCreated.bindings?.kafka.schemaIdLocation).toBe("payload");
   });
 
   it("drops a blank schema lookup strategy rather than emitting an empty value", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       ${SERVICE}
 
       @kafkaMessage(#{ schemaLookupStrategy: "  ", schemaIdPayloadEncoding: " confluent " })
@@ -201,7 +201,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(doc.components.messages.OrderCreated.bindings).toEqual({
+    expect(messagesOf(doc).OrderCreated.bindings).toEqual({
       kafka: { schemaIdPayloadEncoding: "confluent", bindingVersion: "0.5.0" },
     });
   });
