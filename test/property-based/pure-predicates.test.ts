@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { missingFields } from "../../src/decorators/bindings/fields.js";
 import { localRef } from "../../src/decorators/messages/raw-schema.js";
-import { isPlainObject } from "../../src/marshalled-values.js";
 import { LOCAL_REF_PREFIX } from "../../src/constants.js";
 
 /**
@@ -57,131 +56,85 @@ describe("Unit: missingFields — set semantics", () => {
     maxLength: FIELD_NAMES.length,
   });
 
-  it("names exactly the required fields that say nothing", () => {
-    let sawNull = 0;
-    let sawUndefined = 0;
-    let sawBlank = 0;
-    let sawFalse = 0;
-    let sawZero = 0;
+  it("answers with a subset of the required list, in order and without repeats", () => {
+    let reportedSome = 0;
+    let reportedNone = 0;
 
     fc.assert(
       fc.property(writtenObject, requiredList, (value, required) => {
-        const expected = required.filter((field) => {
-          const written = value[field];
-          if (written === null || written === undefined) return true;
-          return typeof written === "string" && written.trim() === "";
-        });
-
-        for (const field of required) {
-          const written = value[field];
-          if (written === null) sawNull++;
-          else if (written === undefined) sawUndefined++;
-          else if (typeof written === "string" && written.trim() === "") sawBlank++;
-          else if (written === false) sawFalse++;
-          else if (written === 0) sawZero++;
-        }
-
         const answer = missingFields(value, required);
 
-        // The answer is the set, in the order the caller asked for it.
-        expect(answer).toStrictEqual(expected);
+        // Which values say nothing is enumerated in
+        // `test/unit/bindings/fields.test.ts`. Restating that rule here as an
+        // oracle would assert that the code does what the code does; what is
+        // drawn here is the field sets and their order, which the rule says
+        // nothing about.
+        if (answer.length > 0) reportedSome++;
+        else reportedNone++;
+
         // Every name comes from `required`, and no name repeats.
         expect(new Set(answer).size).toBe(answer.length);
         for (const field of answer) {
           expect(required).toContain(field);
         }
-        // A field that carries a value is never reported. `false` and `0`
-        // carry a value.
-        for (const field of required) {
-          const written = value[field];
-          if (written === false || written === 0) {
-            expect(answer).not.toContain(field);
-          }
-        }
+        // The answer keeps the order the caller asked for, so a report reads
+        // in the order the fields are documented.
+        expect(answer).toStrictEqual(required.filter((field) => answer.includes(field)));
       }),
       { numRuns: 2000, seed: 20260815 },
     );
 
-    // Each kind has its own line in the predicate, or its own mutation. A
-    // run that missed one would leave that line untested.
-    expect(sawNull).toBeGreaterThan(0);
-    expect(sawUndefined).toBeGreaterThan(0);
-    expect(sawBlank).toBeGreaterThan(0);
-    expect(sawFalse).toBeGreaterThan(0);
-    expect(sawZero).toBeGreaterThan(0);
+    // A run that never reported anything would say nothing about the subset
+    // claim, and one that always reported would never exercise the empty
+    // answer.
+    expect(reportedSome).toBeGreaterThan(0);
+    expect(reportedNone).toBeGreaterThan(0);
   });
 });
 
-describe("Unit: localRef — the reference form it accepts", () => {
+describe("Unit: localRef — a sibling key beside the reference", () => {
   /** A reference that points into this document. */
   const localReference = fc
     .string()
     .map((tail) => `${LOCAL_REF_PREFIX}${tail}`)
     .map((ref) => ({ $ref: ref }));
 
-  /** A reference the predicate must refuse, plus the shapes around one. */
-  const rejectedShape = fc.oneof(
-    fc.constantFrom<Record<string, unknown>>(
-      // A bare fragment names the whole document, not a schema in it.
-      { $ref: "#" },
-      { $ref: "#components" },
-      { $ref: "#anchor" },
-      { $ref: "http://example.com/schema.json" },
-      { $ref: "./other.json#/components/schemas/Order" },
-      { $ref: "components/schemas/Order" },
-      { $ref: "" },
-      { $ref: 5 },
-      { $ref: null },
-      { $ref: { $ref: "#/x" } },
-      { $ref: ["#/x"] },
-      { type: "object" },
-      {},
-    ),
-    fc.constantFrom<unknown>(null, "#/components/schemas/Order", 7, true, undefined, [
-      { $ref: "#/x" },
-    ]),
-    fc.anything({ withDate: true, withMap: true, withSet: true, withBigInt: true }),
-  );
-
-  it("reads back only a fragment that opens with the local prefix", () => {
-    let accepted = 0;
-    let rejected = 0;
-    let bareHash = 0;
-    let nonStringRef = 0;
-    let notAnObject = 0;
+  /**
+   * Which shapes are read back and which are refused is enumerated in
+   * `test/unit/messages/raw-schema-ref.test.ts`. What is drawn here is the
+   * dimension that rule says nothing about: a raw schema is written by an
+   * author, so a `$ref` can arrive with other keys beside it, and the answer
+   * must not depend on them.
+   */
+  it("answers the same whatever keys sit beside the reference", () => {
+    let withSiblings = 0;
+    let alone = 0;
 
     fc.assert(
       fc.property(
-        fc.oneof(fc.constant(undefined), fc.string({ maxLength: 3 })),
-        fc.oneof(localReference, rejectedShape),
-        (extra, base) => {
-          // A sibling key must not change the answer.
-          const value =
-            isPlainObject(base) && extra !== undefined ? { ...base, title: extra } : base;
+        localReference,
+        fc.dictionary(
+          fc.string({ minLength: 1 }).filter((key) => key !== "$ref"),
+          fc.string(),
+          {
+            maxKeys: 3,
+          },
+        ),
+        (reference, siblings) => {
+          const keys = Object.keys(siblings);
+          if (keys.length > 0) withSiblings++;
+          else alone++;
 
-          const held = isPlainObject(value) ? value.$ref : undefined;
-          const expected =
-            typeof held === "string" && held.startsWith(LOCAL_REF_PREFIX) ? held : undefined;
-
-          if (expected !== undefined) accepted++;
-          else rejected++;
-          if (held === "#") bareHash++;
-          if (isPlainObject(value) && "$ref" in value && typeof held !== "string") nonStringRef++;
-          if (!isPlainObject(value)) notAnObject++;
-
-          expect(localRef(value)).toBe(expected);
+          // The reference is the same in both, so the answer has to be too.
+          expect(localRef({ ...reference, ...siblings })).toBe(reference.$ref);
+          expect(localRef({ ...siblings, ...reference })).toBe(reference.$ref);
         },
       ),
       { numRuns: 2000, seed: 20260815 },
     );
 
-    // Without both answers the property fixes nothing.
-    expect(accepted).toBeGreaterThan(0);
-    expect(rejected).toBeGreaterThan(0);
-    // A prefix relaxed to `#` is the mutation this case turns red.
-    expect(bareHash).toBeGreaterThan(0);
-    // The type test and the object test each need their own case.
-    expect(nonStringRef).toBeGreaterThan(0);
-    expect(notAnObject).toBeGreaterThan(0);
+    // Without a sibling the property says nothing about siblings.
+    expect(withSiblings).toBeGreaterThan(0);
+    expect(alone).toBeGreaterThan(0);
   });
 });

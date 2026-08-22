@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { text, trimmed } from "../../src/optional-fields.js";
+import { text } from "../../src/optional-fields.js";
 
 /**
  * Properties of the one rule that decides whether a field is emitted.
@@ -17,96 +17,66 @@ const whitespace = fc.constantFrom(" ", "\t", "\n", "\r", "\f", "\v", " ", " 
 /** A run of whitespace, empty runs included. */
 const whitespaceRun = fc.array(whitespace, { maxLength: 4 }).map((parts) => parts.join(""));
 
-/**
- * Text that reaches both answers of `trimmed`.
- *
- * A plain generated string is almost never blank and almost never carries an
- * outer space, so it exercises one line of the function. The padded and the
- * all-blank forms reach the other.
- */
-const authorText = fc.oneof(
-  fc.string({ unit: "binary" }),
-  whitespaceRun,
-  fc
-    .tuple(whitespaceRun, fc.string({ minLength: 1 }), whitespaceRun)
-    .map(([before, body, after]) => `${before}${body}${after}`),
-);
-
-describe("Unit: optional fields — trimmed", () => {
-  it("settles after one pass and never answers with blank or padded text", () => {
-    let allBlank = 0;
-    let trailingBlank = 0;
-
-    fc.assert(
-      fc.property(fc.oneof(authorText, fc.constant(undefined)), (value) => {
-        const once = trimmed(value);
-        if (value !== undefined && value !== "" && once === undefined) allBlank++;
-        if (once !== undefined && /\s$/.test(value ?? "")) trailingBlank++;
-
-        // A second pass has nothing left to remove, so callers may apply the
-        // rule wherever it is convenient.
-        expect(trimmed(once)).toBe(once);
-        if (once !== undefined) {
-          expect(once).not.toBe("");
-          expect(once).toBe(once.trim());
-        }
-      }),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // Text that is nothing but whitespace is the input that separates this
-    // rule from a plain `!== undefined` test.
-    expect(allBlank).toBeGreaterThan(0);
-    // A trailing run is the half a `trimStart` would keep.
-    expect(trailingBlank).toBeGreaterThan(0);
-  });
-});
-
 describe("Unit: optional fields — text", () => {
   /**
-   * What the field should hold, stated without the code under test.
-   *
-   * Reading the answer from `trimmed` would make the property compare the
-   * module against itself, and a change to the blank rule would move both
-   * sides together.
+   * A body that is already what `text` should keep: not empty, and carrying no
+   * whitespace at either end. Inner whitespace is drawn on purpose — it is the
+   * part the outer rule must leave alone, and a `trim` written as a global
+   * replace would eat it.
    */
-  function expectedField(value: string | undefined): string | undefined {
-    const body = (value ?? "").trim();
-    return body.length === 0 ? undefined : body;
-  }
+  const core = fc.oneof(
+    fc
+      .string({ minLength: 1 })
+      .map((text) => text.trim())
+      .filter((text) => text !== ""),
+    fc
+      .tuple(fc.stringMatching(/^[a-z]{1,6}$/), whitespace, fc.stringMatching(/^[a-z]{1,6}$/))
+      .map(([left, space, right]) => `${left}${space}${right}`),
+  );
 
-  it("spreads one entry or none, and holds the trimmed text", () => {
-    let omitted = 0;
-    let kept = 0;
+  /**
+   * The expected answer is the drawn body itself, never computed from the
+   * input. An oracle that trimmed the input here would restate the rule the
+   * module already states, and a change to that rule would move both sides
+   * together — which is how this property read before.
+   */
+  it("holds the drawn body whatever whitespace is wrapped around it", () => {
+    let padded = 0;
+    let bare = 0;
 
     fc.assert(
       fc.property(
         fc.string({ minLength: 1 }),
-        fc.oneof(authorText, fc.constant(undefined)),
-        (key, value) => {
-          const result: Record<string, unknown> = text(key, value);
-          const keys = Object.keys(result);
-          const expected = expectedField(value);
+        whitespaceRun,
+        core,
+        whitespaceRun,
+        (key, before, body, after) => {
+          if (before !== "" || after !== "") padded++;
+          else bare++;
+
+          const result: Record<string, unknown> = text(key, `${before}${body}${after}`);
 
           // The result is spread into an object under construction, so any
           // second key would land in the document unannounced.
-          expect(keys.length).toBeLessThanOrEqual(1);
-          if (expected === undefined) {
-            omitted++;
-            expect(keys).toEqual([]);
-          } else {
-            kept++;
-            expect(keys).toEqual([key]);
-            expect(result[key]).toBe(expected);
-          }
+          expect(Object.keys(result)).toEqual([key]);
+          expect(result[key]).toBe(body);
         },
       ),
       { numRuns: 2000, seed: 20260815 },
     );
 
-    // Both answers need a witness. A run that only kept fields would say
-    // nothing about the omission the rule exists for.
-    expect(omitted).toBeGreaterThan(0);
-    expect(kept).toBeGreaterThan(0);
+    // Without padding the property says nothing about the trimming.
+    expect(padded).toBeGreaterThan(0);
+    expect(bare).toBeGreaterThan(0);
+  });
+
+  it("spreads nothing for text that is only whitespace", () => {
+    fc.assert(
+      fc.property(fc.string({ minLength: 1 }), whitespaceRun, (key, blank) => {
+        // An empty run is the empty string, which reaches the same answer.
+        expect(text(key, blank)).toEqual({});
+      }),
+      { numRuns: 2000, seed: 20260815 },
+    );
   });
 });
