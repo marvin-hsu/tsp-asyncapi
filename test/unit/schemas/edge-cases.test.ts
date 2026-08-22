@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas edge cases (regression)", () => {
   it("self-referential model does not blow the stack", async () => {
@@ -65,12 +66,10 @@ describe("Unit: Schemas edge cases (regression)", () => {
     const fieldSchema = (builder.getSchemas().M as any).properties.field;
 
     expect(fieldSchema).toEqual({});
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/unsupported-payload-type",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "unsupported-payload-type");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
-    expect(diagnostic?.message).toContain("Interface");
+    expect(diagnostic.severity).toBe("error");
+    expect(diagnostic.message).toContain("Interface");
   });
 
   it("reports unrepresentable-circular-reference instead of crashing for a self-referencing anonymous model", async () => {
@@ -91,11 +90,9 @@ describe("Unit: Schemas edge cases (regression)", () => {
     const fieldSchema = (builder.getSchemas().M as any).properties.field;
     expect(fieldSchema.type).toBe("object");
     expect(fieldSchema.properties.a).toEqual({});
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/unrepresentable-circular-reference",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "unrepresentable-circular-reference");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("registers a built-in model of the TypeSpec namespace that is neither an array nor a record", async () => {

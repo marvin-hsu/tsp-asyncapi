@@ -5,6 +5,7 @@ import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
 import { findNeverOverrideOfInheritedProperty } from "../../../src/lower/schemas/inheritance.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
   it("should build `model B extends A` as `allOf: [{ $ref: A }, own]`, registering both models", async () => {
@@ -131,8 +132,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
-    ).toBe(true);
+      diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
+    ).toBeGreaterThan(0);
   });
 
   it("should report a diagnostic and omit discriminator when the discriminating property is optional", async () => {
@@ -145,8 +146,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/optional-discriminator-property"),
-    ).toBe(true);
+      diagnosticsWith(program.diagnostics, "optional-discriminator-property").length,
+    ).toBeGreaterThan(0);
   });
 
   it("should match the discriminating property by its TypeSpec name and emit the wire name as discriminator", async () => {
@@ -170,9 +171,7 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["petType", "name"],
       discriminator: "petType",
     });
-    expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
-    ).toBe(false);
+    expect(diagnosticsWith(program.diagnostics, "missing-discriminator-property")).toHaveLength(0);
   });
 
   it("should emit discriminator when the discriminating property is inherited from baseModel", async () => {
@@ -207,8 +206,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Pet as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
-    ).toBe(true);
+      diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
+    ).toBeGreaterThan(0);
   });
 
   it("should preserve a named collection-backed base's validation keywords and docs when extended", async () => {
@@ -416,13 +415,14 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       properties: { k: { type: "string", enum: ["cat"] } },
       required: ["k"],
     });
-    const overrideDiagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
+    const overrideDiagnostic = findDiagnostic(
+      program.diagnostics,
+      "encoded-name-override-conflict",
     );
     expect(overrideDiagnostic).toBeDefined();
     // The message must describe *this* case (an override diverging from
     // its ancestor's wire name), not the unrelated-collision case.
-    expect(String(overrideDiagnostic?.message)).toMatch(
+    expect(overrideDiagnostic.message).toMatch(
       /overrides an inherited property but resolves to a different wire name/,
     );
   });
@@ -445,13 +445,14 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       properties: { a: { type: "integer", format: "int32" } },
       required: ["a"],
     });
-    const collisionDiagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/encoded-name-override-conflict",
+    const collisionDiagnostic = findDiagnostic(
+      program.diagnostics,
+      "encoded-name-override-conflict",
     );
     expect(collisionDiagnostic).toBeDefined();
     // The message must describe *this* case (an unrelated wire-name
     // collision), not the diverging-override case.
-    expect(String(collisionDiagnostic?.message)).toMatch(
+    expect(collisionDiagnostic.message).toMatch(
       /resolves to the same wire name .* as a different, unrelated inherited property/,
     );
   });
@@ -499,8 +500,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       required: ["b"],
     });
     expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/never-typed-property-override"),
-    ).toBe(true);
+      diagnosticsWith(program.diagnostics, "never-typed-property-override").length,
+    ).toBeGreaterThan(0);
   });
 
   it("should report missing-discriminator-property when @discriminator is applied to a collection-backed model", async () => {
@@ -513,8 +514,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     const components = builder.getSchemas();
     expect((components.Names as any).discriminator).toBeUndefined();
     expect(
-      program.diagnostics.some((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
-    ).toBe(true);
+      diagnosticsWith(program.diagnostics, "missing-discriminator-property").length,
+    ).toBeGreaterThan(0);
   });
 
   it("should find no never-override when a never property matches no inherited name", async () => {

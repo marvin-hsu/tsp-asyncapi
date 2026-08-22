@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { schemasOf } from "../utils/document.js";
+import { diagnosticsWith } from "../utils/diagnostics.js";
 
 /**
  * A numeric constraint is emitted exactly, or it is not emitted at all.
@@ -130,8 +131,8 @@ describe("Property: numeric constraints", () => {
             dropped++;
             // Dropping is allowed, and the author has to be told.
             expect(
-              diagnostics.some((d) => d.code.includes("unrepresentable-numeric-constraint")),
-            ).toBe(true);
+              diagnosticsWith(diagnostics, "unrepresentable-numeric-constraint").length,
+            ).toBeGreaterThan(0);
             return;
           }
 

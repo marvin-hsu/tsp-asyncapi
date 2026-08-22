@@ -4,7 +4,7 @@ import {
   emitDocument,
   emitDocumentWithDiagnostics,
 } from "../utils/test-host.js";
-import { findDiagnostic, targetText } from "../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../utils/diagnostics.js";
 import { channelsOf, infoOf, messagesOf, operationsOf } from "../utils/document.js";
 
 /**
@@ -287,9 +287,7 @@ describe("Unit: @extension", () => {
 
       // This namespace emits both `info` and a Channel Object. One clash is
       // one author mistake, so it gets one report, not one per object.
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/duplicate-extension-key",
-      );
+      const reported = diagnosticsWith(diagnostics, "duplicate-extension-key");
       expect(reported).toHaveLength(1);
     });
 
@@ -312,9 +310,7 @@ describe("Unit: @extension", () => {
       // The pattern is `^x-[\\w\\d.\\-_]+$`. A bare prefix has no name after
       // it, and a space is outside the charset. The official parser rejects
       // both, so neither may reach the document.
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/invalid-extension-key",
-      );
+      const reported = diagnosticsWith(diagnostics, "invalid-extension-key");
       expect(reported).toHaveLength(2);
       expect(reported.every((diagnostic) => diagnostic.severity === "error")).toBe(true);
       const channel = channelsOf(doc).orders;
@@ -351,9 +347,7 @@ describe("Unit: @extension", () => {
       // becomes a Message Object. The extension of the losing instantiation
       // still reached the document through the winner.
       expect(messagesOf(doc).Envelope["x-owner"]).toBe("team");
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(0);
     });
 
@@ -403,9 +397,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(1);
     });
 
@@ -430,9 +422,7 @@ describe("Unit: @extension", () => {
       // declaration in `Base` sits on no channel, and it reaches the document
       // through the copy. Its extension did too.
       expect(operationsOf(doc).OrderChannel_publish["x-sla-ms"]).toBe(250);
-      const reported = diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-      );
+      const reported = diagnosticsWith(diagnostics, "extension-target-not-emitted");
       expect(reported).toHaveLength(0);
     });
 
@@ -459,14 +449,8 @@ describe("Unit: @extension", () => {
       // still reached the document through the winner. The clash itself is
       // already reported once.
       expect(channelsOf(doc).orders["x-owner"]).toBe("team");
-      expect(
-        diagnostics.filter((diagnostic) => diagnostic.code === "tsp-asyncapi/duplicate-channel-id"),
-      ).toHaveLength(1);
-      expect(
-        diagnostics.filter(
-          (diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted",
-        ),
-      ).toHaveLength(0);
+      expect(diagnosticsWith(diagnostics, "duplicate-channel-id")).toHaveLength(1);
+      expect(diagnosticsWith(diagnostics, "extension-target-not-emitted")).toHaveLength(0);
     });
 
     it("reports a value the serializer cannot represent and drops the key", async () => {
@@ -602,9 +586,9 @@ describe("Unit: @extension", () => {
 
       // The state map hands the targets over in decorator run order. An
       // author reads the file top to bottom, so the reports follow that.
-      const names = diagnostics
-        .filter((diagnostic) => diagnostic.code === "tsp-asyncapi/extension-target-not-emitted")
-        .map((diagnostic) => /model (\w+)/.exec(targetText(diagnostic))?.[1]);
+      const names = diagnosticsWith(diagnostics, "extension-target-not-emitted").map(
+        (diagnostic) => /model (\w+)/.exec(targetText(diagnostic))?.[1],
+      );
       expect(names).toEqual(["AlphaUnused", "BetaUnused", "GammaUnused"]);
     });
   });

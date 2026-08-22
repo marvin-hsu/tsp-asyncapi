@@ -5,6 +5,7 @@ import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
+import { findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas — template instantiation naming", () => {
   it("should name a template model instantiation from the template name plus its type argument (Envelope<Order> -> EnvelopeOrder)", async () => {
@@ -125,11 +126,9 @@ describe("Unit: Schemas — template instantiation naming", () => {
     expect(props.a.$ref).toBe("#/components/schemas/EnvelopeOrder");
     expect(props.b.$ref).toBe("#/components/schemas/EnvelopeOrder");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("should include the argument's namespace in a template instantiation name so same-named models in different namespaces don't collide", async () => {

@@ -4,6 +4,7 @@ import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { SchemaKeyRegistry } from "../../../src/lower/schemas/key-registration.js";
 import { t } from "@typespec/compiler/testing";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas — schema keys and registration", () => {
   it("should Sep-encode `/` and `~` out of a backtick-declared model's own name, rather than leaking them into the schema key", async () => {
@@ -63,10 +64,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(Object.hasOwn(builder.getSchemas(), "ASep47B.Foo")).toBe(true);
     expect(Object.hasOwn(builder.getSchemas(), "a/b.Foo")).toBe(false);
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("Sep-encodes a `#`-containing or space-containing namespace's name, keeping the key in the AsyncAPI charset and the $ref resolvable", async () => {
@@ -125,10 +123,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/NS1.Duplicate1");
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Duplicate1");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("gives a global-namespace model and a namespaced same-named model distinct keys (namespaced built first)", async () => {
@@ -154,10 +149,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/NS2.Foo");
     expect(ref2.$ref).toBe("#/components/schemas/Foo");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("gives a global-namespace model and a namespaced same-named model distinct keys (global built first)", async () => {
@@ -179,10 +171,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/Foo");
     expect(ref2.$ref).toBe("#/components/schemas/NS2.Foo");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("leaves the service namespace out of a schema key, while still qualifying a namespace nested under it", async () => {
@@ -235,10 +224,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.x).toEqual({ $ref: "#/components/schemas/A.EnvOrder" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/B.EnvOrder" });
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("should give each template instantiation its own schema key", async () => {
@@ -308,10 +294,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/Widget");
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("keeps a stable $ref, with no diagnostic, when a namespace-qualified model is referenced again from a sibling namespace", async () => {
@@ -349,9 +332,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
       $ref: "#/components/schemas/NS2.Duplicate1",
     });
 
-    const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostics = diagnosticsWith(program.diagnostics, "duplicate-schema-key");
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -375,9 +356,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(props.x).toEqual({ $ref: "#/components/schemas/NS2.Foo" });
     expect(props.y).toEqual({ $ref: "#/components/schemas/NS1.Foo" });
 
-    const diagnostics = program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostics = diagnosticsWith(program.diagnostics, "duplicate-schema-key");
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -407,10 +386,7 @@ describe("Unit: Schemas — schema keys and registration", () => {
     expect(ref1.$ref).toBe("#/components/schemas/Foo.Widget");
     expect(ref2.$ref).toBe("#/components/schemas/Foo.Bar.Widget");
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("should Sep-encode a backtick-declared model's own name so it can't leak a character outside the AsyncAPI key charset", async () => {
@@ -485,11 +461,9 @@ describe("Unit: Schemas — schema keys and registration", () => {
       }
     `);
     builder.buildSchema(W as Model);
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("should still use the structural name for a template instantiation with no @friendlyName", async () => {

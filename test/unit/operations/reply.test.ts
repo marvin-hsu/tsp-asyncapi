@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
 
 describe("Unit: Operation reply (Phase 5.4)", () => {
   let runner: TesterInstance;
@@ -515,11 +515,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
       channel: { $ref: "#/channels/ReplyChannel" },
       messages: [{ $ref: "#/channels/ReplyChannel/messages/OrderAccepted" }],
     });
-    expect(
-      runner.program.diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/channel-no-messages",
-      ),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "channel-no-messages")).toHaveLength(0);
   });
 
   it("reports a reply channel that carries no channel and drops the whole reply", async () => {
@@ -728,10 +724,6 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(
-      runner.program.diagnostics.filter(
-        (diagnostic) => diagnostic.code === "tsp-asyncapi/reply-without-action",
-      ),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, "reply-without-action")).toHaveLength(0);
   });
 });

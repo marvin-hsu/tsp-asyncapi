@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
+import { findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas — enums and unions", () => {
   it("should build a string enum from members with no explicit value, using each member's own name as its value", async () => {
@@ -285,11 +286,9 @@ describe("Unit: Schemas — enums and unions", () => {
     expect(props.a).toEqual({ $ref: "#/components/schemas/Color" });
     expect(props.b).toEqual({ $ref: "#/components/schemas/Color" });
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "duplicate-schema-key");
     expect(diagnostic).toBeDefined();
-    expect(diagnostic?.severity).toBe("error");
+    expect(diagnostic.severity).toBe("error");
   });
 
   it("should build $ref for named enum and named union fields on a model", async () => {

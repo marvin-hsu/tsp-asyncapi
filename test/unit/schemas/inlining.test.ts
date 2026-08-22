@@ -6,6 +6,7 @@ import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "../../../src/lower/schemas.js";
 import { byCodePoint } from "../../utils/sort.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   it('inlines a template instantiation with a string-literal template argument (P<"created">) instead of registering a synthesized name', async () => {
@@ -249,9 +250,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // `unsupported-payload-type` diagnostic, the same as any other
     // unsupported payload type.
     expect(props.b.properties.v).toEqual({});
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/unsupported-payload-type",
-    );
+    const diagnostic = findDiagnostic(program.diagnostics, "unsupported-payload-type");
     expect(diagnostic).toBeDefined();
   });
 
@@ -377,10 +376,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.b).toEqual(expected);
     expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
 
-    const diagnostic = program.diagnostics.find(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
-    expect(diagnostic).toBeUndefined();
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
   });
 
   it("inlines a string-literal template argument's distinct separator characters to their own literal shape instead of composing a synthesized name", async () => {
@@ -634,11 +630,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
       items: { $ref: selfRef },
     });
 
-    expect(
-      program.diagnostics.filter(
-        (d) => d.code === "tsp-asyncapi/unrepresentable-circular-reference",
-      ),
-    ).toEqual([]);
+    expect(diagnosticsWith(program.diagnostics, "unrepresentable-circular-reference")).toEqual([]);
   });
 
   it("reports a duplicate-schema-key error when two self-recursive instantiations with structurally identical anonymous-model arguments resolve to one fallback key", async () => {
@@ -662,9 +654,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.b.$ref).toBe(`#/components/schemas/${key}`);
     expect(components[key]).toBeDefined();
 
-    const duplicates = program.diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-schema-key",
-    );
+    const duplicates = diagnosticsWith(program.diagnostics, "duplicate-schema-key");
     expect(duplicates).toHaveLength(1);
     expect(duplicates[0].severity).toBe("error");
   });
@@ -683,9 +673,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
 
-    expect(
-      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/unsupported-payload-type"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(program.diagnostics, "unsupported-payload-type")).toHaveLength(1);
   });
 
   it("reports a diagnostic once when two properties reference the same promoted self-recursive instantiation", async () => {
@@ -702,9 +690,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
 
-    expect(
-      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/unsupported-payload-type"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(program.diagnostics, "unsupported-payload-type")).toHaveLength(1);
 
     // Both properties resolve to the one registered component.
     const components = builder.getSchemas() as Record<string, any>;
@@ -723,9 +709,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     `);
     builder.buildSchema(M as Model);
 
-    expect(
-      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-discriminator-property"),
-    ).toHaveLength(1);
+    expect(diagnosticsWith(program.diagnostics, "missing-discriminator-property")).toHaveLength(1);
   });
 
   it("inlines instantiations taking an operation type argument instead of making two distinct operations claim one key", async () => {
@@ -753,9 +737,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     };
     expect(props.a).toEqual(inlined);
     expect(props.b).toEqual(inlined);
-    expect(
-      program.diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-schema-key"),
-    ).toEqual([]);
+    expect(diagnosticsWith(program.diagnostics, "duplicate-schema-key")).toEqual([]);
   });
 
   it("keeps two self-recursive union instantiations with anonymous-model arguments under separate keys", async () => {

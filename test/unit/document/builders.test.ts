@@ -7,6 +7,7 @@ import { lowerInfo } from "../../../src/lower/info.js";
 import { buildTags } from "../../../src/resolve/tags.js";
 import { buildExternalDocs } from "../../../src/external-docs.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;
@@ -102,11 +103,7 @@ describe("Unit: Builders (Phase 1)", () => {
       const tags = buildTags(runner.program, TestTarget);
 
       expect(tags).toEqual([{ name: "orders", description: "Order events" }]);
-      expect(
-        runner.program.diagnostics.filter(
-          (d) => d.code === "tsp-asyncapi/conflicting-tag-metadata",
-        ),
-      ).toEqual([]);
+      expect(diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata")).toEqual([]);
     });
 
     it("should return undefined if no tags", async () => {

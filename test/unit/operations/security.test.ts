@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
-import { findDiagnostic } from "../../utils/diagnostics.js";
 import { emitDocument } from "../../utils/test-host.js";
 import { operationsOf, serversOf } from "../../utils/document.js";
+import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Operation security (Phase 5.6)", () => {
   let runner: TesterInstance;
@@ -153,8 +153,6 @@ describe("Unit: Operation security (Phase 5.6)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(
-      diagnostics.some((entry) => entry.code === "tsp-asyncapi/use-security-outside-server"),
-    ).toBe(false);
+    expect(diagnosticsWith(diagnostics, "use-security-outside-server")).toHaveLength(0);
   });
 });

@@ -7,6 +7,7 @@ import { getUsedSecuritySchemes } from "../../../../src/decorators/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { serversOf } from "../../../utils/document.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: server security", () => {
   it("emits one reference per required scheme, in source order", async () => {
@@ -328,9 +329,7 @@ describe("Unit: server security", () => {
     // and it is passed because the check asks whether that namespace puts a
     // server into the document.
     reportSecurityUsesWithoutServer(runner.program, Test);
-    const stray = runner.program.diagnostics.filter(
-      (diagnostic) => diagnostic.code === "tsp-asyncapi/use-security-outside-server",
-    );
+    const stray = diagnosticsWith(runner.program.diagnostics, "use-security-outside-server");
     expect(stray).toHaveLength(1);
     expect(stray[0].message).toMatch(
       /@useSecurity\('scram'\) on namespace '[\w.]*Test' was dropped/,

@@ -4,6 +4,7 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { present, securitySchemesOf, serversOf } from "../../../utils/document.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: server external docs", () => {
   it("copies the external docs of the namespace onto every server", async () => {
@@ -271,9 +272,7 @@ describe("Unit: server external docs", () => {
     // The security list is resolved once for the namespace and copied onto
     // every server. A regression that resolved it inside the per-server loop
     // would report once per server, and a single-server test could not see it.
-    const reported = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/undeclared-security-scheme",
-    );
+    const reported = diagnosticsWith(diagnostics, "undeclared-security-scheme");
     expect(reported).toHaveLength(1);
     expect(Object.keys(serversOf(doc))).toEqual(["production", "sit"]);
   });
