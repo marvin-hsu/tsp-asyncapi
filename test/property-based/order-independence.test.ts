@@ -125,13 +125,9 @@ describe("Property: order independence", () => {
    * promote-on-second-use rule, and any state that rule keeps would go
    * unwatched.
    *
-   * Reachability, measured in this worktree at 120 runs with seed 20260815.
-   * The seed is pinned below, so these counts reproduce.
-   *
-   *   documents emitted and compared                    120
-   *   runs whose rotation really moved a declaration      81
-   *   runs whose `components.schemas` key order moved     81
-   *   runs carrying a promoted `Env...` component        120
+   * Reachability. Three counters: runs whose rotation really moved a
+   * declaration, runs whose `components.schemas` key order moved, and runs
+   * carrying a promoted `Env...` component.
    *
    * A run drawing an offset that is a multiple of three moves nothing and
    * compares a document with itself. All three counters are asserted below.

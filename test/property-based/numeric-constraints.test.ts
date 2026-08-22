@@ -17,11 +17,11 @@ import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
  * boundaries an example test can name.
  *
  * The second property exists for the drop-and-report branch, so that branch
- * has to be reached. Measured in this worktree at 200 runs with seed
- * 20260815: 68 runs were dropped and reported, and 132 runs emitted a value.
- * Roughly half of every draw is a small value that cannot reach the branch,
- * so the split is not free. Both counters are asserted inside the property,
- * which keeps this record honest if the generator or the emitter moves.
+ * has to be reached. Two counters split the runs: those dropped and
+ * reported, and those that emitted a value. The split is not free, because
+ * roughly half of every draw is a small value that cannot reach the branch.
+ * Both are asserted inside the property, which keeps the claim honest if the
+ * generator or the emitter moves.
  *
  * The boundary sits exactly at 2^53. 9007199254740991 is emitted unchanged,
  * 9007199254740993 is dropped and reported, and both ends of `int64` are
@@ -45,17 +45,14 @@ describe("Property: numeric constraints", () => {
   };
 
   /**
-   * Reachability, measured in this worktree at 150 runs with seed 20260815.
-   * The seed is pinned in the call below, so these counts reproduce.
+   * Reachability. Two counters: values emitted and compared, and draws whose
+   * magnitude reaches 2^31 or beyond.
    *
-   *   values emitted and compared                  150
-   *   draws with magnitude at or above 2^31        120
-   *   largest magnitude drawn         9007199254740987
-   *
-   * The claim is trivial for a small integer. Every JSON writer round-trips
-   * 7 correctly. It only says something near the safe-integer boundary,
-   * where one wrong step turns the bound into a different number. So the
-   * count of large draws is what makes this property mean anything. Both
+   * The claim is trivial for a small integer, because every JSON writer
+   * round-trips 7 correctly. It only says something near the safe-integer
+   * boundary, where one wrong step turns the bound into a different number.
+   * So the count of large draws is what makes this property mean anything.
+   * Both
    * `large` and `largest` are asserted below, so both recorded numbers keep
    * a live check. A later narrowing of the generator would fail an
    * assertion instead of passing quietly. `largest` is the counter that
