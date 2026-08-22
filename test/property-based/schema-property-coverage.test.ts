@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
+import { schemasOf } from "../utils/document.js";
 import { byCodePoint } from "../utils/sort.js";
 import { createChainHarness, resolveSchema, winners, wireOf } from "./model-chain.js";
 
@@ -83,16 +83,22 @@ describe("Integration: Schemas — declared property coverage", () => {
     await fc.assert(
       fc.asyncProperty(harness.chainArb, async ({ levels, useIndexer }) => {
         const declared = harness.normalize(levels);
-        const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(
+        const { doc, diagnostics } = await emitDocumentWithDiagnostics(
           harness.render(declared, useIndexer),
         );
 
         // TypeSpec refuses some of these programs outright. The claim
         // starts once the emitter has answered with a document. Warnings
         // are kept: both fallback paths announce themselves with one.
-        fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+        // `fc.pre` throws to drop the draw, but TypeScript cannot see that
+        // through a call. Returning through it narrows `doc` for the rest of
+        // the body and drops the draw exactly as before.
+        if (doc === null || diagnostics.some((d) => d.severity === "error")) {
+          fc.pre(false);
+          return;
+        }
 
-        const schema = doc.components?.schemas?.["M" + String(declared.length - 1)];
+        const schema = schemasOf(doc)["M" + String(declared.length - 1)];
         expect(schema).toBeDefined();
 
         if (Array.isArray(schema.allOf)) allOfShape++;
@@ -105,9 +111,7 @@ describe("Integration: Schemas — declared property coverage", () => {
         // component's own top-level `properties` is compared against the
         // declared set. A difference means a check reading only that key
         // would answer wrongly for this document.
-        const ownProps = Object.keys((schema.properties ?? {}) as Record<string, unknown>).sort(
-          byCodePoint,
-        );
+        const ownProps = Object.keys(schema.properties ?? {}).sort(byCodePoint);
         if (JSON.stringify(ownProps) !== JSON.stringify(expected)) ownPropsNotDeclaredSet++;
 
         expect(found).toEqual(expected);

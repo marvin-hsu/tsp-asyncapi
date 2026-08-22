@@ -3,6 +3,9 @@ import type {
   ChannelObject,
   ComponentsObject,
   MessageObject,
+  OperationObject,
+  SchemaObject,
+  ServerObject,
 } from "../../src/types/index.js";
 
 /**
@@ -36,6 +39,16 @@ function section<T>(value: T | undefined, name: string): T {
   return value;
 }
 
+/** The servers of the document, keyed by server name. */
+export function serversOf(doc: AsyncAPIDocument): Record<string, ServerObject> {
+  return section(doc.servers, "servers");
+}
+
+/** The operations of the document, keyed by operation id. */
+export function operationsOf(doc: AsyncAPIDocument): Record<string, OperationObject> {
+  return section(doc.operations, "operations");
+}
+
 /** The channels of the document, keyed by channel id. */
 export function channelsOf(doc: AsyncAPIDocument): Record<string, ChannelObject> {
   return section(doc.channels, "channels");
@@ -48,4 +61,9 @@ function componentsOf(doc: AsyncAPIDocument): ComponentsObject {
 /** The reusable messages, keyed by message name. */
 export function messagesOf(doc: AsyncAPIDocument): Record<string, MessageObject> {
   return section(componentsOf(doc).messages, "components.messages");
+}
+
+/** The reusable schemas, keyed by schema name. */
+export function schemasOf(doc: AsyncAPIDocument): Record<string, SchemaObject> {
+  return section(componentsOf(doc).schemas, "components.schemas");
 }
