@@ -185,7 +185,7 @@ const generated: fc.Arbitrary<Generated> = fc
     fc.array(useCount, { minLength: 1, maxLength: 6 }),
     cycleKind,
     fc.array(nestedType, { minLength: 1, maxLength: 3 }),
-    fc.array(auxKind, { maxLength: 3 }),
+    fc.array(auxKind, { minLength: 1, maxLength: 3 }),
   )
   .map(([uses, cycle, nested, aux]): Generated => {
     // Each auxiliary declaration is referred to from a ladder level rather
@@ -352,9 +352,15 @@ describe("Property: nested depth", () => {
    * is the parser rather than this repository deciding whether the result is a
    * document at all.
    *
-   * One parse costs roughly ten compilations, so the run count sits at the
-   * floor that still reaches both guards, and the claims the cheap properties
-   * above already make are not repeated here.
+   * One parse costs roughly ten compilations, and CI runs about four times
+   * slower than the machine this was written on, so the twenty-second ceiling
+   * in `vitest.config.ts` is the binding constraint rather than patience.
+   * Sixty runs measured 4.9s here and timed out there.
+   *
+   * So the run count is the floor that still reaches both guards with room,
+   * and every draw carries at least one auxiliary declaration. At sixty runs a
+   * quarter of the draws carried none, and each of those spent a parse on a
+   * document no edit to this walk can invalidate.
    */
   it("emits a document the official parser accepts, at any depth", async () => {
     let deep = 0;
@@ -376,7 +382,7 @@ describe("Property: nested depth", () => {
 
         await expect(doc).toBeValidAsyncAPI();
       }),
-      { numRuns: 60, seed: 20260815 },
+      { numRuns: 20, seed: 20260815 },
     );
 
     // The two counters below are the reason this property is worth its cost.
