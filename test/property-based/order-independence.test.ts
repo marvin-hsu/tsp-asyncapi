@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * The emitted document must not depend on the order declarations appear in.
@@ -75,8 +75,8 @@ describe("Property: order independence", () => {
           const beta = `@AsyncAPI.message model Beta { ${fieldsOf(rightIds)} }`;
           const head = `model Env<T> { data: T; }\n${aliases}`;
 
-          const a = await emitAsyncAPIWithDiagnostics(`${head}\n${alpha}\n${beta}`);
-          const b = await emitAsyncAPIWithDiagnostics(`${head}\n${beta}\n${alpha}`);
+          const a = await emitDocumentWithDiagnostics(`${head}\n${alpha}\n${beta}`);
+          const b = await emitDocumentWithDiagnostics(`${head}\n${beta}\n${alpha}`);
 
           fc.pre(a.doc !== null && b.doc !== null);
           fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
@@ -171,15 +171,15 @@ describe("Property: order independence", () => {
           if (moved) permuted++;
 
           const head = "model Env<T> { data: T; }";
-          const a = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...messages].join("\n"));
-          const b = await emitAsyncAPIWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
+          const a = await emitDocumentWithDiagnostics([head, ...aliases, ...messages].join("\n"));
+          const b = await emitDocumentWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
 
           fc.pre(a.doc !== null && b.doc !== null);
           fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
           fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
 
-          const keysA = Object.keys(a.doc.components?.schemas ?? {});
-          const keysB = Object.keys(b.doc.components?.schemas ?? {});
+          const keysA = Object.keys(schemasOf(a.doc));
+          const keysB = Object.keys(schemasOf(b.doc));
           if (keysA.join(",") !== keysB.join(",")) keyOrderMoved++;
           // Alpha, Beta and Gamma are the declared messages. Any other key
           // is a shape that was inlined first and promoted on its second

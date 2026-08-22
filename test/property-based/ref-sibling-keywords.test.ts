@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 
 /**
  * No `$ref` carries a sibling keyword.
@@ -287,7 +286,7 @@ describe("Integration: Schemas — no $ref carries sibling keywords", () => {
 
     await fc.assert(
       fc.asyncProperty(programArb, async (draw) => {
-        const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(render(draw));
+        const { doc, diagnostics } = await emitDocumentWithDiagnostics(render(draw));
 
         // The claim starts once the emitter has answered with a document.
         // A program TypeSpec refuses tests nothing. Warnings are kept: a

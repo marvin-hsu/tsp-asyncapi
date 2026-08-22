@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
 import { isSafeComponentsKey } from "../../src/naming.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * Properties of a whole emitted document.
@@ -117,7 +117,7 @@ describe("Integration: emitted document properties", () => {
             })
             .join("\n");
           const fields = names.map((n, i) => "r" + String(i) + ": " + n + ";").join(" ");
-          const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+          const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
             ${models}
             @AsyncAPI.message model Root { ${fields} }
           `);
@@ -127,7 +127,7 @@ describe("Integration: emitted document properties", () => {
           // claim starts once the emitter has answered with a document.
           fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
 
-          const keys = Object.keys(doc.components?.schemas ?? {});
+          const keys = Object.keys(schemasOf(doc));
           for (const key of keys) {
             expect(isSafeComponentsKey(key)).toBe(true);
           }
@@ -209,7 +209,7 @@ describe("Integration: emitted document properties", () => {
             )
             .join("\n");
           const fields = names.map((n, i) => "r" + String(i) + ": " + n + ";").join(" ");
-          const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+          const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
             ${models}
             @AsyncAPI.message model Root { ${fields} }
           `);
@@ -227,7 +227,7 @@ describe("Integration: emitted document properties", () => {
           fc.pre(!diagnostics.some((d) => d.severity === "error"));
 
           // Root plus one component for each declared model.
-          const keys = Object.keys(doc.components?.schemas ?? {});
+          const keys = Object.keys(schemasOf(doc));
           checked++;
           expect(keys).toHaveLength(names.length + 1);
         },

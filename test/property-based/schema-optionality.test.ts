@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { emitAsyncAPIWithDiagnostics } from "../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
 import { createChainHarness, resolveSchema, winners, wireOf, PropDecl } from "./model-chain.js";
+import { schemasOf } from "../utils/document.js";
 
 /**
  * Optionality survives, and `required` never names an undescribed key.
@@ -156,7 +156,7 @@ describe("Integration: Schemas — optionality and required", () => {
     await fc.assert(
       fc.asyncProperty(harness.chainArb, async ({ levels, useIndexer }) => {
         const declared = harness.normalize(levels);
-        const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(
+        const { doc, diagnostics } = await emitDocumentWithDiagnostics(
           harness.render(declared, useIndexer),
         );
 
@@ -165,7 +165,7 @@ describe("Integration: Schemas — optionality and required", () => {
         // both fallback paths announce themselves with one.
         fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
 
-        const schema = doc.components?.schemas?.["M" + String(declared.length - 1)];
+        const schema = schemasOf(doc)["M" + String(declared.length - 1)];
         expect(schema).toBeDefined();
         const flat = !Array.isArray(schema.allOf);
         if (flat) flatShape++;
@@ -192,7 +192,7 @@ describe("Integration: Schemas — optionality and required", () => {
         // component's own top-level `required` is compared against the
         // union the walk collected. A difference means a check reading only
         // the top-level array would answer wrongly for this document.
-        const ownRequired = [...new Set((schema.required ?? []) as string[])].sort(byCodePoint);
+        const ownRequired = [...new Set(schema.required ?? [])].sort(byCodePoint);
         if (JSON.stringify(ownRequired) !== JSON.stringify(union)) ownRequiredNotUnion++;
 
         // Claim 1. Only for a declared set with one owner per wire name.
