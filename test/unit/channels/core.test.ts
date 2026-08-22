@@ -4,7 +4,8 @@ import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { $lib } from "../../../src/lib.js";
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
-import { emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
+import { channelsOf } from "../../utils/document.js";
 
 describe("Unit: Channels (Phase 4.1)", () => {
   let runner: TesterInstance;
@@ -31,7 +32,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.["orders.created"]).toEqual({
+    expect(channelsOf(doc)["orders.created"]).toEqual({
       address: "orders.created",
       messages: { OrderCreated: { $ref: "#/components/messages/OrderCreated" } },
     });
@@ -55,7 +56,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
   });
 
   it("declares a channel on a namespace", async () => {
@@ -76,8 +77,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
-    expect(doc.channels?.["orders.created"].messages).toEqual({
+    expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
     });
   });
@@ -102,7 +103,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.["orders.created"].messages).toBeUndefined();
+    expect(channelsOf(doc)["orders.created"].messages).toBeUndefined();
     expect(diagnostics.some((d) => d.code === "tsp-asyncapi/channel-no-messages")).toBe(true);
   });
 
@@ -114,7 +115,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels).toEqual({});
+    expect(channelsOf(doc)).toEqual({});
   });
 
   it("emits address null for a dynamic channel", async () => {
@@ -135,8 +136,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.ReplyChannel.address).toBeNull();
-    expect(doc.channels?.ReplyChannel).not.toHaveProperty("parameters");
+    expect(channelsOf(doc).ReplyChannel.address).toBeNull();
+    expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
   });
 
   it("keys a dynamic channel by the explicit id argument", async () => {
@@ -157,7 +158,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["replies"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["replies"]);
   });
 
   it("accepts a full URL as an address", async () => {
@@ -178,7 +179,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.["wss://example.com/socket"].address).toBe("wss://example.com/socket");
+    expect(channelsOf(doc)["wss://example.com/socket"].address).toBe("wss://example.com/socket");
   });
 
   it("trims the address before it is stored", async () => {
@@ -199,7 +200,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(doc.channels?.["orders.created"].address).toBe("orders.created");
+    expect(channelsOf(doc)["orders.created"].address).toBe("orders.created");
   });
 
   it("rejects a blank address", async () => {
@@ -349,8 +350,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // One application still wins, so the channel is emitted. Decorators on
     // one declaration run bottom-up, and the first to run claims the target,
     // so the application written last in the source is the one that wins.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders.updated"]);
-    expect(doc.channels?.["orders.updated"].address).toBe("orders.updated");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders.updated"]);
+    expect(channelsOf(doc)["orders.updated"].address).toBe("orders.updated");
   });
 
   it("reports a second @dynamicChannel on one interface", async () => {
@@ -370,8 +371,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
     );
     // The first application to run still claims the target, so one dynamic
     // channel is emitted.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["Broken"]);
-    expect(doc.channels?.Broken.address).toBeNull();
+    expect(Object.keys(channelsOf(doc))).toEqual(["Broken"]);
+    expect(channelsOf(doc).Broken.address).toBeNull();
   });
 
   it("reports the conflict once and the extra @channel on its own", async () => {
@@ -562,8 +563,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-id");
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
-    expect(doc.channels?.orders.address).toBe("orders.first");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
+    expect(channelsOf(doc).orders.address).toBe("orders.first");
   });
 
   it("reports nothing for a plain parameter of a dynamic channel", async () => {
@@ -588,7 +589,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // against one. Reporting the parameter as unused would ask the author to
     // add `{correlationKey}` to an address the channel does not have.
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.ReplyChannel).not.toHaveProperty("parameters");
+    expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
   });
 
   it("ranks two files by import order when their channels claim one id", async () => {
@@ -629,8 +630,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = buildAsyncAPIDocument(result.program, undefined, {});
 
-    expect(Object.keys(doc.channels ?? {})).toEqual(["orders"]);
-    expect(doc.channels?.orders.address).toBe("orders.early");
+    expect(Object.keys(channelsOf(doc))).toEqual(["orders"]);
+    expect(channelsOf(doc).orders.address).toBe("orders.early");
   });
 
   it("keeps the channels map in the source order of the declarations", async () => {
@@ -659,7 +660,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     // The ids run against the alphabet, so this input fails if the map is
     // ever sorted by name. It fails too if the entries are reversed. Every
     // other test here declares one channel, where no order is visible.
-    expect(Object.keys(doc.channels ?? {})).toEqual(["zzz.first", "aaa.second"]);
+    expect(Object.keys(channelsOf(doc))).toEqual(["zzz.first", "aaa.second"]);
   });
 });
 
@@ -674,7 +675,7 @@ describe("Unit: Channels — one address on two channels", () => {
    * Without it, the two collide on the key and the second one is dropped.
    */
   it("warns when two channels carry the same address", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -696,7 +697,7 @@ describe("Unit: Channels — one address on two channels", () => {
   });
 
   it("does not warn about two dynamic channels", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -719,7 +720,7 @@ describe("Unit: Channels — one address on two channels", () => {
   });
 
   it("does not warn when two channels carry different addresses", async () => {
-    const { diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 

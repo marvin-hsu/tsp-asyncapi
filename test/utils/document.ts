@@ -2,6 +2,7 @@ import type {
   AsyncAPIDocument,
   ChannelObject,
   ComponentsObject,
+  InfoObject,
   MessageObject,
   OperationObject,
   SchemaObject,
@@ -74,6 +75,11 @@ export function present<T>(value: T | undefined, name: string): T {
     throw new Error(`This test needs \`${name}\`, and the document has none.`);
   }
   return value;
+}
+
+/** The info object of the document. */
+export function infoOf(doc: AsyncAPIDocument | null): InfoObject {
+  return section(doc, (d) => d.info, "info");
 }
 
 /** The servers of the document, keyed by server name. */

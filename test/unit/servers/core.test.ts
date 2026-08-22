@@ -1,17 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildServersFrom } from "../../utils/servers.js";
 import { namespaceOf } from "../../utils/namespace.js";
 import { getServers } from "../../../src/decorators/index.js";
-import { emitAsyncAPI, emitAsyncAPIWithDiagnostics } from "../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { bySourcePosition, isSameApplication } from "../../../src/source-order.js";
+import { serversOf } from "../../utils/document.js";
 
 describe("Unit: servers", () => {
   it("emits one entry per declared server with its fields", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "kafka.example.com:9092",
@@ -30,8 +30,8 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(Object.keys(doc.servers).sort(byCodePoint)).toEqual(["production", "sit"]);
-    expect(doc.servers.production).toEqual({
+    expect(Object.keys(serversOf(doc)).sort(byCodePoint)).toEqual(["production", "sit"]);
+    expect(serversOf(doc).production).toEqual({
       host: "kafka.example.com:9092",
       protocol: "kafka",
       protocolVersion: "3.5.0",
@@ -40,7 +40,7 @@ describe("Unit: servers", () => {
       summary: "Production broker",
       description: "The production Kafka cluster.",
     });
-    expect(doc.servers.sit).toEqual({
+    expect(serversOf(doc).sit).toEqual({
       host: "kafka.sit.example.com:9092",
       protocol: "kafka",
       protocolVersion: "3.5.0",
@@ -48,13 +48,13 @@ describe("Unit: servers", () => {
   });
 
   it("omits the optional fields that were not given", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("minimal", #{ host: "mqtt.example.com", protocol: "mqtt" })
       namespace Test;
     `);
 
-    expect(doc.servers.minimal).toEqual({
+    expect(serversOf(doc).minimal).toEqual({
       host: "mqtt.example.com",
       protocol: "mqtt",
     });
@@ -67,7 +67,7 @@ describe("Unit: servers", () => {
     // guards apart. A server that carries exactly one field pins each guard
     // on its own. It proves that no field leaks in from a neighbour, and
     // that no field is dropped when its neighbours are absent.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("version-only", #{
         host: "a.example.com", protocol: "kafka", protocolVersion: "3.5.0"
@@ -87,27 +87,27 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(doc.servers["version-only"]).toEqual({
+    expect(serversOf(doc)["version-only"]).toEqual({
       host: "a.example.com",
       protocol: "kafka",
       protocolVersion: "3.5.0",
     });
-    expect(doc.servers["pathname-only"]).toEqual({
+    expect(serversOf(doc)["pathname-only"]).toEqual({
       host: "b.example.com",
       protocol: "kafka",
       pathname: "/orders",
     });
-    expect(doc.servers["title-only"]).toEqual({
+    expect(serversOf(doc)["title-only"]).toEqual({
       host: "c.example.com",
       protocol: "kafka",
       title: "Title only",
     });
-    expect(doc.servers["summary-only"]).toEqual({
+    expect(serversOf(doc)["summary-only"]).toEqual({
       host: "d.example.com",
       protocol: "kafka",
       summary: "Summary only",
     });
-    expect(doc.servers["description-only"]).toEqual({
+    expect(serversOf(doc)["description-only"]).toEqual({
       host: "e.example.com",
       protocol: "kafka",
       description: "Description only",
@@ -116,7 +116,7 @@ describe("Unit: servers", () => {
   });
 
   it("omits the servers field entirely when no server is declared", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test;
     `);
@@ -125,7 +125,7 @@ describe("Unit: servers", () => {
   });
 
   it("emits the servers in the order they appear in the source", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("aaa", #{ host: "a.example.com", protocol: "kafka" })
       @server("bbb", #{ host: "b.example.com", protocol: "kafka" })
@@ -133,11 +133,11 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(Object.keys(doc.servers)).toEqual(["aaa", "bbb", "ccc"]);
+    expect(Object.keys(serversOf(doc))).toEqual(["aaa", "bbb", "ccc"]);
   });
 
   it("emits the servers in source order when they come from augment decorators", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -146,7 +146,7 @@ describe("Unit: servers", () => {
       @@server(Test, "ccc", #{ host: "c.example.com", protocol: "kafka" });
     `);
 
-    expect(Object.keys(doc.servers)).toEqual(["aaa", "bbb", "ccc"]);
+    expect(Object.keys(serversOf(doc))).toEqual(["aaa", "bbb", "ccc"]);
   });
 
   it("applies one augment decorator once when its namespace is reopened", async () => {
@@ -154,7 +154,7 @@ describe("Unit: servers", () => {
     // namespace. A reopened namespace therefore runs the same `@@server`
     // again, which used to look like a duplicate name and dropped the whole
     // document.
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test {}
       namespace Test {}
@@ -162,13 +162,13 @@ describe("Unit: servers", () => {
       @@server(Test, "only", #{ host: "a.example.com", protocol: "kafka" });
     `);
 
-    expect(doc.servers).toEqual({
+    expect(serversOf(doc)).toEqual({
       only: { host: "a.example.com", protocol: "kafka" },
     });
   });
 
   it("keeps source order when stacked and augment decorators are mixed", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("inline1", #{ host: "one.example.com", protocol: "kafka" })
       @server("inline2", #{ host: "two.example.com", protocol: "kafka" })
@@ -177,7 +177,7 @@ describe("Unit: servers", () => {
       @@server(Test, "aug1", #{ host: "three.example.com", protocol: "kafka" });
     `);
 
-    expect(Object.keys(doc.servers)).toEqual(["inline1", "inline2", "aug1"]);
+    expect(Object.keys(serversOf(doc))).toEqual(["inline1", "inline2", "aug1"]);
   });
 
   it("keeps a server named __proto__ as a real entry", async () => {
@@ -330,7 +330,7 @@ describe("Unit: servers", () => {
   });
 
   it("omits an optional field that holds only whitespace", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "kafka.example.com:9092",
@@ -344,14 +344,14 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production).toEqual({
+    expect(serversOf(doc).production).toEqual({
       host: "kafka.example.com:9092",
       protocol: "kafka",
     });
   });
 
   it("trims the whitespace around a field value", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{
         host: "  kafka.example.com:9092  ",
@@ -361,7 +361,7 @@ describe("Unit: servers", () => {
       namespace Test;
     `);
 
-    expect(doc.servers.production).toEqual({
+    expect(serversOf(doc).production).toEqual({
       host: "kafka.example.com:9092",
       protocol: "kafka",
       summary: "Production broker",
@@ -384,7 +384,7 @@ describe("Unit: servers", () => {
   });
 
   it("reports a diagnostic and leaves out a server declared on a namespace other than the service", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;
 
@@ -407,7 +407,7 @@ describe("Unit: servers", () => {
   });
 
   it("reports a diagnostic for a server declared when no service exists", async () => {
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(
       `
       @server("lonely", #{ host: "lonely.example.com", protocol: "kafka" })
       namespace Test;
@@ -433,7 +433,7 @@ describe("Unit: servers", () => {
     // written. Every test that asserts against the builder rather than
     // against a document depends on that, and this is the one place the
     // suite states it.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       @server("blank", #{ host: "kafka.example.com", protocol: "  " })
       namespace Test;
@@ -456,7 +456,7 @@ describe("Unit: servers", () => {
     // reached each file. So `second.tsp`, imported first, ranks first, even
     // though its path sorts last. Ranking by path instead would put `alpha`
     // first and would disagree with the rest of the emitter.
-    const doc = await emitAsyncAPI({
+    const doc = await emitDocument({
       "second.tsp": `
         using AsyncAPI;
         @@server(Test, "bravo", #{ host: "bravo.example.com", protocol: "kafka" });
@@ -471,7 +471,7 @@ describe("Unit: servers", () => {
       `,
     });
 
-    expect(Object.keys(doc.servers)).toEqual(["bravo", "alpha"]);
+    expect(Object.keys(serversOf(doc))).toEqual(["bravo", "alpha"]);
   });
 
   it("keeps the server of the file imported first when two files share a name", async () => {
@@ -513,7 +513,7 @@ describe("Unit: servers", () => {
     // with two blocks in one file. The augment decorator runs once per
     // declaration of its target, and the two runs share a file and an
     // offset, so they are one application.
-    const doc = await emitAsyncAPI({
+    const doc = await emitDocument({
       "main.tsp": `
         @service(#{ title: "Orders" })
         namespace Test;
@@ -528,7 +528,7 @@ describe("Unit: servers", () => {
       `,
     });
 
-    expect(doc.servers).toEqual({
+    expect(serversOf(doc)).toEqual({
       only: { host: "a.example.com", protocol: "kafka" },
     });
   });
@@ -539,7 +539,7 @@ describe("Unit: servers", () => {
     // evaluation follows the order the namespaces are declared in, and the
     // two augment decorators below are written the other way round. So the
     // sort is what decides the order the author reads.
-    const { doc, diagnostics } = await emitAsyncAPIWithDiagnostics(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @@server(Alpha, "alpha-broker", #{ host: "alpha.example.com", protocol: "kafka" });
       @@server(Beta, "beta-broker", #{ host: "beta.example.com", protocol: "kafka" });
 
@@ -636,7 +636,7 @@ describe("Unit: servers — tags", () => {
   // namespace, which is where `security` and `externalDocs` already come
   // from, so every server that namespace declares carries the same set.
   it("emits the namespace's tags on every server it declares", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @tag("edge")
       @asyncTag("region", #{ description: "Where the broker runs." })
@@ -648,12 +648,12 @@ describe("Unit: servers — tags", () => {
     `);
 
     const expected = [{ name: "edge" }, { name: "region", description: "Where the broker runs." }];
-    expect(doc.servers?.production.tags).toEqual(expected);
-    expect(doc.servers?.failover.tags).toEqual(expected);
+    expect(serversOf(doc).production.tags).toEqual(expected);
+    expect(serversOf(doc).failover.tags).toEqual(expected);
   });
 
   it("gives each server its own copy of the tags", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @asyncTag("region", #{ description: "Where the broker runs." })
       @server("production", #{ host: "a.example.com", protocol: "kafka" })
@@ -666,12 +666,12 @@ describe("Unit: servers — tags", () => {
     // A Tag Object holds an External Documentation Object of its own, so a
     // shallow copy would leave both servers pointing at one nested object.
     // Editing one server's tag would then edit the other's.
-    expect(doc.servers?.production.tags).not.toBe(doc.servers?.failover.tags);
-    expect(doc.servers?.production.tags?.[0]).not.toBe(doc.servers?.failover.tags?.[0]);
+    expect(serversOf(doc).production.tags).not.toBe(serversOf(doc).failover.tags);
+    expect(serversOf(doc).production.tags?.[0]).not.toBe(serversOf(doc).failover.tags?.[0]);
   });
 
   it("emits no tags field when the namespace carries none", async () => {
-    const doc = await emitAsyncAPI(`
+    const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("production", #{ host: "a.example.com", protocol: "kafka" })
       namespace Test;
@@ -679,6 +679,6 @@ describe("Unit: servers — tags", () => {
       @message model Order { id: string; }
     `);
 
-    expect("tags" in (doc.servers?.production ?? {})).toBe(false);
+    expect("tags" in serversOf(doc).production).toBe(false);
   });
 });
