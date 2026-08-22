@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
-import { collectRefs } from "../utils/document.js";
+import { collectRefs, countKey } from "../utils/document.js";
 import { resolveRef } from "../utils/json-pointer.js";
 
 /**
@@ -79,6 +79,8 @@ interface Generated {
   readonly markers: readonly string[];
   /** Which cycle the program holds, if any. */
   readonly cycle: CycleKind;
+  /** How many ladder levels another level refers to twice. */
+  readonly twiceUsed: number;
 }
 
 /**
@@ -152,6 +154,7 @@ const generated: fc.Arbitrary<Generated> = fc
       depth: uses.length,
       markers,
       cycle,
+      twiceUsed: uses.filter((count) => count === 2).length,
     };
   });
 
@@ -213,5 +216,55 @@ describe("Property: nested depth", () => {
     expect(cyclic).toBeGreaterThan(0);
     expect(reportedCycle).toBeGreaterThan(0);
     expect(refsChecked).toBeGreaterThan(0);
+  });
+  /**
+   * No shape's body is emitted more than once.
+   *
+   * This is the guarantee the depth dimension exists for, and the
+   * implementation quantifies the failure itself: a ladder where each level
+   * refers to the level below twice emits two-to-the-depth copies of the
+   * innermost shape, measured at over a megabyte from about twenty lines of
+   * TypeSpec. Promoting a shape to a component on its second use is what keeps
+   * that from happening.
+   *
+   * The claim is stated as duplication rather than as promotion on purpose.
+   * Which shapes become components is a judgement about which document reads
+   * better, and a later change of mind there should not fail a test. Emitting
+   * one body twice is a defect under any such judgement, and it is what a
+   * reader suffers: two copies that can drift apart with no sign they were
+   * ever the same shape.
+   *
+   * Each ladder level carries a property name no other level uses, so counting
+   * that name over the whole document counts the copies of that level's body.
+   * The generator knows those names because it wrote them, so nothing here
+   * reads the rule it is checking.
+   */
+  it("emits no shape's body more than once, however deep the nesting", async () => {
+    let deep = 0;
+    let promoted = 0;
+    let markersCounted = 0;
+
+    await fc.assert(
+      fc.asyncProperty(generated, async ({ code, depth, markers, twiceUsed }) => {
+        if (depth >= 4) deep++;
+        if (twiceUsed > 0) promoted++;
+
+        const { doc } = await emitDocumentWithDiagnostics(code);
+
+        for (const marker of markers) {
+          markersCounted++;
+          // One occurrence is the body. Two or more is a copy, and the count
+          // doubles for every level below the one that duplicated.
+          expect(countKey(doc, marker)).toBe(1);
+        }
+      }),
+      { numRuns: 120, seed: 20260815 },
+    );
+
+    // A ladder whose levels are each used once never reaches the promotion
+    // path, so a run without `promoted` would say nothing about it.
+    expect(deep).toBeGreaterThan(0);
+    expect(promoted).toBeGreaterThan(0);
+    expect(markersCounted).toBeGreaterThan(0);
   });
 });

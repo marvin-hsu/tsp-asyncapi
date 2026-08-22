@@ -216,3 +216,30 @@ export function collectRefs(node: unknown, found: string[] = []): string[] {
   }
   return found;
 }
+
+/**
+ * Counts how many times `key` appears as an object key anywhere in a document.
+ *
+ * A shape the emitter copied rather than referenced shows up as a repeated
+ * key. So a property name only one declaration uses is a marker for that
+ * declaration's body, and its count is the number of copies emitted.
+ *
+ * Only keys are counted. A name that appears as a string inside `required` is
+ * a value, not a key, and does not add to the count.
+ *
+ * @param node - Any part of an emitted document
+ * @param key - The object key to count
+ * @returns The number of occurrences
+ */
+export function countKey(node: unknown, key: string): number {
+  if (Array.isArray(node)) {
+    return node.reduce<number>((total, item) => total + countKey(item, key), 0);
+  }
+  if (node === null || typeof node !== "object") return 0;
+  let total = 0;
+  for (const [candidate, value] of Object.entries(node)) {
+    if (candidate === key) total++;
+    total += countKey(value, key);
+  }
+  return total;
+}
