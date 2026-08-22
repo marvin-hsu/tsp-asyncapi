@@ -3,7 +3,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { $lib } from "../../../src/lib.js";
-import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { channelsOf } from "../../utils/document.js";
 
@@ -104,7 +104,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(channelsOf(doc)["orders.created"].messages).toBeUndefined();
-    expect(diagnostics.some((d) => d.code === "tsp-asyncapi/channel-no-messages")).toBe(true);
+    expect(diagnosticsWith(diagnostics, "channel-no-messages").length).toBeGreaterThan(0);
   });
 
   it("emits an empty channels map when the program declares no channel", async () => {
@@ -251,7 +251,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/query/);
     expect(buildAsyncAPIDocument(runner.program, undefined, {}).channels).toEqual({});
@@ -266,7 +266,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/fragment/);
   });
@@ -280,7 +280,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/invalid-channel-address");
+    const reported = diagnosticsWith(diagnostics, "invalid-channel-address");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toMatch(/unbalanced/);
   });
@@ -386,12 +386,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const conflicts = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/conflicting-channel-decorators",
-    );
-    const duplicates = diagnostics.filter(
-      (d) => d.code === "tsp-asyncapi/duplicate-channel-decorator",
-    );
+    const conflicts = diagnosticsWith(diagnostics, "conflicting-channel-decorators");
+    const duplicates = diagnosticsWith(diagnostics, "duplicate-channel-decorator");
 
     // Three applications make two mistakes. The two kinds together are one
     // conflict, whatever the number of applications, and the second @channel
@@ -690,7 +686,7 @@ describe("Unit: Channels — one address on two channels", () => {
       }
     `);
 
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address");
+    const reported = diagnosticsWith(diagnostics, "duplicate-channel-address");
     // Only the second channel is reported. One mistake, one report.
     expect(reported).toHaveLength(1);
     expect(reported[0].severity).toBe("warning");
@@ -714,9 +710,7 @@ describe("Unit: Channels — one address on two channels", () => {
 
     // Their address is `null` because it is unknown until run time, so two of
     // them state nothing about each other.
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "duplicate-channel-address")).toHaveLength(0);
   });
 
   it("does not warn when two channels carry different addresses", async () => {
@@ -734,8 +728,6 @@ describe("Unit: Channels — one address on two channels", () => {
       }
     `);
 
-    expect(
-      diagnostics.filter((d) => d.code === "tsp-asyncapi/duplicate-channel-address"),
-    ).toHaveLength(0);
+    expect(diagnosticsWith(diagnostics, "duplicate-channel-address")).toHaveLength(0);
   });
 });

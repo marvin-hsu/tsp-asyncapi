@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { findDiagnostic } from "../../utils/diagnostics.js";
 
 describe("Unit: Channel messages (Phase 4.2)", () => {
   let runner: TesterInstance;
@@ -303,10 +304,10 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     `);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const warning = diagnostics.find((d) => d.code === "tsp-asyncapi/channel-no-messages");
+    const warning = findDiagnostic(diagnostics, "channel-no-messages");
 
-    expect(warning?.severity).toBe("warning");
-    expect(warning?.message).toMatch(/'orders'/);
+    expect(warning.severity).toBe("warning");
+    expect(warning.message).toMatch(/'orders'/);
     expect(doc.channels?.orders).not.toHaveProperty("messages");
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -31,7 +32,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     `);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/unserializable-example");
+    const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     expect(reported).toHaveLength(1);
     expect(reported[0].severity).toBe("warning");
@@ -84,7 +85,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     `);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/unserializable-example");
+    const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     // Two operations declare `source`, so the first declaration is read
     // twice: once to compare it with the second, and once to emit it. The

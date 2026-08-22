@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -264,7 +265,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     `);
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = diagnostics.filter((d) => d.code === "tsp-asyncapi/non-string-channel-param");
+    const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
     // One non-string variant makes the whole union a non-string type. The
     // union is rejected whole, rather than emitted as an `enum` that names

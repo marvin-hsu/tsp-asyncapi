@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
-import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
 
 describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -181,9 +181,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
 
     buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(diagnostics.filter((d) => d.code === "tsp-asyncapi/missing-channel-param")).toHaveLength(
-      1,
-    );
+    expect(diagnosticsWith(diagnostics, "missing-channel-param")).toHaveLength(1);
   });
 
   it("keeps the parameters map in the order the address names them", async () => {
