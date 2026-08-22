@@ -253,13 +253,15 @@ describe("Unit: JSON Pointer — reader properties", () => {
    * became 1. So a raw schema carrying `#/…/oneOf/0x1` was reported as
    * resolving, while a reader that follows the specification finds nothing
    * there.
+   *
+   * The tokens are the whole point, so they are enumerated rather than
+   * drawn. A property once sampled these seven constants two hundred times;
+   * an enumeration covers each exactly once, deterministically.
    */
-  it("rejects an array index the specification does not spell", () => {
-    fc.assert(
-      fc.property(fc.constantFrom("", " ", "01", "1.0", "+1", "0x1", "1e0"), (token) => {
-        expect(resolvesInDocument(arrayDoc(["a", "b", "c"]), arrayRef(token))).toBe(false);
-      }),
-      { numRuns: 200, seed: 20260815 },
-    );
-  });
+  it.each(["", " ", "01", "1.0", "+1", "0x1", "1e0"])(
+    "rejects the array index %j, which the specification does not spell",
+    (token) => {
+      expect(resolvesInDocument(arrayDoc(["a", "b", "c"]), arrayRef(token))).toBe(false);
+    },
+  );
 });
