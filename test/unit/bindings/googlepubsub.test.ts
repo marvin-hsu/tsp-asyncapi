@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildAsyncAPIWithDiagnostics, emitDocument } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf } from "../../utils/document.js";
+import { PUBLISH_ORDER_CREATED } from "../../utils/source.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -12,11 +13,6 @@ const SERVICE = `
   model OrderCreated {
     orderId: string;
   }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
 `;
 
 const SETTINGS = `#{ encoding: "json", name: "projects/p/schemas/order" }`;
@@ -40,7 +36,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -67,7 +63,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         @googlePubSubChannel(#{ messageRetentionDuration: "86400s" })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -84,7 +80,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         @googlePubSubChannel(#{ schemaSettings: #{ firstRevisionId: "rev-1" } })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -105,7 +101,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -122,7 +118,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         @googlePubSubChannel(#{ schemaSettings: ${SETTINGS}, labels: #{} })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -142,7 +138,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         })
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -175,7 +171,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -203,7 +199,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -230,7 +226,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
         @channel("orders-created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 

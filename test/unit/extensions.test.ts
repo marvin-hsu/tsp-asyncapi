@@ -6,6 +6,7 @@ import {
 } from "../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../utils/diagnostics.js";
 import { channelsOf, infoOf, messagesOf, operationsOf } from "../utils/document.js";
+import { PUBLISH_ORDER_CREATED } from "../utils/source.js";
 
 /**
  * Unit tests of `@extension`, the `x-` specification extensions.
@@ -22,11 +23,6 @@ const MESSAGE = `
   }
 `;
 
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
 describe("Unit: @extension", () => {
   describe("the four targets", () => {
     it("puts an extension on the service namespace into info", async () => {
@@ -39,7 +35,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -56,7 +52,7 @@ describe("Unit: @extension", () => {
         @channel("orders")
         @extension("x-topic-owner", "platform")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -94,7 +90,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -120,7 +116,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -153,7 +149,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -172,7 +168,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -199,7 +195,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -233,7 +229,7 @@ describe("Unit: @extension", () => {
         @extension("owner", "orders-team")
         @extension("x-owner", "orders-team")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -260,7 +256,7 @@ describe("Unit: @extension", () => {
         @extension("x-owner", "first")
         @extension("x-owner", "second")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -282,7 +278,7 @@ describe("Unit: @extension", () => {
 
         ${MESSAGE}
 
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       `);
 
       // This namespace emits both `info` and a Channel Object. One clash is
@@ -303,7 +299,7 @@ describe("Unit: @extension", () => {
         @extension("x-has space", "spaced")
         @extension("x-kept", "yes")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -367,7 +363,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -393,7 +389,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -468,7 +464,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -497,7 +493,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -524,7 +520,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -546,7 +542,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -580,7 +576,7 @@ describe("Unit: @extension", () => {
 
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -603,7 +599,7 @@ describe("Unit: @extension", () => {
 
         ${MESSAGE}
 
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       `);
 
       expect(infoOf(doc)["x-owner"]).toBe("orders-team");

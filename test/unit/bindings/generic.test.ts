@@ -3,17 +3,12 @@ import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
 import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../../utils/document.js";
-
-const KAFKA_CONTRACT = `
-  @service(#{ title: "Orders" })
-  @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
-  namespace Test;
-`;
+import { KAFKA_SERVICE } from "../../utils/source.js";
 
 describe("Unit: the generic @binding decorator", () => {
   it("emits the config verbatim on a channel, and adds no bindingVersion", async () => {
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -63,7 +58,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("keeps every protocol of one target, in source order", async () => {
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -140,7 +135,7 @@ describe("Unit: the generic @binding decorator", () => {
     // it is trimmed too. Recording the raw name would write a member keyed
     // with the spaces the author typed around it.
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -162,7 +157,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("reports a blank protocol name and drops the binding", async () => {
     const { doc, diagnostics, program } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -190,7 +185,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("reports a config that is not an object and drops the binding", async () => {
     const { doc, diagnostics, program } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -214,7 +209,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("reports an array config, because a Bindings Object member is an object", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -235,7 +230,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("reports one protocol claimed twice on one target, and keeps the first", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -264,7 +259,7 @@ describe("Unit: the generic @binding decorator", () => {
     // The dropped binding did reach the channel. Reporting it a second time
     // as a binding that reaches nothing would state the opposite.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -287,7 +282,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("reports a binding whose target emits no object", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -312,7 +307,7 @@ describe("Unit: the generic @binding decorator", () => {
 
   it("serializes a scalar the compiler does not flatten", async () => {
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -331,7 +326,7 @@ describe("Unit: the generic @binding decorator", () => {
   });
   it("converts a nested object, a list, and a null through the same rule", async () => {
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -362,7 +357,7 @@ describe("Unit: the generic @binding decorator", () => {
     // conversion reaches inside the list. Without it the compiler's own
     // value object would be written into the document.
     const doc = await emitDocument(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {

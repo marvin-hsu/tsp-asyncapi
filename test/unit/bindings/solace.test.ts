@@ -2,28 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { operationsOf, serversOf } from "../../utils/document.js";
-
-const MESSAGE = `
-  @message
-  model OrderCreated {
-    id: string;
-  }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
-function service(protocol: string): string {
-  return `
-    @service(#{ title: "Orders" })
-    @server("prod", #{ host: "broker.example.com", protocol: "${protocol}" })
-    namespace Test;
-
-    ${MESSAGE}
-  `;
-}
+import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../utils/source.js";
 
 describe("Unit: the Solace binding decorators", () => {
   it("emits both levels with the binding version", async () => {
@@ -33,7 +12,7 @@ describe("Unit: the Solace binding decorators", () => {
       @server("prod", #{ host: "solace.example.com:55555", protocol: "smf" })
       namespace Test;
 
-      ${MESSAGE}
+      ${ORDER_CREATED}
 
       @channel("orders")
       interface OrderChannel {
@@ -78,7 +57,7 @@ describe("Unit: the Solace binding decorators", () => {
 
   it("reports a delivery mode Solace does not define, and keeps the entry", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("smf")}
+      ${brokerService("smf")}
 
       @channel("orders")
       interface OrderChannel {
@@ -106,11 +85,11 @@ describe("Unit: the Solace binding decorators", () => {
       @server("prod", #{ host: "solace.example.com:55555", protocol: "smf" })
       namespace Test;
 
-      ${MESSAGE}
+      ${ORDER_CREATED}
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -121,7 +100,7 @@ describe("Unit: the Solace binding decorators", () => {
 
   it("reports a negative priority", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("smf")}
+      ${brokerService("smf")}
 
       @channel("orders")
       interface OrderChannel {
@@ -138,7 +117,7 @@ describe("Unit: the Solace binding decorators", () => {
 
   it("drops a destination list left with no entry", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("smf")}
+      ${brokerService("smf")}
 
       @channel("orders")
       interface OrderChannel {

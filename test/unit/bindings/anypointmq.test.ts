@@ -2,28 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { channelsOf, messagesOf } from "../../utils/document.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
-
-const MESSAGE = `
-  @message
-  model OrderCreated {
-    id: string;
-  }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
-function service(protocol: string): string {
-  return `
-    @service(#{ title: "Orders" })
-    @server("prod", #{ host: "broker.example.com", protocol: "${protocol}" })
-    namespace Test;
-
-    ${MESSAGE}
-  `;
-}
+import { PUBLISH_ORDER_CREATED, brokerService } from "../../utils/source.js";
 
 describe("Unit: the Anypoint MQ binding decorators", () => {
   it("emits both levels with the binding version", async () => {
@@ -41,7 +20,7 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
       @anypointMqChannel(#{ destination: "orders", destinationType: "fifo-queue" })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -58,12 +37,12 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
 
   it("reports a destination type Anypoint MQ does not define", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("anypointmq")}
+      ${brokerService("anypointmq")}
 
       @anypointMqChannel(#{ destination: "orders", destinationType: "topic" })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 

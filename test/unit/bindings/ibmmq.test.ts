@@ -2,28 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../utils/document.js";
-
-const MESSAGE = `
-  @message
-  model OrderCreated {
-    id: string;
-  }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
-function service(protocol: string): string {
-  return `
-    @service(#{ title: "Orders" })
-    @server("prod", #{ host: "broker.example.com", protocol: "${protocol}" })
-    namespace Test;
-
-    ${MESSAGE}
-  `;
-}
+import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../utils/source.js";
 
 describe("Unit: the IBM MQ binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
@@ -52,7 +31,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -80,11 +59,11 @@ describe("Unit: the IBM MQ binding decorators", () => {
       @server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
       namespace Test;
 
-      ${MESSAGE}
+      ${ORDER_CREATED}
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -100,12 +79,12 @@ describe("Unit: the IBM MQ binding decorators", () => {
   it("accepts both ends of the message length range", async () => {
     for (const length of [0, 104857600]) {
       const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-        ${service("ibmmq")}
+        ${brokerService("ibmmq")}
 
         @ibmMqChannel(#{ maxMsgLength: ${String(length)} })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -117,12 +96,12 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
   it("reports a message length above 100 MB", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("ibmmq")}
+      ${brokerService("ibmmq")}
 
       @ibmMqChannel(#{ maxMsgLength: 104857601 })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -144,7 +123,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -167,7 +146,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -199,7 +178,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -220,7 +199,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -234,12 +213,12 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
   it("drops an empty queue object rather than emitting one", async () => {
     const doc = await emitDocument(`
-      ${service("ibmmq")}
+      ${brokerService("ibmmq")}
 
       @ibmMqChannel(#{ destinationType: "queue", queue: #{} })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 

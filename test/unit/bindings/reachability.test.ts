@@ -7,12 +7,7 @@ import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
 import { listAllBindings } from "../../../src/decorators/bindings/state.js";
 import { operationsOf } from "../../utils/document.js";
 import type { Diagnostic } from "@typespec/compiler";
-
-const KAFKA_CONTRACT = `
-  @service(#{ title: "Orders" })
-  @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
-  namespace Test;
-`;
+import { KAFKA_SERVICE } from "../../utils/source.js";
 
 const BINDING_OUTSIDE = "binding-outside-document";
 
@@ -27,7 +22,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // decorators again. The declaration in `Base` sits on no channel, and it
     // reaches the document through the copy. Its binding did too.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -53,7 +48,7 @@ describe("Unit: which bindings count as having reached the document", () => {
 
   it("reports only the repeated id when a duplicate channel carries a binding", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -82,7 +77,7 @@ describe("Unit: which bindings count as having reached the document", () => {
 
   it("reports only the repeated id when a duplicate operation carries a binding", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -106,7 +101,7 @@ describe("Unit: which bindings count as having reached the document", () => {
 
   it("reports only the repeated key when a duplicate message carries a binding", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @friendlyName("Shared")
       @message
@@ -139,7 +134,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // own recorded binding, and the dropped one reached the document through
     // the surviving instantiation.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @kafkaMessage(#{ schemaIdLocation: "header" })
       @message
@@ -164,7 +159,7 @@ describe("Unit: which bindings count as having reached the document", () => {
   it("still reports a binding on a target that reaches nothing at all", async () => {
     // The three cases above must not silence the check itself.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -195,7 +190,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // mistakes, so the author hears about both. The state layer stores the
     // entries of one target as a list, and the report flattens those lists.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -245,7 +240,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // all, because the namespace declares no server. Marking by target alone
     // would silence it.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {
@@ -278,7 +273,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     // default wording interpolates the level, which would read "the any
     // level" here and name a position the author cannot look for.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${KAFKA_CONTRACT}
+      ${KAFKA_SERVICE}
 
       @message
       model OrderCreated {

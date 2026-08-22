@@ -6,6 +6,7 @@ import {
 } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, serversOf } from "../../utils/document.js";
+import { PUBLISH_ORDER_CREATED } from "../../utils/source.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -16,11 +17,6 @@ const SERVICE = `
   model OrderCreated {
     id: string;
   }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
 `;
 
 describe("Unit: the Pulsar binding decorators", () => {
@@ -39,7 +35,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -65,7 +61,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -92,7 +88,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         @pulsarChannel(#{ persistence: "persistent" })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -111,7 +107,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         @pulsarChannel(#{ \`namespace\`: "orders" })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -127,7 +123,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         @pulsarChannel(#{ \`namespace\`: "orders", persistence: "durable" })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -147,7 +143,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         @pulsarChannel(#{ ttl: 3600 })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -167,7 +163,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -187,7 +183,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -208,7 +204,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -231,7 +227,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -251,7 +247,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         })
         @channel("orders.created")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 

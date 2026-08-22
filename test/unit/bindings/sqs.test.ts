@@ -7,6 +7,7 @@ import {
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, operationsOf, present } from "../../utils/document.js";
 import type { SqsChannelBindingObject } from "../../../src/types/index.js";
+import { PUBLISH_ORDER_CREATED } from "../../utils/source.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -17,11 +18,6 @@ const SERVICE = `
   model OrderCreated {
     orderId: string;
   }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
 `;
 
 describe("Unit: the Amazon SQS binding decorators", () => {
@@ -46,7 +42,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -76,7 +72,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         @sqsChannel(#{})
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -93,7 +89,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         @sqsChannel(#{ queue: #{ visibilityTimeout: 30 } })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -112,7 +108,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         @sqsChannel(#{ queue: #{ name: "orders", fifoQueue: false } })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -134,7 +130,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -156,7 +152,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -179,7 +175,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 
@@ -197,7 +193,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         })
         @channel("orders")
         interface OrderChannel {
-          ${OPERATION}
+          ${PUBLISH_ORDER_CREATED}
         }
       `);
 

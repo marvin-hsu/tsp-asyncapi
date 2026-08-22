@@ -6,28 +6,7 @@ import {
 } from "../../utils/test-host.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../utils/document.js";
-
-const MESSAGE = `
-  @message
-  model OrderCreated {
-    id: string;
-  }
-`;
-
-const OPERATION = `
-  @send
-  op publish(event: OrderCreated): void;
-`;
-
-function service(protocol: string): string {
-  return `
-    @service(#{ title: "Orders" })
-    @server("prod", #{ host: "broker.example.com", protocol: "${protocol}" })
-    namespace Test;
-
-    ${MESSAGE}
-  `;
-}
+import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../utils/source.js";
 
 describe("Unit: the JMS binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
@@ -50,7 +29,7 @@ describe("Unit: the JMS binding decorators", () => {
       @jmsChannel(#{ destination: "orders", destinationType: "queue" })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -73,11 +52,11 @@ describe("Unit: the JMS binding decorators", () => {
       @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })
       namespace Test;
 
-      ${MESSAGE}
+      ${ORDER_CREATED}
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -89,12 +68,12 @@ describe("Unit: the JMS binding decorators", () => {
 
   it("rejects a destination type JMS does not define but Anypoint MQ does", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
-      ${service("jms")}
+      ${brokerService("jms")}
 
       @jmsChannel(#{ destination: "orders", destinationType: "exchange" })
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
@@ -111,11 +90,11 @@ describe("Unit: the JMS binding decorators", () => {
       @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })
       namespace Test;
 
-      ${MESSAGE}
+      ${ORDER_CREATED}
 
       @channel("orders")
       interface OrderChannel {
-        ${OPERATION}
+        ${PUBLISH_ORDER_CREATED}
       }
     `);
 
