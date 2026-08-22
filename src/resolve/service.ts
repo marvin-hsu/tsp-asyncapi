@@ -131,7 +131,7 @@ export type JsonObject = Readonly<Record<string, unknown>>;
  *
  * @internal
  */
-export interface ExternalDocsNode {
+interface ExternalDocsNode {
   /** The address of the document. */
   readonly url: string;
   /** What the document describes. CommonMark is allowed. */
@@ -147,7 +147,7 @@ export interface ExternalDocsNode {
  *
  * @internal
  */
-export interface TagNode {
+interface TagNode {
   /** The name of the tag. It is unique inside its list. */
   readonly name: string;
   /** What the tag means. CommonMark is allowed. */
@@ -237,7 +237,7 @@ export interface InfoNode {
  * Who to contact about the application.
  * @internal
  */
-export interface ContactNode {
+interface ContactNode {
   /** The name of the contact person or organization. */
   readonly name?: string;
   /** The address of the contact page. */
@@ -250,7 +250,7 @@ export interface ContactNode {
  * The license of the exposed API.
  * @internal
  */
-export interface LicenseNode {
+interface LicenseNode {
   /** The name of the license. */
   readonly name: string;
   /** The address of the license text. */
