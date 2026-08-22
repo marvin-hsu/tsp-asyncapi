@@ -6,7 +6,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/marvin-hsu/tsp-asyncapi.svg?style=flat)](https://github.com/marvin-hsu/tsp-asyncapi/stargazers)
 
 [![CI](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/ci.yml/badge.svg)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/ci.yml)
-[![Release](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml/badge.svg)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml)
+[![Release](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml/badge.svg?event=push)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
