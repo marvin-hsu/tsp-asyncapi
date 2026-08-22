@@ -81,7 +81,7 @@ describe("Unit: the JMS binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+    const reported = findDiagnostic(diagnostics, "missing-binding-field");
     expect(reported.message).toContain("jmsConnectionFactory");
     expect(reported.severity).toBe("error");
     expect(doc.servers?.prod.bindings).toBeUndefined();
@@ -100,7 +100,7 @@ describe("Unit: the JMS binding decorators", () => {
 
     // `exchange` is legal on an Anypoint MQ channel and not on a JMS one.
     // One shared set would have let this through.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("queue or fifo-queue");
   });
 

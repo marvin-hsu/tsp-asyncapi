@@ -80,7 +80,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("queue");
       expect(reported.severity).toBe("error");
       expect(channelsOf(doc).orders.bindings).toBeUndefined();
@@ -140,7 +140,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // The dead letter queue is optional, so only it goes. The channel still
       // names the queue it is.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("deadLetterQueue.name");
       expect(channelsOf(doc).orders.bindings).toEqual({
         sqs: { queue: { name: "orders", fifoQueue: false }, bindingVersion: "0.2.0" },
@@ -160,7 +160,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("queue.deduplicationScope");
       expect(reported.message).toContain("queue or messageGroup");
       // The two required fields are still there, so the binding survives.
@@ -183,7 +183,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("queue.visibilityTimeout");
       expect(reported.message).toContain("zero or more seconds");
     });
@@ -268,7 +268,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("queues");
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
@@ -309,7 +309,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // One bad entry is no reason to lose an entry the author wrote
       // correctly, and the emitted list is still valid.
-      findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      findDiagnostic(diagnostics, "missing-binding-field");
       expect(operationsOf(doc).publish.bindings).toEqual({
         sqs: { queues: [{ name: "orders" }], bindingVersion: "0.2.0" },
       });

@@ -68,7 +68,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("groupId");
     expect(reported.message).toContain("a schema object");
     // The squiggle sits on the config literal, not on the whole operation.
@@ -96,7 +96,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("clientId");
   });
 
@@ -114,7 +114,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("for the operation level");
   });
@@ -132,7 +132,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("at the operation level");
   });

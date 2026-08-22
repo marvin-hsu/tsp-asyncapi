@@ -76,7 +76,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("lastWill.qos");
     expect(reported.message).toContain("0, 1, 2");
     // The rejected field goes on its own. The rest of the will still says
@@ -116,7 +116,7 @@ describe("Unit: the @mqttServer decorator", () => {
 
     // The only field the will carried was rejected. An empty object states no
     // will at all, so emitting it would claim the client configured one.
-    findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    findDiagnostic(diagnostics, "invalid-binding-field");
     expect(serversOf(doc).prod.bindings?.mqtt).toEqual({
       clientId: "gateway",
       bindingVersion: "0.2.0",
@@ -149,7 +149,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("maximumPacketSize");
     expect(reported.message).toContain("a number or a schema object");
   });
@@ -163,7 +163,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });
 });

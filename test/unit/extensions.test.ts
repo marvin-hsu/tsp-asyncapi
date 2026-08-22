@@ -237,7 +237,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-extension-key");
+      const reported = findDiagnostic(diagnostics, "invalid-extension-key");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("owner");
       // The squiggle sits on the key argument, not on the interface.
@@ -264,7 +264,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-extension-key");
+      const reported = findDiagnostic(diagnostics, "duplicate-extension-key");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("x-owner");
       // The squiggle sits on the losing application's key argument.
@@ -377,7 +377,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/extension-target-not-emitted");
+      const reported = findDiagnostic(diagnostics, "extension-target-not-emitted");
       expect(reported.severity).toBe("warning");
       // A warning leaves the document standing, and nothing in it carries
       // the dropped key.
@@ -488,7 +488,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // The squiggle sits on the value argument, not on the namespace.
       expect(targetText(reported)).toBe("Test.ipv4.fromBytes(1, 2, 3, 4)");
@@ -517,7 +517,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // A hole in an array reaches the writer as `null`, so the whole
       // application is dropped instead.
@@ -544,7 +544,7 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/unserializable-extension");
+      const reported = findDiagnostic(diagnostics, "unserializable-extension");
       expect(reported.severity).toBe("warning");
       // A truncated object claims the author wrote fewer members than they
       // did, so nothing is written.

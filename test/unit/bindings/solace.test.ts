@@ -90,7 +90,7 @@ describe("Unit: the Solace binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("destinations[0].deliveryMode");
     expect(reported.message).toContain("direct or persistent");
     // The entry still names the destination the author wrote.
@@ -114,7 +114,7 @@ describe("Unit: the Solace binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("clientName");
     expect(reported.message).toContain("at most 160 characters");
   });
@@ -131,7 +131,7 @@ describe("Unit: the Solace binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("priority");
     expect(reported.message).toContain("zero or more");
   });
@@ -148,7 +148,7 @@ describe("Unit: the Solace binding decorators", () => {
       }
     `);
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    findDiagnostic(diagnostics, "invalid-binding-field");
     expect(operationsOf(doc).publish.bindings?.solace).toEqual({
       timeToLive: 60000,
       bindingVersion: "0.4.0",

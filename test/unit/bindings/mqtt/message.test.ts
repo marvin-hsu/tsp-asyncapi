@@ -81,7 +81,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("payloadFormatIndicator");
     expect(reported.message).toContain("0, 1");
     expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
@@ -124,7 +124,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("responseTopic");
     expect(reported.message).toContain("a topic name or a schema object");
   });
@@ -165,7 +165,7 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // MQTT types this one as a schema only. A bare string is not one, and
     // accepting it would write a document the parser rejects.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("correlationData");
     expect(reported.message).toContain("a schema object");
   });
@@ -187,7 +187,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });
 });

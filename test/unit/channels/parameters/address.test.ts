@@ -112,7 +112,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     `);
 
     buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/non-string-channel-param");
+    const reported = findDiagnostic(diagnostics, "non-string-channel-param");
 
     expect(targetText(reported)).toBe("orderId: int32");
   });
@@ -134,7 +134,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     `);
 
     buildAsyncAPIDocument(runner.program, undefined, {});
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-channel-param");
+    const reported = findDiagnostic(diagnostics, "missing-channel-param");
 
     // The address is the place the author has to change, and no property
     // exists to point at.

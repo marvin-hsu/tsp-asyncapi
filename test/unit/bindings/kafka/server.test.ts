@@ -82,7 +82,7 @@ describe("Unit: the @kafkaServer decorator", () => {
       ${CONTRACT}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("kafka");
     // The message names the document position the author has to look at.
     expect(reported.message).toContain("for the server level");
@@ -99,7 +99,7 @@ describe("Unit: the @kafkaServer decorator", () => {
       ${CONTRACT}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("at the server level");
   });

@@ -76,7 +76,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("schemaIdLocation");
     expect(reported.message).toContain("header or payload");
     // The squiggle sits on the config literal, not on the whole model.
@@ -103,7 +103,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("key");
     expect(messagesOf(doc).OrderCreated.bindings?.kafka).toEqual({
       schemaIdLocation: "payload",
@@ -128,7 +128,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("for the message level");
   });
@@ -147,7 +147,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("at the message level");
   });

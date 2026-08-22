@@ -3,13 +3,13 @@ import { AsyncAPITester } from "../../../../src/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { buildAsyncAPIDocument } from "../../../../src/pipeline.js";
 import { ASYNCAPI_VERSION } from "../../../../src/constants.js";
-import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 
 /** The AsyncAPI Schema Object format, in its JSON flavour. */
 const NATIVE = `application/vnd.aai.asyncapi+json;version=${ASYNCAPI_VERSION}`;
 
 /** The code of the rule this file is about. */
-const CODE = "tsp-asyncapi/unresolved-raw-schema-ref";
+const CODE = "unresolved-raw-schema-ref";
 
 describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
   let runner: TesterInstance;
@@ -83,7 +83,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
     expect(doc.components?.schemas?.OrderCreated).toBeDefined();
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("resolves a reference into a section other than components.schemas", async () => {
@@ -104,7 +104,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
     buildAsyncAPIDocument(runner.program, undefined, {});
 
     // The whole document is the resolution root, not one section of it.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("reports the same rule for @rawHeaders", async () => {
@@ -139,7 +139,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
 
     // The target sits outside this document. A registry or a file holds it,
     // and the emitter cannot read either one.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("says nothing about a $ref nested inside the schema", async () => {
@@ -156,7 +156,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
 
     // A nested reference is written in the schema language itself, and the
     // emitter does not know that grammar. Only the top level is read.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("says nothing about an ordinary payload that refers to a component", async () => {
@@ -173,7 +173,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
     buildAsyncAPIDocument(runner.program, undefined, {});
 
     // Every reference the emitter writes itself resolves by construction.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("resolves a reference into an array element", async () => {
@@ -196,7 +196,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
 
     // A pointer token is an array index as well as an object key. An index
     // outside the array is a miss, and an index inside it is a hit.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("resolves a percent-encoded reference", async () => {
@@ -219,7 +219,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
     // A pointer travels in the fragment of a URI, so it can carry
     // percent-encoding. `%4F` is `O`. A parser accepts this reference, so the
     // emitter must not report it.
-    expect(runner.program.diagnostics.filter((d) => d.code === CODE)).toHaveLength(0);
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 
   it("reports a reference whose stray percent decodes to nothing", async () => {

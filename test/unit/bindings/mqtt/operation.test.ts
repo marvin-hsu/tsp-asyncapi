@@ -81,7 +81,7 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("qos");
     expect(reported.message).toContain("0, 1, 2");
     expect(reported.message).toContain("mqtt binding field");
@@ -125,7 +125,7 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("messageExpiryInterval");
     expect(reported.message).toContain("a number or a schema object");
   });
@@ -143,7 +143,7 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // The binding reaches no part of the document. Dropping it in silence
     // would leave the author believing the delivery mode was set.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });
 });

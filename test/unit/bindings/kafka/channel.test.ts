@@ -89,7 +89,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("partitions");
     expect(reported.message).toContain("a positive integer");
     // The message promises the rest of the binding survives, so the document
@@ -148,7 +148,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("replicas");
     // The message names the protocol as well as the field. One code covers
     // every binding, so the protocol is the half that says which one.
@@ -171,7 +171,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("cleanup.policy");
     expect(reported.message).toContain("delete or compact");
   });
@@ -243,7 +243,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("for the channel level");
   });
@@ -261,7 +261,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("kafka");
     expect(reported.message).toContain("at the channel level");
   });
@@ -333,7 +333,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("cleanup.policy");
   });
 
@@ -349,7 +349,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("cleanup.policy");
   });
 

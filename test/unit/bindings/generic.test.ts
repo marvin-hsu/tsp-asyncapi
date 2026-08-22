@@ -177,7 +177,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-binding-protocol");
+    const reported = findDiagnostic(diagnostics, "empty-binding-protocol");
     expect(targetText(reported)).toBe(`"  "`);
     // The diagnostic is an error, so the emitter never writes a document.
     expect(doc).toBeNull();
@@ -205,7 +205,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-config");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-config");
     expect(targetText(reported)).toBe(`"qos=1"`);
     expect(doc).toBeNull();
     // The rejected config must not be recorded either. See the case above.
@@ -229,7 +229,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-config");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-config");
     expect(reported.message).toContain("mqtt");
   });
 
@@ -251,7 +251,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("mqtt");
     // The message names the position the member sits at. `@binding` names no
     // level, so the level the builder was asked for is the one to report.
@@ -306,7 +306,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });
 

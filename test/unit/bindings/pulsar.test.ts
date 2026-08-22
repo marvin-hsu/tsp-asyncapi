@@ -98,7 +98,7 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       // AsyncAPI requires the field. A binding emitted without it would fail
       // validation with a message about this emitter rather than the source.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("namespace");
       expect(reported.severity).toBe("error");
       expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
@@ -115,7 +115,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("persistence");
       expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
@@ -134,9 +134,9 @@ describe("Unit: the Pulsar binding decorators", () => {
       // A rejected value leaves the field absent, and the field is required.
       // Both reports reach the author: what was wrong, and what is now
       // missing because of it.
-      const invalid = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const invalid = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(invalid.message).toContain("persistent or non-persistent");
-      findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      findDiagnostic(diagnostics, "missing-binding-field");
       expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
 
@@ -191,7 +191,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("retention.time");
       // The two required fields are still there, so the binding survives.
       expect(channelsOf(doc)["orders.created"].bindings?.pulsar.retention).toEqual({ size: 1000 });
@@ -212,7 +212,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      findDiagnostic(diagnostics, "invalid-binding-field");
       expect(channelsOf(doc)["orders.created"].bindings?.pulsar).toEqual({
         namespace: "orders",
         persistence: "persistent",
@@ -255,7 +255,7 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("compaction");
       expect(reported.message).toContain("zero or more");
     });

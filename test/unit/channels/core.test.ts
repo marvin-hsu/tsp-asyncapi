@@ -411,7 +411,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-channel-address");
+    const reported = findDiagnostic(diagnostics, "invalid-channel-address");
 
     // The two arguments sit next to each other, so the code alone does not
     // say which one the author has to change.
@@ -427,7 +427,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-channel-id");
+    const reported = findDiagnostic(diagnostics, "empty-channel-id");
 
     expect(targetText(reported)).toBe(`"  "`);
   });
@@ -441,7 +441,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/empty-channel-id");
+    const reported = findDiagnostic(diagnostics, "empty-channel-id");
 
     // `@dynamicChannel` carries no address, so its id is the first argument
     // rather than the second.
@@ -457,7 +457,7 @@ describe("Unit: Channels (Phase 4.1)", () => {
       interface Broken {}
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-channel-param-name");
+    const reported = findDiagnostic(diagnostics, "invalid-channel-param-name");
 
     expect(targetText(reported)).toBe(`"orders.{order id}"`);
   });

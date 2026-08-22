@@ -88,7 +88,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("heartBeatInterval");
     expect(reported.message).toContain("a value from 0 to 999999");
     expect(serversOf(doc).prod.bindings?.ibmmq).toEqual({
@@ -128,7 +128,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("maxMsgLength");
   });
 
@@ -150,7 +150,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("expiry");
     expect(reported.message).toContain("zero or more");
   });
@@ -177,7 +177,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
     // both is a document the AsyncAPI parser rejects, so the field goes and
     // the type stays: the author said what the payload is, and the headers
     // are the part that cannot apply to it.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain("a binary payload");
     expect(messagesOf(doc).OrderCreated.bindings?.ibmmq).toEqual({

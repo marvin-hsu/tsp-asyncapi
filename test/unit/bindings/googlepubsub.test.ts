@@ -71,7 +71,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schemaSettings");
       expect(reported.severity).toBe("error");
       expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
@@ -111,7 +111,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
       // A name of spaces names no schema, so it is worth no more than an
       // absent field.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schemaSettings.name");
     });
 
@@ -209,7 +209,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
       // The object itself is optional, so only it goes. The binding still
       // says how the messages are ordered.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/missing-binding-field");
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schema.name");
       expect(doc.components?.messages?.OrderCreated.bindings).toEqual({
         googlepubsub: { orderingKey: "customer-id", bindingVersion: "0.2.0" },

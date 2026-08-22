@@ -120,9 +120,9 @@ describe("Unit: Operation security (Phase 5.6)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(
-      findDiagnostic(diagnostics, "tsp-asyncapi/undeclared-security-scheme").message,
-    ).toContain("'missing'");
+    expect(findDiagnostic(diagnostics, "undeclared-security-scheme").message).toContain(
+      "'missing'",
+    );
     expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/known" },
     ]);

@@ -417,10 +417,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = findDiagnostic(
-      diagnostics,
-      "tsp-asyncapi/reply-address-needs-dynamic-channel",
-    );
+    const diagnostic = findDiagnostic(diagnostics, "reply-address-needs-dynamic-channel");
     expect(diagnostic.message).toContain("@dynamicChannel");
     expect(targetText(diagnostic)).toBe(`"$message.header#/replyTo"`);
     // The address goes, and the rest of the reply stays.
@@ -554,7 +551,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/reply-channel-not-a-channel");
+    const diagnostic = findDiagnostic(diagnostics, "reply-channel-not-a-channel");
     expect(diagnostic.message).toContain("'NotAChannel'");
     expect(targetText(diagnostic)).toBe("NotAChannel");
     expect(doc.operations?.createOrder).not.toHaveProperty("reply");
@@ -586,7 +583,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-reply-address-location");
+    const diagnostic = findDiagnostic(diagnostics, "invalid-reply-address-location");
     expect(diagnostic.message).toContain("$message.header#");
     expect(doc.operations?.createOrder.reply).not.toHaveProperty("address");
   });
@@ -624,8 +621,8 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-reply-channel-decorator");
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-reply-address-decorator");
+    findDiagnostic(diagnostics, "duplicate-reply-channel-decorator");
+    findDiagnostic(diagnostics, "duplicate-reply-address-decorator");
     // Decorators run bottom-up, so the one written last runs first and wins.
     // The two applications name two different channels, so the winner shows.
     expect(doc.operations?.createOrder.reply?.channel).toEqual({
@@ -655,7 +652,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/reply-without-action");
+    findDiagnostic(diagnostics, "reply-without-action");
     expect(doc.operations).toEqual({});
   });
 
@@ -696,7 +693,7 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/reply-without-action");
+    const diagnostic = findDiagnostic(diagnostics, "reply-without-action");
     expect(targetText(diagnostic)).toBe("ReplyChannel");
     expect(doc.operations).not.toHaveProperty("createOrder");
     expect(Object.keys(doc.channels?.["orders.create"].messages ?? {})).toEqual([

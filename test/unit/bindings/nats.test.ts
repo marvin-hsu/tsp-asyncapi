@@ -44,7 +44,7 @@ describe("Unit: the @natsOperation decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("queue");
     expect(reported.message).toContain("at most 255 characters");
     expect(reported.message).toContain("nats binding field");

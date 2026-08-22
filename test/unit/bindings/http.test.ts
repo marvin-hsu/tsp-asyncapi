@@ -91,7 +91,7 @@ describe("Unit: the HTTP binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("method");
       expect(reported.message).toContain("http binding field");
     });
@@ -115,7 +115,7 @@ describe("Unit: the HTTP binding decorators", () => {
 
       // HTTP states the same rule the WebSocket binding does. A schema with no
       // `properties` key describes no query parameter.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("query");
       expect(reported.message).toContain(`an object schema with a "properties" key`);
     });
@@ -168,7 +168,7 @@ describe("Unit: the HTTP binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("statusCode");
       expect(reported.message).toContain("a status code from 100 to 599");
       // The rejected field goes on its own.

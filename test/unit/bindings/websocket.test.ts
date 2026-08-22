@@ -106,7 +106,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("method");
     expect(reported.message).toContain("GET or POST");
     // The message names the protocol as well as the field. One code covers
@@ -147,7 +147,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("query");
     expect(reported.message).toContain("a schema object");
     // The squiggle sits on the config literal, not on the whole interface.
@@ -169,7 +169,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     // The binding says the schema must have a `properties` key. A schema
     // without one describes no header, so a generator reading it builds a
     // handshake with nothing in it.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain(`an object schema with a "properties" key`);
     expect(channelsOf(doc)["/ticks"].bindings?.ws).toEqual({
@@ -190,7 +190,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("query");
     expect(reported.message).toContain(`an object schema with a "properties" key`);
   });
@@ -227,7 +227,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // The binding reaches no part of the document. Dropping it in silence
     // would leave the author believing the handshake was described.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/binding-outside-document");
+    const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("ws");
   });
 
@@ -246,7 +246,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // One protocol claims one member of a Bindings Object. Two claims on one
     // member means one of them is lost, and the author has to be told which.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-binding");
+    const reported = findDiagnostic(diagnostics, "duplicate-binding");
     expect(reported.message).toContain("ws");
   });
 });

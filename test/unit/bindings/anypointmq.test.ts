@@ -69,7 +69,7 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
 
     // Anypoint MQ lists no topic. JMS lists neither topic nor exchange, and
     // the two sets are checked apart for that reason.
-    const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("destinationType");
     expect(reported.message).toContain("exchange or queue or fifo-queue");
   });

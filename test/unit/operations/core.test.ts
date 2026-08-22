@@ -133,9 +133,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     // The diagnostic is error severity, so no file is written and the
     // document has to be read from the builder.
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'publish'");
     expect(doc.operations).toEqual({});
     expect(doc.channels?.["orders.outer"].messages).toBeUndefined();
   });
@@ -239,7 +237,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    const diagnostic = findDiagnostic(diagnostics, "tsp-asyncapi/empty-operation-id");
+    const diagnostic = findDiagnostic(diagnostics, "empty-operation-id");
     expect(targetText(diagnostic)).toBe(`"  "`);
     expect(doc.operations).toEqual({});
   });
@@ -268,9 +266,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-operation-id").message).toContain("'publish'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["publish"]);
     expect(doc.operations?.publish.messages).toEqual([
       { $ref: "#/channels/orders.created/messages/OrderCreated" },
@@ -325,9 +321,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
     expect(doc.operations?.dup.messages).toEqual([
       { $ref: "#/channels/orders.b/messages/OrderShipped" },
     ]);
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-operation-id").message).toContain(
-      "'dup'",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-operation-id").message).toContain("'dup'");
   });
 
   it("reports an operation whose scope carries no channel", async () => {
@@ -347,9 +341,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'publish'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'publish'");
     expect(doc.operations).toEqual({});
   });
 
@@ -436,9 +428,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/operation-without-channel").message).toContain(
-      "'second'",
-    );
+    expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'second'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["first"]);
   });
 
@@ -462,7 +452,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-send-decorator");
+    findDiagnostic(diagnostics, "duplicate-send-decorator");
     // Decorators run bottom-up, so the one written last runs first and wins.
     expect(Object.keys(doc.operations ?? {})).toEqual(["second"]);
   });
@@ -487,7 +477,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-receive-decorator");
+    findDiagnostic(diagnostics, "duplicate-receive-decorator");
     expect(doc.operations?.consume.action).toBe("receive");
   });
 
@@ -511,7 +501,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, undefined, {});
 
-    findDiagnostic(diagnostics, "tsp-asyncapi/conflicting-operation-actions");
+    findDiagnostic(diagnostics, "conflicting-operation-actions");
     expect(doc.operations).toEqual({});
   });
 
@@ -534,12 +524,8 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/duplicate-send-decorator").severity).toBe(
-      "error",
-    );
-    expect(findDiagnostic(diagnostics, "tsp-asyncapi/conflicting-operation-actions").severity).toBe(
-      "error",
-    );
+    expect(findDiagnostic(diagnostics, "duplicate-send-decorator").severity).toBe("error");
+    expect(findDiagnostic(diagnostics, "conflicting-operation-actions").severity).toBe("error");
   });
 
   it("reports nothing at all for a program that exercises every operation field", async () => {

@@ -70,7 +70,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("exchange.type");
       expect(reported.message).toContain("topic or direct or fanout or default or headers");
       // The name is still what the author wrote, so losing it as well would
@@ -91,7 +91,7 @@ describe("Unit: the AMQP binding decorators", () => {
 
       // A broker refuses a longer name at connect time, so emitting it would
       // describe a topology that cannot be built.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("queue.name");
       expect(reported.message).toContain("at most 255 characters");
     });
@@ -134,7 +134,7 @@ describe("Unit: the AMQP binding decorators", () => {
 
       // The only field the exchange carried was rejected. An empty object
       // states no exchange at all.
-      findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      findDiagnostic(diagnostics, "invalid-binding-field");
       expect(channelsOf(doc)["events.created"].bindings?.amqp).toEqual({
         is: "queue",
         bindingVersion: "0.3.0",
@@ -152,7 +152,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("queue or routingKey");
     });
   });
@@ -210,7 +210,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("deliveryMode");
       expect(reported.message).toContain("1, 2");
       expect(operationsOf(doc).publish.bindings?.amqp).toEqual({
@@ -233,7 +233,7 @@ describe("Unit: the AMQP binding decorators", () => {
 
       // The field is a length of time in milliseconds, and time is never
       // negative.
-      const reported = findDiagnostic(diagnostics, "tsp-asyncapi/invalid-binding-field");
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("expiration");
       expect(reported.message).toContain("zero or more");
     });
