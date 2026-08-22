@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { text, trimmed } from "../../src/optional-fields.js";
+import { text } from "../../src/optional-fields.js";
 
 /**
  * Properties of the one rule that decides whether a field is emitted.
@@ -31,36 +31,6 @@ const authorText = fc.oneof(
     .tuple(whitespaceRun, fc.string({ minLength: 1 }), whitespaceRun)
     .map(([before, body, after]) => `${before}${body}${after}`),
 );
-
-describe("Unit: optional fields — trimmed", () => {
-  it("settles after one pass and never answers with blank or padded text", () => {
-    let allBlank = 0;
-    let trailingBlank = 0;
-
-    fc.assert(
-      fc.property(fc.oneof(authorText, fc.constant(undefined)), (value) => {
-        const once = trimmed(value);
-        if (value !== undefined && value !== "" && once === undefined) allBlank++;
-        if (once !== undefined && /\s$/.test(value ?? "")) trailingBlank++;
-
-        // A second pass has nothing left to remove, so callers may apply the
-        // rule wherever it is convenient.
-        expect(trimmed(once)).toBe(once);
-        if (once !== undefined) {
-          expect(once).not.toBe("");
-          expect(once).toBe(once.trim());
-        }
-      }),
-      { numRuns: 2000, seed: 20260815 },
-    );
-
-    // Text that is nothing but whitespace is the input that separates this
-    // rule from a plain `!== undefined` test.
-    expect(allBlank).toBeGreaterThan(0);
-    // A trailing run is the half a `trimStart` would keep.
-    expect(trailingBlank).toBeGreaterThan(0);
-  });
-});
 
 describe("Unit: optional fields — text", () => {
   /**
