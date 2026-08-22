@@ -88,7 +88,7 @@ const inheritedKey = fc.constantFrom("__proto__", "constructor", "toString", "va
  * carry the keys only a bare string reaches: a name that collides with the
  * prototype chain, and a name that a pointer has to escape.
  */
-export const documentKey = fc.oneof(
+const documentKey = fc.oneof(
   { arbitrary: fc.stringMatching(/^[A-Za-z]\w{0,7}$/), weight: 6 },
   { arbitrary: inheritedKey, weight: 1 },
   { arbitrary: escapeNeedingKey, weight: 2 },
@@ -126,9 +126,10 @@ export const RENDERERS = Object.keys(RENDERER_TABLE) as readonly BindingRenderer
  * `bindingVersion` is not among the keys. Every protocol decorator declares
  * its config as the emitted object without that field, so the checker rejects
  * a program that writes one. Only the generic `@binding` can carry it, and
- * `verbatimConfig` covers that case.
+ * the version-table enumeration in `lower-transforms` covers that case with a
+ * fixed config.
  */
-export const bindingConfig: fc.Arbitrary<JsonObject> = fc.dictionary(
+const bindingConfig: fc.Arbitrary<JsonObject> = fc.dictionary(
   fc.stringMatching(/^[a-z][a-zA-Z0-9]{0,6}$/),
   fc.oneof(fc.string(), fc.integer(), fc.boolean()),
   { maxKeys: 4 },
@@ -154,19 +155,8 @@ const extensions: fc.Arbitrary<JsonObject> = fc.oneof(
   },
 );
 
-/**
- * A config the generic `@binding` may hold.
- *
- * That decorator takes plain JSON and reads none of it, so an author can
- * write a `bindingVersion` of their own.
- */
-export const verbatimConfig: fc.Arbitrary<JsonObject> = fc.oneof(
-  bindingConfig,
-  bindingConfig.map((config) => ({ ...config, bindingVersion: "9.9.9" })),
-);
-
 /** One protocol binding of one document object. */
-export const bindingNode: fc.Arbitrary<BindingNode> = fc.record({
+const bindingNode: fc.Arbitrary<BindingNode> = fc.record({
   protocol: documentKey,
   renderer: fc.constantFrom(...RENDERERS),
   config: bindingConfig,
@@ -206,7 +196,7 @@ const externalDocsNode = fc
 const tagNode = fc.record({ name: requiredText });
 
 /** One server of the application. */
-export const serverNode: fc.Arbitrary<ServerNode> = fc
+const serverNode: fc.Arbitrary<ServerNode> = fc
   .record({
     name: documentKey,
     host: requiredText,
