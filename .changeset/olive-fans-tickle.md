@@ -1,5 +1,5 @@
 ---
-"tsp-asyncapi": minor
+"tsp-asyncapi": patch
 "tsp-asyncapi-core": patch
 ---
 
@@ -33,3 +33,9 @@ is a registry, and a document may publish a method no channel requires yet.
 `tsp-asyncapi` gains one export, `$linter`. `tsp-asyncapi-core` gains
 `asyncAPILinter` on its `unstable` entry point, where the rules are
 implemented. The stable API of `tsp-asyncapi-core` does not change.
+
+A patch rather than a minor, although this adds a feature. Nothing changes
+for a project that does not configure `linter`: no rule runs, and the
+emitted bytes are identical. `^0.4.1` does not match `0.5.0`, so a minor
+would hold the release back from every existing consumer for a feature none
+of them has to adopt.
