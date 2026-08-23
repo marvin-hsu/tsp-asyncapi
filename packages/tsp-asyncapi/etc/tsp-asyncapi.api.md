@@ -254,6 +254,9 @@ export interface OperationReplyObject {
 }
 
 // @public
+export const PACKAGE_NAME = "tsp-asyncapi";
+
+// @public
 export interface ParameterObject {
     default?: string;
     description?: string;

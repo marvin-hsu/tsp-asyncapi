@@ -14,7 +14,7 @@
 
 export { $onEmit } from "./emitter.js";
 
-export { $lib } from "./lib.js";
+export { $lib, PACKAGE_NAME } from "./lib.js";
 
 export type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 

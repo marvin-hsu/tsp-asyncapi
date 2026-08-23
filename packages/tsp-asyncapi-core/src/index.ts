@@ -15,7 +15,7 @@
  * library definition, and a reader for each kind of decorator state.
  */
 
-export { $lib, createDiagnostic, reportDiagnostic, LIBRARY_NAME } from "./lib.js";
+export { $lib, createDiagnostic, reportDiagnostic, LIBRARY_NAME, PACKAGE_NAME } from "./lib.js";
 
 // Readers for the state the decorators record. A tool built on top of this
 // emitter uses these; applying a decorator is the compiler's job.
