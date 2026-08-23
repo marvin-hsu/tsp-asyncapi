@@ -136,6 +136,56 @@ describe("Unit: the channel-without-operation rule", () => {
   });
 
   /**
+   * Operations inherited from a base interface count. The compiler copies
+   * them into the deriving interface, so the scope walk sees them, but that
+   * is worth pinning rather than assuming.
+   */
+  it("counts an operation inherited from a base interface", async () => {
+    const tester = await createRuleTester(channelWithoutOperationRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        interface Base {
+          @send
+          op publish(event: OrderCreated): void;
+        }
+
+        @channel("orders.created")
+        interface OrderChannel extends Base {}
+      `,
+      )
+      .toBeValid();
+  });
+
+  /**
+   * A namespace can be opened again in another block, and the operations of
+   * every block belong to it. Reading only the block that carries `@channel`
+   * would report this.
+   */
+  it("counts an operation added in a reopened namespace", async () => {
+    const tester = await createRuleTester(channelWithoutOperationRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        @channel("orders.created")
+        namespace Test.Ch {
+          op carry(event: OrderCreated): void;
+        }
+
+        namespace Test.Ch {
+          @send
+          op publish(event: OrderCreated): void;
+        }
+      `,
+      )
+      .toBeValid();
+  });
+
+  /**
    * A nested interface is a separate scope, so the operation inside it does
    * not belong to the outer namespace's channel. The rule reads that scope
    * from `resolve/channels/scope.ts` rather than re-deriving it, and this

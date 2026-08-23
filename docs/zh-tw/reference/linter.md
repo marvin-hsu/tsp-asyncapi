@@ -70,7 +70,7 @@ linter:
 
 `info.title` 與 `info.version` 是必填欄位。沒有任何 namespace 標上 `@service` 時，emitter 用預設值填這兩個欄位。文件是合法的，而那兩個值夠像真的，review 時很容易放過。
 
-程式若沒有宣告任何 channel 與 message，規則保持安靜。一個剛 import 這個 library、還沒開始描述應用程式的專案，不算犯錯。
+規則需要有 channel 才會回報。應用程式會宣告 channel，只放 `@message` model 的共用 library 不會。那種 library 本來就刻意沒有自己的 `@service`。
 
 ```typespec
 // 會回報。

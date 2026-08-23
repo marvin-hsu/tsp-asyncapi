@@ -70,7 +70,7 @@ In `recommended`.
 
 `info.title` and `info.version` are required. When no namespace carries `@service`, the emitter fills both with placeholders. The document is valid, and the two values look enough like real ones to survive a review.
 
-The rule stays quiet in a program that declares no channel and no message. A project that imports the library and has not described an application yet is not making a mistake.
+The rule needs a channel. An application declares one; a shared library of `@message` models does not, and it has no service of its own on purpose. So the rule stays quiet in a program with no channel.
 
 ```typespec
 // Reports.

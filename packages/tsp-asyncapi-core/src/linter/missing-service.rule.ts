@@ -12,7 +12,7 @@
  */
 
 import { createRule, listServices, paramMessage } from "@typespec/compiler";
-import { listChannels, listMessages } from "../decorators/index.js";
+import { listChannels } from "../decorators/index.js";
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
 export const missingServiceRule = createRule({
@@ -28,19 +28,24 @@ export const missingServiceRule = createRule({
     root: (program) => {
       if (listServices(program).length > 0) return;
 
-      // The guard. A project that imports this library without describing an
-      // application yet has nothing to warn about, and warning there would
-      // train the author to ignore the rule.
+      // The guard: a channel, not merely a message.
+      //
+      // An application declares channels. A shared library of `@message`
+      // models does not, and it has no service of its own on purpose. An
+      // earlier version of this guard accepted messages alone and reported
+      // every such library.
+      //
+      // A program with messages and no channel is left alone for the same
+      // reason. It describes no traffic, so a placeholder title is the
+      // smaller of its problems.
       const channels = listChannels(program);
-      const messages = listMessages(program);
-      if (channels.size === 0 && messages.size === 0) return;
+      if (channels.size === 0) return;
 
       // A real target, always. The compiler drops a rule diagnostic whose
-      // target is `NoTarget`, so a fallback to it reports nothing at all.
-      // The guard above proves one of these two maps has an entry, and both
-      // are in source order, so this is the first thing the author wrote
-      // that made the document an AsyncAPI document.
-      const target = channels.keys().next().value ?? messages.keys().next().value;
+      // target is `NoTarget`, so a fallback to it would report nothing at
+      // all. The guard proves the map has an entry, and it is in source
+      // order, so this is the first channel the author wrote.
+      const target = channels.keys().next().value;
       if (target === undefined) return;
 
       context.reportDiagnostic({

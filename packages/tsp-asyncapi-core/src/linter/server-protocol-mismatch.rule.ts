@@ -46,8 +46,11 @@ import { listBindings } from "../decorators/bindings/state.js";
  *
  * A member with no row here is not checked. That is deliberate: a wrong
  * answer about a protocol this table has not learned would be worse than no
- * answer, and the generic `@binding` records a name this emitter never
- * inspects.
+ * answer.
+ *
+ * The generic `@binding` never reaches this table anyway. It records the
+ * level `any` rather than `server`, so the loop below skips it before the
+ * lookup.
  */
 const SERVER_PROTOCOLS = new Map<string, readonly string[]>([
   ["kafka", ["kafka", "kafka-secure"]],

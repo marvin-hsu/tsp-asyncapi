@@ -79,11 +79,11 @@ describe("Unit: the missing-service rule", () => {
   });
 
   /**
-   * A message with no channel still counts as AsyncAPI content, so the rule
-   * fires. It has no channel to point at, so this case also pins that the
-   * fallback target does not throw.
+   * A shared library of `@message` models has no service of its own on
+   * purpose, and it declares no channel. An earlier guard accepted messages
+   * alone and reported every such library.
    */
-  it("reports a program with a message but no channel", async () => {
+  it("stays quiet on a message-only library", async () => {
     const tester = await createRuleTester(missingServiceRule);
     await tester
       .expect(
@@ -96,7 +96,7 @@ describe("Unit: the missing-service rule", () => {
         }
       `,
       )
-      .toEmitDiagnostics({ code: "tsp-asyncapi/missing-service" });
+      .toBeValid();
   });
 
   /**
