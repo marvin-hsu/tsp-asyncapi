@@ -19,6 +19,47 @@ export default tseslint.config(
       },
     },
   },
+  // The package boundary, enforced.
+  //
+  // The emitter splits along one line: `decorators/` and `resolve/` read what
+  // the author declared, and `lower/` decides how AsyncAPI writes it down.
+  // Only the second half knows about the output document.
+  //
+  // The line is a real one. Nothing under `decorators/` or `resolve/` imports
+  // `lower/`, `emitter.ts`, or `pipeline.ts` today, and these rules are what
+  // keep that true. Without them the direction holds by habit, and a single
+  // import in the wrong direction is invisible in review.
+  //
+  // `types/document.ts` is on the output side, so the input side must not
+  // reach it. The objects the author writes directly are in
+  // `types/authored.ts` instead, and both halves may use those. Import from
+  // `types/index.js` for either, and the barrel re-exports both files, so the
+  // rule names the file rather than the barrel.
+  //
+  // The message on each rule states the reasoning, because the error is where
+  // somebody meets this decision for the first time.
+  {
+    files: ["src/decorators/**/*.ts", "src/resolve/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/lower/**", "**/emitter.js", "**/pipeline.js"],
+              message:
+                "The input language must not depend on the output document. `decorators/` and `resolve/` record what the author declared. Deciding how AsyncAPI writes it down is the job of `lower/`, and it reads the model this half produces.",
+            },
+            {
+              group: ["**/types/document.js"],
+              message:
+                "`types/document.ts` holds the objects the lower stage writes. A decorator or the resolve stage may only use the objects the author writes directly, which are in `types/authored.ts`. Import from `types/index.js`.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     ignores: [
       // `.claude/` is untracked, and it holds nested git worktrees of this
