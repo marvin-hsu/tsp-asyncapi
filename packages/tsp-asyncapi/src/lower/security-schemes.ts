@@ -2,7 +2,7 @@
  * The lower half of the security schemes.
  */
 
-import type { SecuritySchemeNode } from "tsp-asyncapi-core";
+import type { SecuritySchemeNode } from "tsp-asyncapi-core/unstable";
 import { SecuritySchemeObject } from "../types/index.js";
 
 /**

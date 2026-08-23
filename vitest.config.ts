@@ -16,6 +16,9 @@ export default defineConfig({
   // output is still collected below.
   resolve: {
     alias: {
+      "tsp-asyncapi-core/unstable": fileURLToPath(
+        new URL("./packages/tsp-asyncapi-core/src/unstable.ts", import.meta.url),
+      ),
       "tsp-asyncapi-core/types": fileURLToPath(
         new URL("./packages/tsp-asyncapi-core/src/types/index.ts", import.meta.url),
       ),

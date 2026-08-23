@@ -6,7 +6,7 @@
  * document must not alias state the emitter does not own.
  */
 
-import type { InfoNode } from "tsp-asyncapi-core";
+import type { InfoNode } from "tsp-asyncapi-core/unstable";
 import { present, text } from "tsp-asyncapi-core";
 import { InfoObject } from "../types/index.js";
 

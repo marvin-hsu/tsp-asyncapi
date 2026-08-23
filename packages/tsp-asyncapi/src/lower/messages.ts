@@ -11,7 +11,11 @@
  */
 
 import { Program } from "@typespec/compiler";
-import type { MessageHeadersNode, MessageNode, MessagePayloadNode } from "tsp-asyncapi-core";
+import type {
+  MessageHeadersNode,
+  MessageNode,
+  MessagePayloadNode,
+} from "tsp-asyncapi-core/unstable";
 import { present, text } from "tsp-asyncapi-core";
 import { SchemaBuilder } from "./schemas.js";
 import { reportDiagnostic } from "tsp-asyncapi-core";
