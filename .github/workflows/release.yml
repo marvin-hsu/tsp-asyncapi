@@ -109,11 +109,14 @@ jobs:
       # which is where the tags come from now: they are the record of a release,
       # not the trigger for one.
       #
+      # Tagging is on by default, so no flag asks for it. `--git-tag` is the
+      # option that controls it.
+      #
       # It calls `pnpm publish` underneath, which rewrites every `workspace:~`
       # range into a real version. Without that the published `tsp-asyncapi`
       # would ask npm for a spec npm cannot resolve.
       - name: Publish to npm
-        run: pnpm exec changeset publish --no-git-tag=false
+        run: pnpm exec changeset publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
