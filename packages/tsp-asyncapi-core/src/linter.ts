@@ -33,9 +33,16 @@ import { LIBRARY_NAME } from "./lib.js";
 import { channelWithoutOperationRule } from "./linter/channel-without-operation.rule.js";
 import { missingServiceRule } from "./linter/missing-service.rule.js";
 import { operationWithoutMessageRule } from "./linter/operation-without-message.rule.js";
+import { unusedSecuritySchemeRule } from "./linter/unused-security-scheme.rule.js";
 
 /** The rules, in the order the reference documentation lists them. */
-const rules = [missingServiceRule, channelWithoutOperationRule, operationWithoutMessageRule];
+const rules = [
+  missingServiceRule,
+  channelWithoutOperationRule,
+  operationWithoutMessageRule,
+  // Not in `recommended`. See the rule's own file for why.
+  unusedSecuritySchemeRule,
+];
 
 /** Builds the `<library>/<rule>` reference a rule set entry needs. */
 function ref(name: string): `${string}/${string}` {
