@@ -1,6 +1,10 @@
 // One realistic Kafka contract for a user-signup domain.
 // This is the file to copy when you start a real contract. It puts every
 // part the earlier examples show one at a time into a single document.
+// The domain publishes the same events in three encodings. The first topic
+// carries JSON, and the emitter builds that schema from the models. The other
+// two topics carry Avro and Protobuf, and each of those schemas is written in
+// the language of its own format.
 import "tsp-asyncapi";
 
 using AsyncAPI;
@@ -383,4 +387,201 @@ interface SignupFunnel {
     @example("acme")
     tenantId: string,
   ): SignupMessage;
+}
+
+// The same domain, encoded for the data platform.
+//
+// The message above describes its payload with an AsyncAPI Schema Object.
+// That schema is JSON Schema, and the emitter builds it from the model.
+// A broker does not always carry JSON. This domain publishes the same events
+// as Avro and as Protobuf as well. The schema of such a payload is written in
+// the language of that format. It is not written in JSON Schema.
+// AsyncAPI holds such a schema in a Multi Format Schema Object. That object
+// has two fields. `schemaFormat` names the language of the schema. `schema`
+// holds the definition itself. `@rawPayload` writes both into `payload`.
+// `@rawHeaders` writes both into `headers`.
+// The emitter never reads inside the schema. So it cannot check the schema
+// against the format, and it cannot check it against the model. The schema is
+// the authority for these two messages. The model is a carrier for the
+// decorators, so it has an empty body.
+// Each format gets a topic of its own. A Confluent subject is derived from
+// the topic name, so one topic carries one schema language.
+
+/**
+ * One event of the signup funnel, in Avro.
+ */
+// An Avro schema is a JSON structure, so it is written as an object literal.
+// Two things in this schema have no equal in JSON Schema. `logicalType` states
+// that `occurredAt` counts milliseconds since the epoch. The `enum` type
+// carries the name `Plan`, and a Schema Registry keeps that name. A
+// translation to JSON Schema loses both. That loss is the reason to publish
+// the Avro schema itself.
+// The Kafka message binding is the same one the JSON message carries. The
+// registry fields describe where the schema id travels, and that is
+// independent of the schema language.
+@message("SignupEventAvroV1")
+@summary("A signup funnel event, in Avro")
+@contentType("application/avro")
+@kafkaMessage(#{
+  key: #{
+    type: "string",
+    description: "The tenant the event belongs to.",
+  },
+  schemaIdLocation: "payload",
+  schemaIdPayloadEncoding: "confluent",
+  schemaLookupStrategy: "TopicIdStrategy",
+})
+@rawHeaders(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "SignupEventHeaders",
+    `namespace`: "com.example.signup.v1",
+    fields: #[
+      #{ name: "correlationId", type: "string" },
+      #{ name: "traceId", type: "string" },
+      #{ name: "schemaVersion", type: "int" }
+    ],
+  }
+)
+@rawPayload(
+  "application/vnd.apache.avro;version=1.9.0",
+  #{
+    type: "record",
+    name: "UserRegistered",
+    `namespace`: "com.example.signup.v1",
+    fields: #[
+      #{ name: "eventId", type: "string" },
+      #{ name: "occurredAt", type: #{ type: "long", logicalType: "timestamp-millis" } },
+      #{ name: "userId", type: "string" },
+      #{ name: "tenantId", type: "string" },
+      #{ name: "email", type: "string" },
+      #{
+        name: "plan",
+        type: #{ type: "enum", name: "Plan", symbols: #["free", "team", "enterprise"] },
+      }
+    ],
+  }
+)
+model SignupEventAvro {}
+
+/**
+ * One event of the signup funnel, in Protobuf.
+ */
+// A Protobuf schema is not a JSON structure. It is the text of a `.proto`
+// file. AsyncAPI requires such a schema as a string, so the schema is written
+// as a triple-quoted string. The emitter emits it as one block of text.
+// The field numbers are part of the contract. A consumer reads a field by its
+// number, so a change to a number breaks that consumer. JSON Schema has no
+// place for a field number, so these numbers live in this schema alone.
+@message("SignupEventProtoV1")
+@summary("A signup funnel event, in Protobuf")
+@contentType("application/vnd.google.protobuf")
+@kafkaMessage(#{
+  key: #{
+    type: "string",
+    description: "The tenant the event belongs to.",
+  },
+  schemaIdLocation: "header",
+  schemaIdPayloadEncoding: "confluent",
+  schemaLookupStrategy: "TopicIdStrategy",
+})
+@rawPayload(
+  "application/vnd.google.protobuf;version=3",
+  """
+  syntax = "proto3";
+
+  package example.signup.v1;
+
+  enum Plan {
+    PLAN_UNSPECIFIED = 0;
+    PLAN_FREE = 1;
+    PLAN_TEAM = 2;
+    PLAN_ENTERPRISE = 3;
+  }
+
+  message UserRegistered {
+    string event_id = 1;
+    int64 occurred_at_millis = 2;
+    string user_id = 3;
+    string tenant_id = 4;
+    string email = 5;
+    Plan plan = 6;
+  }
+  """
+)
+model SignupEventProto {}
+
+/**
+ * The Avro form of the signup funnel events of one tenant.
+ */
+// The address parameter points into the Avro payload. An Avro record holds
+// `tenantId` at its top level, so the location has one token. The JSON
+// channel above wraps the event in an envelope, so its location has three.
+// The emitter checks the shape of the expression only. It never reads the
+// raw schema, so it cannot tell that the field exists.
+@kafkaChannel(#{
+  partitions: 12,
+  replicas: 3,
+  topicConfiguration: #{
+    `cleanup.policy`: #["delete"],
+    `retention.ms`: 1209600000,
+  },
+})
+@channel("signup.v1.{tenantId}.events.avro")
+@useServer("kafka-dev")
+@useServer("kafka-prod")
+interface SignupFunnelAvro {
+  @kafkaOperation(#{
+    clientId: #{
+      type: "string",
+      description: "The producing service instance.",
+    },
+  })
+  @send("publishSignupEventAvro")
+  @useSecurity("signup-oauth")
+  op publish(
+    /** The tenant whose events this topic carries. */
+    @parameterLocation("$message.payload#/tenantId")
+    @example("acme")
+    tenantId: string,
+
+    event: SignupEventAvro,
+  ): void;
+}
+
+/**
+ * The Protobuf form of the signup funnel events of one tenant.
+ */
+// A Protobuf field carries a snake-case name, so the location names
+// `tenant_id`. The name in the location must match the name in the schema,
+// not the name of a TypeSpec property.
+@kafkaChannel(#{
+  partitions: 12,
+  replicas: 3,
+  topicConfiguration: #{
+    `cleanup.policy`: #["delete"],
+    `retention.ms`: 1209600000,
+  },
+})
+@channel("signup.v1.{tenantId}.events.proto")
+@useServer("kafka-dev")
+@useServer("kafka-prod")
+interface SignupFunnelProto {
+  @kafkaOperation(#{
+    clientId: #{
+      type: "string",
+      description: "The producing service instance.",
+    },
+  })
+  @send("publishSignupEventProto")
+  @useSecurity("signup-oauth")
+  op publish(
+    /** The tenant whose events this topic carries. */
+    @parameterLocation("$message.payload#/tenant_id")
+    @example("acme")
+    tenantId: string,
+
+    event: SignupEventProto,
+  ): void;
 }

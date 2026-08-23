@@ -4,6 +4,7 @@
 
 ```ts
 
+import { asyncAPILinter as $linter } from 'tsp-asyncapi-core/unstable';
 import { AmqpChannelBindingObject } from 'tsp-asyncapi-core/types';
 import { AmqpExchangeObject } from 'tsp-asyncapi-core/types';
 import { AmqpMessageBindingObject } from 'tsp-asyncapi-core/types';
@@ -62,6 +63,8 @@ import { WebSocketChannelBindingObject } from 'tsp-asyncapi-core/types';
 export const $lib: TypeSpecLibrary<    {
 [code: string]: DiagnosticMessages;
 }, AsyncAPIEmitterOptions, never>;
+
+export { $linter }
 
 // @public
 export function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>): Promise<void>;

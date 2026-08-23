@@ -24,6 +24,7 @@
  * each name.
  */
 
+export { asyncAPILinter } from "./linter.js";
 export { resolveService } from "./resolve/service.js";
 export { BindingPlacements } from "./resolve/bindings.js";
 export type {
