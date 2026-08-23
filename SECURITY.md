@@ -53,9 +53,15 @@ These are not:
 
 ## Provenance
 
-Releases from 0.1.4 onward are published with npm provenance. The
-attestation binds the tarball to this repository and to the workflow run
-that built it. Verify a download with:
+Most releases are published with npm provenance. The attestation binds the
+tarball to this repository and to the workflow run that built it.
+
+0.1.4 through 0.3.0 carry it. 0.4.0, 0.4.1 and 0.4.2 do not: moving the
+release to `changeset publish` dropped the `--provenance` flag, and nothing
+checked. Releases after 0.4.2 carry it again, and the release run now fails
+if the registry says otherwise.
+
+Verify a download with:
 
 ```bash
 npm audit signatures

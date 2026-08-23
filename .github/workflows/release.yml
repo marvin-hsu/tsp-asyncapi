@@ -145,10 +145,49 @@ jobs:
       # It calls `pnpm publish` underneath, which rewrites every `workspace:~`
       # range into a real version. Without that the published `tsp-asyncapi`
       # would ask npm for a spec npm cannot resolve.
+      # `pnpm_config_provenance`, not `NPM_CONFIG_PROVENANCE`. pnpm reads its
+      # own `pnpm_config_` prefix for configuration from the environment, and
+      # ignores npm's.
+      #
+      # It has to come through the environment because `changeset publish`
+      # calls `pnpm publish` itself and forwards no flags. The workflow used
+      # to run `pnpm publish --provenance` directly, and moving to
+      # `changeset publish` in 0.4.0 dropped the flag with nothing to notice
+      # it: 0.4.0, 0.4.1 and 0.4.2 all published unsigned, and all three runs
+      # were green.
+      #
+      # Setting it through `publishConfig` in package.json does not work.
+      # 0.1.0 through 0.1.3 went out unsigned for exactly that reason: pnpm
+      # reads the flag and the config, not the manifest field.
       - name: Publish to npm
         run: pnpm exec changeset publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          pnpm_config_provenance: true
+
+      # The check that would have caught three unsigned releases.
+      #
+      # Provenance is configuration that fails quietly: the publish succeeds,
+      # the run is green, and the attestation is simply absent. So the run
+      # asks the registry whether the thing it just published is signed,
+      # rather than trusting that the setting took.
+      #
+      # It reads the versions from the manifests rather than the tags,
+      # because a re-run that published nothing has nothing new to check and
+      # the manifests still name what is on the registry.
+      - name: Assert the published versions carry provenance
+        run: |
+          for dir in packages/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            version=$(node -p "require('./${dir}package.json').version")
+            attested=$(curl -sf "https://registry.npmjs.org/$name/$version" \
+              | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).dist?.attestations ? 'yes' : 'no'")
+            if [ "$attested" != "yes" ]; then
+              echo "::error::$name@$version is published without provenance"
+              exit 1
+            fi
+            echo "$name@$version carries provenance"
+          done
 
       # `--tags` pushes every tag, annotated or not. `--follow-tags` would also
       # work for what changesets creates, since those are annotated, but this

@@ -44,8 +44,14 @@ English version: [SECURITY.md](./SECURITY.md)
 
 ## Provenance
 
-0.1.4 起的版本都帶 npm provenance 發佈。該簽章把 tarball 綁定到這個儲存庫，以及建置
-它的那一次 workflow 執行。驗證下載內容：
+多數版本都帶 npm provenance 發佈。該簽章把 tarball 綁定到這個儲存庫，以及建置它的那
+一次 workflow 執行。
+
+0.1.4 到 0.3.0 有帶。0.4.0、0.4.1、0.4.2 沒有：發布改用 `changeset publish` 之後
+`--provenance` 旗標掉了，而且沒有東西檢查。0.4.2 之後的版本恢復帶簽章，發布流程現在
+也會在 registry 說沒有時失敗。
+
+驗證下載內容：
 
 ```bash
 npm audit signatures
