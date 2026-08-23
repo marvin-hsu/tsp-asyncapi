@@ -12,8 +12,7 @@
  */
 
 import { createRule, listServices, paramMessage } from "@typespec/compiler";
-import { listChannels } from "../decorators/channels/channel.js";
-import { listMessages } from "../decorators/messages/message.js";
+import { listChannels, listMessages } from "../decorators/index.js";
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 
 export const missingServiceRule = createRule({

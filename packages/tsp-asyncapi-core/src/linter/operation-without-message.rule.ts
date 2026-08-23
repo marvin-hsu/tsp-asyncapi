@@ -30,9 +30,7 @@
  */
 
 import { createRule, paramMessage, type Model } from "@typespec/compiler";
-import { getChannel } from "../decorators/channels/channel.js";
-import { getOperationAction } from "../decorators/operations/action.js";
-import { listMessages } from "../decorators/messages/message.js";
+import { getChannel, getOperationAction, listMessages } from "../decorators/index.js";
 import { owningChannelTarget } from "../resolve/channels/scope.js";
 import { channelMessageModels, operationSides } from "../resolve/operation-models.js";
 

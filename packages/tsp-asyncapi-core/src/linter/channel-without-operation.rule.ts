@@ -27,8 +27,7 @@
  */
 
 import { createRule, paramMessage } from "@typespec/compiler";
-import { getChannel, listChannels } from "../decorators/channels/channel.js";
-import { getOperationAction } from "../decorators/operations/action.js";
+import { getChannel, listChannels, getOperationAction } from "../decorators/index.js";
 import { listOperationsReplyingOver } from "../decorators/operations/reply-state.js";
 import { channelOperations } from "../resolve/channels/scope.js";
 import { channelMessageModels } from "../resolve/operation-models.js";
