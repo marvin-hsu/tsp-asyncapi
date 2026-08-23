@@ -4,9 +4,19 @@
  *
  * These are the shapes the lower stage writes. They are not the semantic
  * model: that is `resolve/service.ts`.
+ *
+ * The objects the author writes directly live in `authored.ts`. A decorator
+ * takes each of those as a value, so the input language depends on them.
  */
 
-import { BindingsObject } from "./bindings.js";
+import type { BindingsObject } from "./bindings.js";
+import type {
+  ExternalDocumentationObject,
+  MessageExampleObject,
+  MultiFormatSchemaObject,
+  SecuritySchemeObject,
+  TagObject,
+} from "./authored.js";
 
 /**
  * AsyncAPI 3.1 Document Type Definitions.
@@ -154,30 +164,6 @@ export interface LicenseObject {
   name: string;
   /** A URL to the license used for the API. */
   url?: string;
-}
-
-/**
- * Metadata for a specific tag.
- * @public
- */
-export interface TagObject {
-  /** The name of the tag. */
-  name: string;
-  /** A short description for the tag. */
-  description?: string;
-  /** Additional external documentation for this tag. */
-  externalDocs?: ExternalDocumentationObject;
-}
-
-/**
- * Allows referencing an external resource for extended documentation.
- * @public
- */
-export interface ExternalDocumentationObject {
-  /** The URL for the target documentation. */
-  url: string;
-  /** A short description of the target documentation. */
-  description?: string;
 }
 
 /**
@@ -352,114 +338,6 @@ export interface ComponentsObject {
 }
 
 /**
- * The name of one kind of security scheme.
- * Every value is the spelling AsyncAPI 3 uses. The emitter writes it
- * unchanged, so the case of each value is part of the contract.
- * @public
- */
-export type SecuritySchemeType =
-  | "userPassword"
-  | "apiKey"
-  | "X509"
-  | "symmetricEncryption"
-  | "asymmetricEncryption"
-  | "httpApiKey"
-  | "http"
-  | "oauth2"
-  | "openIdConnect"
-  | "plain"
-  | "scramSha256"
-  | "scramSha512"
-  | "gssapi";
-
-/**
- * One security scheme a server or an operation requires.
- * Which fields apply depends on `type`. The decorator accepts one model per
- * kind of scheme, so a field of another kind never reaches this object.
- * @public
- */
-export interface SecuritySchemeObject {
-  /** The kind of this scheme. */
-  type: SecuritySchemeType;
-  /** A description of the scheme. CommonMark is allowed. */
-  description?: string;
-  /** The parameter name. It belongs to `httpApiKey` alone. */
-  name?: string;
-  /**
-   * Where the key travels. `apiKey` uses `user` or `password`.
-   * `httpApiKey` uses `query`, `header`, or `cookie`.
-   */
-  in?: string;
-  /** The RFC 7235 authorization scheme, such as `basic`. For `http`. */
-  scheme?: string;
-  /** A hint about the bearer token format, such as `JWT`. For `http`. */
-  bearerFormat?: string;
-  /** The OAuth flows this scheme offers. For `oauth2`. */
-  flows?: OAuthFlowsObject;
-  /** The OpenID Connect discovery URL. For `openIdConnect`. */
-  openIdConnectUrl?: string;
-  /**
-   * The scope names this scheme needs. It is a subset of the
-   * `availableScopes` of the flows.
-   */
-  scopes?: string[];
-}
-
-/**
- * The OAuth flows of an `oauth2` scheme.
- * AsyncAPI models this as an object with four named fields, not as the
- * array `@typespec/http` uses.
- * @public
- */
-export interface OAuthFlowsObject {
-  implicit?: OAuthFlowObject;
-  password?: OAuthFlowObject;
-  clientCredentials?: OAuthFlowObject;
-  authorizationCode?: OAuthFlowObject;
-}
-
-/**
- * One OAuth flow.
- * `implicit` and `authorizationCode` need `authorizationUrl`. `password`,
- * `clientCredentials`, and `authorizationCode` need `tokenUrl`.
- * @public
- */
-export interface OAuthFlowObject {
-  /** The authorization URL. It must be absolute. */
-  authorizationUrl?: string;
-  /** The token URL. It must be absolute. */
-  tokenUrl?: string;
-  /** The refresh URL. It must be absolute. */
-  refreshUrl?: string;
-  /**
-   * Every scope this flow offers, mapped to its description. AsyncAPI
-   * renames the OpenAPI `scopes` field to `availableScopes`.
-   */
-  availableScopes: Record<string, string>;
-}
-
-/**
- * A schema written in a language other than the AsyncAPI Schema Object.
- *
- * AsyncAPI calls this the Multi Format Schema Object. It carries the name of
- * the format and the definition itself. The definition is emitted exactly as
- * the author wrote it. The emitter never reads inside it, so it cannot check
- * the definition against the format.
- *
- * Both `payload` and `headers` of a Message Object accept this object.
- * @public
- */
-export interface MultiFormatSchemaObject {
-  /**
-   * The format of `schema`, such as
-   * `application/vnd.apache.avro;version=1.9.0`.
-   */
-  schemaFormat: string;
-  /** The schema definition, in the language `schemaFormat` names. */
-  schema: unknown;
-}
-
-/**
  * Describes one message an application sends or receives.
  * @public
  */
@@ -515,23 +393,6 @@ export interface CorrelationIdObject {
   location: string;
   /** A description of the correlation id. CommonMark is allowed. */
   description?: string;
-}
-
-/**
- * One worked example of a message.
- * `headers` and `payload` hold example content, not a schema of it. Every
- * example carries at least one of the two.
- * @public
- */
-export interface MessageExampleObject {
-  /** A machine-friendly name for this example. */
-  name?: string;
-  /** A short summary of what this example shows. */
-  summary?: string;
-  /** Example values for the message headers. */
-  headers?: unknown;
-  /** An example payload. */
-  payload?: unknown;
 }
 
 /**
