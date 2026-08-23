@@ -1,7 +1,7 @@
 import { DecoratorContext, DiagnosticTarget, Model } from "@typespec/compiler";
 import { HTTP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
-import { HttpMessageBindingObject } from "../../../types/index.js";
+import type { HttpMessageBindingObject } from "../../../types/index.js";
 import { namedValuesSchemaField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 

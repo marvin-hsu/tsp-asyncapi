@@ -10,7 +10,7 @@ import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { AMQP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
-import {
+import type {
   AmqpChannelBindingObject,
   AmqpExchangeObject,
   AmqpMessageBindingObject,

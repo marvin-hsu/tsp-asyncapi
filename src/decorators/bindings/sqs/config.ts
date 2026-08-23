@@ -15,7 +15,7 @@ import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
-import {
+import type {
   SqsChannelBindingObject,
   SqsOperationBindingObject,
   SqsQueueObject,

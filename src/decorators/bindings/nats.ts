@@ -8,7 +8,7 @@
 import { DecoratorContext, DiagnosticTarget, Operation } from "@typespec/compiler";
 import { NATS_BINDING_PROTOCOL } from "../../constants.js";
 import { present, trimmed } from "../../optional-fields.js";
-import { NatsOperationBindingObject } from "../../types/index.js";
+import type { NatsOperationBindingObject } from "../../types/index.js";
 import { reportBindingField } from "./fields.js";
 import { claimBinding } from "./state.js";
 

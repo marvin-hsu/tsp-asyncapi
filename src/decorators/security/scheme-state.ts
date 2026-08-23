@@ -1,6 +1,6 @@
 import { DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
-import { SecuritySchemeObject } from "../../types/index.js";
+import type { SecuritySchemeObject } from "../../types/index.js";
 import { bySourcePosition, SourcePosition } from "../../source-order.js";
 
 const securitySchemeStateKey = Symbol.for("tsp-asyncapi.securityScheme");

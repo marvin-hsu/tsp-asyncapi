@@ -1,7 +1,7 @@
 import { DecoratorContext, Operation } from "@typespec/compiler";
 import { HTTP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
-import { HttpOperationBindingObject } from "../../../types/index.js";
+import type { HttpOperationBindingObject } from "../../../types/index.js";
 import { enumeratedField, namedValuesSchemaField } from "../fields.js";
 import { claimBinding } from "../state.js";
 

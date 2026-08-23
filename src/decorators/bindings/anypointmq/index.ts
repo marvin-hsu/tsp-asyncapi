@@ -8,7 +8,7 @@
 import { DecoratorContext, Interface, Model, Namespace } from "@typespec/compiler";
 import { ANYPOINT_MQ_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import {
+import type {
   AnypointMqChannelBindingObject,
   AnypointMqMessageBindingObject,
 } from "../../../types/index.js";
