@@ -12,7 +12,7 @@ import { LIBRARY_NAME } from "#core/lib.js";
  */
 describe("Unit: the linter definition", () => {
   /** The rules `recommended` is expected to enable, written out. */
-  const RECOMMENDED = ["missing-service"];
+  const RECOMMENDED = ["missing-service", "channel-without-operation"];
 
   it("gives every rule a unique name", () => {
     const names = asyncAPILinter.rules.map((rule) => rule.name);
