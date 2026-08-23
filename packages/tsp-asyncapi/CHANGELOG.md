@@ -6,6 +6,13 @@ so at the top of its entry.
 
 The Traditional Chinese version is [CHANGELOG.zh-TW.md](./CHANGELOG.zh-TW.md).
 
+## 0.4.1
+
+Exports `PACKAGE_NAME`. The 0.4.0 entry introduced it as this package's name,
+the one `tspconfig.yaml` writes, but `index.ts` never exported it.
+
+Also takes `tsp-asyncapi-core@0.1.1`, which fixes the same omission there.
+
 ## 0.4.0
 
 **Breaking for a tool that imports from this package in JavaScript or

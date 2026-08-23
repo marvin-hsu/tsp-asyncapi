@@ -1451,6 +1451,9 @@ export interface OperationActionState {
 }
 
 // @public
+export const PACKAGE_NAME = "tsp-asyncapi-core";
+
+// @public
 export function present<K extends string, V>(key: K, value: V | undefined): Record<K, V> | Record<string, never>;
 
 // @public

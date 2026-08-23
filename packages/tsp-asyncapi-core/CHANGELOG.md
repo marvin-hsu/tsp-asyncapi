@@ -6,6 +6,16 @@ the top of its entry.
 
 The Traditional Chinese version is [CHANGELOG.zh-TW.md](./CHANGELOG.zh-TW.md).
 
+## 0.1.1
+
+Exports `PACKAGE_NAME`. It was defined here and used by the test host, and both
+the README and the 0.1.0 entry described it, but `index.ts` never exported it.
+Anything outside this package that followed the documentation got `undefined`.
+
+Nothing else changes. `LIBRARY_NAME` still holds the name this library
+registers with the compiler, which is `tsp-asyncapi`; `PACKAGE_NAME` holds this
+package's own name.
+
 ## 0.1.0
 
 First release. This package is the decorator half of `tsp-asyncapi`, separated

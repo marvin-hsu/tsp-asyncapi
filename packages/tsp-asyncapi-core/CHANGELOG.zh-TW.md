@@ -5,6 +5,15 @@
 
 English: [CHANGELOG.md](./CHANGELOG.md)
 
+## 0.1.1
+
+匯出 `PACKAGE_NAME`。它本來就定義在這裡、也被測試主機使用,而 README 與 0.1.0 那筆
+都寫了它,但 `index.ts` 從來沒有匯出它。照文件寫的程式碼在這個套件外面拿到的是
+`undefined`。
+
+其他都沒變。`LIBRARY_NAME` 仍然是這個 library 向 compiler 註冊的名稱,也就是
+`tsp-asyncapi`;`PACKAGE_NAME` 是這個套件自己的名稱。
+
 ## 0.1.0
 
 首次發布。這個套件是 `tsp-asyncapi` 的 decorator 那一半,拆出來讓多個 emitter

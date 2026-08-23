@@ -5,6 +5,13 @@ minor 版可能帶破壞性變更。有帶的話會寫在該版項目的最上�
 
 英文版在 [CHANGELOG.md](./CHANGELOG.md)。
 
+## 0.4.1
+
+匯出 `PACKAGE_NAME`。0.4.0 那筆把它介紹成「這個套件的名稱,也就是 `tspconfig.yaml`
+寫的那個」,但 `index.ts` 從來沒有匯出它。
+
+同時取用 `tsp-asyncapi-core@0.1.1`,那邊修的是同一個遺漏。
+
 ## 0.4.0
 
 **對在 JavaScript 或 TypeScript 裡 import 這個套件的工具是 breaking。
