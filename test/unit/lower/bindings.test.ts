@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { lowerBindings } from "../../../src/lower/bindings.js";
+import { lowerBindings } from "#emitter/lower/bindings.js";
 import { RENDERERS } from "../../utils/renderers.js";
 
 describe("Unit: lowering the bindings of one object", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkAddress } from "../../../src/decorators/channels/address-template.js";
+import { checkAddress } from "#core/decorators/channels/address-template.js";
 
 /**
  * The enumerable rules of the address check.

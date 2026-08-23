@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { builtSecuritySchemes } from "../../../utils/security-schemes.js";
-import { reportSecurityUsesWithoutServer } from "../../../../src/resolve/servers.js";
-import { getUsedSecuritySchemes } from "../../../../src/decorators/index.js";
+import { reportSecurityUsesWithoutServer } from "#core/resolve/servers.js";
+import { getUsedSecuritySchemes } from "#core/decorators/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { serversOf } from "../../../utils/document.js";

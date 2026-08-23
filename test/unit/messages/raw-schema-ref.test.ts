@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { localRef } from "../../../src/decorators/messages/raw-schema.js";
+import { localRef } from "#core/decorators/messages/raw-schema.js";
 
 /**
  * Which shapes read back as a reference into this document.

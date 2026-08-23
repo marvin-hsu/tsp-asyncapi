@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Program } from "@typespec/compiler";
-import { lowerDocument } from "../../../src/lower/document.js";
+import { lowerDocument } from "#emitter/lower/document.js";
 
 /**
  * The assembly stage never touches the program; it only forwards it to the

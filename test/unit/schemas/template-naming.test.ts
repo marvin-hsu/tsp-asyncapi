@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/lower/schemas.js";
+import { SchemaBuilder } from "#emitter/lower/schemas.js";
 import { findDiagnostic } from "../../utils/diagnostics.js";
 import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";
 

@@ -1,7 +1,7 @@
 {
-  "name": "tsp-asyncapi",
-  "version": "0.3.0",
-  "description": "AsyncAPI emitter for TypeSpec",
+  "name": "tsp-asyncapi-workspace",
+  "version": "0.0.0",
+  "description": "Workspace root. Publishes nothing; holds the shared toolchain and the test suite.",
   "keywords": [
     "typespec",
     "asyncapi",
@@ -18,35 +18,11 @@
   "bugs": {
     "url": "https://github.com/marvin-hsu/tsp-asyncapi/issues"
   },
-  "main": "dist/src/index.js",
-  "tspMain": "lib/main.tsp",
-  "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js",
-      "default": "./dist/src/index.js"
-    },
-    "./testing": {
-      "types": "./dist/src/testing/index.d.ts",
-      "import": "./dist/src/testing/index.js",
-      "default": "./dist/src/testing/index.js"
-    }
-  },
-  "types": "./dist/src/index.d.ts",
   "type": "module",
-  "files": [
-    "dist",
-    "lib",
-    "README.md",
-    "README.zh-TW.md",
-    "CHANGELOG.md",
-    "CHANGELOG.zh-TW.md",
-    "LICENSE"
-  ],
   "scripts": {
-    "clean": "rimraf ./dist",
-    "build": "tsc -p tsconfig.build.json",
-    "watch": "tsc -p tsconfig.build.json -w",
+    "clean": "pnpm -r clean",
+    "build": "tsc -b tsconfig.ws.json",
+    "watch": "tsc -b tsconfig.ws.json --watch",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
@@ -58,14 +34,14 @@
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:watch": "vitest",
-    "api-extractor:local": "api-extractor run --local",
-    "api-extractor:ci": "api-extractor run",
-    "check:package": "pnpm build && pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-*.tgz",
+    "api-extractor:local": "pnpm -r api-extractor:local",
+    "api-extractor:ci": "pnpm -r api-extractor:ci",
+    "check:package": "pnpm build && pnpm -r check:package",
     "mutation": "stryker run",
     "knip": "knip",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -b tsconfig.ws.json --dry && tsc -p tsconfig.json"
   },
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": "eslint --fix",
@@ -80,10 +56,6 @@
       "onFail": "download"
     }
   },
-  "dependencies": {
-    "@typespec/compiler": "^1.15.0",
-    "yaml": "^2.9.0"
-  },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@asyncapi/parser": "^3.6.3",
@@ -95,6 +67,7 @@
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^26.2.0",
     "@types/yaml": "^1.9.7",
+    "@typespec/compiler": "^1.15.0",
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -110,12 +83,15 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitepress": "^1.6.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "yaml": "^2.9.0"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-  "publishConfig": {
-    "access": "public"
+  "private": true,
+  "imports": {
+    "#core/*": "./packages/tsp-asyncapi-core/src/*",
+    "#emitter/*": "./packages/tsp-asyncapi/src/*"
   }
 }

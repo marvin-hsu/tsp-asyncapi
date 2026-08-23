@@ -1,0 +1,4 @@
+{
+  "files": [],
+  "references": [{ "path": "packages/tsp-asyncapi-core" }, { "path": "packages/tsp-asyncapi" }]
+}

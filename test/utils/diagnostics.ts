@@ -1,5 +1,5 @@
 import { Diagnostic, getSourceLocation } from "@typespec/compiler";
-import { $lib } from "../../src/lib.js";
+import { $lib } from "#core/lib.js";
 
 /**
  * The code of one diagnostic this library defines, without the library prefix.

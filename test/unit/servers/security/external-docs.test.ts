@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { buildServersFrom } from "../../../utils/servers.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { present, securitySchemesOf, serversOf } from "../../../utils/document.js";

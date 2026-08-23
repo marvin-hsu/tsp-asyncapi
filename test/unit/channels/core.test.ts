@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
-import { $lib } from "../../../src/lib.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
+import { $lib } from "#core/lib.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../utils/diagnostics.js";
 import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { channelsOf } from "../../utils/document.js";

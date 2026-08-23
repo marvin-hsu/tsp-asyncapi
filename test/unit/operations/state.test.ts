@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Interface, Operation } from "@typespec/compiler";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import {
   getOperationAction,
   getReplyAddress,
   getReplyChannel,
   getUsedSecuritySchemes,
-} from "../../../src/decorators/index.js";
+} from "#core/decorators/index.js";
 import { namespaceOf } from "../../utils/namespace.js";
 
 /** Reads one operation of one interface of the `Test` namespace. */

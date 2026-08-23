@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { missingFields } from "../../../src/decorators/bindings/fields.js";
+import { missingFields } from "#core/decorators/bindings/fields.js";
 
 /**
  * Which written values count as saying nothing.

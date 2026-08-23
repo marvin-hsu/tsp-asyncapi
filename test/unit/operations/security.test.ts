@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { documentFrom, emitDocument } from "../../utils/test-host.js";
 import { operationsOf, serversOf } from "../../utils/document.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";

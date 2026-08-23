@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPlainObject } from "../../src/marshalled-values.js";
+import { isPlainObject } from "#core/marshalled-values.js";
 
 describe("Unit: isPlainObject — what counts as a JSON object", () => {
   /** A value paired with the answer its category demands. */

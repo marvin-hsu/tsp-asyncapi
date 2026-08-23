@@ -6,7 +6,7 @@ import {
 } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, operationsOf, present } from "../../utils/document.js";
-import type { SqsChannelBindingObject } from "../../../src/types/index.js";
+import type { SqsChannelBindingObject } from "#emitter/types/index.js";
 import { PUBLISH_ORDER_CREATED } from "../../utils/source.js";
 
 const SERVICE = `

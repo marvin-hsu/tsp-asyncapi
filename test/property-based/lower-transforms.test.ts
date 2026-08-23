@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 
-import { lowerBindings } from "../../src/lower/bindings.js";
-import { lowerServers } from "../../src/lower/servers.js";
-import { lowerInfo } from "../../src/lower/info.js";
+import { lowerBindings } from "#emitter/lower/bindings.js";
+import { lowerServers } from "#emitter/lower/servers.js";
+import { lowerInfo } from "#emitter/lower/info.js";
 import { bindingNodes, infoNode, requiredText, serverNodes } from "./ir-arbitraries.js";
 
 /**

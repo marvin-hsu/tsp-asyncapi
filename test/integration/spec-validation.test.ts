@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { emitDocument } from "../utils/test-host.js";
 import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../utils/document.js";
-import type { MultiFormatSchemaObject, SqsChannelBindingObject } from "../../src/types/index.js";
+import type { MultiFormatSchemaObject, SqsChannelBindingObject } from "#emitter/types/index.js";
 
 describe("AsyncAPI emitted document", () => {
   it("should describe a service with a send and a receive operation end to end", async () => {

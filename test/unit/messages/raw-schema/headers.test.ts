@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { AsyncAPITester } from "../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { TesterInstance } from "@typespec/compiler/testing";
-import { getRawHeaders, listMessages } from "../../../../src/decorators/index.js";
+import { getRawHeaders, listMessages } from "#core/decorators/index.js";
 import { documentFrom } from "../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */

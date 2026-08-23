@@ -1,7 +1,7 @@
 import { Program } from "@typespec/compiler";
-import { SecuritySchemeObject } from "../../src/types/index.js";
-import { resolveSecuritySchemes } from "../../src/resolve/security-schemes.js";
-import { lowerSecuritySchemes } from "../../src/lower/security-schemes.js";
+import { SecuritySchemeObject } from "#emitter/types/index.js";
+import { resolveSecuritySchemes } from "#core/resolve/security-schemes.js";
+import { lowerSecuritySchemes } from "#emitter/lower/security-schemes.js";
 
 /**
  * Builds `components.securitySchemes` the way the document builder does.

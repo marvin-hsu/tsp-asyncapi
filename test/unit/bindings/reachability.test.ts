@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
-import { AsyncAPITester } from "../../../src/testing/index.js";
-import { BindingPlacements, reportUnattachedBindings } from "../../../src/resolve/bindings.js";
-import { listAllBindings } from "../../../src/decorators/bindings/state.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
+import { BindingPlacements, reportUnattachedBindings } from "#core/resolve/bindings.js";
+import { listAllBindings } from "#core/decorators/bindings/state.js";
 import { operationsOf } from "../../utils/document.js";
 import type { Diagnostic } from "@typespec/compiler";
 import { KAFKA_SERVICE } from "../../utils/source.js";

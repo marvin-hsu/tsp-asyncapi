@@ -1,16 +1,9 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ES2022",
-    "outDir": "dist",
-    "rootDir": ".",
-    "strict": true,
-    "types": ["node"],
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "composite": false,
+    "noEmit": true
   },
-  "include": ["src/**/*", "test/**/*", "vitest.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["test/**/*", "vitest.config.ts"],
+  "references": [{ "path": "packages/tsp-asyncapi-core" }, { "path": "packages/tsp-asyncapi" }]
 }

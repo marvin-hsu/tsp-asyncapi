@@ -1,4 +1,4 @@
-import type { BindingRenderer } from "../../src/decorators/bindings/state.js";
+import type { BindingRenderer } from "#core/decorators/bindings/state.js";
 
 /**
  * Every binding renderer, taken from a record keyed by the union.

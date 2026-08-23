@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { buildServersFrom } from "../../utils/servers.js";
 import { namespaceOf } from "../../utils/namespace.js";
-import { getServers } from "../../../src/decorators/index.js";
+import { getServers } from "#core/decorators/index.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
-import { bySourcePosition, isSameApplication } from "../../../src/source-order.js";
+import { bySourcePosition, isSameApplication } from "#core/source-order.js";
 import { serversOf } from "../../utils/document.js";
 
 describe("Unit: servers", () => {

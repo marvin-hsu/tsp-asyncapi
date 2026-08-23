@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
-import { SchemaKeyRegistry } from "../../../src/lower/schemas/key-registration.js";
+import { SchemaKeyRegistry } from "#emitter/lower/schemas/key-registration.js";
 import { t } from "@typespec/compiler/testing";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";

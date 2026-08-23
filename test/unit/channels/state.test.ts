@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import {
   getChannel,
   getParameterLocation,
   getUsedServers,
   listChannels,
-} from "../../../src/decorators/index.js";
+} from "#core/decorators/index.js";
 
 describe("Unit: Channel state read-back", () => {
   it("reads back the address and the explicit id of one channel", async () => {

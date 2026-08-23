@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { Model } from "@typespec/compiler";
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { SchemaBuilder } from "../../../src/lower/schemas.js";
+import { SchemaBuilder } from "#emitter/lower/schemas.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
 import { propertiesOf, refOf, schemaOf } from "../../utils/document.js";
-import type { ReferenceObject, SchemaObject } from "../../../src/types/index.js";
+import type { ReferenceObject, SchemaObject } from "#emitter/types/index.js";
 
 /**
  * The `x` property of the `data` property of one built schema.

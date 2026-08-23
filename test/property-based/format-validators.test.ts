@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { isAbsoluteUrl } from "../../src/decorators/absolute-url.js";
-import { isRuntimeExpression } from "../../src/decorators/runtime-expression.js";
+import { isAbsoluteUrl } from "#core/decorators/absolute-url.js";
+import { isRuntimeExpression } from "#core/decorators/runtime-expression.js";
 
 /**
  * Properties of the three format checks a decorator runs on author text.

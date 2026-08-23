@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/unbound-method, @typescript-eslint/require-await, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect } from "vitest";
-import { AsyncAPITester } from "../../src/testing/index.js";
-import { $onEmit } from "../../src/emitter.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
+import { $onEmit } from "#emitter/emitter.js";
 import { EmitContext } from "@typespec/compiler";
 
 describe("Unit: $onEmit", () => {

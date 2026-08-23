@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { missingFields } from "../../src/decorators/bindings/fields.js";
-import { localRef } from "../../src/decorators/messages/raw-schema.js";
-import { LOCAL_REF_PREFIX } from "../../src/constants.js";
+import { missingFields } from "#core/decorators/bindings/fields.js";
+import { localRef } from "#core/decorators/messages/raw-schema.js";
+import { LOCAL_REF_PREFIX } from "#core/constants.js";
 
 /**
  * Properties of four leaf predicates.

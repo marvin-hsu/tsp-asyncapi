@@ -21,39 +21,36 @@ export default tseslint.config(
   },
   // The package boundary, enforced.
   //
-  // The emitter splits along one line: `decorators/` and `resolve/` read what
-  // the author declared, and `lower/` decides how AsyncAPI writes it down.
-  // Only the second half knows about the output document.
+  // `tsp-asyncapi-core` declares the input language and emits nothing. The
+  // emitter package reads the model core produces and writes the document. The
+  // dependency runs one way, and only one way.
   //
-  // The line is a real one. Nothing under `decorators/` or `resolve/` imports
-  // `lower/`, `emitter.ts`, or `pipeline.ts` today, and these rules are what
-  // keep that true. Without them the direction holds by habit, and a single
-  // import in the wrong direction is invisible in review.
+  // Two rules keep it that way. Core may not name the emitter package at all.
+  // And nothing in core may reach a relative path into the emitter's half,
+  // which is what a file would do if these two directories were ever merged
+  // back together.
   //
-  // `types/document.ts` is on the output side, so the input side must not
-  // reach it. The objects the author writes directly are in
-  // `types/authored.ts` instead, and both halves may use those. Import from
-  // `types/index.js` for either, and the barrel re-exports both files, so the
-  // rule names the file rather than the barrel.
-  //
-  // The message on each rule states the reasoning, because the error is where
-  // somebody meets this decision for the first time.
+  // This caught a real edge during the split: `naming.ts` imported
+  // `componentsSchemaRef` from `lower/json-pointer.ts` to build a `$ref`. A
+  // `$ref` is a detail of the document, so `refFor` moved to the emitter.
   {
-    files: ["src/decorators/**/*.ts", "src/resolve/**/*.ts"],
+    files: ["packages/tsp-asyncapi-core/src/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
+          paths: [
+            {
+              name: "tsp-asyncapi",
+              message:
+                "The input language must not depend on the emitter. This package declares what an author can write, and it emits nothing. An emitter reads the model this package produces, never the other way round.",
+            },
+          ],
           patterns: [
             {
               group: ["**/lower/**", "**/emitter.js", "**/pipeline.js"],
               message:
-                "The input language must not depend on the output document. `decorators/` and `resolve/` record what the author declared. Deciding how AsyncAPI writes it down is the job of `lower/`, and it reads the model this half produces.",
-            },
-            {
-              group: ["**/types/document.js"],
-              message:
-                "`types/document.ts` holds the objects the lower stage writes. A decorator or the resolve stage may only use the objects the author writes directly, which are in `types/authored.ts`. Import from `types/index.js`.",
+                "`lower/`, `emitter.ts`, and `pipeline.ts` belong to an emitter package. Deciding how AsyncAPI writes something down is their job. If this package needs the value, the value is not about the output document.",
             },
           ],
         },
@@ -70,12 +67,15 @@ export default tseslint.config(
       // `.gemini` is a symlink to `.claude`, so it reaches the same worktrees
       // by a second path that `.claude/**` does not match.
       ".gemini/**",
-      "dist/**",
-      "node_modules/**",
-      "coverage/**",
+      // Matched at any depth. Each package has its own `dist/` and `temp/`,
+      // and a root-anchored pattern would leave those unignored. Linting build
+      // output produces nothing but noise, and it is silent when it starts.
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "**/temp/**",
+      "**/tsp-output/**",
       "docs/**",
-      "temp/**",
-      "tsp-output/**",
       "eslint.config.mjs",
       "commitlint.config.mjs",
       "stryker.config.mjs",

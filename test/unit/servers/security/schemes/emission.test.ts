@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
-import { getSecuritySchemes } from "../../../../../src/decorators/index.js";
+import { getSecuritySchemes } from "#core/decorators/index.js";
 import { emitDocument } from "../../../../utils/test-host.js";
 import {
   componentsOf,

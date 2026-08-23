@@ -6,7 +6,7 @@ import {
 } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { present, propertiesOf, schemaOf } from "../../utils/document.js";
-import type { SchemaObject } from "../../../src/types/index.js";
+import type { SchemaObject } from "#emitter/types/index.js";
 
 /**
  * The keywords that describe a value without constraining it: `default`,

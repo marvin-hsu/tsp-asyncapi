@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { present, trimmed } from "../../src/optional-fields.js";
+import { present, trimmed } from "#core/optional-fields.js";
 
 /**
  * The finite inputs of `present`, written out.

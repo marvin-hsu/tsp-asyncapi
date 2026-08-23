@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isSameApplication, SourcePosition } from "../../src/source-order.js";
+import { isSameApplication, SourcePosition } from "#core/source-order.js";
 
 describe("Unit: isSameApplication — the identity of one application", () => {
   /**

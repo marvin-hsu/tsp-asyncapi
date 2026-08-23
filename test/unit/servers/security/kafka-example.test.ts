@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { emitDocument } from "../../../utils/test-host.js";
 import { serversOf } from "../../../utils/document.js";
-import { ASYNCAPI_VERSION, DEFAULT_INFO_VERSION } from "../../../../src/constants.js";
+import { ASYNCAPI_VERSION, DEFAULT_INFO_VERSION } from "#core/constants.js";
 
 describe("Unit: Kafka acceptance example", () => {
   it("emits a prod and a sit Kafka broker that both use SCRAM", async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isRuntimeExpression } from "../../src/decorators/runtime-expression.js";
+import { isRuntimeExpression } from "#core/decorators/runtime-expression.js";
 
 /**
  * The four line terminators a pointer token may hold.

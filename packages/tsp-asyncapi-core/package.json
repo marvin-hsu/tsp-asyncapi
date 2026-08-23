@@ -1,0 +1,75 @@
+{
+  "name": "tsp-asyncapi-core",
+  "version": "0.4.0",
+  "type": "module",
+  "description": "The TypeSpec decorators and semantic model behind tsp-asyncapi. Declares the input language and emits nothing.",
+  "main": "dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./types": {
+      "types": "./dist/src/types/index.d.ts",
+      "default": "./dist/src/types/index.js"
+    },
+    "./testing": {
+      "types": "./dist/src/testing/index.d.ts",
+      "default": "./dist/src/testing/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "lib",
+    "README.md",
+    "README.zh-TW.md",
+    "CHANGELOG.md",
+    "CHANGELOG.zh-TW.md",
+    "LICENSE"
+  ],
+  "author": "Marvin Hsu <contact@marvinhsu.dev> (https://github.com/marvin-hsu)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marvin-hsu/tsp-asyncapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marvin-hsu/tsp-asyncapi/issues"
+  },
+  "homepage": "https://marvin-hsu.github.io/tsp-asyncapi/",
+  "keywords": [
+    "typespec",
+    "asyncapi",
+    "emitter",
+    "asyncapi-3",
+    "kafka",
+    "event-driven"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.15.0"
+  },
+  "scripts": {
+    "clean": "rimraf ./dist ./temp",
+    "build": "tsc -p tsconfig.build.json",
+    "api-extractor:local": "api-extractor run --local",
+    "api-extractor:ci": "api-extractor run",
+    "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-core-*.tgz"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@microsoft/api-extractor": "^7.58.12",
+    "@typespec/compiler": "^1.15.0",
+    "publint": "^0.3.23",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
+  }
+}

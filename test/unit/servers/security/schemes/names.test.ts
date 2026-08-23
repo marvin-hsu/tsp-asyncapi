@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing/index.js";
 import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
 
 describe("Unit: security schemes — name errors", () => {

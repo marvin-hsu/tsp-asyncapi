@@ -55,7 +55,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],
-      include: ["src/**/*.ts", "dist/src/decorators/**/*.js"],
+      include: ["packages/*/src/**/*.ts", "packages/tsp-asyncapi-core/dist/src/decorators/**/*.js"],
       // The sources, plus the build output of the decorators only.
       //
       // A decorator module is live twice at run time. `lib/main.tsp` imports
@@ -72,11 +72,10 @@ export default defineConfig({
       // is excluded below to keep the pair from returning. Everything else
       // comes from `src`.
       exclude: [
-        "src/decorators/**/*.ts",
-        "src/index.ts",
-        "src/types.ts",
+        "packages/tsp-asyncapi-core/src/decorators/**/*.ts",
+        "packages/*/src/index.ts",
         "test/**",
-        "src/testing/**/*.ts",
+        "packages/*/src/testing/**/*.ts",
       ],
       // A floor, not a target, and set two points under the measurement of
       // 2026-08-17: statements 87.63, branches 80.04, functions 86.11,

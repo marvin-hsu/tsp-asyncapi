@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
 import { channelsOf, messagesOf, operationsOf, present } from "../../utils/document.js";
-import type { AmqpChannelBindingObject } from "../../../src/types/index.js";
+import type { AmqpChannelBindingObject } from "#emitter/types/index.js";
 
 const SERVICE = `
   @service(#{ title: "Events" })

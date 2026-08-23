@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { SERVER_NAME_PATTERN, SECURITY_SCHEME_NAME_PATTERN } from "../../src/constants.js";
-import { isSafeComponentsKey } from "../../src/naming.js";
+import { SERVER_NAME_PATTERN, SECURITY_SCHEME_NAME_PATTERN } from "#core/constants.js";
+import { isSafeComponentsKey } from "#core/naming.js";
 
 /**
  * The relationship between the three name charsets, character by character.

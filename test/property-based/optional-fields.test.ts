@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { text } from "../../src/optional-fields.js";
+import { text } from "#core/optional-fields.js";
 
 /**
  * Properties of the one rule that decides whether a field is emitted.

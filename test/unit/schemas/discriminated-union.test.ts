@@ -10,7 +10,7 @@ import addFormatsModule from "ajv-formats";
 const addFormats = addFormatsModule.default;
 import { compileSchemas } from "../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import type { SchemaObject } from "../../../src/types/index.js";
+import type { SchemaObject } from "#emitter/types/index.js";
 import { present, propertiesOf, schemaOf } from "../../utils/document.js";
 
 /**

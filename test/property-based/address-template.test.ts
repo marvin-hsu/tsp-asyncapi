@@ -3,7 +3,7 @@ import fc from "fast-check";
 import {
   checkAddress,
   parseAddressParameters,
-} from "../../src/decorators/channels/address-template.js";
+} from "#core/decorators/channels/address-template.js";
 
 /**
  * Properties of the channel address parser and the checks beside it.
