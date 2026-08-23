@@ -13,13 +13,9 @@
 
 export { $onEmit } from "./emitter.js";
 
-export {
-  $lib,
-  createDiagnostic,
-  reportDiagnostic,
-  LIBRARY_NAME,
-  type AsyncAPIEmitterOptions,
-} from "./lib.js";
+export { $lib, createDiagnostic, reportDiagnostic, LIBRARY_NAME } from "./lib.js";
+
+export type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 
 export type {
   AsyncAPIDocument,
