@@ -135,6 +135,31 @@ export default defineConfig({
       //
       // So read a fall here as a question, not a verdict. Check whether the
       // new code is driven by tests before believing this number over them.
+      //
+      // Measured on 2026-08-23, and the loss is larger than the paragraph
+      // above assumed. A probe was appended to three functions in
+      // `dist/src/decorators/bindings/pulsar/config.js`, each writing a line
+      // to a file. A probe writes to a file rather than the console because
+      // vitest captures console output from a decorator body. Running
+      // `test/unit/package-asyncapi/bindings/pulsar.test.ts` with coverage on:
+      //
+      //   compaction       ran 6 times,  reported 0
+      //   geoReplication   ran 6 times,  reported 0
+      //   persistence      ran 10 times, reported 1
+      //
+      // So the count is wrong for a function that is driven, not only for one
+      // the report zeroes. Four causes were ruled out by experiment. It is not
+      // the source map: stripping the `sourceMappingURL` and collecting the
+      // `dist` JavaScript directly gives the same zeros. It is not `isolate`,
+      // which was tried both ways. It is not `experimentalAstAwareRemapping`,
+      // tried both ways. And it is not a second module instance: the probe
+      // printed `import.meta.url`, and one path appeared.
+      //
+      // What this means for a target. Split by half, statements were 97.15%
+      // outside `decorators/` and 70.60% inside it on 2026-08-23. The whole
+      // gap sits in the half whose measurement is broken, so a target above
+      // about 88% cannot be reached by adding tests. Fix the attribution
+      // before setting one.
       thresholds: {
         statements: 85,
         branches: 78,
