@@ -41,7 +41,7 @@
     "knip": "knip",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod",
     "prepare": "husky",
-    "typecheck": "tsc -b tsconfig.ws.json --dry && tsc -p tsconfig.json"
+    "typecheck": "tsc -b tsconfig.ws.json && tsc -p tsconfig.json"
   },
   "lint-staged": {
     "*.{ts,js,mjs,cjs}": "eslint --fix",

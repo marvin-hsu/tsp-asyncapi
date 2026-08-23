@@ -64,6 +64,17 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      # Not covered by the build above. `tsconfig.build.json` per package covers
+      # `src/`; this covers `test/`, which is where a type error would otherwise
+      # survive until someone ran the full gate by hand.
+      #
+      # It was missing entirely, and the release workflow found it: `pnpm check`
+      # failed on a clean checkout with TS6305 in 60 files, because the test
+      # project reads the packages through their declaration output and nothing
+      # had built it. Locally it passed, because a developer always has `dist`.
+      - name: Typecheck
+        run: pnpm run typecheck
+
       - name: API Extractor Check
         run: pnpm run api-extractor:ci
 
