@@ -25,9 +25,9 @@
 // layer recorded, so a name added to the union without an entry below is a
 // compile error. `import type` keeps it a type: this half cannot call into
 // the state layer even by accident.
-import type { BindingRenderer } from "tsp-asyncapi-core";
 import type { BindingNode } from "tsp-asyncapi-core/unstable";
 import {
+  type BindingRenderer,
   AMQP_BINDING_VERSION,
   ANYPOINT_MQ_BINDING_VERSION,
   GOOGLE_PUB_SUB_BINDING_VERSION,

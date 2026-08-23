@@ -16,10 +16,13 @@ import {
   ignoreDiagnostics,
 } from "@typespec/compiler";
 import type { SchemaObject, ReferenceObject } from "../types/index.js";
-import { reportDiagnostic } from "tsp-asyncapi-core";
-import { isOneOf } from "tsp-asyncapi-core";
-import { JSON_SCHEMA_TYPE, SCHEMA_ENCODING_MIME_TYPE } from "tsp-asyncapi-core";
-import { isUninstantiatedTemplateDeclaration } from "tsp-asyncapi-core";
+import {
+  reportDiagnostic,
+  isOneOf,
+  JSON_SCHEMA_TYPE,
+  SCHEMA_ENCODING_MIME_TYPE,
+  isUninstantiatedTemplateDeclaration,
+} from "tsp-asyncapi-core";
 import { refFor } from "./json-pointer.js";
 import { SchemaDiagnostics } from "./schemas/diagnostics.js";
 import { DeclarationRegistry } from "./schemas/declarations.js";

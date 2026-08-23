@@ -14,27 +14,11 @@ description: "`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emi
 
 ## Installation
 
-This package is not yet published to npm. To try it locally:
+Install the package in your TypeSpec project:
 
 ```bash
-git clone https://github.com/marvin-hsu/tsp-asyncapi.git
-cd tsp-asyncapi
-pnpm install
-pnpm build
+pnpm add tsp-asyncapi
 ```
-
-Then reference it from your own TypeSpec project as a local dependency:
-
-```json
-// package.json of your TypeSpec project
-{
-  "dependencies": {
-    "tsp-asyncapi": "file:../tsp-asyncapi"
-  }
-}
-```
-
-(or use `pnpm link` if you prefer.)
 
 ## Your first AsyncAPI document
 

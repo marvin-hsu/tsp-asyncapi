@@ -1,7 +1,7 @@
 import { normalizePath, getDirectoryPath } from "@typespec/compiler";
 import { createTester } from "@typespec/compiler/testing";
-import { existsSync } from "fs";
-import { fileURLToPath } from "url";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PACKAGE_NAME } from "./lib.js";
 
 function findPackageRoot(fromUrl: string): string {
