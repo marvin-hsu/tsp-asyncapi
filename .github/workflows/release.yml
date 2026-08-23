@@ -163,12 +163,18 @@ jobs:
       # record of that version; this is the record of the run that shipped
       # them, and it links out to what a reader actually installs.
       #
-      # A second release on one day takes a `.2` suffix, in the title as well
-      # as the tag. Without it the tag collides and `gh release create` fails
-      # after the packages are already on the registry, which would turn a
-      # published release into a red run. Carrying the suffix into the title
-      # is what tells two releases on one day apart in the list, and it
-      # orders them at the same time.
+      # Every release is numbered within its day, starting at `.1`. A second
+      # one takes `.2`.
+      #
+      # The counter is unconditional so that one date always reads one way.
+      # Numbering only the second release would make `.1` mean "there were
+      # more", and a reader would have to know the rule to see that
+      # `2026-08-23` and `2026-08-23.2` are the same day rather than two.
+      #
+      # The suffix is also what keeps the tag from colliding. Without it a
+      # second release on one day fails `gh release create` after the
+      # packages are already on the registry, turning a published release
+      # into a red run.
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -180,8 +186,8 @@ jobs:
           fi
 
           date_tag="release-$(date -u +%Y-%m-%d)"
-          tag="$date_tag"
           n=1
+          tag="$date_tag.$n"
           while git rev-parse -q --verify "refs/tags/$tag" >/dev/null; do
             n=$((n + 1))
             tag="$date_tag.$n"
