@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { $lib } from "../../src/lib.js";
+import { $lib } from "#core/lib.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
 import {

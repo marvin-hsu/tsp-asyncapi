@@ -1,4 +1,4 @@
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

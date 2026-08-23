@@ -66,9 +66,15 @@ jobs:
           # EBADDEVENGINES and changes nothing, while still reporting success.
           VERSION="$version" node -e '
             const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            // Every publishable package takes the tag's version. They release
+            // in lockstep and depend on each other by workspace protocol, so
+            // two version numbers moving apart would only confuse.
+            for (const dir of fs.readdirSync("packages")) {
+              const file = `packages/${dir}/package.json`;
+              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+              pkg.version = process.env.VERSION;
+              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+            }
           ' 
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Publishing $version"
@@ -87,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: dist
-          path: dist
+          path: packages/*/dist
           retention-days: 1
 
   publish-npm:
@@ -121,9 +127,15 @@ jobs:
         run: |
           VERSION="${RAW#v}" node -e '
             const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            // Every publishable package takes the tag's version. They release
+            // in lockstep and depend on each other by workspace protocol, so
+            // two version numbers moving apart would only confuse.
+            for (const dir of fs.readdirSync("packages")) {
+              const file = `packages/${dir}/package.json`;
+              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+              pkg.version = process.env.VERSION;
+              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+            }
           '
         env:
           RAW: ${{ inputs.tag || github.ref_name }}
@@ -132,7 +144,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: dist
-          path: dist
+          path: packages/*/dist
 
       # `--provenance` is passed on the command line rather than left to
       # `publishConfig` in package.json, because pnpm reads the flag and not
@@ -142,8 +154,11 @@ jobs:
       #
       # Only npm takes this. GitHub Packages has no attestation service, so
       # the job below publishes without it.
+      # `-r` publishes every package and rewrites each `workspace:^` range into
+      # the real version as it goes. Without it the published `tsp-asyncapi`
+      # would ask npm for a dependency spec npm cannot resolve.
       - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks --provenance
+        run: pnpm publish -r --access public --no-git-checks --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -182,9 +197,15 @@ jobs:
         run: |
           VERSION="${RAW#v}" node -e '
             const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            // Every publishable package takes the tag's version. They release
+            // in lockstep and depend on each other by workspace protocol, so
+            // two version numbers moving apart would only confuse.
+            for (const dir of fs.readdirSync("packages")) {
+              const file = `packages/${dir}/package.json`;
+              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+              pkg.version = process.env.VERSION;
+              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+            }
           '
         env:
           RAW: ${{ inputs.tag || github.ref_name }}
@@ -193,16 +214,20 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: dist
-          path: dist
+          path: packages/*/dist
 
       - name: Publish to GitHub Packages
         run: |
-          node -e 'const fs = require("fs"); const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")); pkg.name = "@${{ github.repository_owner }}/tsp-asyncapi"; fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));'
+          # Only the package names are scoped. The dependency between them is
+          # not: the scoped `tsp-asyncapi` still asks for `tsp-asyncapi-core`,
+          # which resolves from npm, where the job above published it. This
+          # registry carries a mirror of the emitter, not a second ecosystem.
+          node -e 'const fs = require("fs"); for (const dir of fs.readdirSync("packages")) { const f = `packages/${dir}/package.json`; const pkg = JSON.parse(fs.readFileSync(f, "utf8")); pkg.name = "@${{ github.repository_owner }}/" + dir; fs.writeFileSync(f, JSON.stringify(pkg, null, 2)); }'
 
           echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com/" > .npmrc
           echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
 
-          pnpm publish --no-git-checks
+          pnpm publish -r --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -223,20 +248,26 @@ jobs:
       - name: Write the published version into main
         run: |
           version="${RAW#v}"
-          current="$(node -p "require('./package.json').version")"
+          current="$(node -p "require('./packages/tsp-asyncapi/package.json').version")"
           if [ "$version" = "$current" ]; then
             echo "main already says $version"
             exit 0
           fi
           VERSION="$version" node -e '
             const fs = require("fs");
-            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            pkg.version = process.env.VERSION;
-            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            // Every publishable package takes the tag's version. They release
+            // in lockstep and depend on each other by workspace protocol, so
+            // two version numbers moving apart would only confuse.
+            for (const dir of fs.readdirSync("packages")) {
+              const file = `packages/${dir}/package.json`;
+              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+              pkg.version = process.env.VERSION;
+              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+            }
           ' 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json
+          git add packages/*/package.json
           # `[skip ci]` keeps this from starting another run of the checks that
           # just passed. GitHub reads it from the commit message.
           git commit -m "chore: set version to $version [skip ci]"

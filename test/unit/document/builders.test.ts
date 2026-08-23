@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { t, TesterInstance } from "@typespec/compiler/testing";
 import { listServices } from "@typespec/compiler";
-import { resolveInfo } from "../../../src/resolve/info.js";
-import { lowerInfo } from "../../../src/lower/info.js";
-import { buildTags } from "../../../src/resolve/tags.js";
-import { buildExternalDocs } from "../../../src/external-docs.js";
-import { buildAsyncAPIDocument } from "../../../src/pipeline.js";
+import { resolveInfo } from "#core/resolve/info.js";
+import { lowerInfo } from "#emitter/lower/info.js";
+import { buildTags } from "#core/resolve/tags.js";
+import { buildExternalDocs } from "#core/external-docs.js";
+import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
 import { documentFrom } from "../../utils/test-host.js";
 

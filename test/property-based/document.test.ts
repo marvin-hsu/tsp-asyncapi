@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
-import { isSafeComponentsKey } from "../../src/naming.js";
+import { isSafeComponentsKey } from "#core/naming.js";
 import { collectRefs, schemasOf } from "../utils/document.js";
 
 /**

@@ -6,7 +6,7 @@
 // cannot: a protocol whose levels are a different set, and the generic
 // `@binding` beside the named decorators, on the one kind of name that still
 // needs it.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

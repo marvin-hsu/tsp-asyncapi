@@ -1,9 +1,9 @@
 import { Namespace, Program } from "@typespec/compiler";
-import { ServerObject } from "../../src/types/index.js";
+import { ServerObject } from "#emitter/types/index.js";
 import { builtSecuritySchemes } from "./security-schemes.js";
-import { BindingPlacements } from "../../src/resolve/bindings.js";
-import { resolveServers } from "../../src/resolve/servers.js";
-import { lowerServers } from "../../src/lower/servers.js";
+import { BindingPlacements } from "#core/resolve/bindings.js";
+import { resolveServers } from "#core/resolve/servers.js";
+import { lowerServers } from "#emitter/lower/servers.js";
 
 /**
  * Builds the `servers` map the way the document builder does.

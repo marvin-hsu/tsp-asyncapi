@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../src/testing/index.js";
-import { LIBRARY_NAME } from "../../src/lib.js";
+import { AsyncAPITester } from "#emitter/testing.js";
+import { PACKAGE_NAME } from "#emitter/lib.js";
 
 /**
  * The YAML serialization rules that only the raw text can show.
@@ -19,7 +19,7 @@ import { LIBRARY_NAME } from "../../src/lib.js";
  * @returns The text of the emitted file
  */
 async function emitRaw(code: string): Promise<string> {
-  const [result, diagnostics] = await AsyncAPITester.emit(LIBRARY_NAME).compileAndDiagnose(code);
+  const [result, diagnostics] = await AsyncAPITester.emit(PACKAGE_NAME).compileAndDiagnose(code);
   expectDiagnosticEmpty(diagnostics);
   const outputs: Record<string, string | undefined> = result.outputs;
   const content = outputs["asyncapi.yaml"];

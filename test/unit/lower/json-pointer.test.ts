@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { resolvesInDocument } from "../../../src/lower/json-pointer.js";
-import { COMPONENTS_SCHEMA_REF_PREFIX } from "../../../src/constants.js";
+import { resolvesInDocument } from "#emitter/lower/json-pointer.js";
+import { COMPONENTS_SCHEMA_REF_PREFIX } from "#core/constants.js";
 
 /**
  * The array-index rule of the reference reader, one token at a time.

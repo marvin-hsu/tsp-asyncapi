@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import type { Program } from "@typespec/compiler";
 
-import { lowerDocument } from "../../src/lower/document.js";
-import { resolvesInDocument } from "../../src/lower/json-pointer.js";
-import { ASYNCAPI_VERSION } from "../../src/constants.js";
-import type { AsyncAPIEmitterOptions } from "../../src/emitter-options.js";
+import { lowerDocument } from "#emitter/lower/document.js";
+import { resolvesInDocument } from "#emitter/lower/json-pointer.js";
+import { ASYNCAPI_VERSION } from "#core/constants.js";
+import type { AsyncAPIEmitterOptions } from "#emitter/emitter-options.js";
 import { infoNode, service } from "./ir-arbitraries.js";
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
-import { listAllBindings } from "../../../src/decorators/bindings/state.js";
+import { listAllBindings } from "#core/decorators/bindings/state.js";
 import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../../utils/document.js";
 import { KAFKA_SERVICE } from "../../utils/source.js";
 

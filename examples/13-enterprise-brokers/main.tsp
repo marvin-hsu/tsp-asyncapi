@@ -7,7 +7,7 @@
 // gets its own decorator rather than one shared "destination" decorator.
 //
 // One order-dispatch service, published to all four.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

@@ -15,8 +15,8 @@ import type {
   SecuritySchemeNode,
   ServerNode,
   ServerVariableNode,
-} from "../../src/resolve/service.js";
-import type { SecuritySchemeObject } from "../../src/types/index.js";
+} from "#core/resolve/service.js";
+import type { SecuritySchemeObject } from "#emitter/types/index.js";
 import { RENDERERS } from "../utils/renderers.js";
 
 /**

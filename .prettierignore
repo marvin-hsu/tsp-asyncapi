@@ -1,7 +1,7 @@
 pnpm-lock.yaml
 coverage
 dist
-etc/
+**/etc/
 
 # Every output baseline, at whatever depth it sits. They are the bytes the
 # emitter wrote, so a formatter must never touch one. Reformatting a baseline

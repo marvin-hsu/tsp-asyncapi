@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { buildServersFrom } from "../../utils/servers.js";
-import { getServers } from "../../../src/decorators/index.js";
+import { getServers } from "#core/decorators/index.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { present, serversOf } from "../../utils/document.js";
 

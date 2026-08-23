@@ -4,8 +4,8 @@ import {
   channelMessageRef,
   componentsSchemaRef,
   resolvesInDocument,
-} from "../../src/lower/json-pointer.js";
-import { COMPONENTS_SCHEMA_REF_PREFIX } from "../../src/constants.js";
+} from "#emitter/lower/json-pointer.js";
+import { COMPONENTS_SCHEMA_REF_PREFIX } from "#core/constants.js";
 
 /**
  * Properties of the reference builders and the reference reader.

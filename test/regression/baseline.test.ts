@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import { readdirSync, readFileSync } from "node:fs";
-import { AsyncAPITester } from "../../src/testing/index.js";
-import { LIBRARY_NAME } from "../../src/lib.js";
+import { AsyncAPITester } from "#emitter/testing.js";
+import { LIBRARY_NAME } from "#core/lib.js";
+import { PACKAGE_NAME } from "#emitter/lib.js";
 import { byCodePoint } from "../utils/sort.js";
-import { $lib } from "../../src/lib.js";
+import { $lib } from "#core/lib.js";
 import type { DiagnosticCode } from "../utils/diagnostics.js";
 
 /**
@@ -98,7 +99,7 @@ describe("Output baseline", () => {
     for (const { options, fileType, diagnostics: expected } of variantsOf(name)) {
       it(`${name}.${fileType}`, async () => {
         const [result, diagnostics] = await AsyncAPITester.emit(
-          LIBRARY_NAME,
+          PACKAGE_NAME,
           options,
         ).compileAndDiagnose(code);
         // A baseline taken from a program that also reported a diagnostic

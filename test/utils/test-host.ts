@@ -1,9 +1,9 @@
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import type { Diagnostic, Program } from "@typespec/compiler";
-import { AsyncAPITester } from "../../src/testing/index.js";
-import { LIBRARY_NAME } from "../../src/lib.js";
-import { buildAsyncAPIDocument } from "../../src/pipeline.js";
-import type { AsyncAPIDocument } from "../../src/types/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
+import { PACKAGE_NAME } from "#emitter/lib.js";
+import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
+import type { AsyncAPIDocument } from "#emitter/types/index.js";
 import yaml from "yaml";
 
 /**
@@ -36,7 +36,7 @@ const ENTRY_FILE = "main.tsp";
  * @returns The tester to compile with
  */
 function createTester(code: TestSource, options: Record<string, unknown>) {
-  const tester = AsyncAPITester.emit(LIBRARY_NAME, options);
+  const tester = AsyncAPITester.emit(PACKAGE_NAME, options);
   if (typeof code === "string") return tester;
   const imports = Object.keys(code)
     .filter((name) => name !== ENTRY_FILE)

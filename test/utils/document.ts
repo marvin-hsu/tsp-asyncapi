@@ -9,7 +9,7 @@ import type {
   SchemaObject,
   SecuritySchemeObject,
   ServerObject,
-} from "../../src/types/index.js";
+} from "#emitter/types/index.js";
 
 /**
  * Readers for the sections of an emitted document.

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { AsyncAPITester } from "../../../../src/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { byCodePoint } from "../../../utils/sort.js";
-import { getRawPayload, listMessages } from "../../../../src/decorators/index.js";
+import { getRawPayload, listMessages } from "#core/decorators/index.js";
 import { documentFrom } from "../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */

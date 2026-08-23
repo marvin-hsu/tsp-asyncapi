@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import { isSafeComponentsKey, refFor, sanitizeDeclarationName } from "../../src/naming.js";
+import { isSafeComponentsKey, sanitizeDeclarationName } from "#core/naming.js";
+import { refFor } from "#emitter/lower/json-pointer.js";
 
 /**
  * Properties of the Components Object key sanitizer.

@@ -1,16 +1,18 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ES2022",
-    "outDir": "dist",
-    "rootDir": ".",
-    "strict": true,
-    "types": ["node"],
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    // This project covers the tests, which stay at the repo root rather than
+    // moving into the packages. It emits nothing: each package owns its output.
+    //
+    // Declaration output is off for the same reason. With it on, TypeScript
+    // still checks that every inferred exported type can be named, and a helper
+    // wrapping an upstream generic cannot always satisfy that. The packages do
+    // emit declarations, so the check still runs where it matters.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true
   },
-  "include": ["src/**/*", "test/**/*", "vitest.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["test/**/*", "vitest.config.ts"],
+  "references": [{ "path": "packages/tsp-asyncapi-core" }, { "path": "packages/tsp-asyncapi" }]
 }

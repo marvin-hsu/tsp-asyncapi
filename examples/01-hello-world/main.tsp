@@ -1,7 +1,5 @@
 // The smallest complete document this emitter can produce.
-// The import points at the root of this repository. In your own project,
-// depend on the package and write `import "tsp-asyncapi";` instead.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

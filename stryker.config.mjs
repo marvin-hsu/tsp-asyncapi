@@ -23,10 +23,19 @@ export default {
   // that carry no runtime behaviour, `index` only re-exports, and `testing`
   // is a helper for consumers rather than emitter logic. Mutating those
   // produces survivors that mean nothing.
-  mutate: ["src/**/*.ts", "!src/index.ts", "!src/types.ts", "!src/testing/**", "!src/lib.ts"],
+  mutate: [
+    "packages/*/src/**/*.ts",
+    "!packages/*/src/index.ts",
+    "!packages/*/src/testing.ts",
+    "!packages/*/src/lib.ts",
+    "!packages/*/src/types/**",
+  ],
 
   // The suite builds first through `pretest`, and Stryker runs vitest
   // directly, so the build has to happen before the run instead.
+  // The whole workspace, in dependency order. Mutating core's source and
+  // testing against a stale `dist` measures nothing: the compiler loads the
+  // decorators from the build output.
   buildCommand: "pnpm build",
 
   // A mutant that makes the emitter loop forever is stopped rather than
