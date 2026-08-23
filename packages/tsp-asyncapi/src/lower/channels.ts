@@ -9,7 +9,7 @@
  * This half reads no decorator state and reports no diagnostic.
  */
 
-import type { ChannelNode, ChannelParameterNode } from "tsp-asyncapi-core";
+import type { ChannelNode, ChannelParameterNode } from "tsp-asyncapi-core/unstable";
 import { present, text } from "tsp-asyncapi-core";
 import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";

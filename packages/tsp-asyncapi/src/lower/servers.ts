@@ -11,7 +11,7 @@
  * and which security scheme names survived, were both settled in resolve.
  */
 
-import type { ServerNode, ServerVariableNode } from "tsp-asyncapi-core";
+import type { ServerNode, ServerVariableNode } from "tsp-asyncapi-core/unstable";
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";

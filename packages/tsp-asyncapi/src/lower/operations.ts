@@ -10,7 +10,7 @@
  * were both settled in resolve.
  */
 
-import type { MessageRefNode, OperationNode, OperationReplyNode } from "tsp-asyncapi-core";
+import type { MessageRefNode, OperationNode, OperationReplyNode } from "tsp-asyncapi-core/unstable";
 import { present, text } from "tsp-asyncapi-core";
 import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer.js";
 import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";

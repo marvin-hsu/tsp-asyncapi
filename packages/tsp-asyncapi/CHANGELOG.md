@@ -25,6 +25,11 @@ library under that one name, which the compiler supports.
 
 **The output is byte-for-byte identical.** No document changes.
 
+The two packages version independently. This one is 0.4.0 and continues the
+history you already have; `tsp-asyncapi-core` is new and starts at 0.1.0. The
+dependency between them is a `~` range, so a minor release of core does not
+reach a project until this package takes it.
+
 **A JavaScript or TypeScript import may need a new source.** 79 names moved to
 `tsp-asyncapi-core`: the 24 readers for decorator state, the 51 state types,
 and `$lib` with `reportDiagnostic`, `createDiagnostic`, and `LIBRARY_NAME`.

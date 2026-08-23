@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+  "extends": "../../api-extractor.base.json",
+  "mainEntryPointFilePath": "<projectFolder>/dist/src/unstable.d.ts",
+  "apiReport": {
+    "enabled": true,
+    "reportFileName": "tsp-asyncapi-core-unstable.api.md"
+  },
+  "dtsRollup": {
+    "enabled": false
+  }
+}

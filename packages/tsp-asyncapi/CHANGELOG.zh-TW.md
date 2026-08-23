@@ -21,6 +21,10 @@ decorator，因為這個套件的 `lib/main.tsp` 用一行轉接到 core。`tspc
 
 **輸出逐位元相同。** 沒有任何文件改變。
 
+兩個套件獨立發版。這一個是 0.4.0,延續你已經有的歷史;`tsp-asyncapi-core` 是新的,
+從 0.1.0 起算。兩者之間的相依是 `~` 範圍,所以 core 發一個 minor 不會直接進到專案,
+要這個套件先取用。
+
 **JavaScript 或 TypeScript 的 import 來源可能要改。** 有 79 個名稱搬到
 `tsp-asyncapi-core`：24 個 decorator state 讀取函式、51 個 state 型別，
 以及 `$lib` 與 `reportDiagnostic`、`createDiagnostic`、`LIBRARY_NAME`。

@@ -10,7 +10,7 @@
 import { Program } from "@typespec/compiler";
 import { AsyncAPIDocument, ComponentsObject } from "../types/index.js";
 import type { AsyncAPIEmitterOptions } from "../emitter-options.js";
-import type { AsyncAPIService } from "tsp-asyncapi-core";
+import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import { SchemaBuilder } from "./schemas.js";
 import { reportUnresolvedRawSchemaRefs } from "./raw-schema-refs.js";
 import { ASYNCAPI_VERSION } from "tsp-asyncapi-core";

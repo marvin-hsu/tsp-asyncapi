@@ -15,7 +15,7 @@
 
 import { Program, Service } from "@typespec/compiler";
 import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
-import { BindingPlacements, resolveService } from "tsp-asyncapi-core";
+import { BindingPlacements, resolveService } from "tsp-asyncapi-core/unstable";
 import { lowerDocument } from "./lower/document.js";
 import { AsyncAPIDocument } from "./types/index.js";
 

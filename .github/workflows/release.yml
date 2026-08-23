@@ -1,96 +1,74 @@
 name: Release
 
-# Publishing is driven by a tag, so the thing that is released is a commit
-# someone chose, not whatever happens to be on main at the time.
+# Publishing is manual. The two packages version independently, so a single tag
+# cannot say what to release: `tsp-asyncapi-core` and `tsp-asyncapi` do not
+# share a number. The versions in `package.json` on `main` are the input, and
+# `changeset publish` releases whichever of them the registry does not have.
+#
+# Nothing publishes on a push. Getting a release out takes someone opening the
+# Actions tab, which is deliberate.
 on:
-  push:
-    tags: ["v*"]
-  # Lets a release be retried without deleting and re-pushing the tag. A
-  # publish can fail for reasons that have nothing to do with the commit,
-  # such as a registry credential that turns out to need a one-time
-  # password, and the tag is still the right thing to release.
   workflow_dispatch:
     inputs:
-      tag:
-        description: The existing tag to publish, such as v0.1.0
-        required: true
+      ref:
+        description: The commit or tag to publish. Defaults to main.
+        required: false
+        default: main
 
 # npm provenance signs the published tarball against this repository and this
 # workflow run. It needs an OIDC token, and it only works because the
 # repository is public.
 permissions:
-  # `write` because the last step creates the GitHub release. Reading is
-  # enough for everything before it.
   contents: write
   id-token: write
   packages: write
 
 jobs:
+  # The gate runs against the exact commit being published, before anything
+  # reaches a registry. The build output it produces is the output that gets
+  # published, so the bytes that were verified are the bytes that ship.
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
+        with:
+          version: 11
 
-      - name: Use Node.js
+      - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The tag decides the version. package.json is written from it rather
-      # than checked against it, so releasing is one action instead of a bump,
-      # a commit, a tag and a push that all have to agree.
-      #
-      # The tag must still look like a version, because npm will not take
-      # anything else and the failure would arrive at the last step.
-      - name: Take the version from the tag
-        id: version
-        run: |
-          raw="${{ inputs.tag || github.ref_name }}"
-          version="${raw#v}"
-          if ! printf '%s' "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "::error::Tag $raw does not name a version. Use something like v0.2.0."
-            exit 1
-          fi
-          # Written with node rather than `npm pkg set`. This package pins
-          # pnpm through devEngines, so every npm command exits with
-          # EBADDEVENGINES and changes nothing, while still reporting success.
-          VERSION="$version" node -e '
-            const fs = require("fs");
-            // Every publishable package takes the tag's version. They release
-            // in lockstep and depend on each other by workspace protocol, so
-            // two version numbers moving apart would only confuse.
-            for (const dir of fs.readdirSync("packages")) {
-              const file = `packages/${dir}/package.json`;
-              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
-              pkg.version = process.env.VERSION;
-              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
-            }
-          ' 
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Publishing $version"
+      # Fails the release if a changeset is still pending. A pending changeset
+      # means `changeset version` was not run, so the versions on this commit
+      # are not the versions the change asked for.
+      - name: No pending changesets
+        run: pnpm exec changeset status
 
-      # The same gate a change passes before it reaches main. A tag can be
-      # placed on any commit, including one that predates a fix, so the gate
-      # runs again here rather than trusting that CI once passed.
-      - name: Verify
+      - name: Full check
         run: pnpm check
 
-      # The publish jobs take this rather than building again. Three builds of
-      # one tag could in principle differ, and only one of them was the one
-      # that passed the gate above. This makes the bytes that were verified
-      # the bytes that get published.
-      - name: Keep the verified build
-        uses: actions/upload-artifact@v7
+      - name: Report what will publish
+        run: |
+          node -e '
+            const fs = require("fs");
+            for (const dir of fs.readdirSync("packages")) {
+              const p = JSON.parse(fs.readFileSync(`packages/${dir}/package.json`, "utf8"));
+              console.log(`${p.name}@${p.version}`);
+            }
+          '
+
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: packages/*/dist
@@ -102,175 +80,93 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
+        with:
+          version: 11
 
-      - name: Use Node.js
+      - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
-          # Points npm at the public registry and tells it to read
-          # NODE_AUTH_TOKEN, which the publish step supplies.
+          cache: "pnpm"
           registry-url: https://registry.npmjs.org
 
-      # Only what publishing itself needs. The package is already built.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # Derived again rather than carried over. Each job checks out the tag,
-      # so each one starts from the package.json the tag points at.
-      - name: Take the version from the tag
-        run: |
-          VERSION="${RAW#v}" node -e '
-            const fs = require("fs");
-            // Every publishable package takes the tag's version. They release
-            // in lockstep and depend on each other by workspace protocol, so
-            // two version numbers moving apart would only confuse.
-            for (const dir of fs.readdirSync("packages")) {
-              const file = `packages/${dir}/package.json`;
-              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
-              pkg.version = process.env.VERSION;
-              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
-            }
-          '
-        env:
-          RAW: ${{ inputs.tag || github.ref_name }}
-
-      - name: Take the verified build
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: dist
-          path: packages/*/dist
+          path: packages
 
-      # `--provenance` is passed on the command line rather than left to
-      # `publishConfig` in package.json, because pnpm reads the flag and not
-      # the field. Versions 0.1.0 through 0.1.3 went out unsigned for exactly
-      # that reason: the field was set, the permission was granted, and no
-      # attestation was produced.
+      # `changeset publish` publishes only a version the registry does not have,
+      # so a retry after a partial failure completes the release instead of
+      # erroring on what already went out. It also tags each published package,
+      # which is where the tags come from now: they are the record of a release,
+      # not the trigger for one.
       #
-      # Only npm takes this. GitHub Packages has no attestation service, so
-      # the job below publishes without it.
-      # `-r` publishes every package and rewrites each `workspace:^` range into
-      # the real version as it goes. Without it the published `tsp-asyncapi`
-      # would ask npm for a dependency spec npm cannot resolve.
+      # Tagging is on by default, so no flag asks for it. `--git-tag` is the
+      # option that controls it.
+      #
+      # It calls `pnpm publish` underneath, which rewrites every `workspace:~`
+      # range into a real version. Without that the published `tsp-asyncapi`
+      # would ask npm for a spec npm cannot resolve.
       - name: Publish to npm
-        run: pnpm publish -r --access public --no-git-checks --provenance
+        run: pnpm exec changeset publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # The release notes are left for a person to write. This only records
-      # that the version exists and points at the diff.
-      - name: Create the GitHub release
-        run: gh release create "${{ inputs.tag || github.ref_name }}" --generate-notes --verify-tag
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Push the release tags
+        run: git push --follow-tags
 
+  # A mirror, for anyone installing from this repository's registry. The package
+  # names are scoped here; the dependency between them is not, so the scoped
+  # emitter resolves `tsp-asyncapi-core` from npm, where the job above put it.
   publish-github-packages:
     needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
-          fetch-depth: 0
+          ref: ${{ inputs.ref }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
+        with:
+          version: 11
 
-      - name: Use Node.js for GitHub Packages
+      - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: pnpm
-          registry-url: "https://npm.pkg.github.com"
+          cache: "pnpm"
+          registry-url: https://npm.pkg.github.com
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      # Derived again rather than carried over. Each job checks out the tag,
-      # so each one starts from the package.json the tag points at.
-      - name: Take the version from the tag
-        run: |
-          VERSION="${RAW#v}" node -e '
-            const fs = require("fs");
-            // Every publishable package takes the tag's version. They release
-            // in lockstep and depend on each other by workspace protocol, so
-            // two version numbers moving apart would only confuse.
-            for (const dir of fs.readdirSync("packages")) {
-              const file = `packages/${dir}/package.json`;
-              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
-              pkg.version = process.env.VERSION;
-              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
-            }
-          '
-        env:
-          RAW: ${{ inputs.tag || github.ref_name }}
-
-      - name: Take the verified build
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: dist
-          path: packages/*/dist
+          path: packages
+
+      - name: Scope the package names
+        run: |
+          node -e '
+            const fs = require("fs");
+            for (const dir of fs.readdirSync("packages")) {
+              const f = `packages/${dir}/package.json`;
+              const pkg = JSON.parse(fs.readFileSync(f, "utf8"));
+              pkg.name = "@${{ github.repository_owner }}/" + dir;
+              fs.writeFileSync(f, JSON.stringify(pkg, null, 2));
+            }
+          '
 
       - name: Publish to GitHub Packages
         run: |
-          # Only the package names are scoped. The dependency between them is
-          # not: the scoped `tsp-asyncapi` still asks for `tsp-asyncapi-core`,
-          # which resolves from npm, where the job above published it. This
-          # registry carries a mirror of the emitter, not a second ecosystem.
-          node -e 'const fs = require("fs"); for (const dir of fs.readdirSync("packages")) { const f = `packages/${dir}/package.json`; const pkg = JSON.parse(fs.readFileSync(f, "utf8")); pkg.name = "@${{ github.repository_owner }}/" + dir; fs.writeFileSync(f, JSON.stringify(pkg, null, 2)); }'
-
-          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com/" > .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
-
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
           pnpm publish -r --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Without this, main keeps whatever version it had while npm moves on, and
-  # the next person to read package.json is told something false.
-  #
-  # It runs after the publish, because a version that failed to publish is not
-  # a version this repository released. The commit lands on main rather than on
-  # the tag: a tag names one state and must not gain another.
-  sync-version:
-    needs: [publish-npm, publish-github-packages]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: main
-
-      - name: Write the published version into main
-        run: |
-          version="${RAW#v}"
-          current="$(node -p "require('./packages/tsp-asyncapi/package.json').version")"
-          if [ "$version" = "$current" ]; then
-            echo "main already says $version"
-            exit 0
-          fi
-          VERSION="$version" node -e '
-            const fs = require("fs");
-            // Every publishable package takes the tag's version. They release
-            // in lockstep and depend on each other by workspace protocol, so
-            // two version numbers moving apart would only confuse.
-            for (const dir of fs.readdirSync("packages")) {
-              const file = `packages/${dir}/package.json`;
-              const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
-              pkg.version = process.env.VERSION;
-              fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
-            }
-          ' 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/*/package.json
-          # `[skip ci]` keeps this from starting another run of the checks that
-          # just passed. GitHub reads it from the commit message.
-          git commit -m "chore: set version to $version [skip ci]"
-          git push origin main
-        env:
-          RAW: ${{ inputs.tag || github.ref_name }}

@@ -5,29 +5,29 @@
 
 English: [CHANGELOG.md](./CHANGELOG.md)
 
-## 0.4.0
+## 0.1.0
 
-首次發布。這個套件是 `tsp-asyncapi` 的 decorator 那一半，拆出來讓多個 emitter
+首次發布。這個套件是 `tsp-asyncapi` 的 decorator 那一半,拆出來讓多個 emitter
 可以共用同一套輸入語言。
 
-版本從 `0.4.0` 起算而不是 `0.1.0`，是為了對齊它拆離的那個 emitter。兩者一起
-發布，而且用 workspace 協定互相相依，所以兩個版本號分開走只會造成困惑。等第二個
-emitter 有自己的發布節奏，再讓版本分岔。
+它與任何 emitter 獨立發版。`tsp-asyncapi` 用 `~` 範圍相依它,所以這裡發一個
+minor 不會自動進到 emitter,要那個 emitter 自己取用。兩者版號起點不同就是這個
+原因:這個套件是新的,`0.1.0` 如實反映。
 
-匯出的內容：
+匯出的內容:
 
-- 56 個 decorator。宣告在 `lib/main.tsp`，實作在這裡。
-- 每一種 decorator state 的讀取函式：24 個函式與 51 個型別。
-- `resolveService`，它產出語意模型，以及模型中每個節點的型別。
+- 56 個 decorator。宣告在 `lib/main.tsp`,實作在這裡。
+- 每一種 decorator state 的讀取函式:24 個函式與 51 個型別。
 - `$lib` 與全部 103 個 diagnostic、`reportDiagnostic`、`createDiagnostic`、
   `LIBRARY_NAME`、`PACKAGE_NAME`。
-- 作者直接書寫的文件物件型別，放在 `./types`。涵蓋每個通訊協定的 binding 物件、
+- 規格導出的常數,以及 emitter 需要的命名與序列化工具函式。
+- 作者直接書寫的文件物件型別,放在 `./types`。涵蓋每個通訊協定的 binding 物件、
   安全機制、tag 與範例。
-- 測試主機，放在 `./testing`。它只載入 decorator。
+- 語意模型,放在 `./unstable`。它的形狀預期會變,入口名稱就是那個警告。
+- 測試主機,放在 `./testing`。它只載入 decorator。
 
-關於邊界的兩點：
+關於邊界的兩點:
 
-- `LIBRARY_NAME` 是 `tsp-asyncapi`，不是這個套件的名稱。它是每個 diagnostic
-  代碼的前綴，而那些代碼沒有改名。
-- 語意模型與共用工具函式之所以匯出，是因為另一個套件裡的 emitter 需要它們。
-  它們現在是公開承諾，minor 版本可能改動。
+- `LIBRARY_NAME` 是 `tsp-asyncapi`,不是這個套件的名稱。它是每個 diagnostic
+  代碼的前綴,而 emitter 拆成兩個套件時那些代碼沒有改名。
+- 主入口的每一個名稱都是 semver 承諾,包含常數與工具函式。只有 `./unstable` 例外。

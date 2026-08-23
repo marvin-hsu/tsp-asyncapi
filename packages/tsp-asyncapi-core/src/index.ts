@@ -109,31 +109,6 @@ export {
 // of the split, and it is paid here rather than hidden behind a second entry
 // point.
 
-// The semantic model. One resolve produces it, and one lower reads it.
-//
-// The shape of this model will keep changing, and every change is visible
-// here. It used to be protected by the fact that `index.ts` never exported
-// this file. That protection is gone, because an emitter in another package
-// cannot read a model it cannot name.
-export { resolveService } from "./resolve/service.js";
-export { BindingPlacements } from "./resolve/bindings.js";
-export type {
-  AsyncAPIService,
-  BindingNode,
-  ChannelNode,
-  ChannelParameterNode,
-  InfoNode,
-  MessageHeadersNode,
-  MessageNode,
-  MessagePayloadNode,
-  MessageRefNode,
-  OperationNode,
-  OperationReplyNode,
-  SecuritySchemeNode,
-  ServerNode,
-  ServerVariableNode,
-} from "./resolve/service.js";
-
 // The two readers `lower/` calls while it translates a model. Reading a
 // decorator annotation is part of the translation, which is the rule
 // `lower/schemas/` already follows.

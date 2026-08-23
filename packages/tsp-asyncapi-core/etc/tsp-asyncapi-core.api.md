@@ -9,7 +9,6 @@ import { CallableMessage } from '@typespec/compiler';
 import { DecoratorExpressionNode } from '@typespec/compiler/ast';
 import { Diagnostic } from '@typespec/compiler';
 import { DiagnosticReport } from '@typespec/compiler';
-import { DiagnosticTarget } from '@typespec/compiler';
 import { Enum } from '@typespec/compiler';
 import { Interface } from '@typespec/compiler';
 import { Model } from '@typespec/compiler';
@@ -18,7 +17,6 @@ import { Namespace } from '@typespec/compiler';
 import { Operation } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 import { Scalar } from '@typespec/compiler';
-import { Service } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 import { Union } from '@typespec/compiler';
@@ -452,20 +450,6 @@ export interface AsyncAPIServerVariableState {
     examples?: string[];
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIService" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface AsyncAPIService {
-    readonly channels: readonly ChannelNode[];
-    readonly info: InfoNode;
-    readonly messageKeys: ReadonlyMap<Model, string>;
-    readonly messages: readonly MessageNode[];
-    readonly operations: readonly OperationNode[];
-    readonly securitySchemes: readonly SecuritySchemeNode[];
-    readonly servers: readonly ServerNode[];
-    readonly target?: Namespace;
-}
-
 // @public
 export interface AsyncTagExternalDocs {
     description?: string;
@@ -484,25 +468,6 @@ export interface AsyncTagState extends AsyncTagMetadata {
     node: DecoratorExpressionNode | AugmentDecoratorStatementNode;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "BindingNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface BindingNode {
-    // Warning: (ae-forgotten-export) The symbol "JsonObject" needs to be exported by the entry point index.d.ts
-    readonly config: JsonObject;
-    readonly protocol: string;
-    readonly renderer: BindingRenderer;
-}
-
-// Warning: (ae-internal-missing-underscore) The name "BindingPlacements" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export class BindingPlacements {
-    has(entry: BindingEntry): boolean;
-    // Warning: (ae-forgotten-export) The symbol "BindingEntry" needs to be exported by the entry point index.d.ts
-    place(entry: BindingEntry): void;
-}
-
 // Warning: (ae-internal-missing-underscore) The name "BindingRenderer" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -515,41 +480,6 @@ export function buildExternalDocs(program: Program, target: Type): ExternalDocum
 
 // @public
 export const CHANNEL_REF_PREFIX = "#/channels/";
-
-// Warning: (ae-internal-missing-underscore) The name "ChannelNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface ChannelNode {
-    readonly address: string | null;
-    readonly bindings: readonly BindingNode[];
-    readonly description?: string;
-    readonly extensions: JsonObject;
-    // Warning: (ae-forgotten-export) The symbol "ExternalDocsNode" needs to be exported by the entry point index.d.ts
-    readonly externalDocs?: ExternalDocsNode;
-    readonly key: string;
-    readonly messageKeys: ReadonlyMap<Model, string>;
-    // Warning: (ae-forgotten-export) The symbol "ChannelMessageNode" needs to be exported by the entry point index.d.ts
-    readonly messages: readonly ChannelMessageNode[];
-    readonly parameters: readonly ChannelParameterNode[];
-    readonly servers: readonly string[];
-    // Warning: (ae-forgotten-export) The symbol "TagNode" needs to be exported by the entry point index.d.ts
-    readonly tags: readonly TagNode[];
-    readonly target: DiagnosticTarget;
-    readonly title?: string;
-}
-
-// Warning: (ae-internal-missing-underscore) The name "ChannelParameterNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface ChannelParameterNode {
-    readonly default?: string;
-    readonly description?: string;
-    readonly enumValues?: readonly string[];
-    readonly examples?: readonly string[];
-    readonly location?: string;
-    readonly name: string;
-    readonly target: DiagnosticTarget;
-}
 
 // @public
 export interface ChannelState {
@@ -1350,24 +1280,6 @@ export interface IbmMqServerBindingConfig {
     multiEndpointServer?: boolean;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "InfoNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface InfoNode {
-    // Warning: (ae-forgotten-export) The symbol "ContactNode" needs to be exported by the entry point index.d.ts
-    readonly contact?: ContactNode;
-    readonly description?: string;
-    readonly extensions: JsonObject;
-    readonly externalDocs?: ExternalDocsNode;
-    // Warning: (ae-forgotten-export) The symbol "LicenseNode" needs to be exported by the entry point index.d.ts
-    readonly license?: LicenseNode;
-    readonly tags: readonly TagNode[];
-    readonly target?: Namespace;
-    readonly termsOfService?: string;
-    readonly title: string;
-    readonly version: string;
-}
-
 // @public
 export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean;
 
@@ -1488,64 +1400,6 @@ export interface MessageExampleState extends MessageExampleOptions {
     payload?: Value;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "MessageHeadersNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export type MessageHeadersNode = {
-    readonly kind: "none";
-} | {
-    readonly kind: "fields";
-    readonly fields: readonly ModelProperty[];
-} | {
-    readonly kind: "model";
-    readonly model: Model;
-} | {
-    readonly kind: "raw";
-    readonly schema: MultiFormatSchemaObject;
-};
-
-// Warning: (ae-internal-missing-underscore) The name "MessageNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface MessageNode {
-    readonly bindings: readonly BindingNode[];
-    readonly contentType?: string;
-    readonly correlationId?: CorrelationIdState;
-    readonly description?: string;
-    // Warning: (ae-forgotten-export) The symbol "MessageExampleObject" needs to be exported by the entry point index.d.ts
-    readonly examples: readonly MessageExampleObject[];
-    readonly extensions: JsonObject;
-    readonly externalDocs?: ExternalDocsNode;
-    readonly headers: MessageHeadersNode;
-    readonly key: string;
-    readonly payload: MessagePayloadNode;
-    readonly rawHeadersRef?: string;
-    readonly rawPayloadRef?: string;
-    readonly tags: readonly TagNode[];
-    readonly target: Model;
-    readonly title?: string;
-}
-
-// Warning: (ae-internal-missing-underscore) The name "MessagePayloadNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export type MessagePayloadNode = {
-    readonly kind: "model";
-    readonly model: Model;
-    readonly lifted: ReadonlySet<ModelProperty>;
-} | {
-    readonly kind: "raw";
-    readonly schema: MultiFormatSchemaObject;
-};
-
-// Warning: (ae-internal-missing-underscore) The name "MessageRefNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface MessageRefNode {
-    readonly channelKey: string;
-    readonly messageKey: string;
-}
-
 // @public
 export interface MessageState {
     name?: string;
@@ -1596,34 +1450,6 @@ export interface OperationActionState {
     operationId?: string;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "OperationNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface OperationNode {
-    readonly action: OperationAction;
-    readonly bindings: readonly BindingNode[];
-    readonly channelKey: string;
-    readonly description?: string;
-    readonly extensions: JsonObject;
-    readonly externalDocs?: ExternalDocsNode;
-    readonly key: string;
-    readonly messages: readonly MessageRefNode[];
-    readonly reply?: OperationReplyNode;
-    readonly security: readonly string[];
-    readonly tags: readonly TagNode[];
-    readonly target: Operation;
-    readonly title?: string;
-}
-
-// Warning: (ae-internal-missing-underscore) The name "OperationReplyNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface OperationReplyNode {
-    readonly address?: ReplyAddressState;
-    readonly channelKey: string;
-    readonly messages: readonly MessageRefNode[];
-}
-
 // @public
 export function present<K extends string, V>(key: K, value: V | undefined): Record<K, V> | Record<string, never>;
 
@@ -1646,6 +1472,8 @@ export interface PulsarServerBindingConfig {
     tenant?: string;
 }
 
+// Warning: (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point index.d.ts
+//
 // @public
 export type RawSchemaState = MultiFormatSchemaObject;
 
@@ -2286,11 +2114,6 @@ readonly default: "This anonymous type refers back to itself with no named type 
 };
 }, C, M>) => void;
 
-// Warning: (ae-internal-missing-underscore) The name "resolveService" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export function resolveService(program: Program, service: Service | undefined, placements: BindingPlacements): AsyncAPIService;
-
 // @public
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
 
@@ -2310,15 +2133,6 @@ export const SCHEMA_FORMAT: {
 // @public
 export const SECURITY_SCHEME_REF_PREFIX = "#/components/securitySchemes/";
 
-// Warning: (ae-internal-missing-underscore) The name "SecuritySchemeNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface SecuritySchemeNode {
-    readonly name: string;
-    readonly scheme: SecuritySchemeObject;
-    readonly target: DiagnosticTarget;
-}
-
 // Warning: (ae-internal-missing-underscore) The name "serializeDefaultValue" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -2332,37 +2146,6 @@ export function serializeExamples(program: Program, target: ExampleTarget, value
 
 // @public
 export const SERVER_REF_PREFIX = "#/servers/";
-
-// Warning: (ae-internal-missing-underscore) The name "ServerNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface ServerNode {
-    // (undocumented)
-    readonly bindings: readonly BindingNode[];
-    readonly description?: string;
-    readonly externalDocs?: ExternalDocsNode;
-    readonly host: string;
-    readonly name: string;
-    readonly pathname?: string;
-    readonly protocol: string;
-    readonly protocolVersion?: string;
-    readonly security: readonly string[];
-    readonly summary?: string;
-    readonly tags: readonly TagNode[];
-    readonly target: DiagnosticTarget;
-    readonly title?: string;
-    readonly variables?: ReadonlyMap<string, ServerVariableNode>;
-}
-
-// Warning: (ae-internal-missing-underscore) The name "ServerVariableNode" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface ServerVariableNode {
-    readonly default?: string;
-    readonly description?: string;
-    readonly enum?: readonly string[];
-    readonly examples?: readonly string[];
-}
 
 // @public
 export const SOLACE_BINDING_VERSION = "0.4.0";
@@ -2421,10 +2204,6 @@ export interface WebSocketChannelBindingConfig {
     method?: string;
     query?: unknown;
 }
-
-// Warnings were encountered during analysis:
-//
-// src/resolve/service.ts:434:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
