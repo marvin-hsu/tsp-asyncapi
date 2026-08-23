@@ -1,7 +1,7 @@
 // Composition. Four ways to build one schema out of others, plus the raw
 // escape hatch.
 // Example 02 covers the basic shapes and the constraints on them.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

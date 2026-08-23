@@ -7,7 +7,7 @@
 //
 // NATS and Solace require nothing, and are here to show how little some
 // bindings say.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

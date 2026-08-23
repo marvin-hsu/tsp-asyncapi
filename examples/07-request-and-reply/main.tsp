@@ -7,7 +7,7 @@
 // For `@receive` the parameters are the messages of the reply. The return
 // type is the messages received.
 // So the two decorators read the same signature in opposite directions.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

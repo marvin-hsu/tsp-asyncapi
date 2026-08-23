@@ -1,5 +1,5 @@
 // Addressing: channel ids, templated addresses, and address parameters.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

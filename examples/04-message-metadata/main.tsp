@@ -1,7 +1,7 @@
 // Everything that sits around a payload.
 // Two messages. The first lifts individual fields into `headers`. The second
 // replaces the whole `headers` schema with a model of its own.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

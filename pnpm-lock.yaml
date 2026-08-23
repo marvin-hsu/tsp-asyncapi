@@ -267,6 +267,12 @@ importers:
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
+      tsp-asyncapi:
+        specifier: workspace:*
+        version: link:packages/tsp-asyncapi
+      tsp-asyncapi-core:
+        specifier: workspace:*
+        version: link:packages/tsp-asyncapi-core
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

@@ -1,7 +1,7 @@
 // One realistic Kafka contract for a user-signup domain.
 // This is the file to copy when you start a real contract. It puts every
 // part the earlier examples show one at a time into a single document.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

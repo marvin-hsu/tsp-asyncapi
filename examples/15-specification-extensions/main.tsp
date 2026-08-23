@@ -3,7 +3,7 @@
 // an owning team, a retention window, a service level. `@extension` writes
 // one, and it reaches four objects: `info`, a channel, an operation, and a
 // message.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

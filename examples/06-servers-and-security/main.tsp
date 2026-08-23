@@ -1,7 +1,7 @@
 // The connection side: servers, server variables and security schemes.
 // This example declares no channel and no message. It emits `channels: {}`,
 // which is what the emitter produces when the program declares no channel.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

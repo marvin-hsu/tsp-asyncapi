@@ -5,7 +5,7 @@
 // Every model below is reachable from the payload of the single message at
 // the bottom of the file. Only a model that a message payload reaches gets a
 // `components.schemas` entry, so an unreferenced model would not appear.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

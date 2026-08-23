@@ -8,7 +8,7 @@
 //
 // HTTP defines no server and no channel binding, so there is no
 // `@httpServer` or `@httpChannel` to write.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 

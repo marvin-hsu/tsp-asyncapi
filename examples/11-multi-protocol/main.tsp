@@ -10,7 +10,7 @@
 // contract). What is new here is that a binding belongs to an object, not to
 // a document. Each server, channel and operation names its own protocol, and
 // the emitter never asks the three to agree.
-import "../..";
+import "tsp-asyncapi";
 
 using AsyncAPI;
 
