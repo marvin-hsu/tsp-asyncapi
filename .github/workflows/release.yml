@@ -163,9 +163,12 @@ jobs:
       # record of that version; this is the record of the run that shipped
       # them, and it links out to what a reader actually installs.
       #
-      # A second release on one day takes a `.2` suffix. Without it the tag
-      # collides and `gh release create` fails after the packages are already
-      # on the registry, which would turn a published release into a red run.
+      # A second release on one day takes a `.2` suffix, in the title as well
+      # as the tag. Without it the tag collides and `gh release create` fails
+      # after the packages are already on the registry, which would turn a
+      # published release into a red run. Carrying the suffix into the title
+      # is what tells two releases on one day apart in the list, and it
+      # orders them at the same time.
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -196,7 +199,7 @@ jobs:
 
           gh release create "$tag" \
             --target "$GITHUB_SHA" \
-            --title "$(date -u +%Y-%m-%d)" \
+            --title "${tag#release-}" \
             --notes-file "$RUNNER_TEMP/notes.md"
 
   # A mirror, for anyone installing from this repository's registry. The package
