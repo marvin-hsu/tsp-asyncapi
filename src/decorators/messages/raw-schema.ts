@@ -9,7 +9,7 @@ import {
   NATIVE_SCHEMA_FORMATS,
   NON_JSON_SCHEMA_FORMATS,
 } from "../../constants.js";
-import { MultiFormatSchemaObject } from "../../types/index.js";
+import type { MultiFormatSchemaObject } from "../../types/index.js";
 import { trimmed } from "../../optional-fields.js";
 
 /**

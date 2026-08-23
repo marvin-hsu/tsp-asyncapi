@@ -5,7 +5,7 @@ import type { Program } from "@typespec/compiler";
 import { lowerDocument } from "../../src/lower/document.js";
 import { resolvesInDocument } from "../../src/lower/json-pointer.js";
 import { ASYNCAPI_VERSION } from "../../src/constants.js";
-import type { AsyncAPIEmitterOptions } from "../../src/lib.js";
+import type { AsyncAPIEmitterOptions } from "../../src/emitter-options.js";
 import { infoNode, service } from "./ir-arbitraries.js";
 
 /**

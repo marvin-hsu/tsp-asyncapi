@@ -343,9 +343,13 @@ export interface ServerVariableNode {
  * The scheme itself reuses `SecuritySchemeObject` from the document types.
  * The decorator already produces an emit-ready object, and it stores that
  * object in the state map. A mirror type here would repeat thirteen scheme
- * kinds and the OAuth flow table for no behavior change. The reuse is
- * deliberate, and it is the one place the model refers to the document
- * types for a whole object.
+ * kinds and the OAuth flow table for no behavior change.
+ *
+ * The reuse is deliberate. It is not an exception either: `SecuritySchemeObject`
+ * is one of the objects the author writes directly, so it lives in
+ * `types/authored.ts` with the rest of the vocabulary the decorators accept.
+ * This model refers to three of those objects for a whole value, and the other
+ * two are `MessageExampleObject` and `MultiFormatSchemaObject`.
  *
  * @internal
  */

@@ -7,7 +7,7 @@ import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { toPlainValue } from "../../../marshalled-values.js";
 import { enumeratedField, reportBindingField, schemaField } from "../fields.js";
-import {
+import type {
   KafkaChannelBindingObject,
   KafkaMessageBindingObject,
   KafkaOperationBindingObject,

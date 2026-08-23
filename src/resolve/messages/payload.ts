@@ -1,5 +1,5 @@
 import { RawSchemaState } from "../../decorators/index.js";
-import { MultiFormatSchemaObject } from "../../types/index.js";
+import type { MultiFormatSchemaObject } from "../../types/index.js";
 
 /**
  * Builds the Multi Format Schema Object of one raw schema.

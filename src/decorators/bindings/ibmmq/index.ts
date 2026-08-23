@@ -18,7 +18,7 @@ import {
 import { IBM_MQ_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
-import {
+import type {
   IbmMqChannelBindingObject,
   IbmMqMessageBindingObject,
   IbmMqServerBindingObject,

@@ -1,5 +1,5 @@
 import { DiagnosticTarget, Program, Type, getTags } from "@typespec/compiler";
-import { TagObject } from "../types/index.js";
+import type { TagObject } from "../types/index.js";
 import { AsyncTagExternalDocs, AsyncTagState, getAsyncTags } from "../decorators/index.js";
 import { listAsyncTagTargets } from "../decorators/document/async-tag.js";
 import { reportDiagnostic } from "../lib.js";

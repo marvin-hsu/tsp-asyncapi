@@ -29,7 +29,8 @@ import {
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { SCHEMA_FORMAT } from "../../constants.js";
 import { SchemaDiagnostics } from "./diagnostics.js";
-import { getJsonSchemaExtensions, JsonSchemaExtensionRecord } from "../../decorators/index.js";
+import { getJsonSchemaExtensions } from "../../decorators/index.js";
+import type { JsonSchemaExtensionRecord } from "../../decorators/index.js";
 import { serializeExamples, serializeDefaultValue } from "../../example-serialization.js";
 import { toPlainValue } from "../../marshalled-values.js";
 import { buildExternalDocs } from "../../external-docs.js";

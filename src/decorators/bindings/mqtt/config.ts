@@ -11,7 +11,7 @@ import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { MQTT_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
-import {
+import type {
   MqttLastWillObject,
   MqttMessageBindingObject,
   MqttOperationBindingObject,

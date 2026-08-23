@@ -14,7 +14,7 @@
  */
 
 import { Program, Service } from "@typespec/compiler";
-import { AsyncAPIEmitterOptions } from "./lib.js";
+import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 import { BindingPlacements } from "./resolve/bindings.js";
 import { resolveService } from "./resolve/service.js";
 import { lowerDocument } from "./lower/document.js";

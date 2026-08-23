@@ -15,7 +15,10 @@ import { DecoratorContext, DiagnosticTarget, Namespace, Operation } from "@types
 import { SOLACE_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
-import { SolaceOperationBindingObject, SolaceServerBindingObject } from "../../../types/index.js";
+import type {
+  SolaceOperationBindingObject,
+  SolaceServerBindingObject,
+} from "../../../types/index.js";
 import { enumeratedField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 

@@ -9,7 +9,7 @@ import { DecoratorContext, Interface, Model, Namespace } from "@typespec/compile
 import { JMS_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
 import { toPlainValue } from "../../../marshalled-values.js";
-import {
+import type {
   JmsChannelBindingObject,
   JmsMessageBindingObject,
   JmsServerBindingObject,

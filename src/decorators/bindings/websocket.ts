@@ -14,7 +14,7 @@
 import { DecoratorContext, Interface, Namespace } from "@typespec/compiler";
 import { WEBSOCKET_BINDING_PROTOCOL } from "../../constants.js";
 import { present } from "../../optional-fields.js";
-import { WebSocketChannelBindingObject } from "../../types/index.js";
+import type { WebSocketChannelBindingObject } from "../../types/index.js";
 import { enumeratedField, namedValuesSchemaField } from "./fields.js";
 import { claimBinding } from "./state.js";
 
