@@ -1,6 +1,29 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  // Cross-package imports resolve to core's source during a test run.
+  //
+  // Without this, `tsp-asyncapi-core` resolves through the workspace symlink,
+  // so v8 records a path with `node_modules` in it and the coverage include
+  // never matches. Measured: `resolve/` reported 12.5% of statements while
+  // every one of its callers passed.
+  //
+  // The alias does not change what the tests check. It changes which copy of
+  // core executes, from the built output to the source the coverage report is
+  // about. The decorators are the exception, and they always were: the compiler
+  // loads those from `dist` through `lib/main.tsp`, which is why the build
+  // output is still collected below.
+  resolve: {
+    alias: {
+      "tsp-asyncapi-core/types": fileURLToPath(
+        new URL("./packages/tsp-asyncapi-core/src/types/index.ts", import.meta.url),
+      ),
+      "tsp-asyncapi-core": fileURLToPath(
+        new URL("./packages/tsp-asyncapi-core/src/index.ts", import.meta.url),
+      ),
+    },
+  },
   test: {
     // Two directories hold copies of other checkouts, and vitest would run
     // their tests against this one's `dist/`. That fails in bulk and buries
@@ -74,8 +97,8 @@ export default defineConfig({
       exclude: [
         "packages/tsp-asyncapi-core/src/decorators/**/*.ts",
         "packages/*/src/index.ts",
-        "test/**",
         "packages/*/src/testing/**/*.ts",
+        "test/**",
       ],
       // A floor, not a target, and set two points under the measurement of
       // 2026-08-17: statements 87.63, branches 80.04, functions 86.11,

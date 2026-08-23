@@ -389,6 +389,8 @@ function templateInstanceName(program: Program, type: Model | Union): string | u
  * unconstrained schema instead of registering a bogus key.
  * Every named declaration kind that can be a template, model or union,
  * shares this check.
+ *
+ * @public
  */
 export function isUninstantiatedTemplateDeclaration(type: Model | Union): boolean {
   return (
@@ -437,6 +439,8 @@ function typeNameOptions(program: Program): TypeNameOptions {
  * The result is long and hard to read. The caller only reaches this name
  * when inlining cannot express the type, so readable output is unaffected
  * in every other case.
+ *
+ * @public
  */
 export function fallbackDeclarationName(program: Program, type: Model | Union): string {
   return namespacePrefix(program, type.namespace) + fallbackInstanceName(program, type);
@@ -488,10 +492,10 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  * the type or, when inlining cannot express it, keys it under
  * `fallbackDeclarationName`.
  *
- * A user-applied `@friendlyName`, e.g.
- * `` @friendlyName("{name}Envelope") model Envelope<T> { ... } ``, is
- * checked first. The compiler resolves its own template-parameter
- * interpolation, e.g. `{name}`, per instantiation. That resolved name is the
+ * A user-applied `\@friendlyName` is checked first. It is written like
+ * `\@friendlyName("\{name\}Envelope") model Envelope<T> \{ ... \}`. The
+ * compiler resolves its own template-parameter interpolation, such as
+ * `\{name\}`, per instantiation. That resolved name is the
  * candidate outright: it is neither namespace-qualified nor composed with
  * any structural name. An explicit friendly name is the user's own,
  * authoritative choice of key, and the official `getOpenAPITypeName` returns
@@ -513,6 +517,8 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  * No further disambiguation happens here. This is exactly one candidate. It
  * is handed to `SchemaBuilder.registerNamed` (via `SchemaKeyRegistry`), which
  * decides whether that candidate is actually free.
+ *
+ * @public
  */
 export function declarationNameFor(
   program: Program,

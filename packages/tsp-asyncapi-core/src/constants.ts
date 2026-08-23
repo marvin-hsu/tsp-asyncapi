@@ -8,6 +8,8 @@ import { Namespace } from "@typespec/compiler";
  * Collecting the values here turns a typo into a single-point fix. It
  * replaces the old approach of spelling out the literal separately at
  * each call site, which could silently drift out of sync.
+ *
+ * @public
  */
 export const JSON_SCHEMA_TYPE = {
   string: "string",
@@ -30,6 +32,8 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
  * site used to spell out `ns?.name === "TypeSpec" && !ns.namespace?.name`
  * (or the equivalent `ns.namespace?.name === ""` form) separately. This
  * function replaces all of those separate checks.
+ *
+ * @public
  */
 export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {
   return ns?.name === TYPESPEC_NAMESPACE_NAME && !ns.namespace?.name;
@@ -42,6 +46,8 @@ export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {
  * Schema Object dialect, and the key charsets all follow that release.
  * Naming it here means the version and the reason for it sit together,
  * rather than appearing as a bare string in the document builder.
+ *
+ * @public
  */
 export const ASYNCAPI_VERSION = "3.1.0";
 
@@ -60,6 +66,8 @@ export const DEFAULT_DOCUMENT_TITLE = "AsyncAPI Document";
  * The prefixes below all extend it. A raw schema can carry a reference of its
  * own, and this is the prefix that tells the emitter to resolve it against
  * the emitted document.
+ *
+ * @public
  */
 export const LOCAL_REF_PREFIX = "#/";
 
@@ -69,6 +77,8 @@ export const LOCAL_REF_PREFIX = "#/";
  * A server names its schemes through a reference, never through an inline
  * copy of the scheme. Every such reference is built from this prefix and the
  * scheme name, so the pointer is written in one place only.
+ *
+ * @public
  */
 export const SECURITY_SCHEME_REF_PREFIX = "#/components/securitySchemes/";
 
@@ -79,6 +89,8 @@ export const SECURITY_SCHEME_REF_PREFIX = "#/components/securitySchemes/";
  * The `messages` of both are addressed through the same root, one segment
  * deeper. Every one of those pointers is built from this prefix, so the
  * pointer root is written in one place only.
+ *
+ * @public
  */
 export const CHANNEL_REF_PREFIX = "#/channels/";
 
@@ -88,6 +100,8 @@ export const CHANNEL_REF_PREFIX = "#/channels/";
  * A channel names each message it carries through a reference into the
  * components section. An operation never uses this prefix: it addresses the
  * `messages` map of its channel instead.
+ *
+ * @public
  */
 export const COMPONENTS_MESSAGE_REF_PREFIX = "#/components/messages/";
 
@@ -96,6 +110,8 @@ export const COMPONENTS_MESSAGE_REF_PREFIX = "#/components/messages/";
  *
  * A channel names each server it is available on through a reference into
  * this map.
+ *
+ * @public
  */
 export const SERVER_REF_PREFIX = "#/servers/";
 
@@ -104,6 +120,8 @@ export const SERVER_REF_PREFIX = "#/servers/";
  *
  * Every schema this emitter names is defined once in the components section,
  * and every other place that needs it refers to it through this prefix.
+ *
+ * @public
  */
 export const COMPONENTS_SCHEMA_REF_PREFIX = "#/components/schemas/";
 
@@ -164,6 +182,8 @@ export const KAFKA_BINDING_PROTOCOL = "kafka";
  * The Kafka renderer is the one place that writes it. A decorator records
  * fields and never the version, so raising this constant moves all four
  * levels at once.
+ *
+ * @public
  */
 export const KAFKA_BINDING_VERSION = "0.5.0";
 
@@ -182,6 +202,8 @@ export const WEBSOCKET_BINDING_PROTOCOL = "ws";
  * It is written for the same reason the Kafka version is. A document that
  * leaves the field out means `latest`, and what `latest` holds changes over
  * time.
+ *
+ * @public
  */
 export const WEBSOCKET_BINDING_VERSION = "0.1.0";
 
@@ -195,6 +217,8 @@ export const MQTT_BINDING_PROTOCOL = "mqtt";
  *
  * One binding covers MQTT 3 and MQTT 5. The fields that only MQTT 5 defines
  * are optional, so a document for MQTT 3 leaves them out.
+ *
+ * @public
  */
 export const MQTT_BINDING_VERSION = "0.2.0";
 
@@ -208,6 +232,8 @@ export const HTTP_BINDING_PROTOCOL = "http";
  *
  * AsyncAPI 3.0 accepts both `0.2.0` and `0.3.0`. This library emits `0.3.0`,
  * which is the later of the two and adds `statusCode` to the message binding.
+ *
+ * @public
  */
 export const HTTP_BINDING_VERSION = "0.3.0";
 
@@ -222,6 +248,8 @@ export const AMQP_BINDING_PROTOCOL = "amqp";
 
 /**
  * The version of the AMQP binding specification this library emits.
+ *
+ * @public
  */
 export const AMQP_BINDING_VERSION = "0.3.0";
 
@@ -232,6 +260,8 @@ export const NATS_BINDING_PROTOCOL = "nats";
 
 /**
  * The version of the NATS binding specification this library emits.
+ *
+ * @public
  */
 export const NATS_BINDING_VERSION = "0.1.0";
 
@@ -242,6 +272,8 @@ export const PULSAR_BINDING_PROTOCOL = "pulsar";
 
 /**
  * The version of the Pulsar binding specification this library emits.
+ *
+ * @public
  */
 export const PULSAR_BINDING_VERSION = "0.1.0";
 
@@ -254,6 +286,8 @@ export const GOOGLE_PUB_SUB_BINDING_PROTOCOL = "googlepubsub";
 /**
  * The version of the Google Cloud Pub/Sub binding specification this library
  * emits.
+ *
+ * @public
  */
 export const GOOGLE_PUB_SUB_BINDING_VERSION = "0.2.0";
 
@@ -267,6 +301,8 @@ export const SQS_BINDING_PROTOCOL = "sqs";
  *
  * AsyncAPI 3.0 accepts both `0.1.0` and `0.2.0`. This library emits `0.2.0`,
  * which is the later of the two.
+ *
+ * @public
  */
 export const SQS_BINDING_VERSION = "0.2.0";
 
@@ -277,6 +313,8 @@ export const ANYPOINT_MQ_BINDING_PROTOCOL = "anypointmq";
 
 /**
  * The version of the Anypoint MQ binding specification this library emits.
+ *
+ * @public
  */
 export const ANYPOINT_MQ_BINDING_VERSION = "0.0.1";
 
@@ -287,6 +325,8 @@ export const JMS_BINDING_PROTOCOL = "jms";
 
 /**
  * The version of the JMS binding specification this library emits.
+ *
+ * @public
  */
 export const JMS_BINDING_VERSION = "0.0.1";
 
@@ -297,6 +337,8 @@ export const IBM_MQ_BINDING_PROTOCOL = "ibmmq";
 
 /**
  * The version of the IBM MQ binding specification this library emits.
+ *
+ * @public
  */
 export const IBM_MQ_BINDING_VERSION = "0.1.0";
 
@@ -311,6 +353,8 @@ export const SOLACE_BINDING_PROTOCOL = "solace";
  * AsyncAPI 3.0 accepts `0.2.0`, `0.3.0` and `0.4.0`. This library emits
  * `0.4.0`, which is the latest. It is also the first to spell the server
  * field `msgVpn`; the `0.2.0` schema spells it `msvVpn`.
+ *
+ * @public
  */
 export const SOLACE_BINDING_VERSION = "0.4.0";
 
@@ -406,6 +450,8 @@ export const DEFAULT_INFO_VERSION = "0.0.0";
  * Phase 3 adds per-message content types. It must thread the real
  * `contentType` through to both this constant's use site and the example
  * serialization it keeps in sync with, instead of assuming JSON everywhere.
+ *
+ * @public
  */
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
 
@@ -420,6 +466,8 @@ export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
  * describe the wrong type.
  *
  * So the two share this one table.
+ *
+ * @public
  */
 export const SCHEMA_FORMAT = {
   /** RFC 3339 date and time, the shape `utcDateTime` travels in. */

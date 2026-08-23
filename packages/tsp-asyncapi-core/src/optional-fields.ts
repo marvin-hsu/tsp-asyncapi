@@ -49,6 +49,8 @@ export function trimmed(value: string | undefined): string | undefined {
  * @param value - The text, which may be absent or blank
  * @returns A single-entry object, or an empty one when there is nothing to
  * say
+ *
+ * @public
  */
 export function text<K extends string>(
   key: K,
@@ -67,6 +69,8 @@ export function text<K extends string>(
  * @param key - The field name in the emitted document
  * @param value - The value, which may be absent
  * @returns A single-entry object, or an empty one when the value is absent
+ *
+ * @public
  */
 export function present<K extends string, V>(
   key: K,

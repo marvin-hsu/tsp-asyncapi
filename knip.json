@@ -1,5 +1,9 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["docs/**"],
-  "entry": ["src/tsp-index.ts!"]
+  "workspaces": {
+    "packages/tsp-asyncapi-core": {
+      "entry": ["src/tsp-index.ts!"]
+    }
+  }
 }

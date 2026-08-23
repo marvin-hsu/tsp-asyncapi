@@ -4,6 +4,8 @@ import { getExternalDocs } from "./decorators/index.js";
 
 /**
  * Extracts external documentation from a TypeSpec type.
+ *
+ * @public
  */
 export function buildExternalDocs(
   program: Program,
