@@ -102,12 +102,24 @@ decorator 放進 `src/decorators/` 底下對應文件區塊的資料夾。
 
 ## 發佈
 
-維護者以推 tag 發佈：
+兩個套件獨立發版，所以 tag 說不出要發什麼。`tsp-asyncapi-core` 與 `tsp-asyncapi`
+不共用版號。
+
+改動的同時，記下它該發什麼：
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+pnpm changeset
 ```
 
-tag 決定版號。release workflow 會把版號寫進 `package.json`、重跑一次 `pnpm check`、
-帶 provenance 發佈到 npm，最後把版號 commit 回 `main`。
+要發布時，算出版號並把結果開成 PR：
+
+```bash
+pnpm changeset version
+```
+
+這會更新每個 `package.json`，以及兩個套件之間的相依範圍。CHANGELOG 要手寫，
+中英兩份都要：它不是產生的，因為它寫的是「為什麼這樣改」。
+
+那個 PR 合併之後，到 Actions 頁面手動執行 Release workflow。唯一的觸發方式是
+`workflow_dispatch`，所以推 commit 不會發佈。workflow 會對要發佈的那個 commit
+跑一次 `pnpm check`，然後只發佈 registry 上還沒有的版號，並打上 tag。

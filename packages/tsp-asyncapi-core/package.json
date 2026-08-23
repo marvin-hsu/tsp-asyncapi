@@ -1,6 +1,6 @@
 {
   "name": "tsp-asyncapi-core",
-  "version": "0.4.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "The TypeSpec decorators and semantic model behind tsp-asyncapi. Declares the input language and emits nothing.",
   "main": "dist/src/index.js",
@@ -66,7 +66,7 @@
     "build": "tsc -p tsconfig.build.json",
     "api-extractor:local": "api-extractor run --local && api-extractor run --local -c api-extractor.unstable.json",
     "api-extractor:ci": "api-extractor run && api-extractor run -c api-extractor.unstable.json",
-    "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-core-*.tgz"
+    "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-core-[0-9]*.tgz"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

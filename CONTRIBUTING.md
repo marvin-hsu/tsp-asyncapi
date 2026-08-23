@@ -122,13 +122,26 @@ write instead.
 
 ## Releasing
 
-Maintainers publish by pushing a tag:
+The two packages version independently, so a tag cannot say what to release.
+`tsp-asyncapi-core` and `tsp-asyncapi` do not share a number.
+
+Record what a change should release, as part of the change:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+pnpm changeset
 ```
 
-The tag sets the version. The release workflow writes it into
-`package.json`, runs `pnpm check` again, publishes to npm with
-provenance, and commits the version back to `main`.
+To cut a release, compute the versions and open a PR with the result:
+
+```bash
+pnpm changeset version
+```
+
+That updates each `package.json` and the dependency range between the two
+packages. Write the changelog entries by hand, in both languages: the
+changelogs are not generated, because they explain why a change was made.
+
+Once that PR is merged, run the Release workflow from the Actions tab.
+`workflow_dispatch` is the only trigger, so nothing publishes on a push. The
+workflow runs `pnpm check` against the commit being published, then releases
+whichever versions the registry does not have yet, and tags them.
