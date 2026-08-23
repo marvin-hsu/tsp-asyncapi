@@ -19,3 +19,10 @@ options:
     default-content-type: "application/json"
     # Becomes `id` in the document. It identifies the application.
     asyncapi-id: "urn:example:hello-service"
+
+# Turns on the recommended lint rules. They warn about mistakes the emitter
+# accepts, such as a missing `@service`. A rule runs during semantic
+# analysis, so an editor shows it without running the emitter.
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"

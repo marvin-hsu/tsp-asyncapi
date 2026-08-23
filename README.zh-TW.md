@@ -232,6 +232,19 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
+## Linter 規則
+
+五條選用規則，抓 emitter 會接受的錯誤。它們都產出合法的文件，但文件說的不是你的意思，而且沒有任何診斷涵蓋它們。規則在語意分析階段執行，不需要執行 emitter 就會顯示。
+
+```yaml
+# tspconfig.yaml
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"
+```
+
+`recommended` 會啟用 `missing-service`、`channel-without-operation`、`operation-without-message` 與 `server-protocol-mismatch`。`unused-security-scheme` 要指名開啟。每條規則抓什麼、怎麼修，見文件站的 Linter 規則頁。
+
 ## 功能支援狀態與設計決策
 
 以 AsyncAPI 3.0 的 JSON schema 於 2026-08-17 實測。`channel`、`server` 與
@@ -240,9 +253,10 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 ### 計劃做
 
-| 計劃項目                               | 目前的狀態                                                 | 說明                   |
-| -------------------------------------- | ---------------------------------------------------------- | ---------------------- |
-| 重新評估測試案例、加入更多屬性測試情境 | 測試套件目前有 1036 個案例式測試與 53 條 fast-check 性質。 | 目前優先級最高的工作。 |
+| 計劃項目                               | 目前的狀態                                                                                                                                     | 說明                                                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 對官方 `@typespec/protobuf` 的一級支援 | 一份原始碼目前可以同時餵給兩個 emitter。protobuf payload 要用 `@rawPayload` 手寫。`Protobuf.Map` 與 `Extern` model 只會降級成 `type: object`。 | emitter 要從產出的 `.proto` 檔取得 schema。`@typespec/protobuf` 目前沒有匯出 `@field` 與 `@package` 的讀取函式。 |
+| 新增 Avro emitter                      | Avro 目前只能用 `@rawPayload` 手寫進文件。沒有任何東西能從 TypeSpec model 產生 Avro schema。                                                   | 獨立套件。AsyncAPI emitter 會把該套件的產出內嵌進 message。                                                      |
 
 ### 等使用情境
 

@@ -16,6 +16,14 @@ export { $onEmit } from "./emitter.js";
 
 export { $lib, PACKAGE_NAME } from "./lib.js";
 
+// The linter the compiler runs. The rules are implemented in
+// `tsp-asyncapi-core`, because a rule reads decorator state and that state is
+// what the core package owns. The compiler builds each rule id from the
+// specifier the library was loaded under, and a user loads this package, so
+// `$linter` has to be exported from here for the ids to read
+// `tsp-asyncapi/<rule>` rather than `tsp-asyncapi-core/<rule>`.
+export { asyncAPILinter as $linter } from "tsp-asyncapi-core/unstable";
+
 export type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 
 export type {

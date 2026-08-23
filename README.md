@@ -232,6 +232,25 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 
+## Linter
+
+Five optional rules catch mistakes the emitter accepts. Each one produces a
+valid document that says something you did not mean, and no diagnostic covers
+any of them. A rule runs during semantic analysis, so an editor shows it
+without running the emitter.
+
+```yaml
+# tspconfig.yaml
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"
+```
+
+`recommended` enables `missing-service`, `channel-without-operation`,
+`operation-without-message`, and `server-protocol-mismatch`.
+`unused-security-scheme` is enabled by name. See the Linter reference on the
+docs site for what each rule catches and how to fix it.
+
 ## Feature Status & Design Decisions
 
 Measured against the AsyncAPI 3.0 JSON schema on 2026-08-17. The `channel`,
@@ -241,9 +260,10 @@ into three groups: planned, waiting for a use case, and will not do.
 
 ### Planned
 
-| Planned work                                                    | What it means today                                                      | Notes                                 |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
-| Test-case re-evaluation, and more property-based test scenarios | The suite carries 1036 example-based cases and 53 fast-check properties. | This is the current highest priority. |
+| Planned work                                 | What it means today                                                                                                                                                                                  | Notes                                                                                                                                             |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-class support for `@typespec/protobuf` | One source compiles with both emitters today. A protobuf payload reaches the document through `@rawPayload`, written by hand. A `Protobuf.Map` and an `Extern` model lower to a bare `type: object`. | The emitter must take the protobuf schema from the generated `.proto`. `@typespec/protobuf` exports no accessor for `@field` or `@package` today. |
+| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                               | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                        |
 
 ### Waiting for a use case
 

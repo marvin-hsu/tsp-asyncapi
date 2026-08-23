@@ -113,6 +113,54 @@ channels:
             - delete
           retention.ms: 1209600000
         bindingVersion: 0.5.0
+  signup.v1.{tenantId}.events.avro:
+    address: signup.v1.{tenantId}.events.avro
+    description: The Avro form of the signup funnel events of one tenant.
+    servers:
+      - $ref: "#/servers/kafka-dev"
+      - $ref: "#/servers/kafka-prod"
+    parameters:
+      tenantId:
+        description: The tenant whose events this topic carries.
+        examples:
+          - acme
+        location: $message.payload#/tenantId
+    messages:
+      SignupEventAvroV1:
+        $ref: "#/components/messages/SignupEventAvroV1"
+    bindings:
+      kafka:
+        partitions: 12
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - delete
+          retention.ms: 1209600000
+        bindingVersion: 0.5.0
+  signup.v1.{tenantId}.events.proto:
+    address: signup.v1.{tenantId}.events.proto
+    description: The Protobuf form of the signup funnel events of one tenant.
+    servers:
+      - $ref: "#/servers/kafka-dev"
+      - $ref: "#/servers/kafka-prod"
+    parameters:
+      tenantId:
+        description: The tenant whose events this topic carries.
+        examples:
+          - acme
+        location: $message.payload#/tenant_id
+    messages:
+      SignupEventProtoV1:
+        $ref: "#/components/messages/SignupEventProtoV1"
+    bindings:
+      kafka:
+        partitions: 12
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - delete
+          retention.ms: 1209600000
+        bindingVersion: 0.5.0
 operations:
   publishSignupEvent:
     action: send
@@ -145,6 +193,34 @@ operations:
         bindingVersion: 0.5.0
     messages:
       - $ref: "#/channels/signup.v1.{tenantId}.events/messages/SignupEventV1"
+  publishSignupEventAvro:
+    action: send
+    channel:
+      $ref: "#/channels/signup.v1.{tenantId}.events.avro"
+    security:
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    bindings:
+      kafka:
+        clientId:
+          type: string
+          description: The producing service instance.
+        bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/signup.v1.{tenantId}.events.avro/messages/SignupEventAvroV1"
+  publishSignupEventProto:
+    action: send
+    channel:
+      $ref: "#/channels/signup.v1.{tenantId}.events.proto"
+    security:
+      - $ref: "#/components/securitySchemes/signup-oauth"
+    bindings:
+      kafka:
+        clientId:
+          type: string
+          description: The producing service instance.
+        bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/signup.v1.{tenantId}.events.proto/messages/SignupEventProtoV1"
 components:
   schemas:
     Plan:
@@ -353,6 +429,96 @@ components:
               tenantId: acme
               lastStep: profile
               elapsedSeconds: 411
+    SignupEventAvroV1:
+      name: SignupEventAvroV1
+      title: A signup funnel event, in Avro
+      description: One event of the signup funnel, in Avro.
+      contentType: application/avro
+      headers:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: SignupEventHeaders
+          namespace: com.example.signup.v1
+          fields:
+            - name: correlationId
+              type: string
+            - name: traceId
+              type: string
+            - name: schemaVersion
+              type: int
+      payload:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: UserRegistered
+          namespace: com.example.signup.v1
+          fields:
+            - name: eventId
+              type: string
+            - name: occurredAt
+              type:
+                type: long
+                logicalType: timestamp-millis
+            - name: userId
+              type: string
+            - name: tenantId
+              type: string
+            - name: email
+              type: string
+            - name: plan
+              type:
+                type: enum
+                name: Plan
+                symbols:
+                  - free
+                  - team
+                  - enterprise
+      bindings:
+        kafka:
+          key:
+            type: string
+            description: The tenant the event belongs to.
+          schemaIdLocation: payload
+          schemaIdPayloadEncoding: confluent
+          schemaLookupStrategy: TopicIdStrategy
+          bindingVersion: 0.5.0
+    SignupEventProtoV1:
+      name: SignupEventProtoV1
+      title: A signup funnel event, in Protobuf
+      description: One event of the signup funnel, in Protobuf.
+      contentType: application/vnd.google.protobuf
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema: |-
+          syntax = "proto3";
+
+          package example.signup.v1;
+
+          enum Plan {
+            PLAN_UNSPECIFIED = 0;
+            PLAN_FREE = 1;
+            PLAN_TEAM = 2;
+            PLAN_ENTERPRISE = 3;
+          }
+
+          message UserRegistered {
+            string event_id = 1;
+            int64 occurred_at_millis = 2;
+            string user_id = 3;
+            string tenant_id = 4;
+            string email = 5;
+            Plan plan = 6;
+          }
+      bindings:
+        kafka:
+          key:
+            type: string
+            description: The tenant the event belongs to.
+          schemaIdLocation: header
+          schemaIdPayloadEncoding: confluent
+          schemaLookupStrategy: TopicIdStrategy
+          bindingVersion: 0.5.0
   securitySchemes:
     broker-scram:
       type: scramSha512

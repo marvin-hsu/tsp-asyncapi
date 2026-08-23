@@ -5,6 +5,7 @@
 ```ts
 
 import { DiagnosticTarget } from '@typespec/compiler';
+import { LinterDefinition } from '@typespec/compiler';
 import type { Model } from '@typespec/compiler';
 import type { ModelProperty } from '@typespec/compiler';
 import type { Namespace } from '@typespec/compiler';
@@ -12,6 +13,9 @@ import type { Operation } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 import { Service } from '@typespec/compiler';
 import { Type } from '@typespec/compiler';
+
+// @public
+export const asyncAPILinter: LinterDefinition;
 
 // Warning: (ae-internal-missing-underscore) The name "AsyncAPIService" should be prefixed with an underscore because the declaration is marked as @internal
 //

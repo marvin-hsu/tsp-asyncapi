@@ -64,6 +64,8 @@ operations:
           enum:
             - my-app-id
         bindingVersion: 0.5.0
+    messages:
+      - $ref: "#/channels/smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured/messages/LightMeasured"
   turnOn:
     action: send
     channel:

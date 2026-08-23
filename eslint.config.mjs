@@ -168,6 +168,23 @@ export default tseslint.config(
       "The lower half reads the resolved model, not decorator state. This file may read `localRef`, and that one only, because a raw schema is author-written JSON whose `$ref` has to be told apart from one this emitter wrote.",
     ),
   },
+  // The linter-rule tests assert through the compiler, not through `expect`.
+  //
+  // `createLinterRuleTester` returns `toBeValid()` and `toEmitDiagnostics()`.
+  // Both throw when the rule behaves wrongly, so a case that calls one is
+  // asserting. sonarjs recognises only `expect(...)`, so it reads every one
+  // of those cases as assertion-free.
+  //
+  // Wrapping each call in `expect(...).resolves` would satisfy the rule and
+  // say nothing more than the call already says. So the rule is off for the
+  // files that use that tester, and stays on everywhere else —
+  // `definition.test.ts` asserts on the linter definition with plain
+  // `expect`, so it keeps the guard.
+  {
+    files: ["test/unit/linter/**/*.test.ts"],
+    ignores: ["test/unit/linter/definition.test.ts"],
+    rules: { "sonarjs/assertions-in-tests": "off" },
+  },
   {
     ignores: [
       // `.claude/` is untracked, and it holds nested git worktrees of this
