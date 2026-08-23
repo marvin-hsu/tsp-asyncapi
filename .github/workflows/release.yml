@@ -120,8 +120,12 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # `--tags`, not `--follow-tags`. Changesets tags with `git tag <name>`,
+      # which makes a lightweight tag, and `--follow-tags` pushes annotated tags
+      # only. The first release published correctly and pushed no tag at all:
+      # both were created in the runner and thrown away with it.
       - name: Push the release tags
-        run: git push --follow-tags
+        run: git push origin --tags
 
   # A mirror, for anyone installing from this repository's registry. The package
   # names are scoped here; the dependency between them is not, so the scoped
