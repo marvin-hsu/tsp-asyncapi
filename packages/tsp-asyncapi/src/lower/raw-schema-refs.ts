@@ -1,8 +1,6 @@
 import { Model, Program } from "@typespec/compiler";
 import type { AsyncAPIDocument } from "../types/index.js";
-import { reportDiagnostic } from "tsp-asyncapi-core";
-import { localRef } from "tsp-asyncapi-core";
-import { isPlainObject } from "tsp-asyncapi-core";
+import { reportDiagnostic, localRef, isPlainObject } from "tsp-asyncapi-core";
 import { resolvesInDocument } from "./json-pointer.js";
 
 /** The field of a Multi Format Schema Object that carries the schema. */

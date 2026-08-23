@@ -16,9 +16,8 @@ import type {
   MessageNode,
   MessagePayloadNode,
 } from "tsp-asyncapi-core/unstable";
-import { present, text } from "tsp-asyncapi-core";
+import { present, text, reportDiagnostic } from "tsp-asyncapi-core";
 import { SchemaBuilder } from "./schemas.js";
-import { reportDiagnostic } from "tsp-asyncapi-core";
 import {
   MessageObject,
   MultiFormatSchemaObject,

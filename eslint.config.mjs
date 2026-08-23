@@ -2,6 +2,58 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import sonarjs from "eslint-plugin-sonarjs";
 
+// Every value `decorators/index.ts` exports that reads decorator state.
+//
+// The lower half must not call these. It translates the model resolve
+// produced, and it does not go to the program for anything. The `$`-prefixed
+// decorator implementations are left out: nothing outside `tsp-index.ts`
+// imports one, and the compiler is what calls them.
+//
+// This list used to be a comment. The three permitted reads were kept on
+// their own import lines so a reader could count them, which SonarQube reads
+// as the same module imported several times. Counting lines never proved
+// anything anyway: it showed how many statements a file had, not which names
+// crossed the boundary. The rule below checks the names.
+//
+// Add a name here when a state reader is added to `decorators/index.ts`.
+const DECORATOR_STATE_READERS = [
+  "getAsyncTags",
+  "getChannel",
+  "getContentType",
+  "getCorrelationId",
+  "getExtensions",
+  "getExternalDocs",
+  "getHeadersModel",
+  "getInfo",
+  "getJsonSchemaExtensions",
+  "getMessageExamples",
+  "getOperationAction",
+  "getParameterLocation",
+  "getRawHeaders",
+  "getRawPayload",
+  "getReplyAddress",
+  "getReplyChannel",
+  "getSecuritySchemes",
+  "getServers",
+  "getUsedSecuritySchemes",
+  "getUsedServers",
+  "isHeader",
+  "isOneOf",
+  "listChannels",
+  "listMessages",
+  "localRef",
+];
+
+/** Builds the `no-restricted-imports` entry for one set of forbidden names. */
+function restrictStateReaders(names, message) {
+  return {
+    "no-restricted-imports": [
+      "error",
+      { paths: [{ name: "tsp-asyncapi-core", importNames: names, message }] },
+    ],
+  };
+}
+
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -66,6 +118,55 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  // The stage discipline, enforced.
+  //
+  // resolve answers "what did the author declare?". lower answers "how does
+  // AsyncAPI write that down?". So the lower half reads the resolved model
+  // and nothing else. A state reader called here means a fact skipped the
+  // model, and the model is what a second service or a second version would
+  // be resolved into.
+  //
+  // The schemas block is the documented exception, and it is granted below.
+  {
+    files: ["packages/tsp-asyncapi/src/lower/**/*.ts"],
+    rules: restrictStateReaders(
+      DECORATOR_STATE_READERS,
+      "The lower half reads the resolved model, not decorator state. Resolve the fact into an IR node and read the node here. See the schemas block for the one exception, and why it is one.",
+    ),
+  },
+  // The schemas block, exempt.
+  //
+  // Every other section of the document is a few fixed fields. A schema is a
+  // tree with no bound, and materializing it into the IR would build a second
+  // type system beside the one TypeSpec already has.
+  //
+  // Expanding a schema is itself a lowering: `type`, `properties`, `allOf`,
+  // and `$ref` are JSON Schema concepts, and TypeSpec has none of them. So
+  // reading `@minLength(3)` to write `minLength: 3` is the translation step,
+  // not a shortcut around resolve.
+  //
+  // `schemas.ts` is the entry of the block and `schemas/` is its inside, so
+  // both are listed.
+  {
+    files: [
+      "packages/tsp-asyncapi/src/lower/schemas.ts",
+      "packages/tsp-asyncapi/src/lower/schemas/**/*.ts",
+    ],
+    rules: { "no-restricted-imports": "off" },
+  },
+  // One reader outside the schemas block.
+  //
+  // A raw schema is JSON the author wrote, and it can carry a `$ref` into the
+  // document. `localRef` reads back what `@rawPayload` recorded, so this file
+  // can tell a reference this emitter must resolve from one it must leave
+  // alone. Nothing else here reads state.
+  {
+    files: ["packages/tsp-asyncapi/src/lower/raw-schema-refs.ts"],
+    rules: restrictStateReaders(
+      DECORATOR_STATE_READERS.filter((name) => name !== "localRef"),
+      "The lower half reads the resolved model, not decorator state. This file may read `localRef`, and that one only, because a raw schema is author-written JSON whose `$ref` has to be told apart from one this emitter wrote.",
+    ),
   },
   {
     ignores: [

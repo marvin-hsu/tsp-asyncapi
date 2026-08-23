@@ -1,6 +1,5 @@
 import { Type, Model, Enum, Union, Program, compilerAssert } from "@typespec/compiler";
-import { reportDiagnostic } from "tsp-asyncapi-core";
-import { declarationNameFor, fallbackDeclarationName } from "tsp-asyncapi-core";
+import { reportDiagnostic, declarationNameFor, fallbackDeclarationName } from "tsp-asyncapi-core";
 
 /**
  * Key-collision policy for `components.schemas`. A name collision reports

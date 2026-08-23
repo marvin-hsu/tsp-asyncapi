@@ -18,9 +18,9 @@
  * definition for both directions.
  */
 
-import { isPlainObject } from "tsp-asyncapi-core";
 import type { ReferenceObject } from "../types/index.js";
 import {
+  isPlainObject,
   CHANNEL_REF_PREFIX,
   LOCAL_REF_PREFIX,
   COMPONENTS_MESSAGE_REF_PREFIX,

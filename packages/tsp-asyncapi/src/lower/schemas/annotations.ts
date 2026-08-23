@@ -27,13 +27,16 @@ import {
   isSecret,
 } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
-import { SCHEMA_FORMAT } from "tsp-asyncapi-core";
+import {
+  SCHEMA_FORMAT,
+  getJsonSchemaExtensions,
+  serializeExamples,
+  serializeDefaultValue,
+  toPlainValue,
+  buildExternalDocs,
+  type JsonSchemaExtensionRecord,
+} from "tsp-asyncapi-core";
 import { SchemaDiagnostics } from "./diagnostics.js";
-import { getJsonSchemaExtensions } from "tsp-asyncapi-core";
-import type { JsonSchemaExtensionRecord } from "tsp-asyncapi-core";
-import { serializeExamples, serializeDefaultValue } from "tsp-asyncapi-core";
-import { toPlainValue } from "tsp-asyncapi-core";
-import { buildExternalDocs } from "tsp-asyncapi-core";
 import { applyEncoding } from "./encoding.js";
 
 /**
