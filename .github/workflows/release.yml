@@ -103,6 +103,18 @@ jobs:
           name: dist
           path: packages
 
+      # `changeset publish` tags with `git tag <name> -m <name>`. The `-m` makes
+      # an annotated tag, and an annotated tag needs a committer identity. A
+      # runner has none by default, so the tag command failed and changesets
+      # printed "Created git tags." anyway: it does not read the exit code it
+      # collects.
+      #
+      # Two releases published correctly and tagged nothing because of this.
+      - name: Identify the tagger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       # `changeset publish` publishes only a version the registry does not have,
       # so a retry after a partial failure completes the release instead of
       # erroring on what already went out. It also tags each published package,
@@ -120,10 +132,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # `--tags`, not `--follow-tags`. Changesets tags with `git tag <name>`,
-      # which makes a lightweight tag, and `--follow-tags` pushes annotated tags
-      # only. The first release published correctly and pushed no tag at all:
-      # both were created in the runner and thrown away with it.
+      # `--tags` pushes every tag, annotated or not. `--follow-tags` would also
+      # work for what changesets creates, since those are annotated, but this
+      # does not depend on that detail staying true.
       - name: Push the release tags
         run: git push origin --tags
 
