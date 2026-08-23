@@ -1,12 +1,15 @@
 # tsp-asyncapi
 
-[![npm version](https://img.shields.io/npm/v/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)
+| 套件                                                                                                     | 版本                                                                                                          | 下載量                                                                                                               |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [`tsp-asyncapi`](https://www.npmjs.com/package/tsp-asyncapi) — AsyncAPI 3.1 emitter                      | [![npm](https://img.shields.io/npm/v/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           |
+| [`tsp-asyncapi-core`](https://www.npmjs.com/package/tsp-asyncapi-core) — decorator 與語意模型,不產出文件 | [![npm](https://img.shields.io/npm/v/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) |
+
 [![Node.js](https://img.shields.io/node/v/tsp-asyncapi)](https://nodejs.org/)
-[![npm downloads](https://img.shields.io/npm/dm/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)
 [![GitHub stars](https://img.shields.io/github/stars/marvin-hsu/tsp-asyncapi.svg?style=flat)](https://github.com/marvin-hsu/tsp-asyncapi/stargazers)
 
 [![CI](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/ci.yml/badge.svg)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/ci.yml)
-[![Release](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml/badge.svg?event=push)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml)
+[![Release](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml/badge.svg?event=workflow_dispatch)](https://github.com/marvin-hsu/tsp-asyncapi/actions/workflows/release.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=coverage)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=tsp-asyncapi&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=tsp-asyncapi)
