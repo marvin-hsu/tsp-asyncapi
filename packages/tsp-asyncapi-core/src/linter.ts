@@ -32,9 +32,10 @@ import { defineLinter } from "@typespec/compiler";
 import { LIBRARY_NAME } from "./lib.js";
 import { channelWithoutOperationRule } from "./linter/channel-without-operation.rule.js";
 import { missingServiceRule } from "./linter/missing-service.rule.js";
+import { operationWithoutMessageRule } from "./linter/operation-without-message.rule.js";
 
 /** The rules, in the order the reference documentation lists them. */
-const rules = [missingServiceRule, channelWithoutOperationRule];
+const rules = [missingServiceRule, channelWithoutOperationRule, operationWithoutMessageRule];
 
 /** Builds the `<library>/<rule>` reference a rule set entry needs. */
 function ref(name: string): `${string}/${string}` {
@@ -61,6 +62,7 @@ export const asyncAPILinter = defineLinter({
       enable: {
         [ref(missingServiceRule.name)]: true,
         [ref(channelWithoutOperationRule.name)]: true,
+        [ref(operationWithoutMessageRule.name)]: true,
       },
     },
   },
