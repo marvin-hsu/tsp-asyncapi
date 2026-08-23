@@ -6,6 +6,47 @@ so at the top of its entry.
 
 The Traditional Chinese version is [CHANGELOG.zh-TW.md](./CHANGELOG.zh-TW.md).
 
+## 0.4.0
+
+**Breaking for a tool that imports from this package in JavaScript or
+TypeScript. Not breaking for a project that writes TypeSpec.**
+
+The emitter is now two packages. `tsp-asyncapi-core` declares the decorators
+and the semantic model, and this package turns that model into an AsyncAPI
+document. The compiler reads `$onEmit` from a package's entry point, so one
+package can hold one emitter, and selecting an output by package name needs
+more than one package.
+
+**A TypeSpec project changes nothing.** `import "tsp-asyncapi";` still brings
+in every decorator, because this package's `lib/main.tsp` forwards to core in
+one line. `tspconfig.yaml` is unchanged, and so is every option name. Every
+diagnostic code keeps its `tsp-asyncapi/` prefix: both packages register a
+library under that one name, which the compiler supports.
+
+**The output is byte-for-byte identical.** No document changes.
+
+**A JavaScript or TypeScript import may need a new source.** 79 names moved to
+`tsp-asyncapi-core`: the 24 readers for decorator state, the 51 state types,
+and `$lib` with `reportDiagnostic`, `createDiagnostic`, and `LIBRARY_NAME`.
+
+```js
+// Before
+import { getChannel, listMessages } from "tsp-asyncapi";
+// After
+import { getChannel, listMessages } from "tsp-asyncapi-core";
+```
+
+This package does not re-export them. Doing so would make it permanently
+responsible for core's public surface, which is the coupling the split
+removes. `@typespec/openapi3` does not re-export `@typespec/http` either.
+
+The document object types did not move. `AsyncAPIDocument`, `ChannelObject`,
+every binding object, and the rest are still imported from `tsp-asyncapi`. This
+package's API describes the document it emits, completely.
+
+`PACKAGE_NAME` is new. It is this package's name, which is what
+`tspconfig.yaml` writes and what a test host asks the compiler to load.
+
 ## 0.3.0
 
 **Behavior changes.** No public export was removed, and no decorator changed

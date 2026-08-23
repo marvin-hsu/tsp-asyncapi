@@ -5,6 +5,42 @@ minor 版可能帶破壞性變更。有帶的話會寫在該版項目的最上�
 
 英文版在 [CHANGELOG.md](./CHANGELOG.md)。
 
+## 0.4.0
+
+**對在 JavaScript 或 TypeScript 裡 import 這個套件的工具是 breaking。
+對寫 TypeSpec 的專案不是。**
+
+emitter 現在是兩個套件。`tsp-asyncapi-core` 宣告 decorator 與語意模型，
+這個套件把那份模型轉成 AsyncAPI 文件。compiler 從套件的進場點讀 `$onEmit`，
+所以一個套件只能有一個 emitter，而「用套件名稱選產出」需要多個套件。
+
+**TypeSpec 專案不用改任何東西。** `import "tsp-asyncapi";` 仍然帶進每一個
+decorator，因為這個套件的 `lib/main.tsp` 用一行轉接到 core。`tspconfig.yaml`
+不變，每個選項名稱也不變。每個 diagnostic 代碼都保留 `tsp-asyncapi/` 前綴：
+兩個套件都以這一個名稱註冊 library，compiler 支援這種做法。
+
+**輸出逐位元相同。** 沒有任何文件改變。
+
+**JavaScript 或 TypeScript 的 import 來源可能要改。** 有 79 個名稱搬到
+`tsp-asyncapi-core`：24 個 decorator state 讀取函式、51 個 state 型別，
+以及 `$lib` 與 `reportDiagnostic`、`createDiagnostic`、`LIBRARY_NAME`。
+
+```js
+// 之前
+import { getChannel, listMessages } from "tsp-asyncapi";
+// 之後
+import { getChannel, listMessages } from "tsp-asyncapi-core";
+```
+
+這個套件不轉出它們。轉出等於讓它永久替 core 的公開面負責，而那正是拆分要
+解掉的耦合。`@typespec/openapi3` 也不轉出 `@typespec/http`。
+
+文件物件型別沒有搬。`AsyncAPIDocument`、`ChannelObject`、每個 binding 物件，
+以及其餘的，仍然從 `tsp-asyncapi` import。這個套件的 API 完整描述它產出的文件。
+
+`PACKAGE_NAME` 是新的。它是這個套件的名稱，也就是 `tspconfig.yaml` 寫的名稱、
+以及測試主機請 compiler 載入的名稱。
+
 ## 0.3.0
 
 **行為變更。** 沒有移除任何公開匯出，也沒有 decorator 改過簽章，所以從 0.2.1

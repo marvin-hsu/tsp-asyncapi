@@ -72,13 +72,13 @@ jobs:
       - name: Test and Coverage
         run: pnpm exec vitest run --coverage
 
-      # `pnpm check:package` rebuilds for the same reason, so the steps it
-      # wraps run here directly against the existing `dist`.
+      # The root `check:package` rebuilds, and the build above already ran. Each
+      # package's own script does not rebuild, so this calls those directly.
+      # Every package packs into its own `temp/`, which is what keeps the
+      # tarball globs apart: `tsp-asyncapi-core-0.4.0.tgz` matches
+      # `tsp-asyncapi-*.tgz` too.
       - name: Package Check
-        run: |
-          pnpm pack --pack-destination temp
-          pnpm exec publint
-          pnpm exec attw --profile esm-only temp/tsp-asyncapi-*.tgz
+        run: pnpm -r check:package
 
       # Blocking. A vulnerability in a production dependency reaches every
       # consumer of the published package, so it fails the build.
@@ -119,6 +119,7 @@ jobs:
               - 'docs/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
+              - '**/package.json'
 
   deploy-docs:
     needs: [build, changes]
