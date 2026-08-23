@@ -232,6 +232,25 @@ A name collision between two declarations reports a diagnostic error. It does no
 - `@tag` — Built-in. Adds standard tags to the document.
 - `@service` — Built-in. Extracts the API title automatically.
 
+## Linter
+
+Five optional rules catch mistakes the emitter accepts. Each one produces a
+valid document that says something you did not mean, and no diagnostic covers
+any of them. A rule runs during semantic analysis, so an editor shows it
+without running the emitter.
+
+```yaml
+# tspconfig.yaml
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"
+```
+
+`recommended` enables `missing-service`, `channel-without-operation`,
+`operation-without-message`, and `server-protocol-mismatch`.
+`unused-security-scheme` is enabled by name. See the Linter reference on the
+docs site for what each rule catches and how to fix it.
+
 ## Feature Status & Design Decisions
 
 Measured against the AsyncAPI 3.0 JSON schema on 2026-08-17. The `channel`,

@@ -232,6 +232,19 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
+## Linter 規則
+
+五條選用規則，抓 emitter 會接受的錯誤。它們都產出合法的文件，但文件說的不是你的意思，而且沒有任何診斷涵蓋它們。規則在語意分析階段執行，不需要執行 emitter 就會顯示。
+
+```yaml
+# tspconfig.yaml
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"
+```
+
+`recommended` 會啟用 `missing-service`、`channel-without-operation`、`operation-without-message` 與 `server-protocol-mismatch`。`unused-security-scheme` 要指名開啟。每條規則抓什麼、怎麼修，見文件站的 Linter 規則頁。
+
 ## 功能支援狀態與設計決策
 
 以 AsyncAPI 3.0 的 JSON schema 於 2026-08-17 實測。`channel`、`server` 與
