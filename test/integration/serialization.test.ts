@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { PACKAGE_NAME } from "#emitter/lib.js";
 
 /**

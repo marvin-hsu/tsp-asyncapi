@@ -17,8 +17,8 @@
       "default": "./dist/src/types/index.js"
     },
     "./testing": {
-      "types": "./dist/src/testing/index.d.ts",
-      "default": "./dist/src/testing/index.js"
+      "types": "./dist/src/testing.d.ts",
+      "default": "./dist/src/testing.js"
     }
   },
   "files": [

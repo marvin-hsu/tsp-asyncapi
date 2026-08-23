@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import { readdirSync, readFileSync } from "node:fs";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { LIBRARY_NAME } from "#core/lib.js";
 import { PACKAGE_NAME } from "#emitter/lib.js";
 import { byCodePoint } from "../utils/sort.js";

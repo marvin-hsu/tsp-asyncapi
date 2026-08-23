@@ -97,7 +97,7 @@ export default defineConfig({
       exclude: [
         "packages/tsp-asyncapi-core/src/decorators/**/*.ts",
         "packages/*/src/index.ts",
-        "packages/*/src/testing/**/*.ts",
+        "packages/*/src/testing.ts",
         "test/**",
       ],
       // A floor, not a target, and set two points under the measurement of

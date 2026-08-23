@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnostics, t } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { builtSecuritySchemes } from "../../../utils/security-schemes.js";
 import { reportSecurityUsesWithoutServer } from "#core/resolve/servers.js";
 import { getUsedSecuritySchemes } from "#core/decorators/index.js";

@@ -1,6 +1,6 @@
 import { Model } from "@typespec/compiler";
 import { t, TemplateWithMarkers } from "@typespec/compiler/testing";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { SchemaBuilder } from "#emitter/lower/schemas.js";
 import type { SchemaObject } from "#emitter/types/index.js";
 

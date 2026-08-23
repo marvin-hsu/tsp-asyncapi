@@ -14,7 +14,17 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        project: true,
+        // The project service, not `project: true`.
+        //
+        // With project references, `project: true` reads a referenced project
+        // through its declaration output. So linting needed a build first, and
+        // the static CI job deliberately runs without one: 981 errors, every
+        // cross-package type reported as unresolved.
+        //
+        // The project service resolves a reference to the source it was built
+        // from, so lint needs no build output. It is also the option
+        // typescript-eslint recommends now; `project` is deprecated.
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },

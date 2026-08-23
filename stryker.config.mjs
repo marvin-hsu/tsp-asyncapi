@@ -26,7 +26,7 @@ export default {
   mutate: [
     "packages/*/src/**/*.ts",
     "!packages/*/src/index.ts",
-    "!packages/*/src/testing/**",
+    "!packages/*/src/testing.ts",
     "!packages/*/src/lib.ts",
     "!packages/*/src/types/**",
   ],

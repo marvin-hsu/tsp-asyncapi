@@ -1,6 +1,6 @@
 import { expectDiagnosticEmpty } from "@typespec/compiler/testing";
 import type { Diagnostic, Program } from "@typespec/compiler";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { PACKAGE_NAME } from "#emitter/lib.js";
 import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
 import type { AsyncAPIDocument } from "#emitter/types/index.js";

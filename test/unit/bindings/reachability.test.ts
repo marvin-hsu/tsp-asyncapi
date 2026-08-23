@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { documentFrom, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
-import { AsyncAPITester } from "#emitter/testing/index.js";
+import { AsyncAPITester } from "#emitter/testing.js";
 import { BindingPlacements, reportUnattachedBindings } from "#core/resolve/bindings.js";
 import { listAllBindings } from "#core/decorators/bindings/state.js";
 import { operationsOf } from "../../utils/document.js";
