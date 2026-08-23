@@ -241,9 +241,10 @@ into three groups: planned, waiting for a use case, and will not do.
 
 ### Planned
 
-| Planned work                                                    | What it means today                                                      | Notes                                 |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
-| Test-case re-evaluation, and more property-based test scenarios | The suite carries 1036 example-based cases and 53 fast-check properties. | This is the current highest priority. |
+| Planned work                                 | What it means today                                                                                                                                                                                  | Notes                                                                                                                                             |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-class support for `@typespec/protobuf` | One source compiles with both emitters today. A protobuf payload reaches the document through `@rawPayload`, written by hand. A `Protobuf.Map` and an `Extern` model lower to a bare `type: object`. | The emitter must take the protobuf schema from the generated `.proto`. `@typespec/protobuf` exports no accessor for `@field` or `@package` today. |
+| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                               | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                        |
 
 ### Waiting for a use case
 
