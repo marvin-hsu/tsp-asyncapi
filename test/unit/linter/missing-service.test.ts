@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { missingServiceRule } from "#core/linter/missing-service.rule.js";
-import { createRuleTester } from "../../utils/linter.js";
+import { createMultiFileRuleTester, createRuleTester } from "../../utils/linter.js";
 
 /**
  * Unit tests of `tsp-asyncapi/missing-service`.
@@ -136,5 +136,37 @@ describe("Unit: the missing-service rule", () => {
       `,
       )
       .toEmitDiagnostics({ code: "tsp-asyncapi/missing-service" });
+  });
+
+  /**
+   * A service declared in another file still counts. The rule runs from
+   * `root` and asks the whole program, so nothing here depends on which
+   * file the author put it in.
+   */
+  it("stays quiet when the service is declared in another file", async () => {
+    const tester = await createMultiFileRuleTester(missingServiceRule, "./other.tsp");
+    await tester
+      .expect({
+        "other.tsp": `
+          using AsyncAPI;
+          @service(#{ title: "Orders" })
+          namespace Other;
+        `,
+        "main.tsp": `
+          namespace Test;
+
+          @message
+          model OrderCreated {
+            id: string;
+          }
+
+          @channel("orders.created")
+          interface OrderChannel {
+            @send
+            op publish(event: OrderCreated): void;
+          }
+        `,
+      })
+      .toBeValid();
   });
 });

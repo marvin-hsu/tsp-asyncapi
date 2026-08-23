@@ -52,7 +52,7 @@ describe("Unit: the operation-without-message rule", () => {
         @channel("orders.{id}")
         interface OrderChannel {
           @receive
-          op consume(event: OrderCreated): void;
+          op consume(): OrderCreated;
 
           @send
           op publish(id: string): void;
@@ -130,10 +130,12 @@ describe("Unit: the operation-without-message rule", () => {
   });
 
   /**
-   * The reply side counts. A `@receive` operation names its message through
-   * the return type, and reading only the parameters would report it.
+   * A `@send` operation sends what its parameters name. Its return type is
+   * the reply, which reaches `reply.messages`, a different field. So an
+   * operation whose only message is on the reply side still emits no
+   * `messages`, and still claims the whole channel.
    */
-  it("stays quiet when only the reply side names a message", async () => {
+  it("reports when only the reply side names a message", async () => {
     const tester = await createRuleTester(operationWithoutMessageRule);
     await tester
       .expect(
@@ -144,6 +146,125 @@ describe("Unit: the operation-without-message rule", () => {
         interface OrderChannel {
           @send
           op request(id: string): OrderCreated;
+        }
+      `,
+      )
+      .toEmitDiagnostics({ code: "tsp-asyncapi/operation-without-message" });
+  });
+
+  /**
+   * A `@receive` operation names what it receives in its **return type**.
+   * Writing the message as a parameter puts it on the reply side, so the
+   * operation emits no `messages`. This form reads as correct and is not.
+   */
+  it("reports an inverted @receive", async () => {
+    const tester = await createRuleTester(operationWithoutMessageRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        @channel("orders.created")
+        interface OrderChannel {
+          @receive
+          op consume(event: OrderCreated): void;
+        }
+      `,
+      )
+      .toEmitDiagnostics({ code: "tsp-asyncapi/operation-without-message" });
+  });
+
+  /** The correct `@receive` form stays quiet. */
+  it("stays quiet on a @receive that returns its message", async () => {
+    const tester = await createRuleTester(operationWithoutMessageRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        @channel("orders.created")
+        interface OrderChannel {
+          @receive
+          op consume(): OrderCreated;
+        }
+      `,
+      )
+      .toBeValid();
+  });
+
+  /**
+   * `unwrap` walks a union, so a message named through one counts. Reading
+   * only a direct model reference would report this.
+   */
+  it("stays quiet when the message is named through a union", async () => {
+    const tester = await createRuleTester(operationWithoutMessageRule);
+    await tester
+      .expect(
+        `
+        @service(#{ title: "Orders" })
+        namespace Test;
+
+        @message
+        model Created {
+          id: string;
+        }
+
+        @message
+        model Shipped {
+          id: string;
+        }
+
+        union Either {
+          Created,
+          Shipped,
+        }
+
+        @channel("orders")
+        interface OrderChannel {
+          @send
+          op publish(event: Either): void;
+        }
+      `,
+      )
+      .toBeValid();
+  });
+
+  /** The same walk unwraps a collection to its element type. */
+  it("stays quiet when the message is named through an array", async () => {
+    const tester = await createRuleTester(operationWithoutMessageRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        @channel("orders.created")
+        interface OrderChannel {
+          @send
+          op publish(events: OrderCreated[]): void;
+        }
+      `,
+      )
+      .toBeValid();
+  });
+
+  /** A template instantiation is a message in its own right. */
+  it("stays quiet when the message is a template instantiation", async () => {
+    const tester = await createRuleTester(operationWithoutMessageRule);
+    await tester
+      .expect(
+        `
+        @service(#{ title: "Orders" })
+        namespace Test;
+
+        @message
+        model Envelope<T> {
+          data: T;
+        }
+
+        @channel("orders.created")
+        interface OrderChannel {
+          @send
+          op publish(event: Envelope<string>): void;
         }
       `,
       )

@@ -146,4 +146,22 @@ describe("Unit: the server-protocol-mismatch rule", () => {
       )
       .toBeValid();
   });
+
+  /**
+   * `@server` checks its protocol only for being non-blank, so the author
+   * chooses the case. The comparison lowercases both sides.
+   */
+  it("accepts a protocol written in another case", async () => {
+    const tester = await createRuleTester(serverProtocolMismatchRule);
+    await tester
+      .expect(
+        `
+        @service(#{ title: "Orders" })
+        @server("prod", #{ host: "kafka.example.com:9092", protocol: "KAFKA" })
+        @kafkaServer(#{ schemaRegistryUrl: "https://registry.example.com" })
+        namespace Test;
+      `,
+      )
+      .toBeValid();
+  });
 });

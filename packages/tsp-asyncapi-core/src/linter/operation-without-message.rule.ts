@@ -58,13 +58,22 @@ export const operationWithoutMessageRule = createRule({
       // action, and a second spelling of that here would let the rule and
       // the emitter disagree about one operation.
       //
-      // Those sides hold every model the signature names, message or not.
+      // The request side alone, because that is the side the `messages`
+      // field is built from: `resolve/operations.ts` passes `request` to
+      // `resolveMessageRefs`. The reply side reaches `reply.messages`, a
+      // different field, and having one says nothing about the other.
+      //
+      // So this also catches an inverted `@receive`. A receive operation
+      // names what it receives in its return type, and writing the message
+      // as a parameter puts it on the reply side. The operation then emits
+      // no `messages`, which is the mistake this rule is about.
+      //
+      // The side holds every model the signature names, message or not.
       // `resolveMessageRefs` applies the message filter downstream, so the
       // same filter is applied here rather than assumed.
       const messages = listMessages(program);
-      const { request, reply } = operationSides(program, operation, action);
-      const carries = (model: Model) => messages.has(model);
-      if (request.some(carries) || reply.some(carries)) return;
+      const { request } = operationSides(program, operation, action);
+      if (request.some((model: Model) => messages.has(model))) return;
 
       if (channelMessageModels(program, target).length === 0) return;
 

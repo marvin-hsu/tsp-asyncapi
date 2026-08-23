@@ -211,4 +211,44 @@ describe("Unit: the channel-without-operation rule", () => {
       )
       .toEmitDiagnostics({ code: "tsp-asyncapi/channel-without-operation" });
   });
+
+  /**
+   * Augment decorators record the same state as inline ones. The rule reads
+   * state rather than syntax, and this pins that.
+   */
+  it("counts an action applied with an augment decorator", async () => {
+    const tester = await createRuleTester(channelWithoutOperationRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        interface OrderChannel {
+          op publish(event: OrderCreated): void;
+        }
+
+        @@channel(OrderChannel, "orders.created");
+        @@send(OrderChannel.publish);
+      `,
+      )
+      .toBeValid();
+  });
+
+  /** `@dynamicChannel` declares a channel too, and it has no address. */
+  it("stays quiet on a dynamic channel with an operation", async () => {
+    const tester = await createRuleTester(channelWithoutOperationRule);
+    await tester
+      .expect(
+        `
+        ${SERVICE}
+
+        @dynamicChannel("orders-created")
+        interface OrderChannel {
+          @send
+          op publish(event: OrderCreated): void;
+        }
+      `,
+      )
+      .toBeValid();
+  });
 });

@@ -23,3 +23,22 @@ export async function createRuleTester(rule: LinterRuleDefinition<string, Diagno
   const runner = await AsyncAPITester.createInstance();
   return createLinterRuleTester(runner, rule, PACKAGE_NAME);
 }
+
+/**
+ * Builds a tester for a rule that needs more than one file.
+ *
+ * A rule reads the whole program, and a declaration in one file changes the
+ * answer for another. The plain tester compiles `main.tsp` alone, so a
+ * second file has to be imported by name for the compiler to load it.
+ *
+ * @param rule - The rule under test
+ * @param imports - The files to import, such as `"./other.tsp"`
+ * @returns A tester for that rule
+ */
+export async function createMultiFileRuleTester(
+  rule: LinterRuleDefinition<string, DiagnosticMessages>,
+  ...imports: string[]
+) {
+  const runner = await AsyncAPITester.import(...imports).createInstance();
+  return createLinterRuleTester(runner, rule, PACKAGE_NAME);
+}

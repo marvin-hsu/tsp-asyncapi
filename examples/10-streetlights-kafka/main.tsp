@@ -104,10 +104,12 @@ interface LightingMeasuredChannel {
   @receive
   @summary("Inform about environmental lighting conditions of a particular streetlight.")
   @kafkaOperation(#{ clientId: #{ type: "string", `enum`: #["my-app-id"] } })
-  receiveLightMeasurement(
-    streetlightId: StreetlightId,
-    message: LightMeasured
-  ): void;
+  // `@receive` reads the signature the other way round from `@send`: the
+  // return type names the message received, and the parameters name the
+  // reply. Writing `message` as a parameter here would put it on the reply
+  // side, and the operation would emit no `messages` at all.
+  // `streetlightId` stays a parameter, because it is the channel parameter.
+  receiveLightMeasurement(streetlightId: StreetlightId): LightMeasured;
 }
 
 @channel("smartylighting.streetlights.1.0.action.{streetlightId}.turn.on")
