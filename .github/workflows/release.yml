@@ -51,9 +51,20 @@ jobs:
 
       # Fails the release if a changeset is still pending. A pending changeset
       # means `changeset version` was not run, so the versions on this commit
-      # are not the versions the change asked for.
+      # are not the versions the change asked for, and `changeset publish`
+      # would find both numbers already on the registry and release nothing.
+      #
+      # `changeset status` used to stand here. It exits 0 whether or not a
+      # changeset is pending, so it never failed anything. The file list is
+      # the state that matters, so this reads it directly.
       - name: No pending changesets
-        run: pnpm exec changeset status
+        run: |
+          pending=$(find .changeset -name '*.md' ! -name 'README.md')
+          if [ -n "$pending" ]; then
+            echo "::error::Pending changesets. Run \`pnpm exec changeset version\` and commit the result."
+            echo "$pending"
+            exit 1
+          fi
 
       - name: Full check
         run: pnpm check
