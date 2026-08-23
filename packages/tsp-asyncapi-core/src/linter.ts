@@ -33,6 +33,7 @@ import { LIBRARY_NAME } from "./lib.js";
 import { channelWithoutOperationRule } from "./linter/channel-without-operation.rule.js";
 import { missingServiceRule } from "./linter/missing-service.rule.js";
 import { operationWithoutMessageRule } from "./linter/operation-without-message.rule.js";
+import { serverProtocolMismatchRule } from "./linter/server-protocol-mismatch.rule.js";
 import { unusedSecuritySchemeRule } from "./linter/unused-security-scheme.rule.js";
 
 /** The rules, in the order the reference documentation lists them. */
@@ -40,6 +41,7 @@ const rules = [
   missingServiceRule,
   channelWithoutOperationRule,
   operationWithoutMessageRule,
+  serverProtocolMismatchRule,
   // Not in `recommended`. See the rule's own file for why.
   unusedSecuritySchemeRule,
 ];
@@ -70,6 +72,7 @@ export const asyncAPILinter = defineLinter({
         [ref(missingServiceRule.name)]: true,
         [ref(channelWithoutOperationRule.name)]: true,
         [ref(operationWithoutMessageRule.name)]: true,
+        [ref(serverProtocolMismatchRule.name)]: true,
       },
     },
   },
