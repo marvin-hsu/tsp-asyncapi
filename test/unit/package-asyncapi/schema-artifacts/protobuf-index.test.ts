@@ -80,7 +80,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const program = runner.program;
     const before = program.diagnostics.length;
     const captured = await captureProtobufFiles(program, perf);
-    const artifacts = indexProtobufArtifacts(program, captured);
+    const { artifacts } = indexProtobufArtifacts(program, captured);
     return { artifacts, reported: program.diagnostics.slice(before) };
   }
 
@@ -307,7 +307,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const program = runner.program;
     const before = program.diagnostics.length;
     const captured = await captureProtobufFiles(program, perf);
-    const artifacts = indexProtobufArtifacts(program, captured);
+    const { artifacts } = indexProtobufArtifacts(program, captured);
 
     expect(captured.files.size).toBe(0);
     expect(artifacts.payloadFor.size).toBe(0);
@@ -330,7 +330,10 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     `);
     const program = runner.program;
     const before = program.diagnostics.length;
-    const artifacts = indexProtobufArtifacts(program, { files: new Map(), diagnostics: [] });
+    const { artifacts } = indexProtobufArtifacts(program, {
+      files: new Map(),
+      diagnostics: [],
+    });
 
     expect(artifacts.payloadFor.size).toBe(0);
     const unavailable = program.diagnostics

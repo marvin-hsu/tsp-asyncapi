@@ -31,13 +31,9 @@
  */
 
 import { NoTarget, type Diagnostic, type Model, type Program } from "@typespec/compiler";
-import {
-  listMessages,
-  reportDiagnostic,
-  type ExternalSchemaArtifact,
-  type SchemaArtifactIndex,
-} from "tsp-asyncapi-core";
+import { listMessages, reportDiagnostic, type ExternalSchemaArtifact } from "tsp-asyncapi-core";
 import type { ProtobufCaptureResult } from "./protobuf-capture.js";
+import type { CollectedSchemaArtifacts } from "./provider.js";
 import { listProtobufMessageModels, resolveProtobufPackage } from "./protobuf-state.js";
 
 /**
@@ -72,14 +68,21 @@ type EmitSkip = { readonly silent: true } | { readonly silent: false; readonly r
  * Builds the artifact index of one capture.
  *
  * @param program - The program the capture ran over, to report against
+ * A model the document names and this cannot answer for is a refusal. The
+ * caller stops on one. Its payload would otherwise fall back to the schema
+ * its TypeSpec type produces, which answers a request for proto3 with
+ * ordinary JSON Schema and says so nowhere in the file.
+ *
+ * @param program - The program to report against
  * @param captured - The files and the diagnostics of the capture
- * @returns The payload artifact of every model that got one
+ * @returns The payload artifact of every model that got one, and whether any
+ * model went unanswered
  * @internal
  */
 export function indexProtobufArtifacts(
   program: Program,
   captured: ProtobufCaptureResult,
-): SchemaArtifactIndex {
+): CollectedSchemaArtifacts {
   // The skip reason is read before anything is reported, because reporting an
   // error sets the error flag the reason itself looks at.
   const skipped = wholeEmitSkip(program, captured);
@@ -94,7 +97,12 @@ export function indexProtobufArtifacts(
         format: { reason: skipped.reason },
       });
     }
-    return { payloadFor: new Map(), headersFor: new Map() };
+    // A skip this reported leaves every message without the payload it asked
+    // for. A silent skip writes nothing at all, so it has nothing to refuse.
+    return {
+      artifacts: { payloadFor: new Map(), headersFor: new Map() },
+      refused: !skipped.silent,
+    };
   }
 
   const lookup: PackageLookup = {
@@ -108,14 +116,19 @@ export function indexProtobufArtifacts(
   const artifacts = new Map<string, ExternalSchemaArtifact>();
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();
 
+  let refused = false;
   for (const model of listProtobufMessageModels(program)) {
     const found = packageTextFor(lookup, model);
     if (found !== undefined) {
       payloadFor.set(model, artifactOf(artifacts, found.identity, found.text));
+      continue;
     }
+    // `asked` holds the models the document names. One of those without an
+    // artifact was reported just now, and it is the hole the caller stops on.
+    if (lookup.asked.has(model)) refused = true;
   }
 
-  return { payloadFor, headersFor: new Map() };
+  return { artifacts: { payloadFor, headersFor: new Map() }, refused };
 }
 
 /** What the per-model lookup reads, so the loop passes one value. */

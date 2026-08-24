@@ -42,9 +42,10 @@ export interface SchemaArtifactProvider {
    * Runs the tool over one program.
    *
    * @param program - The compiled program
-   * @returns Every schema the tool produced, by model and by slot
+   * @returns Every schema the tool produced, and whether it had to refuse a
+   * model it was asked about
    */
-  collect(program: Program): Promise<SchemaArtifactIndex>;
+  collect(program: Program): Promise<CollectedSchemaArtifacts>;
 }
 
 /**
@@ -86,16 +87,20 @@ type ArtifactSlot = "payload" | "headers";
 /**
  * What one collection produced, and whether it refused anything.
  *
- * The caller needs both. A refused artifact leaves the index, so a document
- * built from `artifacts` alone would describe the model with the schema its
+ * The caller needs both. A refused model leaves the index, so a document
+ * built from `artifacts` alone would describe that model with the schema its
  * TypeSpec type produces and say nothing about the request.
+ *
+ * Two things refuse a model. A provider refuses one it cannot answer for. The
+ * merge refuses one that two providers claimed. Both leave the same hole, so
+ * both raise the same flag.
  *
  * @internal
  */
 export interface CollectedSchemaArtifacts {
-  /** Every artifact no conflict removed. */
+  /** Every artifact that survived. */
   readonly artifacts: SchemaArtifactIndex;
-  /** Whether two providers claimed one slot of one model. */
+  /** Whether any model the collection was asked about went unanswered. */
   readonly refused: boolean;
 }
 
@@ -116,7 +121,8 @@ export async function collectSchemaArtifacts(
   const enabled = providers.filter((provider) => features.has(provider.id));
   if (enabled.length === 0) return { artifacts: emptySchemaArtifacts, refused: false };
 
-  const indexes = await Promise.all(enabled.map((provider) => provider.collect(program)));
+  const collected = await Promise.all(enabled.map((provider) => provider.collect(program)));
+  const indexes = collected.map((one) => one.artifacts);
   const payload = mergeSlot(
     program,
     "payload",
@@ -129,7 +135,7 @@ export async function collectSchemaArtifacts(
   );
   return {
     artifacts: { payloadFor: payload.artifacts, headersFor: headers.artifacts },
-    refused: payload.refused || headers.refused,
+    refused: payload.refused || headers.refused || collected.some((one) => one.refused),
   };
 }
 

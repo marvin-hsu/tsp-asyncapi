@@ -59,8 +59,11 @@ function fakeProvider(
     id,
     collect: () =>
       Promise.resolve({
-        payloadFor: slot === "payload" ? claimed : new Map(),
-        headersFor: slot === "headers" ? claimed : new Map(),
+        artifacts: {
+          payloadFor: slot === "payload" ? claimed : new Map(),
+          headersFor: slot === "headers" ? claimed : new Map(),
+        },
+        refused: false,
       }),
   };
 }

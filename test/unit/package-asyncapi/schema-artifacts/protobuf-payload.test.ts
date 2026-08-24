@@ -219,4 +219,37 @@ describe("Unit: Protobuf generated payloads (Phase 16 P4)", () => {
     expect(reported[0]?.severity).toBe("warning");
     expect(reported[0]?.message).toContain("protobuf");
   });
+
+  /**
+   * A model the provider cannot answer for stops the emit.
+   *
+   * The payload of such a model falls back to the schema its TypeSpec type
+   * produces. That document describes the model with ordinary JSON Schema
+   * while the project asked for proto3, and nothing in the file says so.
+   * Reporting the error does not prevent it, because the emitter writes the
+   * file whatever the diagnostics say.
+   */
+  it("writes no document when an artifact is unavailable", async () => {
+    const { doc, diagnostics } = await emit(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      @Protobuf.message
+      model OrderCreated {
+        @Protobuf.field(1)
+        orderId: string;
+      }
+
+      @channel("orders.created")
+      interface Created {
+        @send
+        op created(event: OrderCreated): void;
+      }
+    `);
+
+    // The model sits in no `@Protobuf.package`, so no artifact can exist.
+    expect(diagnosticsWith(diagnostics, "protobuf-artifact-unavailable")).toHaveLength(1);
+    expect(doc).toBeNull();
+  });
 });

@@ -12,10 +12,9 @@
  */
 
 import type { EmitContext, Program } from "@typespec/compiler";
-import type { SchemaArtifactIndex } from "tsp-asyncapi-core";
 import { captureProtobufFiles } from "./protobuf-capture.js";
 import { indexProtobufArtifacts } from "./protobuf-index.js";
-import type { SchemaArtifactProvider } from "./provider.js";
+import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provider.js";
 
 /**
  * Builds the provider that answers the `protobuf` preview feature.
@@ -28,7 +27,7 @@ import type { SchemaArtifactProvider } from "./provider.js";
 export function createProtobufProvider(perf: EmitContext["perf"]): SchemaArtifactProvider {
   return {
     id: "protobuf",
-    async collect(program: Program): Promise<SchemaArtifactIndex> {
+    async collect(program: Program): Promise<CollectedSchemaArtifacts> {
       return indexProtobufArtifacts(program, await captureProtobufFiles(program, perf));
     },
   };
