@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { reportUnavailablePreviewFeatures } from "#emitter/preview-features.js";
 
 const SOURCE = `
   @service(#{ title: "Orders" })
@@ -130,5 +131,57 @@ describe("Unit: preview-features", () => {
     // The message lists what is allowed, so the author does not have to
     // find the reserved names somewhere else.
     expect(violation?.message).toContain("protobuf, avro");
+  });
+
+  /**
+   * Two services and a refused feature are two separate answers. The emitter
+   * resolves the services before it refuses, so the project hears about both
+   * at once instead of one per compile.
+   */
+  it("reports the extra service as well as the refused feature", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(
+      `
+        @service(#{ title: "Orders" })
+        namespace First {}
+
+        @service(#{ title: "Shipping" })
+        namespace Second {}
+      `,
+      { "preview-features": ["avro"] },
+      false,
+    );
+
+    expect(diagnosticsWith(diagnostics, "multiple-services")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toHaveLength(1);
+    expect(doc).toBeNull();
+  });
+
+  /**
+   * Every refused name gets its own diagnostic. One answer for a whole
+   * request would leave a project to guess which of its names is the one this
+   * release cannot honor.
+   *
+   * The refusal is called directly, because only one reserved name lacks a
+   * provider today. A compilation therefore cannot reach two refusals, and
+   * the loop would go unchecked until a second name is reserved.
+   */
+  it("reports each refused feature once", async () => {
+    const { program } = await emitDocumentWithDiagnostics(SOURCE);
+    const before = program.diagnostics.length;
+
+    const refused = reportUnavailablePreviewFeatures(
+      program,
+      { "preview-features": ["protobuf", "avro"] },
+      new Set(),
+    );
+
+    expect(refused).toBe(true);
+    const reported = program.diagnostics.slice(before);
+    expect(reported.map((diagnostic) => diagnostic.code)).toEqual([
+      "tsp-asyncapi/preview-feature-unavailable",
+      "tsp-asyncapi/preview-feature-unavailable",
+    ]);
+    expect(reported[0]?.message).toContain("protobuf");
+    expect(reported[1]?.message).toContain("avro");
   });
 });

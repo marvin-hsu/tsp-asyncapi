@@ -28,11 +28,6 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
 
   const providers = shippedProviders(context.perf);
 
-  // A requested feature with no provider behind it is refused. A document
-  // written now would ignore the request without saying so, so nothing is
-  // written.
-  if (reportUnavailablePreviewFeatures(program, options, availableFeatures(providers))) return;
-
   // Every provider a preview feature turns on runs here, before resolve. A
   // provider runs another emitter, and it reads `program.hasError()`, so this
   // stays ahead of every diagnostic the stages below report.
@@ -54,11 +49,20 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
     }
   }
 
-  // A conflict removes both artifacts, so the models it hit fall back to the
-  // schema their TypeSpec type produces. That document answers the request
-  // with output that ignores it, which is the same reason nothing is written
-  // for a feature this release cannot honor.
-  if (collected.refused) return;
+  // Two refusals leave from here. A requested feature with no provider behind
+  // it is one. A conflict that removed both artifacts is the other, because
+  // the models it hit fall back to the schema their TypeSpec type produces.
+  // Either way a document written now would ignore the request without saying
+  // so, so nothing is written.
+  //
+  // The check sits below the service resolution on purpose. A project with
+  // two services hears about both faults from one compile.
+  const unavailable = reportUnavailablePreviewFeatures(
+    program,
+    options,
+    availableFeatures(providers),
+  );
+  if (unavailable || collected.refused) return;
 
   const doc = await buildAsyncAPIDocument(program, service, options, collected.artifacts);
 

@@ -24,8 +24,8 @@ import { referencesIn } from "../../utils/references.js";
  * is which message gets which artifact, which is the only input promotion
  * reads.
  *
- * Three answers are asserted together, because one document holds all three:
- * a shared artifact is written once, a lone one is written in place, and a
+ * Three answers are asserted together, because one document holds all three.
+ * A shared artifact is written once. A lone one is written in place. A
  * message with no artifact keeps the schema its model produces.
  */
 

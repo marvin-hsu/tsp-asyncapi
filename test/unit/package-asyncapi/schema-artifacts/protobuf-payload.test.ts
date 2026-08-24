@@ -1,10 +1,10 @@
 /**
  * What a generated Protobuf payload looks like in the emitted document.
  *
- * Everything below runs the whole emitter: the official decorators compile,
- * the provider runs the official emitter, and the file the emitter writes is
- * the text these cases read. Nothing is asserted against an index or a
- * pipeline call, because what this step settles is what a project gets.
+ * Everything below runs the whole emitter. The official decorators compile,
+ * and the provider runs the official emitter. These cases read the text of
+ * the file this emitter writes. Nothing is asserted against an index or a
+ * pipeline call, because what a project gets is the file.
  *
  * Three answers are settled here. A schema two messages share is written once
  * and referenced twice. A schema one message uses stays where it is. A schema

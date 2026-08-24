@@ -50,10 +50,10 @@ export interface SchemaArtifactProvider {
 /**
  * Every provider this release ships.
  *
- * The registry is a function of the performance reporter, because a provider
- * runs another emitter and that emitter is handed the reporter of the emit
- * that asked for it. Nothing here reads a module-level value, so two emits of
- * one program each get their own providers.
+ * The registry takes the performance reporter. A provider runs another
+ * emitter, and that emitter needs the reporter of the emit that asked for it.
+ * Nothing here reads a module-level value. So two emits of one program each
+ * get their own providers.
  *
  * What this list holds also decides which preview feature is available. A
  * reserved name with no provider here is refused, and the emitter writes no
