@@ -51,6 +51,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@typespec/protobuf": "0.85.0",
     "tsp-asyncapi-core": "workspace:~",
     "yaml": "^2.9.0"
   },
