@@ -31,10 +31,7 @@ channels:
       - $ref: "#/servers/mqtt-prod"
     parameters:
       deviceId:
-        description: The serial number of the device.
-        examples:
-          - dev-00417
-        location: $message.payload#/deviceId
+        $ref: "#/components/parameters/deviceId"
     messages:
       DeviceReading:
         $ref: "#/components/messages/DeviceReading"
@@ -86,3 +83,9 @@ components:
           contentType: application/json
           responseTopic: devices/commands
           bindingVersion: 0.2.0
+  parameters:
+    deviceId:
+      description: The serial number of the device.
+      examples:
+        - dev-00417
+      location: $message.payload#/deviceId

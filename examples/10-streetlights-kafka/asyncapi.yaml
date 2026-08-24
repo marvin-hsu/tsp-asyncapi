@@ -26,28 +26,32 @@ channels:
     address: smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured
     description: The topic on which measured values may be produced and consumed.
     parameters:
-      streetlightId: {}
+      streetlightId:
+        $ref: "#/components/parameters/streetlightId"
     messages:
       LightMeasured:
         $ref: "#/components/messages/LightMeasured"
   smartylighting.streetlights.1.0.action.{streetlightId}.turn.on:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.turn.on
     parameters:
-      streetlightId: {}
+      streetlightId:
+        $ref: "#/components/parameters/streetlightId"
     messages:
       TurnOnOff:
         $ref: "#/components/messages/TurnOnOff"
   smartylighting.streetlights.1.0.action.{streetlightId}.turn.off:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.turn.off
     parameters:
-      streetlightId: {}
+      streetlightId:
+        $ref: "#/components/parameters/streetlightId"
     messages:
       TurnOnOff:
         $ref: "#/components/messages/TurnOnOff"
   smartylighting.streetlights.1.0.action.{streetlightId}.dim:
     address: smartylighting.streetlights.1.0.action.{streetlightId}.dim
     parameters:
-      streetlightId: {}
+      streetlightId:
+        $ref: "#/components/parameters/streetlightId"
     messages:
       DimLight:
         $ref: "#/components/messages/DimLight"
@@ -176,6 +180,8 @@ components:
     X509:
       type: X509
       description: mTLS X509
+  parameters:
+    streetlightId: {}
   operationBindings:
     receiveLightMeasurement:
       kafka:

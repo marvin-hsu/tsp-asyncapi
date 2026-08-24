@@ -8,7 +8,7 @@
 
 import type { InfoNode } from "tsp-asyncapi-core/unstable";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared, sharedEach } from "./components/survey.js";
+import { sharedEach, sharedOptional } from "./components/survey.js";
 import { present, text } from "tsp-asyncapi-core";
 import { InfoObject } from "../types/index.js";
 
@@ -31,7 +31,10 @@ export function lowerInfo(node: InfoNode, promoted: DocumentPromotions): InfoObj
     ...present("contact", node.contact ? { ...node.contact } : undefined),
     ...present("license", node.license ? { ...node.license } : undefined),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
-    ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
+    ...present(
+      "externalDocs",
+      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    ),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
     ...structuredClone(node.extensions),

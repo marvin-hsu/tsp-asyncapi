@@ -16,15 +16,9 @@ servers:
     description: One cluster per tenant.
     variables:
       tenant:
-        enum:
-          - acme
-          - globex
-        default: acme
-        description: The tenant.
+        $ref: "#/components/serverVariables/tenant"
       stage:
-        default: v1
-        examples:
-          - v1
+        $ref: "#/components/serverVariables/stage"
     security:
       - $ref: "#/components/securitySchemes/kafka-scram"
       - $ref: "#/components/securitySchemes/oauth"
@@ -43,6 +37,17 @@ servers:
 channels: {}
 operations: {}
 components:
+  serverVariables:
+    tenant:
+      enum:
+        - acme
+        - globex
+      default: acme
+      description: The tenant.
+    stage:
+      default: v1
+      examples:
+        - v1
   securitySchemes:
     kafka-scram:
       type: scramSha512

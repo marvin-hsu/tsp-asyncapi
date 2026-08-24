@@ -5,6 +5,7 @@ import {
   messagesOf,
   operationsOf,
   present,
+  resolveParameters,
   resolveTags,
   serversOf,
 } from "../utils/document.js";
@@ -136,9 +137,7 @@ describe("AsyncAPI emitted document", () => {
         title: "Order events",
         description: "Every order a customer places lands here.",
         servers: [{ $ref: "#/servers/kafka-prod" }],
-        parameters: {
-          region: { enum: ["eu", "us"], description: "The region the order was placed in." },
-        },
+        parameters: { region: { $ref: "#/components/parameters/region" } },
         messages: { OrderCreated: { $ref: "#/components/messages/OrderCreated" } },
       },
     });
@@ -568,7 +567,9 @@ describe("AsyncAPI emitted document", () => {
     // document as a bare string, and the AsyncAPI JSON Schema is what
     // decides whether the '#' this emitter insists on is really required. A
     // regex of this emitter's own cannot answer that, so the parser does.
-    expect(channelsOf(doc)["orders.{region}.{tenant}.created"].parameters).toEqual({
+    expect(
+      resolveParameters(doc, channelsOf(doc)["orders.{region}.{tenant}.created"].parameters),
+    ).toEqual({
       region: {
         default: "eu",
         description: "The region the order was placed in.",

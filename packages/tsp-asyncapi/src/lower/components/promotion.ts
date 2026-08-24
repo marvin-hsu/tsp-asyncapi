@@ -40,13 +40,23 @@
 /** How one kind of fragment earns a place in `components`. */
 export interface PromotionPolicy<T> {
   /**
-   * When a fragment earns a key.
+   * When a fragment earns a key, and what counts as the same fragment.
    *
-   * `"named"` promotes on the first use, because the author named the thing.
-   * `"repeated"` waits for the second, because nothing named it and one use
-   * has nothing to share with.
+   * `"named"` promotes on the first use, because the author named the thing
+   * inside the fragment. A Tag Object is this: its `name` is a member, so
+   * two tags of different names are already two fragments.
+   *
+   * `"keyed"` also promotes on the first use, but the name is *not* inside
+   * the fragment — the author wrote it as the key of the map the fragment
+   * sits in. A Parameter Object with no fields is `{}` whatever it is
+   * called, so the key joins the identity here. Without that, a channel's
+   * `{tenant}` would point at a component named after some other channel's
+   * `{region}`.
+   *
+   * `"repeated"` waits for the second use, because nothing named it and one
+   * use has nothing to share with.
    */
-  readonly when: "named" | "repeated";
+  readonly when: "named" | "keyed" | "repeated";
   /**
    * The key this fragment asks for.
    *
@@ -112,10 +122,11 @@ export class Promoter<T> {
     if (this.#frozen) {
       throw new Error("The survey is closed. Call `survey` before `freeze`, not after.");
     }
-    const identity = identityOf(value);
+    const key = this.#policy.key(value, site);
+    const identity = this.#identity(value, key);
     const seen = this.#seen.get(identity);
     if (seen === undefined) {
-      this.#seen.set(identity, { value, key: this.#policy.key(value, site), uses: 1 });
+      this.#seen.set(identity, { value, key, uses: 1 });
       return;
     }
     seen.uses += 1;
@@ -144,13 +155,15 @@ export class Promoter<T> {
    * the fragment itself.
    *
    * @param value - The lowered fragment
+   * @param site - The site carrying it. A `"keyed"` fragment needs it,
+   * because its name lives outside itself; the others ignore it.
    * @returns The key, or `undefined` when this fragment stays in place
    */
-  public keyFor(value: T): string | undefined {
+  public keyFor(value: T, site = ""): string | undefined {
     if (!this.#frozen) {
       throw new Error("The survey is open. Call `freeze` before reading a key.");
     }
-    const seen = this.#seen.get(identityOf(value));
+    const seen = this.#seen.get(this.#identity(value, this.#policy.key(value, site)));
     return seen === undefined || !this.#promotes(seen) ? undefined : seen.key;
   }
 
@@ -172,9 +185,21 @@ export class Promoter<T> {
     return promoted;
   }
 
+  /**
+   * What makes two fragments the same one.
+   *
+   * A `"keyed"` fragment carries its name outside itself, so the key joins
+   * the identity. A null byte separates the two halves: it cannot appear in
+   * a key, so no key and content can spell another pair's identity.
+   */
+  #identity(value: T, key: string): string {
+    const content = identityOf(value);
+    return this.#policy.when === "keyed" ? `${key}\u0000${content}` : content;
+  }
+
   /** Whether one sighting earns its key. */
   #promotes(seen: Sighting<T>): boolean {
     if (this.#contested.has(seen.key)) return false;
-    return this.#policy.when === "named" || seen.uses > 1;
+    return this.#policy.when !== "repeated" || seen.uses > 1;
   }
 }

@@ -15,21 +15,21 @@ import type { ServerNode, ServerVariableNode } from "tsp-asyncapi-core/unstable"
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";
+import { lowerServerVariable } from "./servers/variables.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared, sharedEach } from "./components/survey.js";
+import { shared, sharedEach, sharedOptional } from "./components/survey.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
 function lowerServerVariables(
   variables: ReadonlyMap<string, ServerVariableNode>,
-): Record<string, ServerVariableObject> {
-  const entries: [string, ServerVariableObject][] = [];
+  promoted: DocumentPromotions,
+): Record<string, ServerVariableObject | ReferenceObject> {
+  const entries: [string, ServerVariableObject | ReferenceObject][] = [];
   for (const [name, node] of variables) {
-    const variable: ServerVariableObject = {};
-    if (node.enum !== undefined) variable.enum = [...node.enum];
-    if (node.default !== undefined) variable.default = node.default;
-    if (node.description !== undefined) variable.description = node.description;
-    if (node.examples !== undefined) variable.examples = [...node.examples];
-    entries.push([name, variable]);
+    entries.push([
+      name,
+      shared(promoted.serverVariables, "serverVariables", lowerServerVariable(node), name),
+    ]);
   }
   // A variable name is written by the author, so it is built as an entry
   // rather than assigned. A plain assignment of a name such as `__proto__`
@@ -46,7 +46,8 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   if (node.title !== undefined) server.title = node.title;
   if (node.summary !== undefined) server.summary = node.summary;
   if (node.description !== undefined) server.description = node.description;
-  if (node.variables !== undefined) server.variables = lowerServerVariables(node.variables);
+  if (node.variables !== undefined)
+    server.variables = lowerServerVariables(node.variables, promoted);
 
   // Each server gets its own objects, so a later change to one server cannot
   // reach another. The three fields below come from the namespace, so one
@@ -61,11 +62,15 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
     }));
     server.security = security;
   }
-  const externalDocs = shared(promoted.externalDocs, "externalDocs", node.externalDocs);
+  const externalDocs = sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs);
   if (externalDocs !== undefined) server.externalDocs = externalDocs;
   const tags = sharedEach(promoted.tags, "tags", node.tags);
   if (tags !== undefined) server.tags = tags;
-  const bindings = shared(promoted.serverBindings, "serverBindings", lowerBindings(node.bindings));
+  const bindings = sharedOptional(
+    promoted.serverBindings,
+    "serverBindings",
+    lowerBindings(node.bindings),
+  );
   if (bindings !== undefined) server.bindings = bindings;
   return server;
 }

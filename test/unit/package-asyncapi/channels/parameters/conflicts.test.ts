@@ -3,6 +3,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { resolveParameters } from "../../../../utils/document.js";
 
 describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -31,7 +32,9 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/missing-channel-param");
     // The map still covers the whole address, so the document stays readable.
-    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
+    expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
+      orderId: {},
+    });
   });
 
   it("reports every declaration of a parameter the address never uses", async () => {
@@ -94,7 +97,9 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     // first must not decide whether the author hears about it.
     expect(reported).toHaveLength(1);
     expect(targetText(reported[0])).toBe("orderId?: string");
-    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
+    expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
+      orderId: {},
+    });
   });
 
   it("reports a non-string parameter declared by the second operation", async () => {
@@ -128,7 +133,9 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     expect(reported).toHaveLength(1);
     expect(targetText(reported[0])).toBe("orderId: int32");
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/conflicting-channel-param");
-    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
+    expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
+      orderId: {},
+    });
   });
 
   it("keeps the first declaration when two operations disagree", async () => {
@@ -152,7 +159,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     const conflict = findDiagnostic(diagnostics, "conflicting-channel-param");
 
     expect(conflict.message).toMatch(/description/);
-    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { description: "First" },
     });
   });
@@ -201,7 +208,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     ]);
     // The first declaration in source order is the one that reaches the
     // document, field by field.
-    expect(doc.channels?.["orders.{region}"].parameters).toEqual({
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {
         enum: ["eu", "us"],
         default: "eu",
@@ -239,7 +246,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     // The two unions are separate TypeSpec objects, because each operation
     // writes its own. They allow the same values, so they agree.
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.["orders.{region}.changed"].parameters).toEqual({
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}.changed"].parameters)).toEqual({
       region: { enum: ["eu", "us"] },
     });
   });

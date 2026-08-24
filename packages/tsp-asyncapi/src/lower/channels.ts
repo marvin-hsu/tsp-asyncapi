@@ -14,28 +14,24 @@ import { present, text } from "tsp-asyncapi-core";
 import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
+import { lowerParameter } from "./channels/parameters.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared, sharedEach } from "./components/survey.js";
-
-/** Turns one resolved parameter into a Parameter Object. */
-function lowerParameter(node: ChannelParameterNode): ParameterObject {
-  return {
-    ...present("enum", node.enumValues ? [...node.enumValues] : undefined),
-    ...text("default", node.default),
-    ...text("description", node.description),
-    ...present("examples", node.examples ? [...node.examples] : undefined),
-    ...text("location", node.location),
-  };
-}
+import { shared, sharedEach, sharedOptional } from "./components/survey.js";
 
 /** Turns the resolved parameters of one channel into the `parameters` map. */
 function lowerParameters(
   nodes: readonly ChannelParameterNode[],
-): Record<string, ParameterObject> | undefined {
+  promoted: DocumentPromotions,
+): Record<string, ParameterObject | ReferenceObject> | undefined {
   if (nodes.length === 0) return undefined;
   // The map is built from entries, so a name such as `__proto__` becomes an
   // own property instead of a write to the prototype.
-  return Object.fromEntries(nodes.map((node) => [node.name, lowerParameter(node)]));
+  return Object.fromEntries(
+    nodes.map((node) => [
+      node.name,
+      shared(promoted.parameters, "parameters", lowerParameter(node), node.name),
+    ]),
+  );
 }
 
 /** Turns the resolved messages of one channel into the `messages` map. */
@@ -69,14 +65,17 @@ function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelO
       "servers",
       node.servers.length > 0 ? node.servers.map((name) => ({ $ref: serverRef(name) })) : undefined,
     ),
-    ...present("parameters", lowerParameters(node.parameters)),
+    ...present("parameters", lowerParameters(node.parameters, promoted)),
     ...present("messages", lowerMessages(node)),
     ...present(
       "bindings",
-      shared(promoted.channelBindings, "channelBindings", lowerBindings(node.bindings)),
+      sharedOptional(promoted.channelBindings, "channelBindings", lowerBindings(node.bindings)),
     ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
-    ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
+    ...present(
+      "externalDocs",
+      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    ),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
     ...structuredClone(node.extensions),

@@ -5,6 +5,7 @@ import { buildServersFrom } from "../../utils/servers.js";
 import { getServers } from "#core/decorators/index.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { present, serversOf } from "../../utils/document.js";
+import { resolveServerVariables } from "../../utils/document.js";
 
 describe("Unit: server variables", () => {
   it("emits a variable used by a host template", async () => {
@@ -25,16 +26,19 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
+    // A variable is named by the key of the map it sits in, so it is written
+    // once in `components.serverVariables` and the server points at it.
     expect(serversOf(doc).production).toEqual({
       host: "{env}.kafka.example.com:9092",
       protocol: "kafka",
-      variables: {
-        env: {
-          enum: ["prod", "sit"],
-          default: "prod",
-          description: "The environment.",
-          examples: ["prod"],
-        },
+      variables: { env: { $ref: "#/components/serverVariables/env" } },
+    });
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
+      env: {
+        enum: ["prod", "sit"],
+        default: "prod",
+        description: "The environment.",
+        examples: ["prod"],
       },
     });
   });
@@ -52,7 +56,9 @@ describe("Unit: server variables", () => {
     `);
 
     expect(serversOf(doc).production.pathname).toBe("/{tenant}/orders");
-    expect(serversOf(doc).production.variables).toEqual({ tenant: { default: "acme" } });
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
+      tenant: { default: "acme" },
+    });
   });
 
   it("reads the templates of host and pathname as one set", async () => {
@@ -89,7 +95,7 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(serversOf(doc).production.variables).toEqual({ env: {} });
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({ env: {} });
   });
 
   it("emits each variable field on its own, without the other three", async () => {
@@ -114,7 +120,7 @@ describe("Unit: server variables", () => {
       namespace Test;
     `);
 
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       a: { enum: ["one", "two"] },
       b: { default: "only-default" },
       c: { description: "Only a description." },
@@ -154,7 +160,7 @@ describe("Unit: server variables", () => {
         message: /The `enum` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       env: { enum: ["prod"], default: "prod" },
     });
   });
@@ -174,7 +180,7 @@ describe("Unit: server variables", () => {
 
     // `examples` carries no `uniqueItems` in the specification, unlike
     // `enum`, so it is emitted as written.
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       env: { examples: ["prod", "sit"], default: "prod" },
     });
   });
@@ -202,7 +208,7 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       env: { enum: ["prod", "sit"], default: "prod" },
     });
   });
@@ -231,7 +237,7 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       env: { enum: ["prod", "sit"], default: "prod" },
     });
   });
@@ -259,7 +265,7 @@ describe("Unit: server variables", () => {
         message: /names 'prod' more than once/,
       },
     ]);
-    expect(serversOf(doc).production.variables).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables)).toEqual({
       env: { enum: ["prod"], default: "prod" },
     });
   });
@@ -282,7 +288,7 @@ describe("Unit: server variables", () => {
         message: /The `examples` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(present(serversOf(doc).production.variables, "server variables").env.examples).toEqual([
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables).env.examples).toEqual([
       "v1",
     ]);
   });
@@ -332,7 +338,7 @@ describe("Unit: server variables", () => {
         message: /The `enum` of the server variable 'env' holds an entry that is blank/,
       },
     ]);
-    expect(present(serversOf(doc).production.variables, "server variables").env).toEqual({
+    expect(resolveServerVariables(doc, serversOf(doc).production.variables).env).toEqual({
       default: "prod",
     });
   });

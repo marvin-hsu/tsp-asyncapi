@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { resolveParameters } from "../../../../utils/document.js";
 
 describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -29,7 +30,9 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     const doc = documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
-    expect(doc.channels?.["orders.{orderId}"].parameters).toEqual({ orderId: {} });
+    expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
+      orderId: {},
+    });
   });
 
   it("accepts a header location and an empty pointer", async () => {
@@ -55,7 +58,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.["orders.{region}.{tenant}"].parameters).toEqual({
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}.{tenant}"].parameters)).toEqual({
       region: { location: "$message.header#/region" },
       tenant: { location: "$message.header#" },
     });
@@ -82,7 +85,9 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
     // The normative JSON Schema of AsyncAPI requires the `#`, and the
     // official parser rejects a document without it.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
-    expect(doc.channels?.["orders.{region}"].parameters).toEqual({ region: {} });
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
+      region: {},
+    });
   });
 
   it("reports a second @parameterLocation on one property", async () => {

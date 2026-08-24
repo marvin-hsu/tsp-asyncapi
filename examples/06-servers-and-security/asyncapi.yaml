@@ -25,11 +25,7 @@ servers:
     description: One shared cluster for every development tenant.
     variables:
       tenant:
-        default: sandbox
-        description: The tenant this client connects as.
-        examples:
-          - sandbox
-          - acme
+        $ref: "#/components/serverVariables/tenant"
     security:
       - $ref: "#/components/securitySchemes/ledger-oauth"
       - $ref: "#/components/securitySchemes/broker-scram"
@@ -47,14 +43,9 @@ servers:
     summary: The production AMQP broker.
     variables:
       port:
-        enum:
-          - "5671"
-          - "5672"
-        default: "5671"
-        description: TLS on 5671.
+        $ref: "#/components/serverVariables/port"
       vhost:
-        default: ledger
-        description: The virtual host to open.
+        $ref: "#/components/serverVariables/vhost"
     security:
       - $ref: "#/components/securitySchemes/ledger-oauth"
       - $ref: "#/components/securitySchemes/broker-scram"
@@ -66,6 +57,22 @@ servers:
 channels: {}
 operations: {}
 components:
+  serverVariables:
+    tenant:
+      default: sandbox
+      description: The tenant this client connects as.
+      examples:
+        - sandbox
+        - acme
+    port:
+      enum:
+        - "5671"
+        - "5672"
+      default: "5671"
+      description: TLS on 5671.
+    vhost:
+      default: ledger
+      description: The virtual host to open.
   securitySchemes:
     ledger-oauth:
       type: oauth2

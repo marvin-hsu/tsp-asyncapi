@@ -105,7 +105,7 @@ export interface ServerObject {
    * The values that replace the `{var}` templates of `host` and `pathname`,
    * keyed by the name written inside the braces.
    */
-  variables?: Record<string, ServerVariableObject>;
+  variables?: Record<string, ServerVariableObject | ReferenceObject>;
   /**
    * The security schemes a client of this server satisfies. AsyncAPI reads
    * the array as OR, so one entry is enough.
@@ -200,7 +200,7 @@ export interface ChannelObject extends SpecificationExtensions {
    * carries inside the address. The field is only present when the address
    * holds at least one `{name}` expression.
    */
-  parameters?: Record<string, ParameterObject>;
+  parameters?: Record<string, ParameterObject | ReferenceObject>;
   /**
    * The messages that flow over this channel, each a reference into
    * `components.messages`.

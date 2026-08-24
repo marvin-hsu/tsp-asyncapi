@@ -26,11 +26,7 @@ servers:
     description: One cluster shared by every development tenant.
     variables:
       tenant:
-        default: sandbox
-        description: The tenant this client connects as.
-        examples:
-          - sandbox
-          - acme
+        $ref: "#/components/serverVariables/tenant"
     security:
       - $ref: "#/components/securitySchemes/broker-scram"
       - $ref: "#/components/securitySchemes/signup-oauth"
@@ -49,11 +45,7 @@ servers:
     summary: The production cluster, one deployment per region.
     variables:
       region:
-        enum:
-          - eu-west-1
-          - us-east-1
-        default: eu-west-1
-        description: The region of the cluster.
+        $ref: "#/components/serverVariables/region"
     security:
       - $ref: "#/components/securitySchemes/broker-scram"
       - $ref: "#/components/securitySchemes/signup-oauth"
@@ -301,6 +293,19 @@ components:
       title: A signup funnel event
       description: One event of the signup funnel.
       $comment: The payload shape is versioned by the topic address.
+  serverVariables:
+    tenant:
+      default: sandbox
+      description: The tenant this client connects as.
+      examples:
+        - sandbox
+        - acme
+    region:
+      enum:
+        - eu-west-1
+        - us-east-1
+      default: eu-west-1
+      description: The region of the cluster.
   messages:
     SignupEventV1:
       name: SignupEventV1

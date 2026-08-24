@@ -59,6 +59,8 @@ export function lowerComponents(
   const correlationIds = Object.fromEntries(promoted.correlationIds.entries());
   const externalDocs = Object.fromEntries(promoted.externalDocs.entries());
   const tags = Object.fromEntries(promoted.tags.entries());
+  const parameters = Object.fromEntries(promoted.parameters.entries());
+  const serverVariables = Object.fromEntries(promoted.serverVariables.entries());
   const bindings = {
     serverBindings: Object.fromEntries(promoted.serverBindings.entries()),
     channelBindings: Object.fromEntries(promoted.channelBindings.entries()),
@@ -71,8 +73,10 @@ export function lowerComponents(
 
   const components: ComponentsObject = {
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
+    ...(Object.keys(serverVariables).length > 0 ? { serverVariables } : {}),
     ...(messages ? { messages } : {}),
     ...(securitySchemes ? { securitySchemes } : {}),
+    ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
     ...(Object.keys(correlationIds).length > 0 ? { correlationIds } : {}),
     ...filledBindings,
     ...(Object.keys(tags).length > 0 ? { tags } : {}),

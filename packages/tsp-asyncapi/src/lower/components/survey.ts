@@ -18,11 +18,15 @@
 
 import type { AsyncAPIService, BindingNode } from "tsp-asyncapi-core/unstable";
 import { lowerBindings } from "../bindings.js";
+import { lowerParameter } from "../channels/parameters.js";
+import { lowerServerVariable } from "../servers/variables.js";
 import type {
   BindingsObject,
   CorrelationIdObject,
   ExternalDocumentationObject,
+  ParameterObject,
   ReferenceObject,
+  ServerVariableObject,
   TagObject,
 } from "../../types/index.js";
 
@@ -52,6 +56,8 @@ export interface DocumentPromotions {
   readonly correlationIds: Promoter<CorrelationIdObject>;
   readonly externalDocs: Promoter<ExternalDocumentationObject>;
   readonly tags: Promoter<TagObject>;
+  readonly parameters: Promoter<ParameterObject>;
+  readonly serverVariables: Promoter<ServerVariableObject>;
   readonly serverBindings: Promoter<BindingsObject>;
   readonly channelBindings: Promoter<BindingsObject>;
   readonly operationBindings: Promoter<BindingsObject>;
@@ -67,6 +73,17 @@ export interface DocumentPromotions {
  */
 function byName<T extends { readonly name: string }>(): Promoter<T> {
   return new Promoter<T>({ when: "named", key: (value) => keyFromSite(value.name) });
+}
+
+/**
+ * A promoter for a fragment whose name is the key of the map it sits in.
+ *
+ * A Parameter Object and a Server Variable Object carry no name of their
+ * own — the author wrote it as the map key — so the site *is* the name, and
+ * one use is enough.
+ */
+function byKey<T>(): Promoter<T> {
+  return new Promoter<T>({ when: "keyed", key: (_value, site) => keyFromSite(site) });
 }
 
 /** A promoter for a fragment the author never named. */
@@ -89,6 +106,8 @@ export function surveyDocument(
   const correlationIds = anonymous<CorrelationIdObject>();
   const externalDocs = anonymous<ExternalDocumentationObject>();
   const tags = byName<TagObject>();
+  const parameters = byKey<ParameterObject>();
+  const serverVariables = byKey<ServerVariableObject>();
   const bindings = {
     serverBindings: anonymous<BindingsObject>(),
     channelBindings: anonymous<BindingsObject>(),
@@ -127,10 +146,16 @@ export function surveyDocument(
   surveySite("info", service.info);
   for (const server of service.servers) {
     surveySite(server.name, server);
+    for (const [name, variable] of server.variables ?? []) {
+      serverVariables.survey(lowerServerVariable(variable), name);
+    }
     surveyBindings("serverBindings", server.bindings, server.name);
   }
   for (const channel of service.channels) {
     surveySite(channel.key, channel);
+    for (const parameter of channel.parameters) {
+      parameters.survey(lowerParameter(parameter), parameter.name);
+    }
     surveyBindings("channelBindings", channel.bindings, channel.key);
   }
   for (const operation of service.operations) {
@@ -148,6 +173,8 @@ export function surveyDocument(
   correlationIds.freeze();
   externalDocs.freeze();
   tags.freeze();
+  parameters.freeze();
+  serverVariables.freeze();
   for (const promoter of Object.values(bindings)) promoter.freeze();
 
   return {
@@ -155,6 +182,8 @@ export function surveyDocument(
     correlationIds,
     externalDocs,
     tags,
+    parameters,
+    serverVariables,
     ...bindings,
   };
 }
@@ -171,17 +200,36 @@ export function surveyDocument(
  * @param promoter - The closed survey for this kind of fragment
  * @param section - The `components` section the reference points into
  * @param value - The fragment this site carries
- * @returns The reference, the copy, or `undefined` when the site has nothing
+ * @param site - The site's own name, needed only for a fragment whose name
+ * lives outside it, such as a Parameter Object
+ * @returns The reference or the copy
  * @internal
  */
 export function shared<T>(
   promoter: Promoter<T>,
   section: string,
+  value: T,
+  site?: string,
+): T | ReferenceObject {
+  const key = promoter.keyFor(value, site);
+  return key === undefined ? structuredClone(value) : { $ref: componentRef(section, key) };
+}
+
+/**
+ * {@link shared}, for a field the site may not carry at all.
+ *
+ * @param promoter - The closed survey for this kind of fragment
+ * @param section - The `components` section the reference points into
+ * @param value - The fragment this site carries, if any
+ * @returns The reference, the copy, or `undefined` when the site has nothing
+ * @internal
+ */
+export function sharedOptional<T>(
+  promoter: Promoter<T>,
+  section: string,
   value: T | undefined,
 ): T | ReferenceObject | undefined {
-  if (value === undefined) return undefined;
-  const key = promoter.keyFor(value);
-  return key === undefined ? structuredClone(value) : { $ref: componentRef(section, key) };
+  return value === undefined ? undefined : shared(promoter, section, value);
 }
 
 /**
@@ -203,7 +251,5 @@ export function sharedEach<T>(
   values: readonly T[],
 ): (T | ReferenceObject)[] | undefined {
   if (values.length === 0) return undefined;
-  // Every entry went through the survey, so `shared` never answers
-  // `undefined` here.
-  return values.map((value) => shared(promoter, section, value) as T | ReferenceObject);
+  return values.map((value) => shared(promoter, section, value));
 }

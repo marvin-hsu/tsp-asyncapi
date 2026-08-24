@@ -12,7 +12,9 @@ import type {
   MultiFormatSchemaObject,
   OperationObject,
   SchemaObject,
+  ParameterObject,
   SecuritySchemeObject,
+  ServerVariableObject,
   ServerObject,
 } from "#emitter/types/index.js";
 
@@ -369,4 +371,61 @@ export function bindingFor(
 ): BindingObject | undefined {
   const bindings = bindingsOf(value, `the ${protocol} bindings`);
   return Object.hasOwn(bindings, protocol) ? bindings[protocol] : undefined;
+}
+
+/**
+ * Follows every reference in one map of shared fragments.
+ *
+ * A Parameter Object and a Server Variable Object are named by the key of
+ * the map they sit in, so each is written once in `components` and every map
+ * points at it. A test about what one *says* is not about where it is
+ * written, so it reads through this.
+ */
+function resolveMap<T extends object>(
+  section: Record<string, T> | undefined,
+  entries: Record<string, T | ReferenceObject> | undefined,
+  prefix: string,
+): Record<string, T> {
+  const components = section ?? {};
+  const resolved: Record<string, T> = {};
+  for (const [name, value] of Object.entries(entries ?? {})) {
+    if (!("$ref" in value)) {
+      resolved[name] = value;
+      continue;
+    }
+    const key = value.$ref.replace(prefix, "");
+    if (!Object.hasOwn(components, key)) {
+      throw new Error(`The document references '${value.$ref}', and nothing is there.`);
+    }
+    resolved[name] = components[key];
+  }
+  return resolved;
+}
+
+/**
+ * The channel parameters of one channel, with every reference followed.
+ *
+ * @param doc - The emitted document
+ * @param parameters - The `parameters` map of one channel
+ * @returns The Parameter Objects, keyed as the channel keys them
+ */
+export function resolveParameters(
+  doc: AsyncAPIDocument | null,
+  parameters: Record<string, ParameterObject | ReferenceObject> | undefined,
+): Record<string, ParameterObject> {
+  return resolveMap(doc?.components?.parameters, parameters, "#/components/parameters/");
+}
+
+/**
+ * The variables of one server, with every reference followed.
+ *
+ * @param doc - The emitted document
+ * @param variables - The `variables` map of one server
+ * @returns The Server Variable Objects, keyed as the server keys them
+ */
+export function resolveServerVariables(
+  doc: AsyncAPIDocument | null,
+  variables: Record<string, ServerVariableObject | ReferenceObject> | undefined,
+): Record<string, ServerVariableObject> {
+  return resolveMap(doc?.components?.serverVariables, variables, "#/components/serverVariables/");
 }

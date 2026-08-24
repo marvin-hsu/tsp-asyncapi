@@ -3,6 +3,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { diagnosticsWith, findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { resolveParameters } from "../../../../utils/document.js";
 
 describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
   let runner: TesterInstance;
@@ -160,7 +161,9 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     const doc = documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.["orders.{region}.created.{region}"].parameters).toEqual({ region: {} });
+    expect(
+      resolveParameters(doc, doc.channels?.["orders.{region}.created.{region}"].parameters),
+    ).toEqual({ region: {} });
   });
 
   it("reports one missing parameter for a name the address writes twice", async () => {

@@ -114,7 +114,7 @@ export interface ChannelObject extends SpecificationExtensions {
     description?: string;
     externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: Record<string, ReferenceObject>;
-    parameters?: Record<string, ParameterObject>;
+    parameters?: Record<string, ParameterObject | ReferenceObject>;
     servers?: ReferenceObject[];
     tags?: (TagObject | ReferenceObject)[];
     title?: string;
@@ -304,7 +304,7 @@ export interface ServerObject {
     summary?: string;
     tags?: (TagObject | ReferenceObject)[];
     title?: string;
-    variables?: Record<string, ServerVariableObject>;
+    variables?: Record<string, ServerVariableObject | ReferenceObject>;
 }
 
 // @public
