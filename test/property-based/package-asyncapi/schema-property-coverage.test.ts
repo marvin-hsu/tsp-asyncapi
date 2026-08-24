@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { schemasOf } from "../../utils/document.js";
+import { schemaOf, schemasOf } from "../../utils/document.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { createChainHarness, resolveSchema, winners, wireOf } from "../model-chain.js";
 
@@ -98,7 +98,7 @@ describe("Integration: Schemas — declared property coverage", () => {
           return;
         }
 
-        const schema = schemasOf(doc)["M" + String(declared.length - 1)];
+        const schema = schemaOf(schemasOf(doc)["M" + String(declared.length - 1)]);
         expect(schema).toBeDefined();
 
         if (Array.isArray(schema.allOf)) allOfShape++;

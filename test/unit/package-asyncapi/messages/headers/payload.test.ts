@@ -4,6 +4,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { byCodePoint } from "../../../../utils/sort.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { schemaOf, schemasOf } from "../../../../utils/document.js";
 
 describe("Unit: Message headers: the derived payload component (Phase 3.3)", () => {
   let runner: TesterInstance;
@@ -141,7 +142,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       $ref: "#/components/schemas/InnerPayload",
     });
     // `Outer` reaches `Inner` as a field, so it still describes `traceId`.
-    expect(doc.components?.schemas?.Outer.properties?.inner).toEqual({
+    expect(schemaOf(schemasOf(doc).Outer).properties?.inner).toEqual({
       $ref: "#/components/schemas/Inner",
     });
     // A nested use of a lifting message is ordinary now. Nothing about this

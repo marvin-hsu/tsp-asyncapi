@@ -5,6 +5,7 @@ import type {
   InfoObject,
   ReferenceObject,
   MessageObject,
+  MultiFormatSchemaObject,
   OperationObject,
   SchemaObject,
   SecuritySchemeObject,
@@ -116,14 +117,23 @@ export function refOf(
  * @returns The schema
  */
 export function schemaOf(
-  value: SchemaObject | ReferenceObject | undefined,
+  value: SchemaObject | MultiFormatSchemaObject | ReferenceObject | undefined,
   name = "the value",
 ): SchemaObject {
   if (value === undefined) {
     throw new Error(`This test needs ${name} to be a schema, and there is nothing there.`);
   }
-  if (value.$ref !== undefined) {
+  if ("$ref" in value && value.$ref !== undefined) {
     throw new Error(`This test needs ${name} to be a schema, but the emitter wrote a reference.`);
+  }
+  // `components.schemas` also holds a schema written in another language,
+  // such as Avro or Protobuf. That one carries no JSON Schema keyword. So a
+  // test that reads `properties` from it has the wrong entry, and the name of
+  // the format says which one it got.
+  if ("schemaFormat" in value) {
+    throw new Error(
+      `This test needs ${name} to be a JSON Schema, but the emitter wrote one in ${value.schemaFormat}.`,
+    );
   }
   return value;
 }
@@ -179,8 +189,19 @@ export function messagesOf(doc: AsyncAPIDocument | null): Record<string, Message
   return section(doc, (d) => componentsOf(d).messages, "components.messages");
 }
 
-/** The reusable schemas, keyed by schema name. */
-export function schemasOf(doc: AsyncAPIDocument | null): Record<string, SchemaObject> {
+/**
+ * The reusable schemas, keyed by schema name.
+ *
+ * The map holds what `components.schemas` holds. That is a JSON Schema, or a
+ * schema written in another language such as Avro or Protobuf.
+ *
+ * A test that reads the key set uses this reader alone. A test that reads a
+ * JSON Schema keyword narrows one entry with `schemaOf` first. That way the
+ * failure lands on the entry the test asked about, not on the whole map.
+ */
+export function schemasOf(
+  doc: AsyncAPIDocument | null,
+): Record<string, SchemaObject | MultiFormatSchemaObject> {
   return section(doc, (d) => componentsOf(d).schemas, "components.schemas");
 }
 

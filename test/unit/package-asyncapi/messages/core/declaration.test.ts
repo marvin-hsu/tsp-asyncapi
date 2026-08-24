@@ -4,6 +4,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { byCodePoint } from "../../../../utils/sort.js";
 import { diagnosticsWith, findDiagnostic } from "../../../../utils/diagnostics.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { schemaOf, schemasOf } from "../../../../utils/document.js";
 
 describe("Unit: Messages — declaration", () => {
   let runner: TesterInstance;
@@ -105,7 +106,7 @@ describe("Unit: Messages — declaration", () => {
       "Customer",
       "OrderCreated",
     ]);
-    expect(doc.components?.schemas?.Customer.properties?.address).toEqual({
+    expect(schemaOf(schemasOf(doc).Customer).properties?.address).toEqual({
       $ref: "#/components/schemas/Address",
     });
   });
@@ -389,7 +390,7 @@ describe("Unit: Messages — declaration", () => {
     expect(doc.components?.schemas?.[key]).toBeDefined();
     // The property that also reaches the same model resolves to the same
     // component.
-    expect(doc.components?.schemas?.Holder.properties?.a).toEqual({
+    expect(schemaOf(schemasOf(doc).Holder).properties?.a).toEqual({
       $ref: `#/components/schemas/${key}`,
     });
   });
@@ -427,7 +428,7 @@ describe("Unit: Messages — declaration", () => {
 
     const doc = documentFrom(runner.program);
 
-    expect(doc.components?.schemas?.Pet.discriminator).toBe("kind");
+    expect(schemaOf(schemasOf(doc).Pet).discriminator).toBe("kind");
     // An indirect subtype is collected too. Only the model carrying
     // @discriminator drives the walk, so the walk has to be transitive.
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
@@ -437,7 +438,7 @@ describe("Unit: Messages — declaration", () => {
       "PetEvent",
       "Siamese",
     ]);
-    expect(doc.components?.schemas?.Cat.allOf?.[0]).toEqual({
+    expect(schemaOf(schemasOf(doc).Cat).allOf?.[0]).toEqual({
       $ref: "#/components/schemas/Pet",
     });
   });
@@ -467,7 +468,7 @@ describe("Unit: Messages — declaration", () => {
 
     const doc = documentFrom(runner.program);
 
-    expect(doc.components?.schemas?.Pet.discriminator).toBeUndefined();
+    expect(schemaOf(schemasOf(doc).Pet).discriminator).toBeUndefined();
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Pet",
       "PetEvent",

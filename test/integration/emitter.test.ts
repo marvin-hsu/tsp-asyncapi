@@ -6,6 +6,7 @@ import {
   infoOf,
   messagesOf,
   present,
+  schemaOf,
   schemasOf,
   securitySchemesOf,
   serversOf,
@@ -227,7 +228,10 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     expect(
       Object.keys(
-        present(schemasOf(doc).OrderPlacedPayload.properties, "OrderPlacedPayload properties"),
+        present(
+          schemaOf(schemasOf(doc).OrderPlacedPayload).properties,
+          "OrderPlacedPayload properties",
+        ),
       ).sort(byCodePoint),
     ).toEqual(["amount", "id"]);
     expect(messagesOf(doc).OrderShipped.headers).toEqual({

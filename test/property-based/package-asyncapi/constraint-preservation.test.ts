@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { schemasOf } from "../../utils/document.js";
+import { schemaOf, schemasOf } from "../../utils/document.js";
 
 /**
  * No declared constraint is erased by a more-derived level.
@@ -123,7 +123,7 @@ describe("Property: no declared constraint is erased", () => {
     // An error here means the generator built illegal TypeSpec. Fail loudly
     // instead of skipping, so the property cannot starve unnoticed.
     expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.code)).toEqual([]);
-    const schema: unknown = schemasOf(doc).Root.properties?.v;
+    const schema: unknown = schemaOf(schemasOf(doc).Root).properties?.v;
     return schema;
   }
 

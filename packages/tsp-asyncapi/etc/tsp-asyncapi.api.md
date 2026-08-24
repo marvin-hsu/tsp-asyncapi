@@ -122,11 +122,20 @@ export interface ChannelObject extends SpecificationExtensions {
 
 // @public
 export interface ComponentsObject {
-    // (undocumented)
-    channels?: Record<string, never>;
+    channelBindings?: Record<string, BindingsObject>;
+    correlationIds?: Record<string, CorrelationIdObject>;
+    externalDocs?: Record<string, ExternalDocumentationObject>;
+    messageBindings?: Record<string, BindingsObject>;
     messages?: Record<string, MessageObject>;
-    schemas?: Record<string, SchemaObject>;
+    operationBindings?: Record<string, BindingsObject>;
+    parameters?: Record<string, ParameterObject>;
+    replies?: Record<string, OperationReplyObject>;
+    replyAddresses?: Record<string, OperationReplyAddressObject>;
+    schemas?: Record<string, MultiFormatSchemaObject | SchemaObject>;
     securitySchemes?: Record<string, SecuritySchemeObject>;
+    serverBindings?: Record<string, BindingsObject>;
+    serverVariables?: Record<string, ServerVariableObject>;
+    tags?: Record<string, TagObject>;
 }
 
 // @public

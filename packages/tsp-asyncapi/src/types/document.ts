@@ -327,16 +327,75 @@ export interface OperationReplyAddressObject {
 
 /**
  * Holds reusable components for the AsyncAPI document.
+ *
+ * The fields are declared in the order the specification lists them.
+ * `lowerComponents` writes them in the same order. Every field is optional.
+ * An empty one is omitted rather than emitted as an empty map.
+ *
+ * Five of the nineteen fields the specification defines are absent. Each one
+ * is a decision, and the reasons differ.
+ *
+ * `operationTraits` and `messageTraits` are the `traits` feature, which this
+ * emitter does not implement. A trait deduplicates the emitted document
+ * rather than the source. TypeSpec already offers reuse at the source level
+ * with `extends`, `is`, and spread.
+ *
+ * `servers` is unusable here. A Channel Object's `servers`, when present,
+ * must point into the root Servers Object. It may not point into this one.
+ *
+ * `channels` is a choice rather than a limit. An Operation Object addresses
+ * the root `channels` map and never this one, so only a channel no operation
+ * refers to could live here. `resolveChannels` explains why this emitter
+ * emits every declared channel at the root instead.
+ *
+ * `operations` has no reader. Nothing inside one document references an
+ * operation, so an entry here would be text no tool resolves.
+ *
  * @public
  */
 export interface ComponentsObject {
-  /** Reusable schemas. */
-  schemas?: Record<string, SchemaObject>;
+  /**
+   * Reusable schemas.
+   *
+   * A value is a Schema Object, or a Multi Format Schema Object when the
+   * schema is written in another language such as Avro or Protobuf. The
+   * specification allows both here, so a schema in another language can be
+   * shared rather than repeated in every message that carries it.
+   */
+  schemas?: Record<string, MultiFormatSchemaObject | SchemaObject>;
+  /** Reusable server variables, keyed by the variable name. */
+  serverVariables?: Record<string, ServerVariableObject>;
   /** Reusable messages, keyed by the message name. */
   messages?: Record<string, MessageObject>;
   /** Reusable security schemes, keyed by the scheme name. */
   securitySchemes?: Record<string, SecuritySchemeObject>;
-  channels?: Record<string, never>;
+  /** Reusable channel address parameters, keyed by the parameter name. */
+  parameters?: Record<string, ParameterObject>;
+  /** Reusable correlation ids. */
+  correlationIds?: Record<string, CorrelationIdObject>;
+  /** Reusable operation replies. */
+  replies?: Record<string, OperationReplyObject>;
+  /** Reusable operation reply addresses. */
+  replyAddresses?: Record<string, OperationReplyAddressObject>;
+  /**
+   * Reusable server bindings.
+   *
+   * The value is a whole Bindings Object. The specification offers no
+   * reference alternative for one protocol member inside it, so a `$ref`
+   * belongs at `bindings` and never at `bindings.<protocol>`. The same holds
+   * for the three maps below.
+   */
+  serverBindings?: Record<string, BindingsObject>;
+  /** Reusable channel bindings. */
+  channelBindings?: Record<string, BindingsObject>;
+  /** Reusable operation bindings. */
+  operationBindings?: Record<string, BindingsObject>;
+  /** Reusable message bindings. */
+  messageBindings?: Record<string, BindingsObject>;
+  /** Reusable tags, keyed by the tag name. */
+  tags?: Record<string, TagObject>;
+  /** Reusable external documentation links. */
+  externalDocs?: Record<string, ExternalDocumentationObject>;
 }
 
 /**
