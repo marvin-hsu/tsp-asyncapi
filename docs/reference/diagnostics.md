@@ -620,6 +620,18 @@ No file is written. A document emitted next to this error would ignore the reque
 
 **Fix:** Remove the name from `preview-features` in `tspconfig.yaml`.
 
+### `protobuf-artifact-unavailable`
+
+> Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
+
+Three problems report this code, and the message names which one it is. The model has no package above it. The official Protobuf emitter refused to convert the model. That emitter produced no file for the package of the model.
+
+The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
+
+The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. A renamed package is matched by the name it declares, not by a file name.
+
+**Fix:** add `@Protobuf.package` to the namespace of the model, or fix the errors the official Protobuf emitter reported about it.
+
 ## Warnings
 
 ### `duplicate-channel-address`

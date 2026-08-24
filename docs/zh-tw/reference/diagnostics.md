@@ -620,6 +620,18 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 **修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除該名稱。
 
+### `protobuf-artifact-unavailable`
+
+> Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
+
+三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、官方 Protobuf emitter 拒絕轉換這個 model、官方 emitter 沒有為該 package 產出檔案。
+
+`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
+
+model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。改名過的 package 以它宣告的名稱比對，不以檔案名稱比對。
+
+**修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`，或修正官方 Protobuf emitter 對它回報的錯誤。
+
 ## 警告
 
 ### `duplicate-channel-address`
