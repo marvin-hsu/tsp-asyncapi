@@ -20,7 +20,7 @@ import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import { SchemaBuilder } from "./schemas.js";
 import { lowerMessages, reportShadowedSchemaKeys } from "./messages.js";
 import { lowerSecuritySchemes } from "./security-schemes.js";
-import { RawSchemaPromoter } from "./components/raw-schemas.js";
+import { surveyMessages } from "./components/raw-schemas.js";
 
 /**
  * Builds the `components` section.
@@ -44,8 +44,8 @@ export function lowerComponents(
 ): ComponentsObject | undefined {
   // The survey runs before anything is lowered, because a message has to know
   // whether its raw schema became a component before it writes its payload.
-  const rawSchemas = RawSchemaPromoter.survey(service, schemaBuilder);
-  const messages = lowerMessages(schemaBuilder, rawSchemas, service.messages);
+  const promoted = surveyMessages(service, schemaBuilder);
+  const messages = lowerMessages(schemaBuilder, promoted, service.messages);
   // The shadow check reads the schema key owners, so it runs once every key
   // is claimed. A discriminated subtype claims its own only when the pending
   // queue drains, which this call does first.
@@ -54,14 +54,16 @@ export function lowerComponents(
   // built from a model, so the builder never held it.
   const schemas: Record<string, SchemaObject | MultiFormatSchemaObject> = {
     ...schemaBuilder.getSchemas(),
-    ...Object.fromEntries(rawSchemas.entries()),
+    ...Object.fromEntries(promoted.rawSchemas.entries()),
   };
   const securitySchemes = lowerSecuritySchemes(service.securitySchemes);
+  const correlationIds = Object.fromEntries(promoted.correlationIds.entries());
 
   const components: ComponentsObject = {
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(messages ? { messages } : {}),
     ...(securitySchemes ? { securitySchemes } : {}),
+    ...(Object.keys(correlationIds).length > 0 ? { correlationIds } : {}),
   };
   return Object.keys(components).length > 0 ? components : undefined;
 }

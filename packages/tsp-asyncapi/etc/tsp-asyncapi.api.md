@@ -211,7 +211,7 @@ export { MessageExampleObject }
 export interface MessageObject extends SpecificationExtensions {
     bindings?: BindingsObject;
     contentType?: string;
-    correlationId?: CorrelationIdObject;
+    correlationId?: CorrelationIdObject | ReferenceObject;
     description?: string;
     examples?: MessageExampleObject[];
     externalDocs?: ExternalDocumentationObject;

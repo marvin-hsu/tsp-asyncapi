@@ -431,7 +431,7 @@ export interface MessageObject extends SpecificationExtensions {
    */
   payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
   /** How the message relates to the one it answers or continues. */
-  correlationId?: CorrelationIdObject;
+  correlationId?: CorrelationIdObject | ReferenceObject;
   /** The protocol-specific settings of this message, keyed by protocol name. */
   bindings?: BindingsObject;
   /** The tags of this message, each a full Tag Object. */

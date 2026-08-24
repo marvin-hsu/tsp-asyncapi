@@ -19,26 +19,27 @@ import type {
 import { present, text, reportDiagnostic } from "tsp-asyncapi-core";
 import { SchemaBuilder } from "./schemas.js";
 import {
+  CorrelationIdObject,
   MessageObject,
   MultiFormatSchemaObject,
   ReferenceObject,
   SchemaObject,
 } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
-import type { RawSchemaPromoter } from "./components/raw-schemas.js";
-import { refFor } from "./json-pointer.js";
+import type { MessagePromotions } from "./components/raw-schemas.js";
+import { componentRef, refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
 function lowerHeaders(
   schemas: SchemaBuilder,
-  raw: RawSchemaPromoter,
+  promoted: MessagePromotions,
   node: MessageHeadersNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
   switch (node.kind) {
     case "none":
       return undefined;
     case "raw": {
-      const key = raw.keyFor("headers", node.schema);
+      const key = promoted.rawSchemas.keyFor("headers", node.schema);
       return key === undefined ? node.schema : refFor(key);
     }
     case "model":
@@ -51,7 +52,7 @@ function lowerHeaders(
 /** Builds the `payload` of one Message Object. */
 function lowerPayload(
   schemas: SchemaBuilder,
-  raw: RawSchemaPromoter,
+  promoted: MessagePromotions,
   node: MessagePayloadNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject {
   // A message with a raw payload carries the schema the author wrote, in the
@@ -62,8 +63,24 @@ function lowerPayload(
   // carrying it alone keeps it here, because a component would add a `$ref`
   // hop and save nothing.
   if (node.kind !== "raw") return schemas.buildPayloadDeclaration(node.model, node.lifted);
-  const key = raw.keyFor("payload", node.schema);
+  const key = promoted.rawSchemas.keyFor("payload", node.schema);
   return key === undefined ? node.schema : refFor(key);
+}
+
+/**
+ * Builds the `correlationId` of one Message Object.
+ *
+ * A Correlation ID Object has no name of its own, so two messages share one
+ * only when they state the same location. One message stating it alone keeps
+ * it in place.
+ */
+function lowerCorrelationId(
+  promoted: MessagePromotions,
+  node: CorrelationIdObject | undefined,
+): CorrelationIdObject | ReferenceObject | undefined {
+  if (node === undefined) return undefined;
+  const key = promoted.correlationIds.keyFor(node);
+  return key === undefined ? node : { $ref: componentRef("correlationIds", key) };
 }
 
 /**
@@ -73,7 +90,7 @@ function lowerPayload(
  */
 function lowerMessage(
   schemas: SchemaBuilder,
-  raw: RawSchemaPromoter,
+  promoted: MessagePromotions,
   node: MessageNode,
 ): MessageObject {
   return {
@@ -81,9 +98,9 @@ function lowerMessage(
     ...text("title", node.title),
     ...text("description", node.description),
     ...text("contentType", node.contentType),
-    ...present("headers", lowerHeaders(schemas, raw, node.headers)),
-    payload: lowerPayload(schemas, raw, node.payload),
-    ...present("correlationId", node.correlationId),
+    ...present("headers", lowerHeaders(schemas, promoted, node.headers)),
+    payload: lowerPayload(schemas, promoted, node.payload),
+    ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
     ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
@@ -110,7 +127,7 @@ function lowerMessage(
  */
 export function lowerMessages(
   schemas: SchemaBuilder,
-  raw: RawSchemaPromoter,
+  promoted: MessagePromotions,
   nodes: readonly MessageNode[],
 ): Record<string, MessageObject> | undefined {
   if (nodes.length === 0) return undefined;
@@ -120,7 +137,7 @@ export function lowerMessages(
   // `SchemaBuilder.getSchemas`.
   const messages = Object.create(null) as Record<string, MessageObject>;
   for (const node of nodes) {
-    messages[node.key] = lowerMessage(schemas, raw, node);
+    messages[node.key] = lowerMessage(schemas, promoted, node);
   }
   return messages;
 }

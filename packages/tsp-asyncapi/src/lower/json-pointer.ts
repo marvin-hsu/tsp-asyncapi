@@ -94,6 +94,23 @@ export function componentsMessageRef(messageKey: string): string {
 }
 
 /**
+ * Builds the `$ref` that addresses one entry of any `components` section.
+ *
+ * `components.schemas` and `components.messages` have a helper of their own,
+ * because their prefixes are named constants used elsewhere. Every other
+ * section is addressed the same way, and a section name is a fixed word from
+ * the specification rather than author text, so it needs no escaping. The key
+ * does.
+ *
+ * @param section - The `components` section, such as `correlationIds`
+ * @param key - The key the entry was emitted under
+ * @returns The pointer, with the key escaped
+ */
+export function componentRef(section: string, key: string): string {
+  return `#/components/${section}/${toJsonPointerToken(key)}`;
+}
+
+/**
  * Builds the `$ref` that addresses one schema of `components.schemas`.
  *
  * @param schemaKey - The key the schema was emitted under
