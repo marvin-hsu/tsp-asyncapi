@@ -172,7 +172,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Fifteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
+Sixteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
 
@@ -180,12 +180,13 @@ The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) sa
 
 Set these in `tspconfig.yaml`, or pass them as CLI arguments:
 
-| Option                 | Type     | Default         | Description                                                              |
-| ---------------------- | -------- | --------------- | ------------------------------------------------------------------------ |
-| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file.                                                |
-| `file-type`            | `string` | `yaml`          | Format of the generated document: `yaml` or `json`.                      |
-| `asyncapi-id`          | `string` | -               | Global identifier for the document. Maps to the `id` field.              |
-| `default-content-type` | `string` | -               | Default content type for message payloads. Maps to `defaultContentType`. |
+| Option                 | Type       | Default         | Description                                                              |
+| ---------------------- | ---------- | --------------- | ------------------------------------------------------------------------ |
+| `output-file`          | `string`   | `asyncapi.yaml` | Name of the emitted file.                                                |
+| `file-type`            | `string`   | `yaml`          | Format of the generated document: `yaml` or `json`.                      |
+| `asyncapi-id`          | `string`   | -               | Global identifier for the document. Maps to the `id` field.              |
+| `default-content-type` | `string`   | -               | Default content type for message payloads. Maps to `defaultContentType`. |
+| `preview-features`     | `string[]` | `[]`            | Turns on preview features. The reserved names are `protobuf` and `avro`. |
 
 ## Schema conversion
 
@@ -266,10 +267,10 @@ is named.
 
 ### Planned
 
-| Planned work                                 | What it means today                                                                                                                                                                                  | Notes                                                                                                                                             |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| First-class support for `@typespec/protobuf` | One source compiles with both emitters today. A protobuf payload reaches the document through `@rawPayload`, written by hand. A `Protobuf.Map` and an `Extern` model lower to a bare `type: object`. | The emitter must take the protobuf schema from the generated `.proto`. `@typespec/protobuf` exports no accessor for `@field` or `@package` today. |
-| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                               | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                        |
+| Planned work                                 | What it means today                                                                                                                                                                                      | Notes                                                                                                                                        |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-class support for `@typespec/protobuf` | The `protobuf` preview feature builds the payload from the official decorators. Turn it on with `preview-features: ["protobuf"]`. A `Protobuf.Map` and an `Extern` model lower to a bare `type: object`. | The feature is a preview, so the option and the diagnostics can change in a minor release. See the Protobuf Payloads guide on the docs site. |
+| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                                   | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                   |
 
 ### Waiting for a use case
 

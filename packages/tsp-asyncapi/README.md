@@ -32,8 +32,9 @@ decorator.
 
 ## Emitter options
 
-Four, all optional: `output-file`, `file-type`, `asyncapi-id`, and
-`default-content-type`. The [reference][options] describes each one.
+Five, all optional: `output-file`, `file-type`, `asyncapi-id`,
+`default-content-type`, and `preview-features`. The [reference][options]
+describes each one.
 
 ## Documentation
 

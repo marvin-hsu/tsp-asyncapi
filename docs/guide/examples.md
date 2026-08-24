@@ -1,13 +1,13 @@
 ---
 title: "Examples"
-description: "Fifteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+description: "Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
 ---
 
 # Examples
 
-Fifteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds three files: the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it.
+Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it.
 
-The output is committed, so you can read an input and its output side by side without running anything. Every one of the fifteen passes the official AsyncAPI parser.
+The output is committed, so you can read an input and its output side by side without running anything. Every one of the sixteen passes the official AsyncAPI parser.
 
 ## The examples
 
@@ -28,6 +28,7 @@ The output is committed, so you can read an input and its output side by side wi
 | [Enterprise brokers](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/13-enterprise-brokers)             | AMQP, JMS, IBM MQ and Anypoint MQ describing one destination four ways.                                                             |
 | [Streaming platforms](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/14-streaming-platforms)           | NATS, Pulsar, Google Cloud Pub/Sub and Solace, and the fields each one requires.                                                    |
 | [Specification extensions](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions) | The `x-` fields the specification leaves to the author, on all four objects that take one.                                          |
+| [Protobuf payloads](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)               | The `protobuf` preview feature. Two messages of one package share the proto3 text of that package.                                  |
 
 ## Running one
 
