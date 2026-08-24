@@ -133,19 +133,32 @@ describe("Property: no declared constraint is erased", () => {
     return followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
   }
 
-  /** Replaces every `#/components/schemas/` reference with what it names. */
-  function followRefs(doc: AsyncAPIDocument | null, schema: unknown): unknown {
-    if (Array.isArray(schema)) return schema.map((item) => followRefs(doc, item));
+  /**
+   * Replaces every `#/components/schemas/` reference with what it names.
+   *
+   * `open` holds the components already being expanded on this path. A model
+   * that names itself is legal and writes a reference to its own component,
+   * so expanding it again would never end. Meeting an open component leaves
+   * the reference as it stands: the constraints of that component are
+   * already being collected further up the path, so nothing is lost.
+   */
+  function followRefs(
+    doc: AsyncAPIDocument | null,
+    schema: unknown,
+    open: ReadonlySet<string> = new Set(),
+  ): unknown {
+    if (Array.isArray(schema)) return schema.map((item) => followRefs(doc, item, open));
     if (schema === null || typeof schema !== "object") return schema;
     const ref = (schema as { $ref?: unknown }).$ref;
     if (typeof ref === "string" && ref.startsWith(SCHEMA_REF_PREFIX)) {
       const key = ref.slice(SCHEMA_REF_PREFIX.length);
-      return followRefs(doc, schemasOf(doc)[key]);
+      if (open.has(key)) return schema;
+      return followRefs(doc, schemasOf(doc)[key], new Set(open).add(key));
     }
     return Object.fromEntries(
       Object.entries(schema as Record<string, unknown>).map(([name, value]) => [
         name,
-        followRefs(doc, value),
+        followRefs(doc, value, open),
       ]),
     );
   }
@@ -272,5 +285,34 @@ describe("Property: no declared constraint is erased", () => {
 
     expect(withAllOf).toBeGreaterThan(0);
     expect(withNestedAllOf).toBeGreaterThan(0);
+  });
+
+  /**
+   * The resolver above is the one piece of this suite that could fail to
+   * terminate rather than fail an assertion. The chains the generator builds
+   * hold no recursion, so nothing else here walks a component that names
+   * itself. This case does, and it is what keeps the guard honest.
+   */
+  it("stops expanding a component that names itself", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      model Node {
+        value: string;
+        next?: Node;
+      }
+      @AsyncAPI.message
+      model Root {
+        v: Node;
+      }
+    `);
+
+    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const resolved = followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
+
+    // One level is expanded, and the reference back to `Node` is left as it
+    // stands rather than expanded a second time.
+    expect(resolved).toMatchObject({
+      type: "object",
+      properties: { next: { $ref: "#/components/schemas/Node" } },
+    });
   });
 });

@@ -429,3 +429,28 @@ export function resolveServerVariables(
 ): Record<string, ServerVariableObject> {
   return resolveMap(doc?.components?.serverVariables, variables, "#/components/serverVariables/");
 }
+
+/**
+ * The external documentation one site carries, with a reference followed.
+ *
+ * The counterpart of {@link resolveTags} for a field that holds one
+ * fragment rather than a list.
+ *
+ * @param doc - The emitted document
+ * @param value - The `externalDocs` of one site
+ * @returns The External Documentation Object, or `undefined` when the site
+ * carries none
+ */
+export function resolveExternalDocs(
+  doc: AsyncAPIDocument | null,
+  value: ExternalDocumentationObject | ReferenceObject | undefined,
+): ExternalDocumentationObject | undefined {
+  if (value === undefined) return undefined;
+  if (!("$ref" in value)) return value;
+  const components = doc?.components?.externalDocs ?? {};
+  const key = value.$ref.replace("#/components/externalDocs/", "");
+  if (!Object.hasOwn(components, key)) {
+    throw new Error(`The document references '${value.$ref}', and nothing is there.`);
+  }
+  return components[key];
+}
