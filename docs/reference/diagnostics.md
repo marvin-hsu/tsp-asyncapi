@@ -746,8 +746,6 @@ The `scopes` of an `oauth2` or an `openIdConnect` scheme holds an entry that is 
 
 **Fix:** Add a `@securityScheme` with this name, or correct the name in the `@useSecurity`.
 
-> > > > > > > d5286af (feat(servers): add server variables, security schemes and externalDocs)
-
 ### `message-key-shadows-schema-key`
 
 > Message name '\<name\>' is also the components.schemas key of a different type, so a reader can misread this message as describing that type. A message key drops the namespace prefix that a schema key keeps, which makes the two overlap. Pass a different name to @message.
