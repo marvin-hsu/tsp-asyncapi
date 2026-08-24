@@ -58,34 +58,52 @@ const PROVIDERS: readonly SchemaArtifactProvider[] = [];
 type ArtifactSlot = "payload" | "headers";
 
 /**
+ * What one collection produced, and whether it refused anything.
+ *
+ * The caller needs both. A refused artifact leaves the index, so a document
+ * built from `artifacts` alone would describe the model with the schema its
+ * TypeSpec type produces and say nothing about the request.
+ *
+ * @internal
+ */
+export interface CollectedSchemaArtifacts {
+  /** Every artifact no conflict removed. */
+  readonly artifacts: SchemaArtifactIndex;
+  /** Whether two providers claimed one slot of one model. */
+  readonly refused: boolean;
+}
+
+/**
  * Runs each enabled provider and merges what they produced.
  *
  * @param program - The compiled program
  * @param features - The preview features the project turned on
  * @param providers - The registry to select from. A test passes its own.
- * @returns One index holding every artifact, with each conflict reported
+ * @returns The artifacts and whether a conflict removed any of them
  * @internal
  */
 export async function collectSchemaArtifacts(
   program: Program,
   features: ReadonlySet<PreviewFeature>,
   providers: readonly SchemaArtifactProvider[] = PROVIDERS,
-): Promise<SchemaArtifactIndex> {
+): Promise<CollectedSchemaArtifacts> {
   const enabled = providers.filter((provider) => features.has(provider.id));
-  if (enabled.length === 0) return emptySchemaArtifacts;
+  if (enabled.length === 0) return { artifacts: emptySchemaArtifacts, refused: false };
 
   const indexes = await Promise.all(enabled.map((provider) => provider.collect(program)));
+  const payload = mergeSlot(
+    program,
+    "payload",
+    indexes.map((index) => index.payloadFor),
+  );
+  const headers = mergeSlot(
+    program,
+    "headers",
+    indexes.map((index) => index.headersFor),
+  );
   return {
-    payloadFor: mergeSlot(
-      program,
-      "payload",
-      indexes.map((index) => index.payloadFor),
-    ),
-    headersFor: mergeSlot(
-      program,
-      "headers",
-      indexes.map((index) => index.headersFor),
-    ),
+    artifacts: { payloadFor: payload.artifacts, headersFor: headers.artifacts },
+    refused: payload.refused || headers.refused,
   };
 }
 
@@ -95,19 +113,25 @@ export async function collectSchemaArtifacts(
  * Two providers that claim one model and one slot are a conflict, and there
  * is no winner. Keeping the first would make the answer depend on the order
  * the registry lists them, which is not something a project states. So both
- * are dropped, and the model falls back to the schema its TypeSpec type
- * produces. The diagnostic is an error, so nothing is written anyway.
+ * are dropped.
+ *
+ * The model is then left with the schema its TypeSpec type produces, which
+ * answers the project with output that ignores its request. Reporting the
+ * error does not stop that on its own, because the emitter writes the file
+ * whatever the diagnostics say. So the conflict is returned to the caller
+ * too, and the caller writes nothing.
  *
  * @param program - The program, to report against
  * @param slot - Which schema of the message the conflict is about
  * @param maps - What each enabled provider produced for that slot
- * @returns The artifacts no other provider also claimed
+ * @returns The artifacts no other provider also claimed, and whether any
+ * conflict was found
  */
 function mergeSlot(
   program: Program,
   slot: ArtifactSlot,
   maps: readonly ReadonlyMap<Model, ExternalSchemaArtifact>[],
-): ReadonlyMap<Model, ExternalSchemaArtifact> {
+): { artifacts: ReadonlyMap<Model, ExternalSchemaArtifact>; refused: boolean } {
   const merged = new Map<Model, ExternalSchemaArtifact>();
   const conflicted = new Set<Model>();
 
@@ -129,5 +153,5 @@ function mergeSlot(
   }
 
   for (const model of conflicted) merged.delete(model);
-  return merged;
+  return { artifacts: merged, refused: conflicted.size > 0 };
 }

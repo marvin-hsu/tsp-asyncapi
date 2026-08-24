@@ -606,6 +606,8 @@ Two [preview features](./emitter-options#preview-features) both generated a sche
 
 The emitter picks neither. A winner would be the order the emitter lists its providers in, and that order is not something a project states.
 
+No document is written. Both artifacts are gone, so the model would fall back to the schema its TypeSpec type produces, and that file would answer the request with output that ignores it.
+
 **Fix:** Remove one of the two names from `preview-features` in `tspconfig.yaml`.
 
 ### `preview-feature-unavailable`
@@ -941,3 +943,13 @@ One field carries a value the binding specification forbids. The Kafka binding r
 This is a warning because the emitter recovers. It drops the one field and emits the rest of the binding. The other binding codes are errors, because each of them drops a whole binding.
 
 **Fix:** give the field a value the message names.
+
+### `conflicting-message-schema-source`
+
+> This message carries a payload written with @rawPayload, and the preview feature '\<provider\>' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '\<provider\>' off in `preview-features` in `tspconfig.yaml`.
+
+A model carries `@rawPayload` and a [preview feature](./emitter-options#preview-features) generated a payload schema for it as well.
+
+The authored schema wins. It is the explicit statement of the two, and a generated schema that replaced it would leave the author's own text out of the document.
+
+**Fix:** remove `@rawPayload` from the model to take the generated schema, or remove the feature from `preview-features` to keep writing the payload by hand.

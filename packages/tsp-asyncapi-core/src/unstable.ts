@@ -26,6 +26,10 @@
 
 export { asyncAPILinter } from "./linter.js";
 export { resolveService } from "./resolve/service.js";
+// `resolveService` takes an index of generated schemas. A consumer of this
+// entry point has to be able to name the argument it passes.
+export { emptySchemaArtifacts } from "./schema-artifacts.js";
+export type { ExternalSchemaArtifact, SchemaArtifactIndex } from "./schema-artifacts.js";
 export { BindingPlacements } from "./resolve/bindings.js";
 export type {
   AsyncAPIService,

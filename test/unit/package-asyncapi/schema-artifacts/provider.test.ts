@@ -76,11 +76,12 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     await runner.compileAndDiagnose(SOURCE);
     const program = runner.program;
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf"]), [
+    const { artifacts, refused } = await collectSchemaArtifacts(program, new Set(["protobuf"]), [
       fakeProvider("protobuf", "payload", messageModel(program)),
     ]);
     const doc = await buildAsyncAPIDocument(program, listServices(program)[0], {}, artifacts);
 
+    expect(refused).toBe(false);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: PROTOBUF,
       schema: 'syntax = "proto3";\npackage com.example.protobuf;',
@@ -103,7 +104,7 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     `);
     const program = runner.program;
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf"]), [
+    const { artifacts } = await collectSchemaArtifacts(program, new Set(["protobuf"]), [
       fakeProvider("protobuf", "payload", messageModel(program)),
     ]);
     const doc = await buildAsyncAPIDocument(program, listServices(program)[0], {}, artifacts);
@@ -112,6 +113,13 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
       schemaFormat: PROTOBUF,
       schema: 'syntax = "proto3";',
     });
+
+    // The generated schema left the document. The author is told, so the
+    // choice between the two is theirs rather than the emitter's.
+    const reported = diagnosticsWith(program.diagnostics, "conflicting-message-schema-source");
+    expect(reported).toHaveLength(1);
+    expect(reported[0]?.severity).toBe("warning");
+    expect(reported[0]?.message).toContain("protobuf");
   });
 
   it("builds the schema from the model when no feature is on", async () => {
@@ -120,7 +128,7 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
 
     // The provider is in the registry the call is given, and the feature that
     // turns it on is not requested. So it never runs.
-    const artifacts = await collectSchemaArtifacts(program, new Set(), [
+    const { artifacts } = await collectSchemaArtifacts(program, new Set(), [
       fakeProvider("protobuf", "payload", messageModel(program)),
     ]);
     const doc = await buildAsyncAPIDocument(program, listServices(program)[0], {}, artifacts);
@@ -137,7 +145,7 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
 
     // This is what the emitter does today: the shipped registry holds no
     // provider, so a requested feature reaches nothing here.
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf"]), []);
+    const { artifacts } = await collectSchemaArtifacts(program, new Set(["protobuf"]), []);
 
     expect(artifacts.payloadFor.size).toBe(0);
     expect(artifacts.headersFor.size).toBe(0);
@@ -148,14 +156,18 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     const program = runner.program;
     const model = messageModel(program);
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
-      fakeProvider("protobuf", "payload", model),
-      fakeProvider("avro", "payload", model),
-    ]);
+    const { artifacts, refused } = await collectSchemaArtifacts(
+      program,
+      new Set(["protobuf", "avro"]),
+      [fakeProvider("protobuf", "payload", model), fakeProvider("avro", "payload", model)],
+    );
 
     const reported = diagnosticsWith(program.diagnostics, "conflicting-generated-schema-source");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
+    // The caller is told, so it can write nothing. The diagnostic alone does
+    // not stop the emitter from writing the file.
+    expect(refused).toBe(true);
     expect(reported[0]?.message).toContain("payload");
     expect(reported[0]?.message).toContain("protobuf");
     expect(reported[0]?.message).toContain("avro");
@@ -174,7 +186,7 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     const program = runner.program;
     const model = messageModel(program);
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
+    const { artifacts } = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
       fakeProvider("avro", "payload", model),
       fakeProvider("protobuf", "payload", model),
     ]);
@@ -190,15 +202,17 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     const program = runner.program;
     const model = messageModel(program);
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
-      fakeProvider("protobuf", "headers", model),
-      fakeProvider("avro", "headers", model),
-    ]);
+    const { artifacts, refused } = await collectSchemaArtifacts(
+      program,
+      new Set(["protobuf", "avro"]),
+      [fakeProvider("protobuf", "headers", model), fakeProvider("avro", "headers", model)],
+    );
 
     const reported = diagnosticsWith(program.diagnostics, "conflicting-generated-schema-source");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.message).toContain("headers");
     expect(artifacts.headersFor.size).toBe(0);
+    expect(refused).toBe(true);
   });
 
   it("keeps the artifacts of two providers that claim different slots", async () => {
@@ -206,7 +220,7 @@ describe("Unit: Schema artifact providers (Phase 16 P1)", () => {
     const program = runner.program;
     const model = messageModel(program);
 
-    const artifacts = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
+    const { artifacts } = await collectSchemaArtifacts(program, new Set(["protobuf", "avro"]), [
       fakeProvider("protobuf", "payload", model),
       fakeProvider("avro", "headers", model),
     ]);

@@ -142,6 +142,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Two preview features generate the ${"slot"} schema of this model: '${"first"}' and '${"second"}'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in \`preview-features\` in \`tspconfig.yaml\`.`,
       },
     },
+    "conflicting-message-schema-source": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`This message carries a payload written with @rawPayload, and the preview feature '${"provider"}' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '${"provider"}' off in \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {

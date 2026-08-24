@@ -41,12 +41,18 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
   // Every provider a preview feature would turn on runs here, before resolve.
   // The registry is empty in this release, so the set above is refused first
   // and this collection always comes back empty.
-  const artifacts = await collectSchemaArtifacts(
+  const collected = await collectSchemaArtifacts(
     program,
     new Set(options["preview-features"] ?? []),
   );
 
-  const doc = await buildAsyncAPIDocument(program, service, options, artifacts);
+  // A conflict removes both artifacts, so the models it hit fall back to the
+  // schema their TypeSpec type produces. That document answers the request
+  // with output that ignores it, which is the same reason nothing is written
+  // for a feature this release cannot honor.
+  if (collected.refused) return;
+
+  const doc = await buildAsyncAPIDocument(program, service, options, collected.artifacts);
 
   // Default serialization
   const fileType = options["file-type"] ?? "yaml";

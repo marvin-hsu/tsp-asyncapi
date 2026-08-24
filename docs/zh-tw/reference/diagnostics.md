@@ -606,6 +606,8 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider 的順序，而那個順序不是專案講出來的。
 
+這時不會輸出文件。兩份 artifact 都被丟掉，model 會退回它的 TypeSpec 型別產生的 schema，那份文件等於用忽略請求的內容回答請求。
+
 **修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除其中一個名稱。
 
 ### `preview-feature-unavailable`
@@ -941,3 +943,13 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 這一則是警告，因為 emitter 會自行復原。它只丟掉該欄位，其餘欄位照常輸出。其他 binding 診斷是錯誤，因為它們丟掉整個 binding。
 
 **修法：** 依訊息指出的範圍填值。
+
+### `conflicting-message-schema-source`
+
+> This message carries a payload written with @rawPayload, and the preview feature '\<provider\>' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '\<provider\>' off in `preview-features` in `tspconfig.yaml`.
+
+model 上有 `@rawPayload`，同時又有[預覽功能](./emitter-options#預覽功能)為它產生 payload schema。
+
+手寫的那份勝出。它是兩者中明示的一份，被產生的 schema 蓋掉會讓作者寫的內容從文件中消失。
+
+**修法：** 從 model 移除 `@rawPayload` 以改用產生的 schema，或從 `preview-features` 移除該功能以繼續手寫 payload。

@@ -195,6 +195,10 @@ function resolveHeaders(plan: MessageHeaderPlan, model: Model): MessageHeadersNo
  * An authored schema wins over a generated one. It is the explicit statement
  * of the two, and a generated schema that silently replaced it would leave
  * the author's own text out of the document with nothing to say so.
+ *
+ * The author is told which of the two the document carries. The generated
+ * schema leaves the document, and a warning names the feature that produced
+ * it, so the author can drop their own text or turn the feature off.
  */
 function resolvePayload(
   program: Program,
@@ -202,9 +206,19 @@ function resolvePayload(
   model: Model,
   artifacts: SchemaArtifactIndex,
 ): MessagePayloadNode {
-  const raw = getRawPayload(program, model);
-  if (raw !== undefined) return { kind: "raw", schema: buildRawSchema(raw) };
+  const authored = getRawPayload(program, model);
   const generated = artifacts.payloadFor.get(model);
+
+  if (authored !== undefined) {
+    if (generated !== undefined) {
+      reportDiagnostic(program, {
+        code: "conflicting-message-schema-source",
+        target: model,
+        format: { provider: generated.provider },
+      });
+    }
+    return { kind: "raw", schema: buildRawSchema(authored) };
+  }
   if (generated !== undefined) {
     return {
       kind: "raw",

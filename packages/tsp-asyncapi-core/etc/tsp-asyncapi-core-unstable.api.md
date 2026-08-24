@@ -87,6 +87,17 @@ export interface ChannelParameterNode {
     readonly target: DiagnosticTarget;
 }
 
+// @public
+export const emptySchemaArtifacts: SchemaArtifactIndex;
+
+// @public
+export interface ExternalSchemaArtifact {
+    readonly identity: string;
+    readonly provider: string;
+    readonly schema: unknown;
+    readonly schemaFormat: string;
+}
+
 // Warning: (ae-internal-missing-underscore) The name "InfoNode" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -194,11 +205,16 @@ export interface OperationReplyNode {
     readonly messages: readonly MessageRefNode[];
 }
 
-// Warning: (ae-forgotten-export) The symbol "SchemaArtifactIndex" needs to be exported by the entry point unstable.d.ts
 // Warning: (ae-internal-missing-underscore) The name "resolveService" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
 export function resolveService(program: Program, service: Service | undefined, placements: BindingPlacements, artifacts?: SchemaArtifactIndex): AsyncAPIService;
+
+// @public
+export interface SchemaArtifactIndex {
+    readonly headersFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
+    readonly payloadFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
+}
 
 // Warning: (ae-internal-missing-underscore) The name "SecuritySchemeNode" should be prefixed with an underscore because the declaration is marked as @internal
 //
