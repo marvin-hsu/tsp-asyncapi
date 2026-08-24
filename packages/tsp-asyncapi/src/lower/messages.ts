@@ -102,7 +102,10 @@ function lowerMessage(
     ...present("headers", lowerHeaders(schemas, promoted, node.headers)),
     payload: lowerPayload(schemas, promoted, node.payload),
     ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
-    ...present("bindings", lowerBindings(node.bindings)),
+    ...present(
+      "bindings",
+      shared(promoted.messageBindings, "messageBindings", lowerBindings(node.bindings)),
+    ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),

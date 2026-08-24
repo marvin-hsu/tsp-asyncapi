@@ -115,7 +115,7 @@ export interface ServerObject {
    */
   security?: ReferenceObject[];
   /** The protocol-specific settings of this server, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /**
    * The tags of this server, each a full Tag Object.
    * The tags come from the service namespace, the same source `security` and
@@ -207,7 +207,7 @@ export interface ChannelObject extends SpecificationExtensions {
    */
   messages?: Record<string, ReferenceObject>;
   /** The protocol-specific settings of this channel, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /** The tags of this channel, each a full Tag Object. */
   tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this channel. */
@@ -277,7 +277,7 @@ export interface OperationObject extends SpecificationExtensions {
   /** Additional external documentation for this operation. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** The protocol-specific settings of this operation, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /**
    * The messages this operation carries, each a reference into the
    * `messages` map of its channel. An absent field means every message of
@@ -433,7 +433,7 @@ export interface MessageObject extends SpecificationExtensions {
   /** How the message relates to the one it answers or continues. */
   correlationId?: CorrelationIdObject | ReferenceObject;
   /** The protocol-specific settings of this message, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /** The tags of this message, each a full Tag Object. */
   tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this message. */

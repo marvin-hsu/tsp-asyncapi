@@ -3,6 +3,7 @@ import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-h
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../../utils/document.js";
 import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 describe("Unit: the IBM MQ binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
@@ -35,7 +36,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(serversOf(doc).prod.bindings?.ibmmq).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).ibmmq).toEqual({
       groupId: "PRODCLSTR1",
       ccdtQueueManagerName: "*",
       cipherSpec: "ANY_TLS12_OR_HIGHER",
@@ -43,13 +44,15 @@ describe("Unit: the IBM MQ binding decorators", () => {
       heartBeatInterval: 300,
       bindingVersion: "0.1.0",
     });
-    expect(channelsOf(doc).orders.bindings?.ibmmq.queue).toEqual({
+    expect(bindingsOf(channelsOf(doc).orders.bindings).ibmmq.queue).toEqual({
       objectName: "ORDERS.QUEUE",
       exclusive: true,
     });
     // `headers` is a comma-separated list here, not a Schema Object. IBM MQ
     // is the one binding in this library that states the field that way.
-    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq.headers).toBe("Content-Type,Trace-Id");
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).ibmmq.headers).toBe(
+      "Content-Type,Trace-Id",
+    );
   });
 
   it("reports a heartbeat interval above the range IBM MQ states", async () => {
@@ -70,7 +73,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("heartBeatInterval");
     expect(reported.message).toContain("a value from 0 to 999999");
-    expect(serversOf(doc).prod.bindings?.ibmmq).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).ibmmq).toEqual({
       groupId: "PRODCLSTR1",
       bindingVersion: "0.1.0",
     });
@@ -90,7 +93,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
       // The range is inclusive at both ends.
       expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
-      expect(channelsOf(doc).orders.bindings?.ibmmq.maxMsgLength).toBe(length);
+      expect(bindingsOf(channelsOf(doc).orders.bindings).ibmmq.maxMsgLength).toBe(length);
     }
   });
 
@@ -157,7 +160,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain("a binary payload");
-    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq).toEqual({
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).ibmmq).toEqual({
       type: "jms",
       expiry: 60000,
       bindingVersion: "0.1.0",
@@ -182,7 +185,9 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq.headers).toBe("Content-Type,X-Trace");
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).ibmmq.headers).toBe(
+      "Content-Type,X-Trace",
+    );
   });
 
   it("keeps headers when the binding names no type", async () => {
@@ -205,7 +210,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
 
     // The specification leaves this valid: its `binary` branch matches when
     // the type is absent, so the parser accepts the pair.
-    expect(messagesOf(doc).OrderCreated.bindings?.ibmmq).toEqual({
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).ibmmq).toEqual({
       headers: "Content-Type",
       bindingVersion: "0.1.0",
     });
@@ -222,7 +227,7 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    expect(channelsOf(doc).orders.bindings?.ibmmq).toEqual({
+    expect(bindingsOf(channelsOf(doc).orders.bindings).ibmmq).toEqual({
       destinationType: "queue",
       bindingVersion: "0.1.0",
     });

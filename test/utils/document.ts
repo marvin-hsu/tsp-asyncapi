@@ -1,6 +1,8 @@
 import type {
   AsyncAPIDocument,
   ChannelObject,
+  BindingObject,
+  BindingsObject,
   ComponentsObject,
   ExternalDocumentationObject,
   TagObject,
@@ -321,4 +323,50 @@ export function resolveTags(
     }
     return components[key];
   });
+}
+
+/**
+ * The Bindings Object one site carries, when the test expects it inline.
+ *
+ * A Bindings Object has no name of its own, so it is shared only when more
+ * than one site carries the same one. A test about what a binding *says* has
+ * one site, so it reads through this. A test about sharing asserts the
+ * reference itself.
+ *
+ * @param value - A Bindings Object or a reference
+ * @param name - What to call it in the failure message
+ * @returns The Bindings Object
+ */
+export function bindingsOf(
+  value: BindingsObject | ReferenceObject | undefined,
+  name = "the value",
+): BindingsObject {
+  if (value === undefined) {
+    throw new Error(`This test needs ${name} to be bindings, and there is nothing there.`);
+  }
+  if ("$ref" in value) {
+    throw new Error(
+      `This test needs ${name} to be bindings, but the emitter shared them through a reference.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * One protocol's binding, or `undefined` when the site carries none.
+ *
+ * The document type says a binding is an untyped record, because a binding
+ * is whatever its protocol says. A test that reads named fields names the
+ * shape at the call site.
+ *
+ * @param value - A Bindings Object or a reference
+ * @param protocol - The protocol name the binding is keyed under
+ * @returns The binding, or `undefined`
+ */
+export function bindingFor(
+  value: BindingsObject | ReferenceObject | undefined,
+  protocol: string,
+): BindingObject | undefined {
+  const bindings = bindingsOf(value, `the ${protocol} bindings`);
+  return Object.hasOwn(bindings, protocol) ? bindings[protocol] : undefined;
 }

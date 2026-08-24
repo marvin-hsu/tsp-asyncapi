@@ -7,6 +7,7 @@ import {
 import { findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../../utils/document.js";
 import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 describe("Unit: the JMS binding decorators", () => {
   it("emits all three levels with the binding version", async () => {
@@ -33,14 +34,14 @@ describe("Unit: the JMS binding decorators", () => {
       }
     `);
 
-    expect(serversOf(doc).prod.bindings?.jms).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).jms).toEqual({
       jmsConnectionFactory: "org.apache.activemq.ActiveMQConnectionFactory",
       properties: [{ name: "disableTimeStampsByDefault", value: false }],
       clientID: "order-service",
       bindingVersion: "0.0.1",
     });
-    expect(channelsOf(doc).orders.bindings?.jms.destinationType).toBe("queue");
-    expect(messagesOf(doc).OrderCreated.bindings?.jms.headers).toEqual({
+    expect(bindingsOf(channelsOf(doc).orders.bindings).jms.destinationType).toBe("queue");
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).jms.headers).toEqual({
       type: "object",
     });
   });
@@ -98,7 +99,7 @@ describe("Unit: the JMS binding decorators", () => {
       }
     `);
 
-    expect(serversOf(doc).prod.bindings?.jms).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).jms).toEqual({
       jmsConnectionFactory: "com.example.Factory",
       bindingVersion: "0.0.1",
     });

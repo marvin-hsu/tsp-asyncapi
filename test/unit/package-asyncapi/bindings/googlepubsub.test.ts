@@ -3,6 +3,7 @@ import { buildAsyncAPIWithDiagnostics, emitDocument } from "../../../utils/test-
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, messagesOf } from "../../../utils/document.js";
 import { PUBLISH_ORDER_CREATED } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -122,7 +123,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      expect(channelsOf(doc)["orders-created"].bindings?.googlepubsub).toEqual({
+      expect(bindingsOf(channelsOf(doc)["orders-created"].bindings).googlepubsub).toEqual({
         schemaSettings: { encoding: "json", name: "projects/p/schemas/order" },
         bindingVersion: "0.2.0",
       });
@@ -144,10 +145,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
 
       // An empty policy states no restriction, which is what an absent field
       // already says.
-      const binding = channelsOf(doc)["orders-created"].bindings?.googlepubsub;
-      // `in` needs an object. Without the binding the claim would be vacuous,
-      // so say so here rather than reading `in` off undefined.
-      if (binding === undefined) throw new Error("The channel has no googlepubsub binding.");
+      const binding = bindingsOf(channelsOf(doc)["orders-created"].bindings).googlepubsub;
       expect("messageStoragePolicy" in binding).toBe(false);
     });
   });
@@ -231,7 +229,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       `);
 
       // No field of the message binding is required, unlike the channel one.
-      expect(messagesOf(doc).OrderCreated.bindings?.googlepubsub).toEqual({
+      expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).googlepubsub).toEqual({
         bindingVersion: "0.2.0",
       });
     });

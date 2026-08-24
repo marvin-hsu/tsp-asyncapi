@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic } from "../../../../utils/diagnostics.js";
 import { serversOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const BODY = `
   @message
@@ -59,9 +60,14 @@ describe("Unit: the @mqttServer decorator", () => {
     `);
 
     // `@server` is repeatable and keyed by name, so no decorator target can
-    // single one server out. Both therefore carry the binding.
-    expect(serversOf(doc).prod.bindings?.mqtt.clientId).toBe("sensor-gateway");
-    expect(serversOf(doc).staging.bindings?.mqtt.clientId).toBe("sensor-gateway");
+    // single one server out. Both therefore carry the binding, which makes it
+    // one shared component and a reference from each.
+    expect(
+      bindingsOf(doc.components?.serverBindings?.prod, "the shared mqtt bindings").mqtt.clientId,
+    ).toBe("sensor-gateway");
+    const reference = { $ref: "#/components/serverBindings/prod" };
+    expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
+    expect(serversOf(doc).staging.bindings).toStrictEqual(reference);
   });
 
   it("reports a last will qos outside the three MQTT defines, and keeps the will", async () => {
@@ -82,7 +88,7 @@ describe("Unit: the @mqttServer decorator", () => {
     // The rejected field goes on its own. The rest of the will still says
     // which topic the broker posts to, and losing that as well would take
     // away something the author wrote correctly.
-    expect(serversOf(doc).prod.bindings?.mqtt.lastWill).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).mqtt.lastWill).toEqual({
       topic: "sensors/status",
       message: "offline",
     });
@@ -98,7 +104,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    expect(serversOf(doc).prod.bindings?.mqtt.lastWill).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).mqtt.lastWill).toEqual({
       topic: "sensors/status",
       retain: false,
     });
@@ -117,7 +123,7 @@ describe("Unit: the @mqttServer decorator", () => {
     // The only field the will carried was rejected. An empty object states no
     // will at all, so emitting it would claim the client configured one.
     findDiagnostic(diagnostics, "invalid-binding-field");
-    expect(serversOf(doc).prod.bindings?.mqtt).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).mqtt).toEqual({
       clientId: "gateway",
       bindingVersion: "0.2.0",
     });
@@ -133,7 +139,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    expect(serversOf(doc).prod.bindings?.mqtt.sessionExpiryInterval).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).mqtt.sessionExpiryInterval).toEqual({
       type: "integer",
       minimum: 30,
     });

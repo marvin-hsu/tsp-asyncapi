@@ -9,6 +9,7 @@ import {
   serversOf,
 } from "../utils/document.js";
 import type { MultiFormatSchemaObject, SqsChannelBindingObject } from "#emitter/types/index.js";
+import { bindingFor, bindingsOf } from "../utils/document.js";
 
 describe("AsyncAPI emitted document", () => {
   it("should describe a service with a send and a receive operation end to end", async () => {
@@ -284,14 +285,14 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(serversOf(doc)["mqtt-prod"].bindings?.mqtt.lastWill).toEqual({
+    expect(bindingsOf(serversOf(doc)["mqtt-prod"].bindings).mqtt.lastWill).toEqual({
       topic: "sensors/status",
       qos: 1,
       message: "offline",
       retain: true,
     });
-    expect(operationsOf(doc).publish.bindings?.mqtt.qos).toBe(2);
-    expect(messagesOf(doc).Reading.bindings?.mqtt.payloadFormatIndicator).toBe(1);
+    expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt.qos).toBe(2);
+    expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt.payloadFormatIndicator).toBe(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -320,13 +321,13 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(channelsOf(doc)["events.created"].bindings?.amqp.exchange).toEqual({
+    expect(bindingsOf(channelsOf(doc)["events.created"].bindings).amqp.exchange).toEqual({
       name: "events",
       type: "topic",
       durable: true,
     });
-    expect(operationsOf(doc).publish.bindings?.amqp.deliveryMode).toBe(2);
-    expect(messagesOf(doc).EventCreated.bindings?.amqp.contentEncoding).toBe("gzip");
+    expect(bindingsOf(operationsOf(doc).publish.bindings).amqp.deliveryMode).toBe(2);
+    expect(bindingsOf(messagesOf(doc).EventCreated.bindings).amqp.contentEncoding).toBe("gzip");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -357,8 +358,8 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(operationsOf(doc).publish.bindings?.http.method).toBe("POST");
-    expect(messagesOf(doc).Notice.bindings?.http.statusCode).toBe(201);
+    expect(bindingsOf(operationsOf(doc).publish.bindings).http.method).toBe("POST");
+    expect(bindingsOf(messagesOf(doc).Notice.bindings).http.statusCode).toBe(201);
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -388,8 +389,8 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.pulsar.namespace).toBe("orders");
-    expect(operationsOf(doc).onOrderCreated.bindings?.nats.queue).toBe("orders-workers");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).pulsar.namespace).toBe("orders");
+    expect(bindingsOf(operationsOf(doc).onOrderCreated.bindings).nats.queue).toBe("orders-workers");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -423,7 +424,9 @@ describe("AsyncAPI emitted document", () => {
 
     // `schemaSettings` is required. The parser is the authority on that, so
     // the document goes to it rather than only to a shape assertion here.
-    expect(channelsOf(doc)["orders-created"].bindings?.googlepubsub.schemaSettings).toEqual({
+    expect(
+      bindingsOf(channelsOf(doc)["orders-created"].bindings).googlepubsub.schemaSettings,
+    ).toEqual({
       encoding: "json",
       name: "projects/p/schemas/order",
     });
@@ -456,9 +459,10 @@ describe("AsyncAPI emitted document", () => {
 
     // A binding is an untyped record in the document type, so the test names
     // the protocol shape it expects.
-    const sqsChannel = channelsOf(doc).orders.bindings?.sqs as SqsChannelBindingObject | undefined;
+    const sqsChannel = bindingFor(channelsOf(doc).orders.bindings, "sqs") as
+      SqsChannelBindingObject | undefined;
     expect(present(sqsChannel, "sqs channel binding").queue.name).toBe("orders");
-    expect(operationsOf(doc).publish.bindings?.sqs.queues).toHaveLength(1);
+    expect(bindingsOf(operationsOf(doc).publish.bindings).sqs.queues).toHaveLength(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -490,8 +494,8 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(channelsOf(doc).orders.bindings?.ibmmq.destinationType).toBe("queue");
-    expect(channelsOf(doc).orders.bindings?.jms.destination).toBe("orders");
+    expect(bindingsOf(channelsOf(doc).orders.bindings).ibmmq.destinationType).toBe("queue");
+    expect(bindingsOf(channelsOf(doc).orders.bindings).jms.destination).toBe("orders");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -523,8 +527,8 @@ describe("AsyncAPI emitted document", () => {
       }
     `);
 
-    expect(serversOf(doc).solace.bindings?.solace.msgVpn).toBe("orders-vpn");
-    expect(operationsOf(doc).publish.bindings?.solace.destinations).toHaveLength(1);
+    expect(bindingsOf(serversOf(doc).solace.bindings).solace.msgVpn).toBe("orders-vpn");
+    expect(bindingsOf(operationsOf(doc).publish.bindings).solace.destinations).toHaveLength(1);
     await expect(doc).toBeValidAsyncAPI();
   });
 

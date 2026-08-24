@@ -3,6 +3,7 @@ import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-h
 import { findDiagnostic } from "../../../utils/diagnostics.js";
 import { operationsOf, serversOf } from "../../../utils/document.js";
 import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 describe("Unit: the Solace binding decorators", () => {
   it("emits both levels with the binding version", async () => {
@@ -35,12 +36,12 @@ describe("Unit: the Solace binding decorators", () => {
 
     // The field is `msgVpn`. Version 0.2.0 of the binding spells it
     // `msvVpn`, and this library emits 0.4.0.
-    expect(serversOf(doc).prod.bindings?.solace).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).solace).toEqual({
       msgVpn: "orders-vpn",
       clientName: "order-service",
       bindingVersion: "0.4.0",
     });
-    expect(operationsOf(doc).publish.bindings?.solace).toEqual({
+    expect(bindingsOf(operationsOf(doc).publish.bindings).solace).toEqual({
       destinations: [
         {
           deliveryMode: "persistent",
@@ -73,7 +74,7 @@ describe("Unit: the Solace binding decorators", () => {
     expect(reported.message).toContain("destinations[0].deliveryMode");
     expect(reported.message).toContain("direct or persistent");
     // The entry still names the destination the author wrote.
-    expect(operationsOf(doc).publish.bindings?.solace.destinations).toEqual([
+    expect(bindingsOf(operationsOf(doc).publish.bindings).solace.destinations).toEqual([
       { destinationType: "topic" },
     ]);
   });
@@ -128,7 +129,7 @@ describe("Unit: the Solace binding decorators", () => {
     `);
 
     findDiagnostic(diagnostics, "invalid-binding-field");
-    expect(operationsOf(doc).publish.bindings?.solace).toEqual({
+    expect(bindingsOf(operationsOf(doc).publish.bindings).solace).toEqual({
       timeToLive: 60000,
       bindingVersion: "0.4.0",
     });

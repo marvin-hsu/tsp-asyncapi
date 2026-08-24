@@ -16,8 +16,10 @@
  * sort of its own. Reordering this walk reorders the emitted keys.
  */
 
-import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
+import type { AsyncAPIService, BindingNode } from "tsp-asyncapi-core/unstable";
+import { lowerBindings } from "../bindings.js";
 import type {
+  BindingsObject,
   CorrelationIdObject,
   ExternalDocumentationObject,
   ReferenceObject,
@@ -52,6 +54,10 @@ export interface DocumentPromotions {
   readonly correlationIds: Promoter<CorrelationIdObject>;
   readonly externalDocs: Promoter<ExternalDocumentationObject>;
   readonly tags: Promoter<TagObject>;
+  readonly serverBindings: Promoter<BindingsObject>;
+  readonly channelBindings: Promoter<BindingsObject>;
+  readonly operationBindings: Promoter<BindingsObject>;
+  readonly messageBindings: Promoter<BindingsObject>;
 }
 
 /**
@@ -85,6 +91,25 @@ export function surveyDocument(
   const correlationIds = anonymous<CorrelationIdObject>();
   const externalDocs = anonymous<ExternalDocumentationObject>();
   const tags = byName<TagObject>();
+  const bindings = {
+    serverBindings: anonymous<BindingsObject>(),
+    channelBindings: anonymous<BindingsObject>(),
+    operationBindings: anonymous<BindingsObject>(),
+    messageBindings: anonymous<BindingsObject>(),
+  };
+
+  const surveyBindings = (
+    section: keyof typeof bindings,
+    nodes: readonly BindingNode[],
+    site: string,
+  ): void => {
+    // The identity is taken from the rendered object, because
+    // `bindingVersion` is appended there rather than recorded by the
+    // decorator. Rendering is a pure function of the nodes, so surveying
+    // costs one extra render per site and changes nothing.
+    const rendered = lowerBindings(nodes);
+    if (rendered !== undefined) bindings[section].survey(rendered, site);
+  };
 
   const surveySite = (
     site: string,
@@ -98,11 +123,21 @@ export function surveyDocument(
   };
 
   surveySite("info", service.info);
-  for (const server of service.servers) surveySite(server.name, server);
-  for (const channel of service.channels) surveySite(channel.key, channel);
-  for (const operation of service.operations) surveySite(operation.key, operation);
+  for (const server of service.servers) {
+    surveySite(server.name, server);
+    surveyBindings("serverBindings", server.bindings, server.name);
+  }
+  for (const channel of service.channels) {
+    surveySite(channel.key, channel);
+    surveyBindings("channelBindings", channel.bindings, channel.key);
+  }
+  for (const operation of service.operations) {
+    surveySite(operation.key, operation);
+    surveyBindings("operationBindings", operation.bindings, operation.key);
+  }
   for (const message of service.messages) {
     surveySite(message.key, message);
+    surveyBindings("messageBindings", message.bindings, message.key);
     if (message.correlationId !== undefined) {
       correlationIds.survey(message.correlationId, message.key);
     }
@@ -111,12 +146,14 @@ export function surveyDocument(
   correlationIds.freeze();
   externalDocs.freeze();
   tags.freeze();
+  for (const promoter of Object.values(bindings)) promoter.freeze();
 
   return {
     rawSchemas: RawSchemaPromoter.survey(service, schemas),
     correlationIds,
     externalDocs,
     tags,
+    ...bindings,
   };
 }
 

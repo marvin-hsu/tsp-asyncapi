@@ -3,6 +3,7 @@ import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-h
 import { channelsOf, messagesOf } from "../../../utils/document.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
 import { PUBLISH_ORDER_CREATED, brokerService } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 describe("Unit: the Anypoint MQ binding decorators", () => {
   it("emits both levels with the binding version", async () => {
@@ -24,12 +25,12 @@ describe("Unit: the Anypoint MQ binding decorators", () => {
       }
     `);
 
-    expect(channelsOf(doc).orders.bindings?.anypointmq).toEqual({
+    expect(bindingsOf(channelsOf(doc).orders.bindings).anypointmq).toEqual({
       destination: "orders",
       destinationType: "fifo-queue",
       bindingVersion: "0.0.1",
     });
-    expect(messagesOf(doc).OrderCreated.bindings?.anypointmq).toEqual({
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).anypointmq).toEqual({
       headers: { type: "object" },
       bindingVersion: "0.0.1",
     });

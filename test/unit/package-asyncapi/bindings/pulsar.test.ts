@@ -7,6 +7,7 @@ import {
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, serversOf } from "../../../utils/document.js";
 import { PUBLISH_ORDER_CREATED } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -169,7 +170,9 @@ describe("Unit: the Pulsar binding decorators", () => {
 
       // Zero disables retention on that measure, which is a statement rather
       // than an absent field.
-      expect(channelsOf(doc)["orders.created"].bindings?.pulsar.retention).toEqual({ time: 0 });
+      expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).pulsar.retention).toEqual({
+        time: 0,
+      });
     });
 
     it("reports a negative retention and keeps the binding", async () => {
@@ -190,7 +193,9 @@ describe("Unit: the Pulsar binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("retention.time");
       // The two required fields are still there, so the binding survives.
-      expect(channelsOf(doc)["orders.created"].bindings?.pulsar.retention).toEqual({ size: 1000 });
+      expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).pulsar.retention).toEqual({
+        size: 1000,
+      });
     });
 
     it("drops a retention policy left with nothing in it", async () => {
@@ -209,7 +214,7 @@ describe("Unit: the Pulsar binding decorators", () => {
       `);
 
       findDiagnostic(diagnostics, "invalid-binding-field");
-      expect(channelsOf(doc)["orders.created"].bindings?.pulsar).toEqual({
+      expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).pulsar).toEqual({
         namespace: "orders",
         persistence: "persistent",
         bindingVersion: "0.1.0",
@@ -231,9 +236,9 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      expect(channelsOf(doc)["orders.created"].bindings?.pulsar["geo-replication"]).toEqual([
-        "us-east",
-      ]);
+      expect(
+        bindingsOf(channelsOf(doc)["orders.created"].bindings).pulsar["geo-replication"],
+      ).toEqual(["us-east"]);
     });
 
     it("reports a negative compaction threshold", async () => {

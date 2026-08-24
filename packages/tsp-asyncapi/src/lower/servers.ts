@@ -65,8 +65,8 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   if (externalDocs !== undefined) server.externalDocs = externalDocs;
   const tags = sharedEach(promoted.tags, "tags", node.tags);
   if (tags !== undefined) server.tags = tags;
-  const bindings = lowerBindings(node.bindings);
-  if (bindings !== undefined) server.bindings = structuredClone(bindings);
+  const bindings = shared(promoted.serverBindings, "serverBindings", lowerBindings(node.bindings));
+  if (bindings !== undefined) server.bindings = bindings;
   return server;
 }
 

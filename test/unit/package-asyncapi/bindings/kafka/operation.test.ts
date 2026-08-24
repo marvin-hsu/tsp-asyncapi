@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { operationsOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -78,7 +79,7 @@ describe("Unit: the @kafkaOperation decorator", () => {
       '#{ groupId: "order-workers", clientId: #{ type: "string" } }',
     );
     // The rejected field is dropped, and the rest of the binding is emitted.
-    expect(operationsOf(doc).onOrderCreated.bindings?.kafka).toEqual({
+    expect(bindingsOf(operationsOf(doc).onOrderCreated.bindings).kafka).toEqual({
       clientId: { type: "string" },
       bindingVersion: "0.5.0",
     });

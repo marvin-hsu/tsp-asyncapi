@@ -52,7 +52,10 @@ function lowerOperation(node: OperationNode, promoted: DocumentPromotions): Oper
     ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
-    ...present("bindings", lowerBindings(node.bindings)),
+    ...present(
+      "bindings",
+      shared(promoted.operationBindings, "operationBindings", lowerBindings(node.bindings)),
+    ),
     ...present("messages", lowerMessageRefs(node.messages)),
     ...present("reply", node.reply ? lowerReply(node.reply) : undefined),
     // The `x-` fields go last. They cannot collide with a specification

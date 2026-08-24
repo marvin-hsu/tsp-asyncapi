@@ -3,6 +3,7 @@ import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-h
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, messagesOf, operationsOf, present } from "../../../utils/document.js";
 import type { AmqpChannelBindingObject } from "#emitter/types/index.js";
+import { bindingFor, bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Events" })
@@ -75,7 +76,9 @@ describe("Unit: the AMQP binding decorators", () => {
       expect(reported.message).toContain("topic or direct or fanout or default or headers");
       // The name is still what the author wrote, so losing it as well would
       // take away something correct.
-      expect(channelsOf(doc)["events.created"].bindings?.amqp.exchange).toEqual({ name: "events" });
+      expect(bindingsOf(channelsOf(doc)["events.created"].bindings).amqp.exchange).toEqual({
+        name: "events",
+      });
     });
 
     it("reports a name longer than AMQP allows", async () => {
@@ -114,7 +117,7 @@ describe("Unit: the AMQP binding decorators", () => {
       // `bindings` is a record of untyped records in the document type, on
       // purpose: a binding is whatever its protocol says. The test names the
       // shape it expects, which is the same shape the emitter writes.
-      const amqp = channelsOf(doc)["events.created"].bindings?.amqp as
+      const amqp = bindingFor(channelsOf(doc)["events.created"].bindings, "amqp") as
         AmqpChannelBindingObject | undefined;
       expect(present(amqp?.queue, "amqp queue").name).toBe(name);
     });
@@ -133,7 +136,7 @@ describe("Unit: the AMQP binding decorators", () => {
       // The only field the exchange carried was rejected. An empty object
       // states no exchange at all.
       findDiagnostic(diagnostics, "invalid-binding-field");
-      expect(channelsOf(doc)["events.created"].bindings?.amqp).toEqual({
+      expect(bindingsOf(channelsOf(doc)["events.created"].bindings).amqp).toEqual({
         is: "queue",
         bindingVersion: "0.3.0",
       });
@@ -181,7 +184,10 @@ describe("Unit: the AMQP binding decorators", () => {
       // The author wrote the fields in reverse. The emitted order follows the
       // specification, so two documents describing one operation cannot
       // differ by how their author typed a literal.
-      const emitted = operationsOf(doc).publish.bindings?.amqp as Record<string, unknown>;
+      const emitted = bindingsOf(operationsOf(doc).publish.bindings).amqp as Record<
+        string,
+        unknown
+      >;
       expect(Object.keys(emitted)).toEqual([
         "expiration",
         "userId",
@@ -211,7 +217,7 @@ describe("Unit: the AMQP binding decorators", () => {
       const reported = findDiagnostic(diagnostics, "invalid-binding-field");
       expect(reported.message).toContain("deliveryMode");
       expect(reported.message).toContain("1, 2");
-      expect(operationsOf(doc).publish.bindings?.amqp).toEqual({
+      expect(bindingsOf(operationsOf(doc).publish.bindings).amqp).toEqual({
         userId: "publisher",
         bindingVersion: "0.3.0",
       });
@@ -248,7 +254,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      expect(operationsOf(doc).publish.bindings?.amqp).toEqual({
+      expect(bindingsOf(operationsOf(doc).publish.bindings).amqp).toEqual({
         expiration: 0,
         bindingVersion: "0.3.0",
       });
@@ -268,7 +274,10 @@ describe("Unit: the AMQP binding decorators", () => {
 
       // A blank entry names no routing key, and a padded one names the key
       // the author meant.
-      expect(operationsOf(doc).publish.bindings?.amqp.cc).toEqual(["events.log", "events.audit"]);
+      expect(bindingsOf(operationsOf(doc).publish.bindings).amqp.cc).toEqual([
+        "events.log",
+        "events.audit",
+      ]);
     });
 
     it("drops a routing key list left with nothing in it", async () => {
@@ -283,7 +292,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      expect(operationsOf(doc).publish.bindings?.amqp).toEqual({
+      expect(bindingsOf(operationsOf(doc).publish.bindings).amqp).toEqual({
         ack: true,
         bindingVersion: "0.3.0",
       });
@@ -336,7 +345,7 @@ describe("Unit: the AMQP binding decorators", () => {
         }
       `);
 
-      expect(messagesOf(doc).EventCreated.bindings?.amqp).toEqual({
+      expect(bindingsOf(messagesOf(doc).EventCreated.bindings).amqp).toEqual({
         messageType: "event.created",
         bindingVersion: "0.3.0",
       });

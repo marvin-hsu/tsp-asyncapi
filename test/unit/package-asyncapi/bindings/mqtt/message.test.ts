@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic } from "../../../../utils/diagnostics.js";
 import { messagesOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Sensors" })
@@ -62,7 +63,7 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // Zero says the payload is unspecified bytes. That is one of the two
     // formats MQTT 5 defines, not an absent field.
-    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
+    expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt).toEqual({
       payloadFormatIndicator: 0,
       bindingVersion: "0.2.0",
     });
@@ -84,7 +85,7 @@ describe("Unit: the @mqttMessage decorator", () => {
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("payloadFormatIndicator");
     expect(reported.message).toContain("0, 1");
-    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
+    expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt).toEqual({
       contentType: "application/json",
       bindingVersion: "0.2.0",
     });
@@ -105,7 +106,7 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // MQTT types the field as a topic name or a Schema Object. Kafka has no
     // field shaped this way, so the check is its own.
-    expect(messagesOf(doc).Reading.bindings?.mqtt.responseTopic).toEqual({
+    expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt.responseTopic).toEqual({
       type: "string",
       pattern: "^sensors/",
     });
@@ -144,7 +145,7 @@ describe("Unit: the @mqttMessage decorator", () => {
 
     // A blank topic names nothing. Emitting it would send replies to a topic
     // whose name is spaces.
-    expect(messagesOf(doc).Reading.bindings?.mqtt).toEqual({
+    expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt).toEqual({
       contentType: "application/json",
       bindingVersion: "0.2.0",
     });

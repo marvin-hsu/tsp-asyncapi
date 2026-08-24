@@ -110,7 +110,7 @@ export { BindingsObject }
 // @public
 export interface ChannelObject extends SpecificationExtensions {
     address: string | null;
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: Record<string, ReferenceObject>;
@@ -209,7 +209,7 @@ export { MessageExampleObject }
 
 // @public
 export interface MessageObject extends SpecificationExtensions {
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     contentType?: string;
     correlationId?: CorrelationIdObject | ReferenceObject;
     description?: string;
@@ -241,7 +241,7 @@ export { OAuthFlowsObject }
 // @public
 export interface OperationObject extends SpecificationExtensions {
     action: "send" | "receive";
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     channel: ReferenceObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject | ReferenceObject;
@@ -293,7 +293,7 @@ export { SecuritySchemeType }
 
 // @public
 export interface ServerObject {
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     description?: string;
     externalDocs?: ExternalDocumentationObject | ReferenceObject;
     host: string;

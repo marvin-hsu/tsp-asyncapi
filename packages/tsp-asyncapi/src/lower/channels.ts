@@ -71,7 +71,10 @@ function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelO
     ),
     ...present("parameters", lowerParameters(node.parameters)),
     ...present("messages", lowerMessages(node)),
-    ...present("bindings", lowerBindings(node.bindings)),
+    ...present(
+      "bindings",
+      shared(promoted.channelBindings, "channelBindings", lowerBindings(node.bindings)),
+    ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     // The `x-` fields go last. They cannot collide with a specification

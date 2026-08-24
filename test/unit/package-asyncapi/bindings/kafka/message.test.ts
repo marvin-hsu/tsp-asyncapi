@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { messagesOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -60,7 +61,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(messagesOf(doc).OrderCreated.bindings?.kafka.schemaIdLocation).toBe("header");
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).kafka.schemaIdLocation).toBe("header");
   });
 
   it("reports a schema id location outside the two the binding allows", async () => {
@@ -84,7 +85,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
       `#{ schemaIdLocation: "trailer", schemaLookupStrategy: "TopicIdStrategy" }`,
     );
     // The rejected field is dropped, and the rest of the binding is emitted.
-    expect(messagesOf(doc).OrderCreated.bindings?.kafka).toEqual({
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).kafka).toEqual({
       schemaLookupStrategy: "TopicIdStrategy",
       bindingVersion: "0.5.0",
     });
@@ -105,7 +106,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
 
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("key");
-    expect(messagesOf(doc).OrderCreated.bindings?.kafka).toEqual({
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).kafka).toEqual({
       schemaIdLocation: "payload",
       bindingVersion: "0.5.0",
     });
@@ -185,7 +186,9 @@ describe("Unit: the @kafkaMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    expect(messagesOf(doc).OrderCreated.bindings?.kafka.schemaIdLocation).toBe("payload");
+    expect(bindingsOf(messagesOf(doc).OrderCreated.bindings).kafka.schemaIdLocation).toBe(
+      "payload",
+    );
   });
 
   it("drops a blank schema lookup strategy rather than emitting an empty value", async () => {

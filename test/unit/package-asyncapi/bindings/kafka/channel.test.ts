@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { channelsOf, present, serversOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -57,9 +58,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
-      "confluent.value.schema.validation": true,
-    });
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topicConfiguration).toEqual(
+      {
+        "confluent.value.schema.validation": true,
+      },
+    );
   });
 
   it("reaches a namespace channel as well as an interface channel", async () => {
@@ -74,7 +77,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topic).toBe(
+      "orders.created",
+    );
   });
 
   it("reports a partition count that is not positive, and keeps the rest", async () => {
@@ -94,7 +99,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     expect(reported.message).toContain("a positive integer");
     // The message promises the rest of the binding survives, so the document
     // has to be there to show it. The rejected field is the only loss.
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka).toEqual({
       topic: "orders.created",
       replicas: 3,
       bindingVersion: "0.5.0",
@@ -115,7 +120,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
 
     // A blank topic names nothing, and emitting it would claim the channel
     // uses a topic whose name is spaces.
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka).toEqual({
       partitions: 3,
       bindingVersion: "0.5.0",
     });
@@ -133,7 +138,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topic).toBe(
+      "orders.created",
+    );
   });
 
   it("reports a replica count that is negative", async () => {
@@ -200,7 +207,7 @@ describe("Unit: the @kafkaChannel decorator", () => {
     // away keys the author wrote correctly, including a vendor key this
     // emitter has never heard of.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-binding-field");
-    expect(doc?.channels?.["orders.created"]?.bindings?.kafka).toEqual({
+    expect(bindingsOf(doc?.channels?.["orders.created"]?.bindings).kafka).toEqual({
       topic: "orders",
       topicConfiguration: {
         "retention.ms": 604800000,
@@ -222,9 +229,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
-      "cleanup.policy": ["delete", "compact"],
-    });
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topicConfiguration).toEqual(
+      {
+        "cleanup.policy": ["delete", "compact"],
+      },
+    );
   });
 
   it("reports a plain interface that carries no channel", async () => {
@@ -316,9 +325,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topicConfiguration).toEqual({
-      "cleanup.policy": ["compact"],
-    });
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topicConfiguration).toEqual(
+      {
+        "cleanup.policy": ["compact"],
+      },
+    );
   });
 
   it("reports a cleanup policy list that mixes an allowed and a rejected entry", async () => {
@@ -389,7 +400,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
       @@kafkaChannel(Test.OrderChannel, #{ topic: "orders.created" });
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka.topic).toBe("orders.created");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka.topic).toBe(
+      "orders.created",
+    );
   });
 
   it("keeps a server binding and a channel binding apart on one namespace", async () => {
@@ -414,11 +427,11 @@ describe("Unit: the @kafkaChannel decorator", () => {
       op publish(event: OrderCreated): void;
     `);
 
-    expect(serversOf(doc).prod.bindings?.kafka).toEqual({
+    expect(bindingsOf(serversOf(doc).prod.bindings).kafka).toEqual({
       schemaRegistryUrl: "https://registry.example.com",
       bindingVersion: "0.5.0",
     });
-    expect(channelsOf(doc)["orders.created"].bindings?.kafka).toEqual({
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka).toEqual({
       topic: "orders.created",
       bindingVersion: "0.5.0",
     });
