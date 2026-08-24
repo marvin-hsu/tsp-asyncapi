@@ -598,6 +598,16 @@ Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` 
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
 
+### `conflicting-generated-schema-source`
+
+> Two preview features generate the \<slot\> schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
+
+Two [preview features](./emitter-options#preview-features) both generated a schema for one model, and both for the same slot of the message. The slot is `payload` or `headers`.
+
+The emitter picks neither. A winner would be the order the emitter lists its providers in, and that order is not something a project states.
+
+**Fix:** Remove one of the two names from `preview-features` in `tspconfig.yaml`.
+
 ### `preview-feature-unavailable`
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.

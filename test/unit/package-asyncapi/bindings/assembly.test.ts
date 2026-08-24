@@ -42,7 +42,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
     // The members read in the order the author wrote the decorators, so the
@@ -75,7 +75,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // An empty Bindings Object states nothing, so the field is left out.
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("bindings");
@@ -101,7 +101,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The two are never merged, and the later one never wins.
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
@@ -132,7 +132,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
+    const doc = await buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
     expect(bindingsOf(doc.servers?.prod.bindings).kafka).toEqual({
       schemaRegistryUrl: "https://registry.example.com",
@@ -208,7 +208,7 @@ describe("Unit: assembling a Bindings Object", () => {
       }
     `);
 
-    const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
+    const doc = await buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
     const server = bindingsOf(doc.servers?.prod.bindings);
     const channel = bindingsOf(doc.channels?.["orders.created"].bindings);

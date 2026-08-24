@@ -36,7 +36,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
 
     // Decorators on one declaration run bottom-up, so the application written
     // last in the source runs first and wins.
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,
       schema: { name: "first" },
@@ -60,7 +60,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.headers).toEqual({
       schemaFormat: AVRO,
       schema: { name: "first" },
@@ -82,7 +82,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers");
     expect(reported).toHaveLength(1);
@@ -119,7 +119,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers")).toHaveLength(
       1,
@@ -142,7 +142,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "raw-payload-lifted-header");
     expect(reported).toHaveLength(1);
@@ -184,7 +184,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "raw-payload-lifted-header");
     expect(reported).toHaveLength(1);
@@ -211,7 +211,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The base message lifts `traceId`, and `@rawHeaders` describes the whole
     // headers object. So the lift is cancelled and the field stays in the
@@ -251,7 +251,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The derived message declares two header sources, so it gets none of
     // them. What it declares is what decides that, not what it resolved to.
@@ -279,7 +279,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(allDiagnostics(runner)).toHaveLength(0);
   });
@@ -301,7 +301,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // Both wordings tell the author that the mark stays in the payload
     // schema. A raw payload has no schema built from the model, so the
@@ -331,7 +331,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "nested-header-ignored");
     expect(reported).toHaveLength(1);
@@ -356,7 +356,7 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // Nothing is built from the model, so the discriminator reaches no
     // schema and pulls in no subtype.

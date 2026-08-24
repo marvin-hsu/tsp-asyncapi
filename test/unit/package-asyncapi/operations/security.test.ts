@@ -66,7 +66,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(operationsOf(doc).publish.security).toEqual([
       { $ref: "#/components/securitySchemes/first" },
@@ -92,7 +92,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(operationsOf(doc).publish).not.toHaveProperty("security");
   });
@@ -117,7 +117,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(findDiagnostic(diagnostics, "undeclared-security-scheme").message).toContain(
       "'missing'",
@@ -150,7 +150,7 @@ describe("Unit: Operation security (Phase 5.6)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(diagnosticsWith(diagnostics, "use-security-outside-server")).toHaveLength(0);
   });

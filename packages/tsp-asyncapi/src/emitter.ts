@@ -3,6 +3,7 @@ import { reportDiagnostic } from "tsp-asyncapi-core";
 import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 import { buildAsyncAPIDocument } from "./pipeline.js";
 import { reportUnavailablePreviewFeatures } from "./preview-features.js";
+import { collectSchemaArtifacts } from "./schema-artifacts/provider.js";
 import yaml from "yaml";
 
 /**
@@ -37,7 +38,15 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
   // now would ignore the request without saying so, so nothing is written.
   if (reportUnavailablePreviewFeatures(program, options)) return;
 
-  const doc = buildAsyncAPIDocument(program, service, options);
+  // Every provider a preview feature would turn on runs here, before resolve.
+  // The registry is empty in this release, so the set above is refused first
+  // and this collection always comes back empty.
+  const artifacts = await collectSchemaArtifacts(
+    program,
+    new Set(options["preview-features"] ?? []),
+  );
+
+  const doc = await buildAsyncAPIDocument(program, service, options, artifacts);
 
   // Default serialization
   const fileType = options["file-type"] ?? "yaml";

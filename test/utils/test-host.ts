@@ -161,7 +161,7 @@ export async function emitDocument(
  * @param program - The compiled program
  * @returns The built document
  */
-export function documentFrom(program: Program): AsyncAPIDocument {
+export function documentFrom(program: Program): Promise<AsyncAPIDocument> {
   return buildAsyncAPIDocument(program, undefined, {});
 }
 
@@ -186,5 +186,5 @@ export function documentFrom(program: Program): AsyncAPIDocument {
 export async function buildAsyncAPIWithDiagnostics(code: string) {
   const runner = await AsyncAPITester.createInstance();
   const [, diagnostics] = await runner.compileAndDiagnose(code);
-  return { doc: documentFrom(runner.program), diagnostics };
+  return { doc: await documentFrom(runner.program), diagnostics };
 }

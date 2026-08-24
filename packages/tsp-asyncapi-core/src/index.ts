@@ -164,3 +164,12 @@ export { serializeDefaultValue, serializeExamples } from "./example-serializatio
 
 // `@externalDocs` on any target.
 export { buildExternalDocs } from "./external-docs.js";
+
+// Schemas another tool generated, as the resolve stage receives them. A
+// provider that produces one lives in an emitter package; only the values
+// cross into this one.
+export {
+  emptySchemaArtifacts,
+  type ExternalSchemaArtifact,
+  type SchemaArtifactIndex,
+} from "./schema-artifacts.js";

@@ -136,6 +136,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`The preview feature '${"feature"}' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '${"feature"}' from \`preview-features\` in \`tspconfig.yaml\`.`,
       },
     },
+    "conflicting-generated-schema-source": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Two preview features generate the ${"slot"} schema of this model: '${"first"}' and '${"second"}'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {

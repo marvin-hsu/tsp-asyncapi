@@ -194,10 +194,11 @@ export interface OperationReplyNode {
     readonly messages: readonly MessageRefNode[];
 }
 
+// Warning: (ae-forgotten-export) The symbol "SchemaArtifactIndex" needs to be exported by the entry point unstable.d.ts
 // Warning: (ae-internal-missing-underscore) The name "resolveService" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
-export function resolveService(program: Program, service: Service | undefined, placements: BindingPlacements): AsyncAPIService;
+export function resolveService(program: Program, service: Service | undefined, placements: BindingPlacements, artifacts?: SchemaArtifactIndex): AsyncAPIService;
 
 // Warning: (ae-internal-missing-underscore) The name "SecuritySchemeNode" should be prefixed with an underscore because the declaration is marked as @internal
 //
@@ -242,7 +243,7 @@ export interface ServerVariableNode {
 
 // Warnings were encountered during analysis:
 //
-// src/resolve/service.ts:447:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
+// src/resolve/service.ts:448:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
 
 // (No @packageDocumentation comment for this package)
 
