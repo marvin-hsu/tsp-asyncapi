@@ -102,14 +102,14 @@ describe("Unit: the generic @binding decorator", () => {
 
     // One decorator on the namespace reaches every server it declares, so
     // both carry the same Bindings Object and it is written once. A Bindings
-    // Object has no name of its own, so the key comes from the first server
-    // the survey met.
+    // Object has no name of its own, so the component is named after the
+    // declaration that carries it — here the service namespace.
     expect(doc.components?.serverBindings).toStrictEqual({
-      prod: {
+      Test: {
         kafka: { schemaRegistryUrl: "https://registry.example.com" },
       },
     });
-    const reference = { $ref: "#/components/serverBindings/prod" };
+    const reference = { $ref: "#/components/serverBindings/Test" };
     expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
     expect(serversOf(doc).sit.bindings).toStrictEqual(reference);
   });

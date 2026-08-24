@@ -41,14 +41,14 @@ describe("Unit: promoting bindings into components", () => {
     `);
 
     expect(doc.components?.serverBindings).toStrictEqual({
-      production: {
+      Test: {
         kafka: {
           schemaRegistryUrl: "https://registry.example.com",
           bindingVersion: "0.5.0",
         },
       },
     });
-    const reference = { $ref: "#/components/serverBindings/production" };
+    const reference = { $ref: "#/components/serverBindings/Test" };
     expect(serversOf(doc).production.bindings).toStrictEqual(reference);
     expect(serversOf(doc).sit.bindings).toStrictEqual(reference);
     expect(await validateAsyncAPI(doc)).toBeNull();
@@ -126,12 +126,12 @@ describe("Unit: promoting bindings into components", () => {
     // Each pair repeats within its own section, and neither pair reaches the
     // other's map.
     expect(Object.keys(doc.components?.messageBindings ?? {})).toStrictEqual(["Placed"]);
-    expect(Object.keys(doc.components?.channelBindings ?? {})).toStrictEqual(["orders"]);
+    expect(Object.keys(doc.components?.channelBindings ?? {})).toStrictEqual(["OrderChannel"]);
     expect(messagesOf(doc).Shipped.bindings).toStrictEqual({
       $ref: "#/components/messageBindings/Placed",
     });
     expect(channelsOf(doc)["orders.audit"].bindings).toStrictEqual({
-      $ref: "#/components/channelBindings/orders",
+      $ref: "#/components/channelBindings/OrderChannel",
     });
     expect(await validateAsyncAPI(doc)).toBeNull();
   });

@@ -26,26 +26,24 @@ import type {
   TagObject,
 } from "../../types/index.js";
 
+import { sanitizeDeclarationName } from "tsp-asyncapi-core";
 import { componentRef } from "../json-pointer.js";
 import { Promoter } from "./promotion.js";
 import type { ClaimedSchemaKeys } from "./raw-schemas.js";
 import { RawSchemaPromoter } from "./raw-schemas.js";
 
 /**
- * The character set every `components.*` map states in its
- * `patternProperties`. A key outside it is not rejected, because no map sets
- * `additionalProperties: false` — it simply matches no pattern and goes
- * unvalidated, which makes a bad key invisible to a validator rather than
- * loud. So keys are cleaned here instead of being left to the parser.
+ * Cleans one site name into a key every `components` map states it accepts.
+ *
+ * `sanitizeDeclarationName` already owns this decision for
+ * `components.schemas` and `components.messages`, and one document should
+ * not clean its keys two ways.
  */
-const KEY_CHARACTERS = /[^\w.-]/g;
-
-/** Cleans one site name into a key every `components` map states it accepts. */
 function keyFromSite(site: string): string {
-  const cleaned = site.replace(KEY_CHARACTERS, "_");
-  // A site name is derived from something the author wrote, so it is empty
-  // only if every character of it was outside the set.
-  return cleaned.length > 0 ? cleaned : "_";
+  const cleaned = sanitizeDeclarationName(site);
+  // A site name comes from something the author wrote, so it is empty only
+  // if the name itself was.
+  return cleaned.length > 0 ? cleaned : "Empty";
 }
 
 /** Every promotion one document drives, each survey already closed. */
@@ -108,7 +106,11 @@ export function surveyDocument(
     // decorator. Rendering is a pure function of the nodes, so surveying
     // costs one extra render per site and changes nothing.
     const rendered = lowerBindings(nodes);
-    if (rendered !== undefined) bindings[section].survey(rendered, site);
+    if (rendered === undefined) return;
+    // The reason one Bindings Object reaches several sites is that one
+    // declaration carries it, so that declaration names the component. The
+    // first site names it only when the carrier is anonymous.
+    bindings[section].survey(rendered, nodes[0].carrier ?? site);
   };
 
   const surveySite = (

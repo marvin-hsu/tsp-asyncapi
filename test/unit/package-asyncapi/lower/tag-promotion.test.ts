@@ -93,7 +93,9 @@ describe("Unit: promoting tags into components", () => {
 
   /**
    * A key has to match the character set every `components` map states, and
-   * a tag name is free text.
+   * a tag name is free text. The encoding is `sanitizeDeclarationName`, the
+   * same one `components.schemas` uses, so two names that differ never
+   * collapse onto one key.
    */
   it("cleans a tag name that is not a legal component key", async () => {
     const doc = await emitDocument(`
@@ -102,8 +104,8 @@ describe("Unit: promoting tags into components", () => {
       namespace Test;
     `);
 
-    expect(Object.keys(doc.components?.tags ?? {})).toStrictEqual(["orders_v1_beta"]);
-    expect(doc.info.tags).toStrictEqual([{ $ref: "#/components/tags/orders_v1_beta" }]);
+    expect(Object.keys(doc.components?.tags ?? {})).toStrictEqual(["OrdersSep47V1Sep32Beta"]);
+    expect(doc.info.tags).toStrictEqual([{ $ref: "#/components/tags/OrdersSep47V1Sep32Beta" }]);
     expect(await validateAsyncAPI(doc)).toBeNull();
   });
 });

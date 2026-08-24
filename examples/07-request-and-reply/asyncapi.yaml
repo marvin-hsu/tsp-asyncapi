@@ -133,8 +133,7 @@ components:
       payload:
         $ref: "#/components/schemas/CreateOrderPayload"
       correlationId:
-        location: $message.header#/correlation-id
-        description: The id of the originating request.
+        $ref: "#/components/correlationIds/CreateOrder"
     OrderAccepted:
       name: OrderAccepted
       description: The acknowledgement of one accepted order.
@@ -150,5 +149,8 @@ components:
       payload:
         $ref: "#/components/schemas/OrderAcceptedPayload"
       correlationId:
-        location: $message.header#/correlation-id
-        description: The id of the originating request.
+        $ref: "#/components/correlationIds/CreateOrder"
+  correlationIds:
+    CreateOrder:
+      location: $message.header#/correlation-id
+      description: The id of the originating request.

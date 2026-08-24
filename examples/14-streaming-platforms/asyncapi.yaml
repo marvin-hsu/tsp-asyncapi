@@ -11,49 +11,25 @@ servers:
     protocol: pulsar
     title: Pulsar cluster
     bindings:
-      pulsar:
-        tenant: telemetry
-        bindingVersion: 0.1.0
-      solace:
-        msgVpn: telemetry-vpn
-        clientName: sensor-stream
-        bindingVersion: 0.4.0
+      $ref: "#/components/serverBindings/SensorStream"
   nats:
     host: nats.example.com:4222
     protocol: nats
     title: NATS cluster
     bindings:
-      pulsar:
-        tenant: telemetry
-        bindingVersion: 0.1.0
-      solace:
-        msgVpn: telemetry-vpn
-        clientName: sensor-stream
-        bindingVersion: 0.4.0
+      $ref: "#/components/serverBindings/SensorStream"
   pubsub:
     host: pubsub.googleapis.com
     protocol: googlepubsub
     title: Pub/Sub
     bindings:
-      pulsar:
-        tenant: telemetry
-        bindingVersion: 0.1.0
-      solace:
-        msgVpn: telemetry-vpn
-        clientName: sensor-stream
-        bindingVersion: 0.4.0
+      $ref: "#/components/serverBindings/SensorStream"
   solace:
     host: solace.example.com:55555
     protocol: smf
     title: Solace broker
     bindings:
-      pulsar:
-        tenant: telemetry
-        bindingVersion: 0.1.0
-      solace:
-        msgVpn: telemetry-vpn
-        clientName: sensor-stream
-        bindingVersion: 0.4.0
+      $ref: "#/components/serverBindings/SensorStream"
 channels:
   persistent://telemetry/sensors/readings:
     address: persistent://telemetry/sensors/readings
@@ -182,3 +158,12 @@ components:
           schema:
             name: projects/telemetry/schemas/reading
           bindingVersion: 0.2.0
+  serverBindings:
+    SensorStream:
+      pulsar:
+        tenant: telemetry
+        bindingVersion: 0.1.0
+      solace:
+        msgVpn: telemetry-vpn
+        clientName: sensor-stream
+        bindingVersion: 0.4.0

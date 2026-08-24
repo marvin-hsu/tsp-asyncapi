@@ -63,9 +63,9 @@ describe("Unit: the @mqttServer decorator", () => {
     // single one server out. Both therefore carry the binding, which makes it
     // one shared component and a reference from each.
     expect(
-      bindingsOf(doc.components?.serverBindings?.prod, "the shared mqtt bindings").mqtt.clientId,
+      bindingsOf(doc.components?.serverBindings?.Test, "the shared mqtt bindings").mqtt.clientId,
     ).toBe("sensor-gateway");
-    const reference = { $ref: "#/components/serverBindings/prod" };
+    const reference = { $ref: "#/components/serverBindings/Test" };
     expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
     expect(serversOf(doc).staging.bindings).toStrictEqual(reference);
   });

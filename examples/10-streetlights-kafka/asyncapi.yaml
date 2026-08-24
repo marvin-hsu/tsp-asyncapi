@@ -58,12 +58,7 @@ operations:
       $ref: "#/channels/smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured"
     title: Inform about environmental lighting conditions of a particular streetlight.
     bindings:
-      kafka:
-        clientId:
-          type: string
-          enum:
-            - my-app-id
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/receiveLightMeasurement"
     messages:
       - $ref: "#/channels/smartylighting.streetlights.1.0.event.{streetlightId}.lighting.measured/messages/LightMeasured"
   turnOn:
@@ -71,12 +66,7 @@ operations:
     channel:
       $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.on"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          enum:
-            - my-app-id
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/receiveLightMeasurement"
     messages:
       - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.on/messages/TurnOnOff"
   turnOff:
@@ -84,12 +74,7 @@ operations:
     channel:
       $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.off"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          enum:
-            - my-app-id
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/receiveLightMeasurement"
     messages:
       - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.turn.off/messages/TurnOnOff"
   dimLight:
@@ -97,12 +82,7 @@ operations:
     channel:
       $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.dim"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          enum:
-            - my-app-id
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/receiveLightMeasurement"
     messages:
       - $ref: "#/channels/smartylighting.streetlights.1.0.action.{streetlightId}.dim/messages/DimLight"
 components:
@@ -196,3 +176,11 @@ components:
     X509:
       type: X509
       description: mTLS X509
+  operationBindings:
+    receiveLightMeasurement:
+      kafka:
+        clientId:
+          type: string
+          enum:
+            - my-app-id
+        bindingVersion: 0.5.0

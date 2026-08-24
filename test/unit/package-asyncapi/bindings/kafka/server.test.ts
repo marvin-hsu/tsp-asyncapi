@@ -35,7 +35,7 @@ describe("Unit: the @kafkaServer decorator", () => {
     // Both servers carry the same Bindings Object, so it is written once in
     // `components.serverBindings` and each server points at it.
     expect(doc.components?.serverBindings).toStrictEqual({
-      prod: {
+      Test: {
         kafka: {
           schemaRegistryUrl: "https://registry.example.com",
           schemaRegistryVendor: "confluent",
@@ -43,7 +43,7 @@ describe("Unit: the @kafkaServer decorator", () => {
         },
       },
     });
-    const reference = { $ref: "#/components/serverBindings/prod" };
+    const reference = { $ref: "#/components/serverBindings/Test" };
     expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
     expect(serversOf(doc).sit.bindings).toStrictEqual(reference);
   });

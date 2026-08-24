@@ -22,6 +22,20 @@ import { bySourcePosition } from "../source-order.js";
 import { BindingNode, JsonObject } from "./service.js";
 
 /**
+ * The name of the declaration a binding was applied to, when it has one.
+ *
+ * A namespace, an interface, an operation and a model all carry a name. An
+ * anonymous target carries none, and then the component that shares this
+ * binding is named after the first site instead.
+ */
+function carrierOf(target: Type): string | undefined {
+  if (!("name" in target) || typeof target.name !== "string" || target.name.length === 0) {
+    return undefined;
+  }
+  return target.name;
+}
+
+/**
  * The applications one build placed, and the record of which they were.
  *
  * The record used to be a flag on the entry, and an entry lives in program
@@ -128,6 +142,7 @@ export function resolveBindings(
       continue;
     }
     claimed.add(entry.protocol);
+    const carrier = carrierOf(entry.target);
     nodes.push({
       protocol: entry.protocol,
       renderer: entry.renderer,
@@ -135,6 +150,7 @@ export function resolveBindings(
       // read-only, and the lower half copies whatever it writes into the
       // document.
       config: entry.config as JsonObject,
+      ...(carrier !== undefined ? { carrier } : {}),
     });
   }
   return nodes;

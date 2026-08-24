@@ -12,16 +12,10 @@ info:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
   tags:
-    - name: signup
-      description: Everything the signup domain publishes.
-    - name: public-contract
-      description: Consumed outside the identity platform. Break it with care.
-      externalDocs:
-        url: https://example.com/contracts/signup
-        description: The compatibility policy for this contract.
+    - $ref: "#/components/tags/signup"
+    - $ref: "#/components/tags/public-contract"
   externalDocs:
-    url: https://example.com/docs/signup-events
-    description: The signup event guide.
+    $ref: "#/components/externalDocs/info"
 defaultContentType: application/json
 servers:
   kafka-dev:
@@ -41,21 +35,12 @@ servers:
       - $ref: "#/components/securitySchemes/broker-scram"
       - $ref: "#/components/securitySchemes/signup-oauth"
     externalDocs:
-      url: https://example.com/docs/signup-events
-      description: The signup event guide.
+      $ref: "#/components/externalDocs/info"
     tags:
-      - name: signup
-        description: Everything the signup domain publishes.
-      - name: public-contract
-        description: Consumed outside the identity platform. Break it with care.
-        externalDocs:
-          url: https://example.com/contracts/signup
-          description: The compatibility policy for this contract.
+      - $ref: "#/components/tags/signup"
+      - $ref: "#/components/tags/public-contract"
     bindings:
-      kafka:
-        schemaRegistryUrl: https://registry.example.com
-        schemaRegistryVendor: confluent
-        bindingVersion: 0.5.0
+      $ref: "#/components/serverBindings/UserSignupEvents"
   kafka-prod:
     host: "{region}.kafka.example.com:9093"
     protocol: kafka-secure
@@ -73,21 +58,12 @@ servers:
       - $ref: "#/components/securitySchemes/broker-scram"
       - $ref: "#/components/securitySchemes/signup-oauth"
     externalDocs:
-      url: https://example.com/docs/signup-events
-      description: The signup event guide.
+      $ref: "#/components/externalDocs/info"
     tags:
-      - name: signup
-        description: Everything the signup domain publishes.
-      - name: public-contract
-        description: Consumed outside the identity platform. Break it with care.
-        externalDocs:
-          url: https://example.com/contracts/signup
-          description: The compatibility policy for this contract.
+      - $ref: "#/components/tags/signup"
+      - $ref: "#/components/tags/public-contract"
     bindings:
-      kafka:
-        schemaRegistryUrl: https://registry.example.com
-        schemaRegistryVendor: confluent
-        bindingVersion: 0.5.0
+      $ref: "#/components/serverBindings/UserSignupEvents"
 channels:
   signup.v1.{tenantId}.events:
     address: signup.v1.{tenantId}.events
@@ -105,14 +81,7 @@ channels:
       SignupEventV1:
         $ref: "#/components/messages/SignupEventV1"
     bindings:
-      kafka:
-        partitions: 12
-        replicas: 3
-        topicConfiguration:
-          cleanup.policy:
-            - delete
-          retention.ms: 1209600000
-        bindingVersion: 0.5.0
+      $ref: "#/components/channelBindings/SignupFunnel"
   signup.v1.{tenantId}.events.avro:
     address: signup.v1.{tenantId}.events.avro
     description: The Avro form of the signup funnel events of one tenant.
@@ -129,14 +98,7 @@ channels:
       SignupEventAvroV1:
         $ref: "#/components/messages/SignupEventAvroV1"
     bindings:
-      kafka:
-        partitions: 12
-        replicas: 3
-        topicConfiguration:
-          cleanup.policy:
-            - delete
-          retention.ms: 1209600000
-        bindingVersion: 0.5.0
+      $ref: "#/components/channelBindings/SignupFunnel"
   signup.v1.{tenantId}.events.proto:
     address: signup.v1.{tenantId}.events.proto
     description: The Protobuf form of the signup funnel events of one tenant.
@@ -153,14 +115,7 @@ channels:
       SignupEventProtoV1:
         $ref: "#/components/messages/SignupEventProtoV1"
     bindings:
-      kafka:
-        partitions: 12
-        replicas: 3
-        topicConfiguration:
-          cleanup.policy:
-            - delete
-          retention.ms: 1209600000
-        bindingVersion: 0.5.0
+      $ref: "#/components/channelBindings/SignupFunnel"
 operations:
   publishSignupEvent:
     action: send
@@ -169,11 +124,7 @@ operations:
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          description: The producing service instance.
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/publish"
     messages:
       - $ref: "#/channels/signup.v1.{tenantId}.events/messages/SignupEventV1"
   consumeSignupEvent:
@@ -200,11 +151,7 @@ operations:
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          description: The producing service instance.
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/publish"
     messages:
       - $ref: "#/channels/signup.v1.{tenantId}.events.avro/messages/SignupEventAvroV1"
   publishSignupEventProto:
@@ -214,11 +161,7 @@ operations:
     security:
       - $ref: "#/components/securitySchemes/signup-oauth"
     bindings:
-      kafka:
-        clientId:
-          type: string
-          description: The producing service instance.
-        bindingVersion: 0.5.0
+      $ref: "#/components/operationBindings/publish"
     messages:
       - $ref: "#/channels/signup.v1.{tenantId}.events.proto/messages/SignupEventProtoV1"
 components:
@@ -390,17 +333,9 @@ components:
         location: $message.header#/correlation-id
         description: The id of the originating request.
       bindings:
-        kafka:
-          key:
-            type: string
-            description: The tenant the event belongs to.
-          schemaIdLocation: payload
-          schemaIdPayloadEncoding: confluent
-          schemaLookupStrategy: TopicIdStrategy
-          bindingVersion: 0.5.0
+        $ref: "#/components/messageBindings/SignupMessage"
       tags:
-        - name: signup
-          description: Everything the signup domain publishes.
+        - $ref: "#/components/tags/signup"
       examples:
         - name: registered
           summary: A new account on the team plan.
@@ -475,14 +410,7 @@ components:
                   - team
                   - enterprise
       bindings:
-        kafka:
-          key:
-            type: string
-            description: The tenant the event belongs to.
-          schemaIdLocation: payload
-          schemaIdPayloadEncoding: confluent
-          schemaLookupStrategy: TopicIdStrategy
-          bindingVersion: 0.5.0
+        $ref: "#/components/messageBindings/SignupMessage"
     SignupEventProtoV1:
       name: SignupEventProtoV1
       title: A signup funnel event, in Protobuf
@@ -535,3 +463,50 @@ components:
             signup:write: Produce signup events.
       scopes:
         - signup:read
+  serverBindings:
+    UserSignupEvents:
+      kafka:
+        schemaRegistryUrl: https://registry.example.com
+        schemaRegistryVendor: confluent
+        bindingVersion: 0.5.0
+  channelBindings:
+    SignupFunnel:
+      kafka:
+        partitions: 12
+        replicas: 3
+        topicConfiguration:
+          cleanup.policy:
+            - delete
+          retention.ms: 1209600000
+        bindingVersion: 0.5.0
+  operationBindings:
+    publish:
+      kafka:
+        clientId:
+          type: string
+          description: The producing service instance.
+        bindingVersion: 0.5.0
+  messageBindings:
+    SignupMessage:
+      kafka:
+        key:
+          type: string
+          description: The tenant the event belongs to.
+        schemaIdLocation: payload
+        schemaIdPayloadEncoding: confluent
+        schemaLookupStrategy: TopicIdStrategy
+        bindingVersion: 0.5.0
+  tags:
+    signup:
+      name: signup
+      description: Everything the signup domain publishes.
+    public-contract:
+      name: public-contract
+      description: Consumed outside the identity platform. Break it with care.
+      externalDocs:
+        url: https://example.com/contracts/signup
+        description: The compatibility policy for this contract.
+  externalDocs:
+    info:
+      url: https://example.com/docs/signup-events
+      description: The signup event guide.

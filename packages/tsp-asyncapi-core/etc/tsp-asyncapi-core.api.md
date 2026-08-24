@@ -2118,6 +2118,9 @@ readonly default: "This anonymous type refers back to itself with no named type 
 }, C, M>) => void;
 
 // @public
+export function sanitizeDeclarationName(name: string): string;
+
+// @public
 export const SCHEMA_ENCODING_MIME_TYPE = "application/json";
 
 // @public

@@ -1,0 +1,118 @@
+asyncapi: 3.1.0
+info:
+  title: Order Events
+  version: 0.0.0
+  tags:
+    - $ref: "#/components/tags/edge"
+channels:
+  orders.placed:
+    address: orders.placed
+    messages:
+      Placed:
+        $ref: "#/components/messages/Placed"
+    bindings:
+      $ref: "#/components/channelBindings/OrderChannel"
+    externalDocs:
+      $ref: "#/components/externalDocs/orders.placed"
+  orders.shipped:
+    address: orders.shipped
+    messages:
+      Shipped:
+        $ref: "#/components/messages/Shipped"
+    bindings:
+      $ref: "#/components/channelBindings/OrderChannel"
+    externalDocs:
+      $ref: "#/components/externalDocs/orders.placed"
+  orders.audited:
+    address: orders.audited
+    messages:
+      Audited:
+        $ref: "#/components/messages/Audited"
+    bindings:
+      kafka:
+        topic: audit
+        bindingVersion: 0.5.0
+    externalDocs:
+      url: https://example.com/audit
+operations:
+  place:
+    action: send
+    channel:
+      $ref: "#/channels/orders.placed"
+    messages:
+      - $ref: "#/channels/orders.placed/messages/Placed"
+  ship:
+    action: send
+    channel:
+      $ref: "#/channels/orders.shipped"
+    messages:
+      - $ref: "#/channels/orders.shipped/messages/Shipped"
+  audit:
+    action: send
+    channel:
+      $ref: "#/channels/orders.audited"
+    messages:
+      - $ref: "#/channels/orders.audited/messages/Audited"
+components:
+  schemas:
+    Placed:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+    Shipped:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+    Audited:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
+  messages:
+    Placed:
+      name: Placed
+      payload:
+        $ref: "#/components/schemas/Placed"
+      correlationId:
+        $ref: "#/components/correlationIds/Placed"
+      tags:
+        - $ref: "#/components/tags/edge"
+    Shipped:
+      name: Shipped
+      payload:
+        $ref: "#/components/schemas/Shipped"
+      correlationId:
+        $ref: "#/components/correlationIds/Placed"
+    Audited:
+      name: Audited
+      payload:
+        $ref: "#/components/schemas/Audited"
+      correlationId:
+        location: $message.header#/audit-id
+      tags:
+        - $ref: "#/components/tags/local"
+  correlationIds:
+    Placed:
+      location: $message.header#/correlation-id
+  channelBindings:
+    OrderChannel:
+      kafka:
+        topic: orders
+        bindingVersion: 0.5.0
+  tags:
+    edge:
+      name: edge
+    local:
+      name: local
+  externalDocs:
+    orders.placed:
+      url: https://example.com/orders
+      description: The order guide.

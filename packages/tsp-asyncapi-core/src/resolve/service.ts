@@ -188,6 +188,19 @@ export interface BindingNode {
    * model.
    */
   readonly config: JsonObject;
+  /**
+   * The name of the declaration the decorator was applied to, when it has
+   * one.
+   *
+   * A Bindings Object has no name of its own, so a document that shares one
+   * has to name the component after something the author wrote. The reason
+   * the same object reaches several sites is that one declaration carries
+   * it: a `@jmsServer` on a namespace reaches every server that namespace
+   * declares. The carrier is that declaration.
+   *
+   * It is absent when the target is anonymous.
+   */
+  readonly carrier?: string;
 }
 
 /**
