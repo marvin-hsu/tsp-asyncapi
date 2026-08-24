@@ -35,6 +35,7 @@ export interface AsyncAPIService {
 //
 // @internal
 export interface BindingNode {
+    readonly carrier?: string;
     // Warning: (ae-forgotten-export) The symbol "JsonObject" needs to be exported by the entry point unstable.d.ts
     readonly config: JsonObject;
     readonly protocol: string;
@@ -241,7 +242,7 @@ export interface ServerVariableNode {
 
 // Warnings were encountered during analysis:
 //
-// src/resolve/service.ts:434:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
+// src/resolve/service.ts:447:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
 
 // (No @packageDocumentation comment for this package)
 

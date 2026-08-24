@@ -3,7 +3,7 @@ import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
 import { createChainHarness, resolveSchema, winners, wireOf, PropDecl } from "../model-chain.js";
-import { schemasOf } from "../../utils/document.js";
+import { schemaOf, schemasOf } from "../../utils/document.js";
 
 /**
  * Optionality survives, and `required` never names an undescribed key.
@@ -165,7 +165,7 @@ describe("Integration: Schemas — optionality and required", () => {
         // both fallback paths announce themselves with one.
         fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
 
-        const schema = schemasOf(doc)["M" + String(declared.length - 1)];
+        const schema = schemaOf(schemasOf(doc)["M" + String(declared.length - 1)]);
         expect(schema).toBeDefined();
         const flat = !Array.isArray(schema.allOf);
         if (flat) flatShape++;

@@ -188,7 +188,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       }
 
       @message
-      @rawPayload("${NATIVE}", #{ \`$ref\`: "#/components/messages/Other/tags/0/name" })
+      @rawPayload("${NATIVE}", #{ \`$ref\`: "#/components/messages/Other/tags/0" })
       model OrderCreated {}
     `);
 

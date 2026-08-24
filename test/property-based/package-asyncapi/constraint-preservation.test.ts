@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { schemasOf } from "../../utils/document.js";
+import { schemaOf, schemasOf } from "../../utils/document.js";
+import type { AsyncAPIDocument } from "#emitter/types/index.js";
+
+/** Where a schema reference points inside one document. */
+const SCHEMA_REF_PREFIX = "#/components/schemas/";
 
 /**
  * No declared constraint is erased by a more-derived level.
@@ -123,8 +127,40 @@ describe("Property: no declared constraint is erased", () => {
     // An error here means the generator built illegal TypeSpec. Fail loudly
     // instead of skipping, so the property cannot starve unnoticed.
     expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.code)).toEqual([]);
-    const schema: unknown = schemasOf(doc).Root.properties?.v;
-    return schema;
+    // A user-declared scalar earns a `components.schemas` entry, so the
+    // property may write a reference to it. The claim is about what the
+    // document says, not where it says it, so the reference is followed.
+    return followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
+  }
+
+  /**
+   * Replaces every `#/components/schemas/` reference with what it names.
+   *
+   * `open` holds the components already being expanded on this path. A model
+   * that names itself is legal and writes a reference to its own component,
+   * so expanding it again would never end. Meeting an open component leaves
+   * the reference as it stands: the constraints of that component are
+   * already being collected further up the path, so nothing is lost.
+   */
+  function followRefs(
+    doc: AsyncAPIDocument | null,
+    schema: unknown,
+    open: ReadonlySet<string> = new Set(),
+  ): unknown {
+    if (Array.isArray(schema)) return schema.map((item) => followRefs(doc, item, open));
+    if (schema === null || typeof schema !== "object") return schema;
+    const ref = (schema as { $ref?: unknown }).$ref;
+    if (typeof ref === "string" && ref.startsWith(SCHEMA_REF_PREFIX)) {
+      const key = ref.slice(SCHEMA_REF_PREFIX.length);
+      if (open.has(key)) return schema;
+      return followRefs(doc, schemasOf(doc)[key], new Set(open).add(key));
+    }
+    return Object.fromEntries(
+      Object.entries(schema as Record<string, unknown>).map(([name, value]) => [
+        name,
+        followRefs(doc, value, open),
+      ]),
+    );
   }
 
   /** Asserts every declared pair survives into the emitted schema. */
@@ -249,5 +285,34 @@ describe("Property: no declared constraint is erased", () => {
 
     expect(withAllOf).toBeGreaterThan(0);
     expect(withNestedAllOf).toBeGreaterThan(0);
+  });
+
+  /**
+   * The resolver above is the one piece of this suite that could fail to
+   * terminate rather than fail an assertion. The chains the generator builds
+   * hold no recursion, so nothing else here walks a component that names
+   * itself. This case does, and it is what keeps the guard honest.
+   */
+  it("stops expanding a component that names itself", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      model Node {
+        value: string;
+        next?: Node;
+      }
+      @AsyncAPI.message
+      model Root {
+        v: Node;
+      }
+    `);
+
+    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const resolved = followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
+
+    // One level is expanded, and the reference back to `Node` is left as it
+    // stands rather than expanded a second time.
+    expect(resolved).toMatchObject({
+      type: "object",
+      properties: { next: { $ref: "#/components/schemas/Node" } },
+    });
   });
 });

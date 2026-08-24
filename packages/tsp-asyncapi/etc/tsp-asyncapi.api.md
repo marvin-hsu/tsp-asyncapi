@@ -110,23 +110,32 @@ export { BindingsObject }
 // @public
 export interface ChannelObject extends SpecificationExtensions {
     address: string | null;
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: Record<string, ReferenceObject>;
-    parameters?: Record<string, ParameterObject>;
+    parameters?: Record<string, ParameterObject | ReferenceObject>;
     servers?: ReferenceObject[];
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
 // @public
 export interface ComponentsObject {
-    // (undocumented)
-    channels?: Record<string, never>;
+    channelBindings?: Record<string, BindingsObject>;
+    correlationIds?: Record<string, CorrelationIdObject>;
+    externalDocs?: Record<string, ExternalDocumentationObject>;
+    messageBindings?: Record<string, BindingsObject>;
     messages?: Record<string, MessageObject>;
-    schemas?: Record<string, SchemaObject>;
+    operationBindings?: Record<string, BindingsObject>;
+    parameters?: Record<string, ParameterObject>;
+    replies?: Record<string, OperationReplyObject>;
+    replyAddresses?: Record<string, OperationReplyAddressObject>;
+    schemas?: Record<string, MultiFormatSchemaObject | SchemaObject>;
     securitySchemes?: Record<string, SecuritySchemeObject>;
+    serverBindings?: Record<string, BindingsObject>;
+    serverVariables?: Record<string, ServerVariableObject>;
+    tags?: Record<string, TagObject>;
 }
 
 // @public
@@ -168,9 +177,9 @@ export { IbmMqServerBindingObject }
 export interface InfoObject extends SpecificationExtensions {
     contact?: ContactObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     license?: LicenseObject;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     termsOfService?: string;
     title: string;
     version: string;
@@ -200,16 +209,16 @@ export { MessageExampleObject }
 
 // @public
 export interface MessageObject extends SpecificationExtensions {
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     contentType?: string;
-    correlationId?: CorrelationIdObject;
+    correlationId?: CorrelationIdObject | ReferenceObject;
     description?: string;
     examples?: MessageExampleObject[];
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     headers?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
     name?: string;
     payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
@@ -232,14 +241,14 @@ export { OAuthFlowsObject }
 // @public
 export interface OperationObject extends SpecificationExtensions {
     action: "send" | "receive";
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     channel: ReferenceObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: ReferenceObject[];
     reply?: OperationReplyObject;
     security?: ReferenceObject[];
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
@@ -284,18 +293,18 @@ export { SecuritySchemeType }
 
 // @public
 export interface ServerObject {
-    bindings?: BindingsObject;
+    bindings?: BindingsObject | ReferenceObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     host: string;
     pathname?: string;
     protocol: string;
     protocolVersion?: string;
     security?: ReferenceObject[];
     summary?: string;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
-    variables?: Record<string, ServerVariableObject>;
+    variables?: Record<string, ServerVariableObject | ReferenceObject>;
 }
 
 // @public

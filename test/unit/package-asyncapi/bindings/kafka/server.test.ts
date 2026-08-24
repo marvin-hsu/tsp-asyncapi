@@ -32,15 +32,20 @@ describe("Unit: the @kafkaServer decorator", () => {
       ${CONTRACT}
     `);
 
-    const expected = {
-      kafka: {
-        schemaRegistryUrl: "https://registry.example.com",
-        schemaRegistryVendor: "confluent",
-        bindingVersion: "0.5.0",
+    // Both servers carry the same Bindings Object, so it is written once in
+    // `components.serverBindings` and each server points at it.
+    expect(doc.components?.serverBindings).toStrictEqual({
+      Test: {
+        kafka: {
+          schemaRegistryUrl: "https://registry.example.com",
+          schemaRegistryVendor: "confluent",
+          bindingVersion: "0.5.0",
+        },
       },
-    };
-    expect(serversOf(doc).prod.bindings).toEqual(expected);
-    expect(serversOf(doc).sit.bindings).toEqual(expected);
+    });
+    const reference = { $ref: "#/components/serverBindings/Test" };
+    expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
+    expect(serversOf(doc).sit.bindings).toStrictEqual(reference);
   });
 
   it("emits the version alone when every field is left out", async () => {

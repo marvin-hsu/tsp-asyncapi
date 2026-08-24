@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
 import { channelsOf } from "../../../utils/document.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Events" })
@@ -56,7 +57,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["/ticks"].bindings?.ws.method).toBe("POST");
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws.method).toBe("POST");
   });
 
   it("reaches a namespace channel as well as an interface channel", async () => {
@@ -71,7 +72,7 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["/ticks"].bindings?.ws.method).toBe("GET");
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws.method).toBe("GET");
   });
 
   it("emits the binding version on its own when no field was written", async () => {
@@ -88,7 +89,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // The author asked for the binding, so the member is emitted. An absent
     // member would say the channel uses no WebSocket binding at all.
-    expect(channelsOf(doc)["/ticks"].bindings?.ws).toEqual({ bindingVersion: "0.1.0" });
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws).toEqual({ bindingVersion: "0.1.0" });
   });
 
   it("reports a method outside the two the binding allows, and keeps the rest", async () => {
@@ -112,7 +113,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     // The message names the protocol as well as the field. One code covers
     // every binding, so the protocol is the half that says which one.
     expect(reported.message).toContain("ws binding field");
-    expect(channelsOf(doc)["/ticks"].bindings?.ws).toEqual({
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws).toEqual({
       query: { type: "object", properties: { token: { type: "string" } } },
       bindingVersion: "0.1.0",
     });
@@ -132,7 +133,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // The spacing is not what the author meant to say, so it is not a reason
     // to reject a method the binding allows.
-    expect(channelsOf(doc)["/ticks"].bindings?.ws.method).toBe("GET");
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws.method).toBe("GET");
   });
 
   it("reports a query that is not an object at all", async () => {
@@ -172,7 +173,7 @@ describe("Unit: the @websocketChannel decorator", () => {
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain(`an object schema with a "properties" key`);
-    expect(channelsOf(doc)["/ticks"].bindings?.ws).toEqual({
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws).toEqual({
       method: "GET",
       bindingVersion: "0.1.0",
     });
@@ -209,7 +210,7 @@ describe("Unit: the @websocketChannel decorator", () => {
 
     // A reference names a schema that lives elsewhere. This emitter does not
     // follow it, so it cannot say whether the schema behind it is an object.
-    expect(channelsOf(doc)["/ticks"].bindings?.ws.query).toEqual({
+    expect(bindingsOf(channelsOf(doc)["/ticks"].bindings).ws.query).toEqual({
       $ref: "#/components/schemas/Handshake",
     });
   });

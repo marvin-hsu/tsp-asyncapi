@@ -5,6 +5,7 @@ import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
 import { diagnosticsWith } from "../../../utils/diagnostics.js";
 import { documentFrom } from "../../../utils/test-host.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 /**
  * These drive the builder directly, the way the other unit suites do.
@@ -133,15 +134,15 @@ describe("Unit: assembling a Bindings Object", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
-    expect(doc.servers?.prod.bindings?.kafka).toEqual({
+    expect(bindingsOf(doc.servers?.prod.bindings).kafka).toEqual({
       schemaRegistryUrl: "https://registry.example.com",
       bindingVersion: "0.5.0",
     });
-    expect(doc.components?.messages?.OrderCreated.bindings?.kafka).toEqual({
+    expect(bindingsOf(doc.components?.messages?.OrderCreated.bindings).kafka).toEqual({
       schemaIdLocation: "payload",
       bindingVersion: "0.5.0",
     });
-    expect(doc.operations?.publish.bindings?.kafka).toEqual({
+    expect(bindingsOf(doc.operations?.publish.bindings).kafka).toEqual({
       groupId: { type: "string" },
       bindingVersion: "0.5.0",
     });
@@ -209,10 +210,10 @@ describe("Unit: assembling a Bindings Object", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
-    const server = doc.servers?.prod.bindings ?? {};
-    const channel = doc.channels?.["orders.created"].bindings ?? {};
-    const operation = doc.operations?.publish.bindings ?? {};
-    const message = doc.components?.messages?.OrderCreated.bindings ?? {};
+    const server = bindingsOf(doc.servers?.prod.bindings);
+    const channel = bindingsOf(doc.channels?.["orders.created"].bindings);
+    const operation = bindingsOf(doc.operations?.publish.bindings);
+    const message = bindingsOf(doc.components?.messages?.OrderCreated.bindings);
 
     // Each renderer stamps the version of its own specification. A protocol
     // wired to another one's renderer would carry the wrong number here.

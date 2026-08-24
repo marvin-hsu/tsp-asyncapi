@@ -150,6 +150,7 @@ export {
   declarationNameFor,
   fallbackDeclarationName,
   isUninstantiatedTemplateDeclaration,
+  sanitizeDeclarationName,
 } from "./naming.js";
 
 // The one rule for whether an optional field is written at all.

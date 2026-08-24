@@ -3,9 +3,12 @@ import { $lib } from "#core/lib.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
 import {
+  externalDocsOf,
   infoOf,
   messagesOf,
   present,
+  resolveTags,
+  schemaOf,
   schemasOf,
   securitySchemesOf,
   serversOf,
@@ -114,10 +117,10 @@ describe("Phase 1: Document Skeleton & Info", () => {
       namespace Orders;
     `;
     const doc = await emitDocument(code);
-    expect(infoOf(doc).tags).toHaveLength(2);
-    expect(infoOf(doc).tags).toContainEqual({ name: "orders" });
-    expect(infoOf(doc).tags).toContainEqual({ name: "events" });
-    expect(infoOf(doc).externalDocs?.url).toBe("https://example.com/docs");
+    // Each tag carries the name its author wrote, so each is written once in
+    // `components.tags` and `info` points at it.
+    expect(resolveTags(doc, infoOf(doc).tags)).toEqual([{ name: "events" }, { name: "orders" }]);
+    expect(externalDocsOf(infoOf(doc).externalDocs).url).toBe("https://example.com/docs");
     await expect(doc).toBeValidAsyncAPI();
   });
 
@@ -227,7 +230,10 @@ describe("Phase 1: Document Skeleton & Info", () => {
     });
     expect(
       Object.keys(
-        present(schemasOf(doc).OrderPlacedPayload.properties, "OrderPlacedPayload properties"),
+        present(
+          schemaOf(schemasOf(doc).OrderPlacedPayload).properties,
+          "OrderPlacedPayload properties",
+        ),
       ).sort(byCodePoint),
     ).toEqual(["amount", "id"]);
     expect(messagesOf(doc).OrderShipped.headers).toEqual({
@@ -357,6 +363,9 @@ describe("Phase 1: Document Skeleton & Info", () => {
     expect(infoOf(doc).tags).toEqual([
       { name: "orders", description: "The order domain as a whole." },
     ]);
+    // Two Tag Objects named `orders` differ in their description, so they
+    // are two fragments asking for one key. Neither is shared: `info` and the
+    // message each write their own. `public` has no rival, so it is shared.
     expect(messagesOf(doc).OrderPlaced.tags).toEqual([
       {
         name: "orders",
@@ -366,7 +375,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
           description: "The order guide.",
         },
       },
-      { name: "public" },
+      { $ref: "#/components/tags/public" },
     ]);
     expect(messagesOf(doc).OrderPlaced.externalDocs).toEqual({
       url: "https://example.com/order-placed",

@@ -1,0 +1,134 @@
+import { describe, expect, it } from "vitest";
+import { emitDocument } from "../../../utils/test-host.js";
+import { channelsOf, serversOf } from "../../../utils/document.js";
+import { validateAsyncAPI } from "../../../utils/spec-validation.js";
+
+/**
+ * Where a Parameter Object and a Server Variable Object are written.
+ *
+ * Neither carries a name of its own: the author wrote it as the key of the
+ * map it sits in. So the key *is* the name, one use is enough to earn a
+ * component, and the key joins the identity — two parameters that differ
+ * only in their name are two fragments, and a document with a `{tenant}` and
+ * a `{region}` that are both `{}` writes two components rather than pointing
+ * one at the other.
+ */
+describe("Unit: promoting parameters and server variables", () => {
+  it("shares one parameter between the channels that address it", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model Placed {
+        id: string;
+      }
+
+      @channel("orders.{region}.placed")
+      interface OrderChannel {
+        @send
+        op place(@doc("The region.") region: string, event: Placed): void;
+      }
+
+      @channel("orders.{region}.audited")
+      interface AuditChannel {
+        @send
+        op audit(@doc("The region.") region: string, event: Placed): void;
+      }
+    `);
+
+    expect(doc.components?.parameters).toStrictEqual({
+      region: { description: "The region." },
+    });
+    const reference = { region: { $ref: "#/components/parameters/region" } };
+    expect(channelsOf(doc)["orders.{region}.placed"].parameters).toStrictEqual(reference);
+    expect(channelsOf(doc)["orders.{region}.audited"].parameters).toStrictEqual(reference);
+    expect(await validateAsyncAPI(doc)).toBeNull();
+  });
+
+  /**
+   * A parameter with nothing to say is `{}` whatever it is called, so
+   * structure alone cannot tell two of them apart. Without the name in the
+   * identity, `{tenant}` would point at a component named `region`.
+   */
+  it("keeps two empty parameters of different names apart", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model Placed {
+        id: string;
+      }
+
+      @channel("orders.{region}.{tenant}.placed")
+      interface OrderChannel {
+        @send
+        op place(region: string, tenant: string, event: Placed): void;
+      }
+    `);
+
+    expect(doc.components?.parameters).toStrictEqual({ region: {}, tenant: {} });
+    expect(channelsOf(doc)["orders.{region}.{tenant}.placed"].parameters).toStrictEqual({
+      region: { $ref: "#/components/parameters/region" },
+      tenant: { $ref: "#/components/parameters/tenant" },
+    });
+    expect(await validateAsyncAPI(doc)).toBeNull();
+  });
+
+  /**
+   * Two parameters of one name that disagree are two fragments asking for
+   * one key, and neither is shared.
+   */
+  it("leaves both in place when two parameters of one name disagree", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model Placed {
+        id: string;
+      }
+
+      @channel("orders.{region}.placed")
+      interface OrderChannel {
+        @send
+        op place(@doc("The region.") region: string, event: Placed): void;
+      }
+
+      @channel("orders.{region}.audited")
+      interface AuditChannel {
+        @send
+        op audit(@doc("Where the audit ran.") region: string, event: Placed): void;
+      }
+    `);
+
+    expect(doc.components?.parameters).toBeUndefined();
+    expect(channelsOf(doc)["orders.{region}.placed"].parameters).toStrictEqual({
+      region: { description: "The region." },
+    });
+  });
+
+  it("shares one server variable between two servers", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      @server("production", #{
+        host: "{tenant}.kafka.example.com",
+        protocol: "kafka",
+        variables: #{ tenant: #{ default: "acme" } },
+      })
+      @server("sit", #{
+        host: "{tenant}.kafka.sit.example.com",
+        protocol: "kafka",
+        variables: #{ tenant: #{ default: "acme" } },
+      })
+      namespace Test;
+    `);
+
+    expect(doc.components?.serverVariables).toStrictEqual({ tenant: { default: "acme" } });
+    const reference = { tenant: { $ref: "#/components/serverVariables/tenant" } };
+    expect(serversOf(doc).production.variables).toStrictEqual(reference);
+    expect(serversOf(doc).sit.variables).toStrictEqual(reference);
+    expect(await validateAsyncAPI(doc)).toBeNull();
+  });
+});

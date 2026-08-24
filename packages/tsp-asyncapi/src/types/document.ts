@@ -77,9 +77,9 @@ export interface InfoObject extends SpecificationExtensions {
   /** The license information for the exposed API. */
   license?: LicenseObject;
   /** A list of tags for API documentation control. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -105,7 +105,7 @@ export interface ServerObject {
    * The values that replace the `{var}` templates of `host` and `pathname`,
    * keyed by the name written inside the braces.
    */
-  variables?: Record<string, ServerVariableObject>;
+  variables?: Record<string, ServerVariableObject | ReferenceObject>;
   /**
    * The security schemes a client of this server satisfies. AsyncAPI reads
    * the array as OR, so one entry is enough.
@@ -115,16 +115,16 @@ export interface ServerObject {
    */
   security?: ReferenceObject[];
   /** The protocol-specific settings of this server, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /**
    * The tags of this server, each a full Tag Object.
    * The tags come from the service namespace, the same source `security` and
    * `externalDocs` come from, so every server the namespace declares carries
    * the same set.
    */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this server. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -200,18 +200,18 @@ export interface ChannelObject extends SpecificationExtensions {
    * carries inside the address. The field is only present when the address
    * holds at least one `{name}` expression.
    */
-  parameters?: Record<string, ParameterObject>;
+  parameters?: Record<string, ParameterObject | ReferenceObject>;
   /**
    * The messages that flow over this channel, each a reference into
    * `components.messages`.
    */
   messages?: Record<string, ReferenceObject>;
   /** The protocol-specific settings of this channel, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /** The tags of this channel, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this channel. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -273,11 +273,11 @@ export interface OperationObject extends SpecificationExtensions {
    */
   security?: ReferenceObject[];
   /** The tags of this operation, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this operation. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** The protocol-specific settings of this operation, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /**
    * The messages this operation carries, each a reference into the
    * `messages` map of its channel. An absent field means every message of
@@ -327,16 +327,75 @@ export interface OperationReplyAddressObject {
 
 /**
  * Holds reusable components for the AsyncAPI document.
+ *
+ * The fields are declared in the order the specification lists them.
+ * `lowerComponents` writes them in the same order. Every field is optional.
+ * An empty one is omitted rather than emitted as an empty map.
+ *
+ * Five of the nineteen fields the specification defines are absent. Each one
+ * is a decision, and the reasons differ.
+ *
+ * `operationTraits` and `messageTraits` are the `traits` feature, which this
+ * emitter does not implement. A trait deduplicates the emitted document
+ * rather than the source. TypeSpec already offers reuse at the source level
+ * with `extends`, `is`, and spread.
+ *
+ * `servers` is unusable here. A Channel Object's `servers`, when present,
+ * must point into the root Servers Object. It may not point into this one.
+ *
+ * `channels` is a choice rather than a limit. An Operation Object addresses
+ * the root `channels` map and never this one, so only a channel no operation
+ * refers to could live here. `resolveChannels` explains why this emitter
+ * emits every declared channel at the root instead.
+ *
+ * `operations` has no reader. Nothing inside one document references an
+ * operation, so an entry here would be text no tool resolves.
+ *
  * @public
  */
 export interface ComponentsObject {
-  /** Reusable schemas. */
-  schemas?: Record<string, SchemaObject>;
+  /**
+   * Reusable schemas.
+   *
+   * A value is a Schema Object, or a Multi Format Schema Object when the
+   * schema is written in another language such as Avro or Protobuf. The
+   * specification allows both here, so a schema in another language can be
+   * shared rather than repeated in every message that carries it.
+   */
+  schemas?: Record<string, MultiFormatSchemaObject | SchemaObject>;
+  /** Reusable server variables, keyed by the variable name. */
+  serverVariables?: Record<string, ServerVariableObject>;
   /** Reusable messages, keyed by the message name. */
   messages?: Record<string, MessageObject>;
   /** Reusable security schemes, keyed by the scheme name. */
   securitySchemes?: Record<string, SecuritySchemeObject>;
-  channels?: Record<string, never>;
+  /** Reusable channel address parameters, keyed by the parameter name. */
+  parameters?: Record<string, ParameterObject>;
+  /** Reusable correlation ids. */
+  correlationIds?: Record<string, CorrelationIdObject>;
+  /** Reusable operation replies. */
+  replies?: Record<string, OperationReplyObject>;
+  /** Reusable operation reply addresses. */
+  replyAddresses?: Record<string, OperationReplyAddressObject>;
+  /**
+   * Reusable server bindings.
+   *
+   * The value is a whole Bindings Object. The specification offers no
+   * reference alternative for one protocol member inside it, so a `$ref`
+   * belongs at `bindings` and never at `bindings.<protocol>`. The same holds
+   * for the three maps below.
+   */
+  serverBindings?: Record<string, BindingsObject>;
+  /** Reusable channel bindings. */
+  channelBindings?: Record<string, BindingsObject>;
+  /** Reusable operation bindings. */
+  operationBindings?: Record<string, BindingsObject>;
+  /** Reusable message bindings. */
+  messageBindings?: Record<string, BindingsObject>;
+  /** Reusable tags, keyed by the tag name. */
+  tags?: Record<string, TagObject>;
+  /** Reusable external documentation links. */
+  externalDocs?: Record<string, ExternalDocumentationObject>;
 }
 
 /**
@@ -372,13 +431,13 @@ export interface MessageObject extends SpecificationExtensions {
    */
   payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
   /** How the message relates to the one it answers or continues. */
-  correlationId?: CorrelationIdObject;
+  correlationId?: CorrelationIdObject | ReferenceObject;
   /** The protocol-specific settings of this message, keyed by protocol name. */
-  bindings?: BindingsObject;
+  bindings?: BindingsObject | ReferenceObject;
   /** The tags of this message, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this message. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** Worked examples of this message, in source order. */
   examples?: MessageExampleObject[];
 }

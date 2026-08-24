@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { messagesOf, operationsOf } from "../../../utils/document.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Notices" })
@@ -70,7 +71,7 @@ describe("Unit: the HTTP binding decorators", () => {
           }
         `);
 
-        expect(operationsOf(doc).publish.bindings?.http.method).toBe(method);
+        expect(bindingsOf(operationsOf(doc).publish.bindings).http.method).toBe(method);
       }
     });
 
@@ -172,7 +173,7 @@ describe("Unit: the HTTP binding decorators", () => {
       expect(reported.message).toContain("statusCode");
       expect(reported.message).toContain("a status code from 100 to 599");
       // The rejected field goes on its own.
-      expect(messagesOf(doc).Notice.bindings?.http).toEqual({
+      expect(bindingsOf(messagesOf(doc).Notice.bindings).http).toEqual({
         headers: { type: "object", properties: {} },
         bindingVersion: "0.3.0",
       });
@@ -199,7 +200,7 @@ describe("Unit: the HTTP binding decorators", () => {
         // The range is inclusive at both ends. An off-by-one check would
         // reject a code the specification allows.
         expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
-        expect(messagesOf(doc).Notice.bindings?.http.statusCode).toBe(code);
+        expect(bindingsOf(messagesOf(doc).Notice.bindings).http.statusCode).toBe(code);
       }
     });
   });

@@ -30,6 +30,16 @@ payload 的形狀改為就地輸出。若改為引用 model 自己的 component�
 
 **修法：** 改名另一個型別；或改用 [`@headers`](./decorators/messages#headers) 描述 headers，讓 payload 保留所有欄位，就不需要額外的 schema。
 
+### `raw-schema-key-taken`
+
+> Schema key '\<name\>' is claimed twice. Message '\<message\>' carries a raw schema that another message carries too, so that schema is written once in `components.schemas` under a key derived from the message model. Rename the other type that claims '\<name\>', or give one of the two messages a different name.
+
+兩個以上的 message 帶著相同的 [`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders)。那份 schema 只寫進 `components.schemas` 一次，key 以第一個帶著它的 message model 為基底，加上 `Payload` 或 `Headers` 後綴。現在有另一個宣告先佔走了那把 key。
+
+raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是文字重複。
+
+**修法：** 改名另一個型別；或替兩個 message 其中之一改名，讓推導出的 key 改變。
+
 ### `unsupported-payload-type`
 
 > This emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.

@@ -13,15 +13,21 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   tags:
-    - name: orders
-      description: The order domain as a whole.
-      externalDocs:
-        url: https://example.com/orders
-        description: The order guide.
-    - name: public
+    - $ref: "#/components/tags/orders"
+    - $ref: "#/components/tags/public"
   externalDocs:
     url: https://example.com/docs
     description: The whole documentation set.
 defaultContentType: application/json
 channels: {}
 operations: {}
+components:
+  tags:
+    orders:
+      name: orders
+      description: The order domain as a whole.
+      externalDocs:
+        url: https://example.com/orders
+        description: The order guide.
+    public:
+      name: public

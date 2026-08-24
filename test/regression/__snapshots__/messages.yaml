@@ -61,8 +61,7 @@ components:
         location: $message.header#/correlationId
         description: Ties a reply to its request.
       tags:
-        - name: orders
-          description: Emitted by the order service.
+        - $ref: "#/components/tags/orders"
       externalDocs:
         url: https://example.com/order-placed
         description: How to consume this message.
@@ -86,3 +85,7 @@ components:
         $ref: "#/components/schemas/OrderShipped"
       correlationId:
         location: $message.header#/MQMD/CorrelId
+  tags:
+    orders:
+      name: orders
+      description: Emitted by the order service.

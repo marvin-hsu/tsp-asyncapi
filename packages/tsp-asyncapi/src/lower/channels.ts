@@ -14,26 +14,24 @@ import { present, text } from "tsp-asyncapi-core";
 import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
-
-/** Turns one resolved parameter into a Parameter Object. */
-function lowerParameter(node: ChannelParameterNode): ParameterObject {
-  return {
-    ...present("enum", node.enumValues ? [...node.enumValues] : undefined),
-    ...text("default", node.default),
-    ...text("description", node.description),
-    ...present("examples", node.examples ? [...node.examples] : undefined),
-    ...text("location", node.location),
-  };
-}
+import { lowerParameter } from "./channels/parameters.js";
+import type { DocumentPromotions } from "./components/survey.js";
+import { shared, sharedEach, sharedOptional } from "./components/survey.js";
 
 /** Turns the resolved parameters of one channel into the `parameters` map. */
 function lowerParameters(
   nodes: readonly ChannelParameterNode[],
-): Record<string, ParameterObject> | undefined {
+  promoted: DocumentPromotions,
+): Record<string, ParameterObject | ReferenceObject> | undefined {
   if (nodes.length === 0) return undefined;
   // The map is built from entries, so a name such as `__proto__` becomes an
   // own property instead of a write to the prototype.
-  return Object.fromEntries(nodes.map((node) => [node.name, lowerParameter(node)]));
+  return Object.fromEntries(
+    nodes.map((node) => [
+      node.name,
+      shared(promoted.parameters, "parameters", lowerParameter(node), node.name),
+    ]),
+  );
 }
 
 /** Turns the resolved messages of one channel into the `messages` map. */
@@ -58,7 +56,7 @@ function lowerMessages(node: ChannelNode): Record<string, ReferenceObject> | und
  * field at all, so a reader can tell "the address is unknown" from "the
  * emitter had nothing to say".
  */
-function lowerChannel(node: ChannelNode): ChannelObject {
+function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelObject {
   return {
     address: node.address,
     ...text("title", node.title),
@@ -67,11 +65,17 @@ function lowerChannel(node: ChannelNode): ChannelObject {
       "servers",
       node.servers.length > 0 ? node.servers.map((name) => ({ $ref: serverRef(name) })) : undefined,
     ),
-    ...present("parameters", lowerParameters(node.parameters)),
+    ...present("parameters", lowerParameters(node.parameters, promoted)),
     ...present("messages", lowerMessages(node)),
-    ...present("bindings", lowerBindings(node.bindings)),
-    ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
-    ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    ...present(
+      "bindings",
+      sharedOptional(promoted.channelBindings, "channelBindings", lowerBindings(node.bindings)),
+    ),
+    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
+    ...present(
+      "externalDocs",
+      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    ),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
     ...structuredClone(node.extensions),
@@ -85,11 +89,15 @@ function lowerChannel(node: ChannelNode): ChannelObject {
  * field.
  *
  * @param nodes - The resolved channels, in source order
+ * @param promoted - The closed surveys, asked what each shared fragment writes
  * @returns The root `channels` map
  * @internal
  */
-export function lowerChannels(nodes: readonly ChannelNode[]): Record<string, ChannelObject> {
+export function lowerChannels(
+  nodes: readonly ChannelNode[],
+  promoted: DocumentPromotions,
+): Record<string, ChannelObject> {
   // The map is built from entries, so an id such as `__proto__` becomes an
   // own property instead of a write to the prototype.
-  return Object.fromEntries(nodes.map((node) => [node.key, lowerChannel(node)]));
+  return Object.fromEntries(nodes.map((node) => [node.key, lowerChannel(node, promoted)]));
 }

@@ -2,6 +2,7 @@ import {
   Type,
   Model,
   Enum,
+  Scalar,
   Union,
   Namespace,
   Value,
@@ -187,13 +188,17 @@ export function isSafeComponentsKey(name: string): boolean {
  * A plain TypeSpec identifier already lies entirely inside
  * `SAFE_KEY_CHARSET`; it is returned unchanged, case included. This keeps
  * every existing key stable.
- * A backtick-quoted name can carry arbitrary characters, e.g.
- * `` `Foo/Bar` ``. Such a name is run through `sanitizeNameSegment`, so a
+ * A backtick-quoted name can carry arbitrary characters, such as a name
+ * spelled Foo/Bar. It is run through `sanitizeNameSegment`, so a
  * charset-violating character never leaks into the key or the `$ref` built
  * from it.
  * An empty name is returned unchanged. This only ever occurs for an
  * anonymous type; callers already special-case that before a name is ever
  * needed.
+ *
+ * @param name - The declaration's own name
+ * @returns A name every `components` map accepts as a key
+ * @public
  */
 export function sanitizeDeclarationName(name: string): string {
   if (name.length === 0) {
@@ -522,7 +527,7 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  */
 export function declarationNameFor(
   program: Program,
-  type: Model | Enum | Union,
+  type: Model | Enum | Scalar | Union,
 ): string | undefined {
   const friendlyName = getFriendlyName(program, type);
   if (friendlyName !== undefined) {
@@ -538,9 +543,10 @@ export function declarationNameFor(
       return namespacePrefix(program, type.namespace) + instanceName;
     }
     case "Enum":
-      // An `Enum` never has template arguments, so there is no structural
-      // composition to build, only the bare declaration name. An `Enum` is
-      // always a named declaration; it can never be unspeakable.
+    case "Scalar":
+      // Neither takes template arguments, so there is no structural
+      // composition to build, only the bare declaration name. Both are
+      // always named declarations; neither can be unspeakable.
       return namespacePrefix(program, type.namespace) + sanitizeDeclarationName(type.name);
   }
 }

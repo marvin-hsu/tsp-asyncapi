@@ -1,13 +1,20 @@
 import type {
   AsyncAPIDocument,
   ChannelObject,
+  BindingObject,
+  BindingsObject,
   ComponentsObject,
+  ExternalDocumentationObject,
+  TagObject,
   InfoObject,
   ReferenceObject,
   MessageObject,
+  MultiFormatSchemaObject,
   OperationObject,
   SchemaObject,
+  ParameterObject,
   SecuritySchemeObject,
+  ServerVariableObject,
   ServerObject,
 } from "#emitter/types/index.js";
 
@@ -116,14 +123,23 @@ export function refOf(
  * @returns The schema
  */
 export function schemaOf(
-  value: SchemaObject | ReferenceObject | undefined,
+  value: SchemaObject | MultiFormatSchemaObject | ReferenceObject | undefined,
   name = "the value",
 ): SchemaObject {
   if (value === undefined) {
     throw new Error(`This test needs ${name} to be a schema, and there is nothing there.`);
   }
-  if (value.$ref !== undefined) {
+  if ("$ref" in value && value.$ref !== undefined) {
     throw new Error(`This test needs ${name} to be a schema, but the emitter wrote a reference.`);
+  }
+  // `components.schemas` also holds a schema written in another language,
+  // such as Avro or Protobuf. That one carries no JSON Schema keyword. So a
+  // test that reads `properties` from it has the wrong entry, and the name of
+  // the format says which one it got.
+  if ("schemaFormat" in value) {
+    throw new Error(
+      `This test needs ${name} to be a JSON Schema, but the emitter wrote one in ${value.schemaFormat}.`,
+    );
   }
   return value;
 }
@@ -179,8 +195,19 @@ export function messagesOf(doc: AsyncAPIDocument | null): Record<string, Message
   return section(doc, (d) => componentsOf(d).messages, "components.messages");
 }
 
-/** The reusable schemas, keyed by schema name. */
-export function schemasOf(doc: AsyncAPIDocument | null): Record<string, SchemaObject> {
+/**
+ * The reusable schemas, keyed by schema name.
+ *
+ * The map holds what `components.schemas` holds. That is a JSON Schema, or a
+ * schema written in another language such as Avro or Protobuf.
+ *
+ * A test that reads the key set uses this reader alone. A test that reads a
+ * JSON Schema keyword narrows one entry with `schemaOf` first. That way the
+ * failure lands on the entry the test asked about, not on the whole map.
+ */
+export function schemasOf(
+  doc: AsyncAPIDocument | null,
+): Record<string, SchemaObject | MultiFormatSchemaObject> {
   return section(doc, (d) => componentsOf(d).schemas, "components.schemas");
 }
 
@@ -242,4 +269,188 @@ export function countKey(node: unknown, key: string): number {
     total += countKey(value, key);
   }
   return total;
+}
+
+/**
+ * The external documentation of a value the test expects to be inline.
+ *
+ * A shared link is written as a reference into `components.externalDocs`, so
+ * a test that reads `url` has to say which arm it needs.
+ *
+ * @param value - An External Documentation Object or a reference
+ * @param name - What to call it in the failure message
+ * @returns The External Documentation Object
+ */
+export function externalDocsOf(
+  value: ExternalDocumentationObject | ReferenceObject | undefined,
+  name = "the value",
+): ExternalDocumentationObject {
+  if (value === undefined) {
+    throw new Error(
+      `This test needs ${name} to be external documentation, and there is nothing there.`,
+    );
+  }
+  if ("$ref" in value) {
+    throw new Error(
+      `This test needs ${name} to be external documentation, but the emitter wrote a reference.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * The Tag Objects one site carries, with every reference followed.
+ *
+ * A tag carries the name its author wrote, so it is always shared through
+ * `components.tags` and every site writes a reference. A test about what a
+ * tag says — how two applications of `@asyncTag` merge, which fields survive
+ * — is not about where the tag is written, so it reads through this.
+ * `test/unit/package-asyncapi/lower/tag-promotion.test.ts` is where the
+ * placement itself is pinned.
+ *
+ * @param doc - The emitted document
+ * @param tags - The list one site carries
+ * @returns The Tag Objects, in the order the site lists them
+ */
+export function resolveTags(
+  doc: AsyncAPIDocument | null,
+  tags: readonly (TagObject | ReferenceObject)[] | undefined,
+): TagObject[] {
+  const components = doc?.components?.tags ?? {};
+  return (tags ?? []).map((tag) => {
+    if (!("$ref" in tag)) return tag;
+    const key = tag.$ref.replace("#/components/tags/", "");
+    if (!Object.hasOwn(components, key)) {
+      throw new Error(`The document references '${tag.$ref}', and nothing is there.`);
+    }
+    return components[key];
+  });
+}
+
+/**
+ * The Bindings Object one site carries, when the test expects it inline.
+ *
+ * A Bindings Object has no name of its own, so it is shared only when more
+ * than one site carries the same one. A test about what a binding *says* has
+ * one site, so it reads through this. A test about sharing asserts the
+ * reference itself.
+ *
+ * @param value - A Bindings Object or a reference
+ * @param name - What to call it in the failure message
+ * @returns The Bindings Object
+ */
+export function bindingsOf(
+  value: BindingsObject | ReferenceObject | undefined,
+  name = "the value",
+): BindingsObject {
+  if (value === undefined) {
+    throw new Error(`This test needs ${name} to be bindings, and there is nothing there.`);
+  }
+  if ("$ref" in value) {
+    throw new Error(
+      `This test needs ${name} to be bindings, but the emitter shared them through a reference.`,
+    );
+  }
+  return value;
+}
+
+/**
+ * One protocol's binding, or `undefined` when the site carries none.
+ *
+ * The document type says a binding is an untyped record, because a binding
+ * is whatever its protocol says. A test that reads named fields names the
+ * shape at the call site.
+ *
+ * @param value - A Bindings Object or a reference
+ * @param protocol - The protocol name the binding is keyed under
+ * @returns The binding, or `undefined`
+ */
+export function bindingFor(
+  value: BindingsObject | ReferenceObject | undefined,
+  protocol: string,
+): BindingObject | undefined {
+  const bindings = bindingsOf(value, `the ${protocol} bindings`);
+  return Object.hasOwn(bindings, protocol) ? bindings[protocol] : undefined;
+}
+
+/**
+ * Follows every reference in one map of shared fragments.
+ *
+ * A Parameter Object and a Server Variable Object are named by the key of
+ * the map they sit in, so each is written once in `components` and every map
+ * points at it. A test about what one *says* is not about where it is
+ * written, so it reads through this.
+ */
+function resolveMap<T extends object>(
+  section: Record<string, T> | undefined,
+  entries: Record<string, T | ReferenceObject> | undefined,
+  prefix: string,
+): Record<string, T> {
+  const components = section ?? {};
+  const resolved: Record<string, T> = {};
+  for (const [name, value] of Object.entries(entries ?? {})) {
+    if (!("$ref" in value)) {
+      resolved[name] = value;
+      continue;
+    }
+    const key = value.$ref.replace(prefix, "");
+    if (!Object.hasOwn(components, key)) {
+      throw new Error(`The document references '${value.$ref}', and nothing is there.`);
+    }
+    resolved[name] = components[key];
+  }
+  return resolved;
+}
+
+/**
+ * The channel parameters of one channel, with every reference followed.
+ *
+ * @param doc - The emitted document
+ * @param parameters - The `parameters` map of one channel
+ * @returns The Parameter Objects, keyed as the channel keys them
+ */
+export function resolveParameters(
+  doc: AsyncAPIDocument | null,
+  parameters: Record<string, ParameterObject | ReferenceObject> | undefined,
+): Record<string, ParameterObject> {
+  return resolveMap(doc?.components?.parameters, parameters, "#/components/parameters/");
+}
+
+/**
+ * The variables of one server, with every reference followed.
+ *
+ * @param doc - The emitted document
+ * @param variables - The `variables` map of one server
+ * @returns The Server Variable Objects, keyed as the server keys them
+ */
+export function resolveServerVariables(
+  doc: AsyncAPIDocument | null,
+  variables: Record<string, ServerVariableObject | ReferenceObject> | undefined,
+): Record<string, ServerVariableObject> {
+  return resolveMap(doc?.components?.serverVariables, variables, "#/components/serverVariables/");
+}
+
+/**
+ * The external documentation one site carries, with a reference followed.
+ *
+ * The counterpart of {@link resolveTags} for a field that holds one
+ * fragment rather than a list.
+ *
+ * @param doc - The emitted document
+ * @param value - The `externalDocs` of one site
+ * @returns The External Documentation Object, or `undefined` when the site
+ * carries none
+ */
+export function resolveExternalDocs(
+  doc: AsyncAPIDocument | null,
+  value: ExternalDocumentationObject | ReferenceObject | undefined,
+): ExternalDocumentationObject | undefined {
+  if (value === undefined) return undefined;
+  if (!("$ref" in value)) return value;
+  const components = doc?.components?.externalDocs ?? {};
+  const key = value.$ref.replace("#/components/externalDocs/", "");
+  if (!Object.hasOwn(components, key)) {
+    throw new Error(`The document references '${value.$ref}', and nothing is there.`);
+  }
+  return components[key];
 }

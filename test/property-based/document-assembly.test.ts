@@ -101,11 +101,19 @@ describe("Integration: document assembly — a section exists when the model has
           expect(ownKeys(document.servers as object)).toHaveLength(model.servers.length);
         }
 
-        // No message carries a model payload here, so nothing claims a
-        // `components.schemas` key and the section holds two entries at most.
-        const hasComponents = model.messages.length > 0 || model.securitySchemes.length > 0;
-        expect(Object.hasOwn(document, "components")).toBe(hasComponents);
-        if (!hasComponents) return;
+        // No message carries a model payload here, so no model claims a
+        // `components.schemas` key.
+        const mustHave = model.messages.length > 0 || model.securitySchemes.length > 0;
+        // A tag or an external documentation link anywhere in the document
+        // can also open the section. Whether it does is the promotion rule,
+        // and that rule is stated in its own suites. What holds without
+        // restating it: a document carrying none of them has no `components`.
+        const sites = [model.info, ...model.servers, ...model.channels, ...model.operations];
+        const canHave =
+          mustHave || sites.some((site) => site.tags.length > 0 || site.externalDocs !== undefined);
+        if (mustHave) expect(Object.hasOwn(document, "components")).toBe(true);
+        if (!canHave) expect(Object.hasOwn(document, "components")).toBe(false);
+        if (!Object.hasOwn(document, "components")) return;
 
         const components = document.components as object;
         // An empty `components` states nothing, and the baseline snapshots
@@ -113,7 +121,17 @@ describe("Integration: document assembly — a section exists when the model has
         expect(ownKeys(components).length).toBeGreaterThan(0);
         expect(Object.hasOwn(components, "messages")).toBe(model.messages.length > 0);
         expect(Object.hasOwn(components, "securitySchemes")).toBe(model.securitySchemes.length > 0);
-        expect(Object.hasOwn(components, "schemas")).toBe(false);
+        // A raw schema two messages share does claim a key, so `schemas` can
+        // appear without any model payload. The rule that decides which raw
+        // schemas share is stated once, in
+        // `test/unit/package-asyncapi/messages/raw-schema-sharing.test.ts`.
+        // Restating it here would assert that the code does what the code
+        // does. What holds without restating it: no raw schema anywhere means
+        // no `schemas` section.
+        const anyRaw = model.messages.some(
+          (message) => message.payload.kind === "raw" || message.headers.kind === "raw",
+        );
+        if (!anyRaw) expect(Object.hasOwn(components, "schemas")).toBe(false);
       }),
       RUNS,
     );

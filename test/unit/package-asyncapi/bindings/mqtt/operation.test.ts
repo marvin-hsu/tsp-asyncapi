@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
 import { findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
 import { operationsOf } from "../../../../utils/document.js";
+import { bindingsOf } from "../../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Sensors" })
@@ -46,7 +47,10 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // Zero is at most once delivery, which is a real mode. A truthiness check
     // would drop it and leave the document claiming the default instead.
-    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({ qos: 0, bindingVersion: "0.2.0" });
+    expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt).toEqual({
+      qos: 0,
+      bindingVersion: "0.2.0",
+    });
   });
 
   it("keeps a retain of false", async () => {
@@ -63,7 +67,7 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // `false` says the broker must not retain. That is the opposite of saying
     // nothing, so it has to reach the document.
-    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({
+    expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt).toEqual({
       retain: false,
       bindingVersion: "0.2.0",
     });
@@ -85,7 +89,7 @@ describe("Unit: the @mqttOperation decorator", () => {
     expect(reported.message).toContain("qos");
     expect(reported.message).toContain("0, 1, 2");
     expect(reported.message).toContain("mqtt binding field");
-    expect(operationsOf(doc).publish.bindings?.mqtt).toEqual({
+    expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt).toEqual({
       retain: true,
       bindingVersion: "0.2.0",
     });
@@ -107,7 +111,7 @@ describe("Unit: the @mqttOperation decorator", () => {
 
     // MQTT 5 types the field as a number or a Schema Object. A schema says
     // what the value may be rather than what it is.
-    expect(operationsOf(doc).publish.bindings?.mqtt.messageExpiryInterval).toEqual({
+    expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt.messageExpiryInterval).toEqual({
       type: "integer",
       minimum: 60,
     });

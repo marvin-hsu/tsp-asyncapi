@@ -7,6 +7,7 @@ import { listAllBindings } from "#core/decorators/bindings/state.js";
 import { operationsOf } from "../../utils/document.js";
 import type { Diagnostic } from "@typespec/compiler";
 import { KAFKA_SERVICE } from "../../utils/source.js";
+import { bindingsOf } from "../../utils/document.js";
 
 const BINDING_OUTSIDE = "binding-outside-document";
 
@@ -39,7 +40,7 @@ describe("Unit: which bindings count as having reached the document", () => {
     `);
 
     expect(reportsUnattached(diagnostics)).toBe(false);
-    expect(operationsOf(doc).OrderChannel_publish.bindings?.kafka).toEqual({
+    expect(bindingsOf(operationsOf(doc).OrderChannel_publish.bindings).kafka).toEqual({
       groupId: { type: "string" },
       bindingVersion: "0.5.0",
     });

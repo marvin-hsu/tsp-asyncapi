@@ -51,15 +51,16 @@ describe("Unit: Kafka acceptance example", () => {
           protocol: "kafka-secure",
           protocolVersion: "3.5.0",
           title: "SIT broker",
-          variables: {
-            tenant: { enum: ["acme", "globex"], default: "acme", description: "The tenant." },
-          },
+          variables: { tenant: { $ref: "#/components/serverVariables/tenant" } },
           security: [{ $ref: "#/components/securitySchemes/kafka-scram" }],
         },
       },
       channels: {},
       operations: {},
       components: {
+        serverVariables: {
+          tenant: { enum: ["acme", "globex"], default: "acme", description: "The tenant." },
+        },
         securitySchemes: {
           "kafka-scram": { type: "scramSha512", description: "SASL/SCRAM over TLS." },
         },

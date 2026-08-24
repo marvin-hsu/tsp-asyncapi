@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { compileSchemas } from "../../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { propertiesOf, refOf } from "../../../utils/document.js";
+import { refOf } from "../../../utils/document.js";
+import { resolvedProperties } from "../../../utils/schema-host.js";
 
 describe("Unit: Schemas — scalars", () => {
   it("should build string scalar schema", async () => {
@@ -54,7 +55,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(TestScalars);
 
-    const props = propertiesOf(builder.getSchemas().TestScalars);
+    const props = resolvedProperties(builder, "TestScalars");
     expect(props.str).toEqual({ type: "string" });
     expect(props.bool).toEqual({ type: "boolean" });
     expect(props.num8).toEqual({ type: "integer", format: "int8" });
@@ -97,7 +98,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // Derived scalars fall back to their base scalar's mapping.
     expect(props.e).toEqual({ type: "string" });
     expect(props.a).toEqual({ type: "integer", format: "int32" });
@@ -119,7 +120,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // These names collide with built-in `duration`/`url`, but these are
     // user-declared scalars in `MyLib`, not the TypeSpec built-ins. They
     // must resolve via their own baseScalar chain, not the lookup table.
@@ -146,7 +147,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.a).toEqual({ type: "integer", format: "int32" });
   });
 
@@ -162,7 +163,7 @@ describe("Unit: Schemas — scalars", () => {
     `);
     builder.buildSchema(M);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.a).toEqual({});
   });
 });

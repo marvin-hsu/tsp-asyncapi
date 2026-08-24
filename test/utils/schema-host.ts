@@ -92,5 +92,71 @@ export async function holderProperties(body: string): Promise<Record<string, Sch
     }
   `);
   builder.buildSchema(M);
-  return builder.getSchemas().Holder.properties as Record<string, SchemaObject>;
+  const schemas = builder.getSchemas();
+  const properties = schemas.Holder.properties as Record<string, SchemaObject>;
+  return Object.fromEntries(
+    Object.entries(properties).map(([name, schema]) => [name, resolveSchemaRefs(schemas, schema)]),
+  );
+}
+
+/**
+ * Replaces every `$ref` into `components.schemas` with what it points at.
+ *
+ * A user-declared scalar is a declaration the author named, so it earns a
+ * component and every use site writes a reference. A test asking what a
+ * decorator does to a value is not asking where the value is written, so it
+ * reads through this. Where the reference itself goes is pinned in
+ * `test/unit/package-asyncapi/schemas/scalar-promotion.test.ts`.
+ *
+ * @param schemas - The built `components.schemas`
+ * @param schema - One schema, possibly a reference or holding one
+ * @returns The same schema with every local reference followed
+ */
+function resolveSchemaRefs(schemas: Record<string, SchemaObject>, schema: unknown): SchemaObject {
+  if (Array.isArray(schema)) {
+    return schema.map((item) => resolveSchemaRefs(schemas, item)) as unknown as SchemaObject;
+  }
+  if (schema === null || typeof schema !== "object") {
+    return schema as SchemaObject;
+  }
+  const entries = Object.entries(schema as Record<string, unknown>);
+  const ref = (schema as { $ref?: unknown }).$ref;
+  if (typeof ref === "string" && ref.startsWith(LOCAL_SCHEMA_PREFIX)) {
+    const key = ref.slice(LOCAL_SCHEMA_PREFIX.length);
+    if (!Object.hasOwn(schemas, key)) {
+      throw new Error(`This test follows '${ref}', and nothing is there.`);
+    }
+    return resolveSchemaRefs(schemas, schemas[key]);
+  }
+  return Object.fromEntries(
+    entries.map(([key, value]) => [key, resolveSchemaRefs(schemas, value)]),
+  );
+}
+
+/** Where a schema reference points inside one document. */
+const LOCAL_SCHEMA_PREFIX = "#/components/schemas/";
+
+/**
+ * The properties of one built schema, with every schema reference followed.
+ *
+ * The counterpart of {@link holderProperties} for a test that builds its own
+ * model. It answers "what does this property's schema say", which is a
+ * different question from "where is that schema written".
+ *
+ * @param builder - The builder that has already built the model
+ * @param key - The `components.schemas` key of the model
+ * @returns The properties, with every local reference resolved
+ */
+export function resolvedProperties(
+  builder: SchemaBuilder,
+  key: string,
+): Record<string, SchemaObject> {
+  const schemas = builder.getSchemas();
+  if (!Object.hasOwn(schemas, key)) {
+    throw new Error(`This test needs a schema named '${key}', and there is none.`);
+  }
+  const properties = schemas[key].properties ?? {};
+  return Object.fromEntries(
+    Object.entries(properties).map(([name, schema]) => [name, resolveSchemaRefs(schemas, schema)]),
+  );
 }

@@ -124,6 +124,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Schema key '${"name"}' is claimed twice. Message '${"message"}' lifts @header fields into its \`headers\`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '${"name"}', or describe the headers of '${"message"}' with @headers so its payload keeps every field.`,
       },
     },
+    "raw-schema-key-taken": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Schema key '${"name"}' is claimed twice. Message '${"message"}' carries a raw schema that another message carries too, so that schema is written once in \`components.schemas\` under a key derived from the message model. Rename the other type that claims '${"name"}', or give one of the two messages a different name.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {

@@ -11,57 +11,25 @@ servers:
     protocol: amqp
     title: RabbitMQ
     bindings:
-      jms:
-        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
-        clientID: order-dispatch
-        bindingVersion: 0.0.1
-      ibmmq:
-        groupId: PRODCLSTR1
-        ccdtQueueManagerName: "*"
-        heartBeatInterval: 300
-        bindingVersion: 0.1.0
+      $ref: "#/components/serverBindings/OrderDispatch"
   activemq:
     host: activemq.example.com:61616
     protocol: jms
     title: ActiveMQ
     bindings:
-      jms:
-        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
-        clientID: order-dispatch
-        bindingVersion: 0.0.1
-      ibmmq:
-        groupId: PRODCLSTR1
-        ccdtQueueManagerName: "*"
-        heartBeatInterval: 300
-        bindingVersion: 0.1.0
+      $ref: "#/components/serverBindings/OrderDispatch"
   ibm-mq:
     host: mq.example.com:1414
     protocol: ibmmq
     title: IBM MQ queue manager
     bindings:
-      jms:
-        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
-        clientID: order-dispatch
-        bindingVersion: 0.0.1
-      ibmmq:
-        groupId: PRODCLSTR1
-        ccdtQueueManagerName: "*"
-        heartBeatInterval: 300
-        bindingVersion: 0.1.0
+      $ref: "#/components/serverBindings/OrderDispatch"
   anypoint:
     host: mq-eu.anypoint.mulesoft.com
     protocol: amqp
     title: Anypoint MQ
     bindings:
-      jms:
-        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
-        clientID: order-dispatch
-        bindingVersion: 0.0.1
-      ibmmq:
-        groupId: PRODCLSTR1
-        ccdtQueueManagerName: "*"
-        heartBeatInterval: 300
-        bindingVersion: 0.1.0
+      $ref: "#/components/serverBindings/OrderDispatch"
 channels:
   order.dispatch:
     address: order.dispatch
@@ -161,3 +129,14 @@ components:
           description: The dispatch record, as a length-prefixed binary frame.
           expiry: 60000
           bindingVersion: 0.1.0
+  serverBindings:
+    OrderDispatch:
+      jms:
+        jmsConnectionFactory: org.apache.activemq.ActiveMQConnectionFactory
+        clientID: order-dispatch
+        bindingVersion: 0.0.1
+      ibmmq:
+        groupId: PRODCLSTR1
+        ccdtQueueManagerName: "*"
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0

@@ -5,6 +5,7 @@ import { lowerBindings } from "#emitter/lower/bindings.js";
 import { lowerServers } from "#emitter/lower/servers.js";
 import { lowerInfo } from "#emitter/lower/info.js";
 import { bindingNodes, infoNode, requiredText, serverNodes } from "../ir-arbitraries.js";
+import { noPromotions } from "../../utils/promotions.js";
 
 /**
  * Properties of the three lower-stage functions that need nothing but their
@@ -58,7 +59,7 @@ describe("Unit: lower transforms — the key set of a built map", () => {
     fc.assert(
       fc.property(serverNodes(5), (nodes) => {
         if (nodes.length > 1) several++;
-        const lowered = lowerServers(nodes);
+        const lowered = lowerServers(nodes, noPromotions());
         if (nodes.length === 0) return;
 
         const expected = nodes.map((node) => node.name);
@@ -148,7 +149,7 @@ describe("Unit: lower transforms — the info object", () => {
           description: description.written,
           termsOfService: termsOfService.written,
         };
-        const info = lowerInfo(node);
+        const info = lowerInfo(node, noPromotions());
         const keys = ownKeys(info);
 
         // An `x-` key is the author's own, so the specification field list

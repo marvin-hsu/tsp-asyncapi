@@ -4,6 +4,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { byCodePoint } from "../../../../utils/sort.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 import { documentFrom } from "../../../../utils/test-host.js";
+import { schemaOf, schemasOf } from "../../../../utils/document.js";
 
 describe("Unit: Messages — decorator conflicts", () => {
   let runner: TesterInstance;
@@ -41,7 +42,7 @@ describe("Unit: Messages — decorator conflicts", () => {
 
     const doc = documentFrom(runner.program);
 
-    expect(doc.components?.schemas?.OrderCreated.properties?.firstLine).toEqual({
+    expect(schemaOf(schemasOf(doc).OrderCreated).properties?.firstLine).toEqual({
       $ref: "#/components/schemas/OrderLine",
     });
     // Both models stay messages of their own. No message nests inside another.

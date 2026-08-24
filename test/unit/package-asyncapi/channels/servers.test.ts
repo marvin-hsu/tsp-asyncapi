@@ -3,6 +3,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { documentFrom } from "../../../utils/test-host.js";
+import { resolveParameters } from "../../../utils/document.js";
 
 describe("Unit: Channel servers (Phase 4.6)", () => {
   let runner: TesterInstance;
@@ -241,7 +242,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");
     expect(doc.channels?.ReplyChannel.address).toBeNull();
-    expect(doc.channels?.["orders.{region}.created"].parameters).toEqual({
+    expect(resolveParameters(doc, doc.channels?.["orders.{region}.created"].parameters)).toEqual({
       region: { enum: ["eu", "us"], location: "$message.payload#/region" },
     });
     // The checker splices augment applications in before the inline ones, so

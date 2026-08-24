@@ -19,23 +19,30 @@ import type {
 import { present, text, reportDiagnostic } from "tsp-asyncapi-core";
 import { SchemaBuilder } from "./schemas.js";
 import {
+  CorrelationIdObject,
   MessageObject,
   MultiFormatSchemaObject,
   ReferenceObject,
   SchemaObject,
 } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
+import type { DocumentPromotions } from "./components/survey.js";
+import { sharedEach, sharedOptional } from "./components/survey.js";
+import { componentRef, refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
 function lowerHeaders(
   schemas: SchemaBuilder,
+  promoted: DocumentPromotions,
   node: MessageHeadersNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
   switch (node.kind) {
     case "none":
       return undefined;
-    case "raw":
-      return node.schema;
+    case "raw": {
+      const key = promoted.rawSchemas.keyFor("headers", node.schema);
+      return key === undefined ? node.schema : refFor(key);
+    }
     case "model":
       return schemas.buildDeclarationRef(node.model);
     case "fields":
@@ -46,14 +53,35 @@ function lowerHeaders(
 /** Builds the `payload` of one Message Object. */
 function lowerPayload(
   schemas: SchemaBuilder,
+  promoted: DocumentPromotions,
   node: MessagePayloadNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject {
   // A message with a raw payload carries the schema the author wrote, in the
   // format the author named. Nothing is built from the model, so that model
   // claims no `components.schemas` key and neither do the models it names.
-  return node.kind === "raw"
-    ? node.schema
-    : schemas.buildPayloadDeclaration(node.model, node.lifted);
+  //
+  // Two messages carrying the same schema share one component. One message
+  // carrying it alone keeps it here, because a component would add a `$ref`
+  // hop and save nothing.
+  if (node.kind !== "raw") return schemas.buildPayloadDeclaration(node.model, node.lifted);
+  const key = promoted.rawSchemas.keyFor("payload", node.schema);
+  return key === undefined ? node.schema : refFor(key);
+}
+
+/**
+ * Builds the `correlationId` of one Message Object.
+ *
+ * A Correlation ID Object has no name of its own, so two messages share one
+ * only when they state the same location. One message stating it alone keeps
+ * it in place.
+ */
+function lowerCorrelationId(
+  promoted: DocumentPromotions,
+  node: CorrelationIdObject | undefined,
+): CorrelationIdObject | ReferenceObject | undefined {
+  if (node === undefined) return undefined;
+  const key = promoted.correlationIds.keyFor(node);
+  return key === undefined ? node : { $ref: componentRef("correlationIds", key) };
 }
 
 /**
@@ -61,18 +89,28 @@ function lowerPayload(
  *
  * The field order follows the Message Object table of the specification.
  */
-function lowerMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject {
+function lowerMessage(
+  schemas: SchemaBuilder,
+  promoted: DocumentPromotions,
+  node: MessageNode,
+): MessageObject {
   return {
     name: node.key,
     ...text("title", node.title),
     ...text("description", node.description),
     ...text("contentType", node.contentType),
-    ...present("headers", lowerHeaders(schemas, node.headers)),
-    payload: lowerPayload(schemas, node.payload),
-    ...present("correlationId", node.correlationId),
-    ...present("bindings", lowerBindings(node.bindings)),
-    ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
-    ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    ...present("headers", lowerHeaders(schemas, promoted, node.headers)),
+    payload: lowerPayload(schemas, promoted, node.payload),
+    ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
+    ...present(
+      "bindings",
+      sharedOptional(promoted.messageBindings, "messageBindings", lowerBindings(node.bindings)),
+    ),
+    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
+    ...present(
+      "externalDocs",
+      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    ),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
@@ -96,6 +134,7 @@ function lowerMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject 
  */
 export function lowerMessages(
   schemas: SchemaBuilder,
+  promoted: DocumentPromotions,
   nodes: readonly MessageNode[],
 ): Record<string, MessageObject> | undefined {
   if (nodes.length === 0) return undefined;
@@ -105,7 +144,7 @@ export function lowerMessages(
   // `SchemaBuilder.getSchemas`.
   const messages = Object.create(null) as Record<string, MessageObject>;
   for (const node of nodes) {
-    messages[node.key] = lowerMessage(schemas, node);
+    messages[node.key] = lowerMessage(schemas, promoted, node);
   }
   return messages;
 }

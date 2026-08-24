@@ -30,6 +30,16 @@ The payload shape is emitted inline instead. A reference to the model's own comp
 
 **Fix:** rename the other type, or describe the headers with [`@headers`](./decorators/messages#headers) so the payload keeps every field and needs no separate schema.
 
+### `raw-schema-key-taken`
+
+> Schema key '\<name\>' is claimed twice. Message '\<message\>' carries a raw schema that another message carries too, so that schema is written once in `components.schemas` under a key derived from the message model. Rename the other type that claims '\<name\>', or give one of the two messages a different name.
+
+Two or more messages carry the same [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders). The schema is written once in `components.schemas`, keyed after the first message that carried it, with a `Payload` or `Headers` suffix. Another declaration already claims that key.
+
+The raw schema is written in each message instead. Nothing is lost, and the document repeats the text.
+
+**Fix:** rename the other type, or rename one of the two messages so the derived key changes.
+
 ### `unsupported-payload-type`
 
 > This emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { operationsOf } from "../../../utils/document.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Sensors" })
@@ -65,7 +66,7 @@ describe("Unit: the @natsOperation decorator", () => {
 
     // The limit is inclusive. An off-by-one check would reject a name NATS
     // accepts.
-    expect(operationsOf(doc).onReading.bindings?.nats.queue).toBe(name);
+    expect(bindingsOf(operationsOf(doc).onReading.bindings).nats.queue).toBe(name);
   });
 
   it("emits the binding version on its own when no queue was written", async () => {
@@ -82,6 +83,8 @@ describe("Unit: the @natsOperation decorator", () => {
 
     // The author asked for the binding, so the member is emitted. NATS states
     // no required field.
-    expect(operationsOf(doc).onReading.bindings?.nats).toEqual({ bindingVersion: "0.1.0" });
+    expect(bindingsOf(operationsOf(doc).onReading.bindings).nats).toEqual({
+      bindingVersion: "0.1.0",
+    });
   });
 });

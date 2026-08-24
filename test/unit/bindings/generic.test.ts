@@ -4,6 +4,7 @@ import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
 import { listAllBindings } from "#core/decorators/bindings/state.js";
 import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../../utils/document.js";
 import { KAFKA_SERVICE } from "../../utils/source.js";
+import { bindingsOf } from "../../utils/document.js";
 
 describe("Unit: the generic @binding decorator", () => {
   it("emits the config verbatim on a channel, and adds no bindingVersion", async () => {
@@ -99,12 +100,18 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(serversOf(doc).prod.bindings).toEqual(serversOf(doc).sit.bindings);
-    expect(serversOf(doc).prod.bindings).not.toBe(serversOf(doc).sit.bindings);
-    // A binding is a nested object, so the copy has to be deep. A shallow
-    // copy still passes the check above, and a later in-place edit of one
-    // server's protocol member would then reach every other server.
-    expect(serversOf(doc).prod.bindings?.kafka).not.toBe(serversOf(doc).sit.bindings?.kafka);
+    // One decorator on the namespace reaches every server it declares, so
+    // both carry the same Bindings Object and it is written once. A Bindings
+    // Object has no name of its own, so the component is named after the
+    // declaration that carries it — here the service namespace.
+    expect(doc.components?.serverBindings).toStrictEqual({
+      Test: {
+        kafka: { schemaRegistryUrl: "https://registry.example.com" },
+      },
+    });
+    const reference = { $ref: "#/components/serverBindings/Test" };
+    expect(serversOf(doc).prod.bindings).toStrictEqual(reference);
+    expect(serversOf(doc).sit.bindings).toStrictEqual(reference);
   });
 
   it("lands at both levels when one namespace is the service and a channel", async () => {
@@ -252,7 +259,7 @@ describe("Unit: the generic @binding decorator", () => {
     // level, so the level the builder was asked for is the one to report.
     expect(reported.message).toContain("at the channel level");
     // The first application in source order keeps the member.
-    expect(channelsOf(doc)["orders.created"].bindings?.mqtt).toEqual({ qos: 1 });
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).mqtt).toEqual({ qos: 1 });
   });
 
   it("reports the dropped duplicate once, and not again as unattached", async () => {
@@ -322,7 +329,9 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.mqtt.since).toBe("2026-01-01T00:00:00Z");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).mqtt.since).toBe(
+      "2026-01-01T00:00:00Z",
+    );
   });
   it("converts a nested object, a list, and a null through the same rule", async () => {
     const doc = await emitDocument(`
@@ -344,7 +353,7 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.mqtt).toEqual({
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).mqtt).toEqual({
       will: { topic: "down", qos: 1 },
       hops: [1, 2, 3],
       lastSeen: null,
@@ -372,6 +381,8 @@ describe("Unit: the generic @binding decorator", () => {
       }
     `);
 
-    expect(channelsOf(doc)["orders.created"].bindings?.mqtt.seen).toEqual(["2026-01-01T00:00:00Z"]);
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).mqtt.seen).toEqual([
+      "2026-01-01T00:00:00Z",
+    ]);
   });
 });

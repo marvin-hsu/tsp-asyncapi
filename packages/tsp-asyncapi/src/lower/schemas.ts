@@ -2,6 +2,11 @@ import {
   Type,
   Model,
   ModelProperty,
+  getDoc,
+  getEncode,
+  getExamples,
+  getFormat,
+  getSummary,
   Scalar,
   Enum,
   Union,
@@ -75,6 +80,23 @@ export class SchemaBuilder {
    */
   public schemaKeyOwner(key: string): Type | undefined {
     return this.declarations.keyOwner(key);
+  }
+
+  /**
+   * Claims a `components.schemas` key that no type owns, on behalf of the
+   * message the key was derived from.
+   *
+   * The raw schema survey uses this. It runs before any model is walked, so
+   * asking who owns a key would always answer "nobody": the check has to be
+   * a claim. Routing it through here puts a derived key under the same
+   * collision rule as every other one.
+   *
+   * @param key - The derived key
+   * @param target - The message model the key was derived from
+   * @returns True when the key was free
+   */
+  public claimDerived(key: string, target: Model): boolean {
+    return this.declarations.claimDerived(key, target, "raw");
   }
 
   /**
@@ -927,7 +949,7 @@ export class SchemaBuilder {
       propertySchemas[wireName] = withPropertyDocs(
         this.program,
         prop,
-        this.buildSchema(prop.type),
+        this.buildPropertyTypeSchema(prop),
         this.diagnostics,
       );
       if (!prop.optional) {
@@ -947,7 +969,52 @@ export class SchemaBuilder {
     return schema;
   }
 
-  private buildScalarSchema(scalar: Scalar): SchemaObject {
+  /**
+   * The schema of one property's declared type.
+   *
+   * A property carrying its own `@encode` rewrites the `type` and the
+   * `format` of the value. A Reference Object cannot be rewritten: `allOf`
+   * intersects, and two different `type`s do not intersect, they
+   * contradict. So a property like that writes the scalar in place, which
+   * is what every property did before a scalar earned a component.
+   *
+   * `@format` is the same case: a format is a draft-07 annotation, not a
+   * keyword that intersects, and two different ones on a value contradict.
+   * So is the prose. A property's own `@doc` fully determines what the use
+   * site says, and a `$ref` cannot take the scalar's own text away — both
+   * would be written, one nested inside the other.
+   *
+   * A validation keyword is different. `minLength` on the property and
+   * `minLength` on the scalar are two constraints on one value, and both
+   * holding is exactly what `allOf` means. A property that only constrains
+   * still writes a reference.
+   *
+   * A named model is not this case either. Its annotations sit at the
+   * object level rather than being its shape, so a property over one has
+   * always layered its own above an `allOf`, and still does.
+   */
+  private buildPropertyTypeSchema(prop: ModelProperty): SchemaObject | ReferenceObject {
+    if (prop.type.kind === "Scalar" && !isBuiltinScalar(prop.type) && this.speaksForItself(prop)) {
+      return this.buildScalarSchemaShapeWithDocs(prop.type);
+    }
+    return this.buildSchema(prop.type);
+  }
+
+  /**
+   * Whether a property says something of its own that would replace, rather
+   * than add to, what the scalar says.
+   */
+  private speaksForItself(prop: ModelProperty): boolean {
+    return (
+      getEncode(this.program, prop) !== undefined ||
+      getFormat(this.program, prop) !== undefined ||
+      getDoc(this.program, prop) !== undefined ||
+      getSummary(this.program, prop) !== undefined ||
+      getExamples(this.program, prop).length > 0
+    );
+  }
+
+  private buildScalarSchema(scalar: Scalar): SchemaObject | ReferenceObject {
     // TypeSpec's own built-in scalars, such as `string` and `int32`, carry
     // their own standard-library doc comments. For example, `string` has "A
     // sequence of textual characters." Surfacing those on every plain
@@ -958,7 +1025,18 @@ export class SchemaBuilder {
     // being lost when the use site is derived through more than one level.
     // For example, `scalar WorkEmail extends Email;` where only `Email`
     // itself carries `@doc`/`@summary`/`@example`.
-    return this.buildScalarSchemaShapeWithDocs(scalar);
+    // A user-declared scalar is a declaration the author named, so it earns
+    // a `components.schemas` entry and every use site writes a reference.
+    // This is the rule every other named declaration already follows, and
+    // the one `@typespec/openapi3` follows for a scalar
+    // (`schema-emitter.ts`, `scalarDeclaration`).
+    //
+    // A built-in stays inline. `string` has no name of the author's own, and
+    // a component per built-in would be a component per primitive.
+    if (isBuiltinScalar(scalar)) {
+      return this.buildScalarSchemaShapeWithDocs(scalar);
+    }
+    return this.declarations.register(scalar, () => this.buildScalarSchemaShapeWithDocs(scalar));
   }
 
   /**

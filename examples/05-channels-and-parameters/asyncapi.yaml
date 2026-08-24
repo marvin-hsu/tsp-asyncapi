@@ -18,19 +18,9 @@ channels:
       - $ref: "#/servers/edge"
     parameters:
       region:
-        enum:
-          - eu
-          - us
-          - ap
-        default: eu
-        description: The region the device reports from.
-        examples:
-          - eu
+        $ref: "#/components/parameters/region"
       deviceId:
-        description: The serial number of the device.
-        examples:
-          - dev-00417
-        location: $message.payload#/deviceId
+        $ref: "#/components/parameters/deviceId"
     messages:
       DeviceReading:
         $ref: "#/components/messages/DeviceReading"
@@ -53,11 +43,7 @@ channels:
     description: Firmware reports, on a channel that sits on a namespace.
     parameters:
       channelVersion:
-        enum:
-          - v1
-          - v2
-        default: v2
-        description: The version of the channel contract.
+        $ref: "#/components/parameters/channelVersion"
     messages:
       FirmwareReport:
         $ref: "#/components/messages/FirmwareReport"
@@ -136,3 +122,24 @@ components:
       name: FirmwareReport
       payload:
         $ref: "#/components/schemas/Firmware.FirmwareReport"
+  parameters:
+    region:
+      enum:
+        - eu
+        - us
+        - ap
+      default: eu
+      description: The region the device reports from.
+      examples:
+        - eu
+    deviceId:
+      description: The serial number of the device.
+      examples:
+        - dev-00417
+      location: $message.payload#/deviceId
+    channelVersion:
+      enum:
+        - v1
+        - v2
+      default: v2
+      description: The version of the channel contract.

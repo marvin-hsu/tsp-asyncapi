@@ -9,6 +9,8 @@ import { buildExternalDocs } from "#core/external-docs.js";
 import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
 import { diagnosticsWith } from "../../utils/diagnostics.js";
 import { documentFrom } from "../../utils/test-host.js";
+import { noPromotions } from "../../utils/promotions.js";
+import { externalDocsOf } from "../../utils/document.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;
@@ -27,13 +29,13 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace ${t.namespace("TestService")} {}
       `);
       const services = listServices(program);
-      const info = lowerInfo(resolveInfo(program, services[0]));
+      const info = lowerInfo(resolveInfo(program, services[0]), noPromotions());
 
       expect(info.title).toBe("My Service");
       expect(info.version).toBe("0.0.0");
       expect(info.description).toBe("Standard Doc Description");
       expect(info.tags).toHaveLength(1);
-      expect(info.externalDocs?.url).toBe("https://example.com");
+      expect(externalDocsOf(info.externalDocs).url).toBe("https://example.com");
     });
 
     it("should fall back to the default title when @service names none", async () => {
@@ -46,7 +48,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace ${t.namespace("Orders")} {}
       `);
       const services = listServices(program);
-      const info = lowerInfo(resolveInfo(program, services[0]));
+      const info = lowerInfo(resolveInfo(program, services[0]), noPromotions());
 
       expect(info.title).toBe("AsyncAPI Document");
       expect(info.version).toBe("0.0.0");
@@ -64,7 +66,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace TestService {}
       `);
       const services = listServices(runner.program);
-      const info = lowerInfo(resolveInfo(runner.program, services[0]));
+      const info = lowerInfo(resolveInfo(runner.program, services[0]), noPromotions());
 
       expect(info.title).toBe("My Service");
       expect(info.version).toBe("1.2.3");

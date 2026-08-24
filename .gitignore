@@ -112,6 +112,7 @@ plan
 .chat/
 .copilotignore
 .claude/
+.codex
 .claudeignore
 .claude.json
 CLAUDE.md

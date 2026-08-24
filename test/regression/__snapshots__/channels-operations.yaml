@@ -23,17 +23,14 @@ channels:
       - $ref: "#/servers/secondary"
     parameters:
       region:
-        description: The region of the cluster.
-        location: $message.header#/region
+        $ref: "#/components/parameters/region"
       tenant:
-        enum:
-          - acme
-          - globex
+        $ref: "#/components/parameters/tenant"
     messages:
       CreateOrder:
         $ref: "#/components/messages/CreateOrder"
     tags:
-      - name: commands
+      - $ref: "#/components/tags/commands"
   shipped:
     address: orders.shipped
     messages:
@@ -108,3 +105,14 @@ components:
   securitySchemes:
     kafka-scram:
       type: scramSha512
+  parameters:
+    region:
+      description: The region of the cluster.
+      location: $message.header#/region
+    tenant:
+      enum:
+        - acme
+        - globex
+  tags:
+    commands:
+      name: commands

@@ -8,6 +8,7 @@ import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, operationsOf, present } from "../../../utils/document.js";
 import type { SqsChannelBindingObject } from "#emitter/types/index.js";
 import { PUBLISH_ORDER_CREATED } from "../../../utils/source.js";
+import { bindingFor, bindingsOf } from "../../../utils/document.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })
@@ -114,7 +115,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // `false` says the queue is a standard queue. AsyncAPI requires the
       // field, so treating it as absent would drop the whole binding.
-      expect(channelsOf(doc).orders.bindings?.sqs.queue).toEqual({
+      expect(bindingsOf(channelsOf(doc).orders.bindings).sqs.queue).toEqual({
         name: "orders",
         fifoQueue: false,
       });
@@ -160,7 +161,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(reported.message).toContain("queue.deduplicationScope");
       expect(reported.message).toContain("queue or messageGroup");
       // The two required fields are still there, so the binding survives.
-      expect(channelsOf(doc).orders.bindings?.sqs.queue).toEqual({
+      expect(bindingsOf(channelsOf(doc).orders.bindings).sqs.queue).toEqual({
         name: "orders",
         fifoQueue: true,
       });
@@ -201,7 +202,8 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       // field.
       // See the note in the AMQP suite: a binding is an untyped record in the
       // document type, so the test names the shape it expects.
-      const sqs = channelsOf(doc).orders.bindings?.sqs as SqsChannelBindingObject | undefined;
+      const sqs = bindingFor(channelsOf(doc).orders.bindings, "sqs") as
+        SqsChannelBindingObject | undefined;
       expect(present(sqs, "sqs binding").queue.deliveryDelay).toBe(0);
     });
   });
@@ -249,7 +251,9 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // AsyncAPI states a different required set at each level, and this
       // emitter follows each one where it applies.
-      expect(operationsOf(doc).publish.bindings?.sqs.queues).toEqual([{ name: "orders" }]);
+      expect(bindingsOf(operationsOf(doc).publish.bindings).sqs.queues).toEqual([
+        { name: "orders" },
+      ]);
     });
 
     it("drops the whole binding when the queue list is missing", async () => {

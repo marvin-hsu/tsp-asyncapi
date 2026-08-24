@@ -11,16 +11,10 @@ info:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
   tags:
-    - name: ledger
-      description: Everything the ledger publishes.
-    - name: internal
-      description: Not exposed outside the platform.
-      externalDocs:
-        url: https://example.com/internal/ledger
-        description: The internal runbook.
+    - $ref: "#/components/tags/ledger"
+    - $ref: "#/components/tags/internal"
   externalDocs:
-    url: https://example.com/docs/ledger
-    description: The ledger contract guide.
+    $ref: "#/components/externalDocs/info"
 defaultContentType: application/json
 servers:
   kafka-dev:
@@ -31,25 +25,15 @@ servers:
     description: One shared cluster for every development tenant.
     variables:
       tenant:
-        default: sandbox
-        description: The tenant this client connects as.
-        examples:
-          - sandbox
-          - acme
+        $ref: "#/components/serverVariables/tenant"
     security:
       - $ref: "#/components/securitySchemes/ledger-oauth"
       - $ref: "#/components/securitySchemes/broker-scram"
     externalDocs:
-      url: https://example.com/docs/ledger
-      description: The ledger contract guide.
+      $ref: "#/components/externalDocs/info"
     tags:
-      - name: ledger
-        description: Everything the ledger publishes.
-      - name: internal
-        description: Not exposed outside the platform.
-        externalDocs:
-          url: https://example.com/internal/ledger
-          description: The internal runbook.
+      - $ref: "#/components/tags/ledger"
+      - $ref: "#/components/tags/internal"
   amqp-prod:
     host: amqp.example.com:{port}
     protocol: amqp
@@ -59,31 +43,36 @@ servers:
     summary: The production AMQP broker.
     variables:
       port:
-        enum:
-          - "5671"
-          - "5672"
-        default: "5671"
-        description: TLS on 5671.
+        $ref: "#/components/serverVariables/port"
       vhost:
-        default: ledger
-        description: The virtual host to open.
+        $ref: "#/components/serverVariables/vhost"
     security:
       - $ref: "#/components/securitySchemes/ledger-oauth"
       - $ref: "#/components/securitySchemes/broker-scram"
     externalDocs:
-      url: https://example.com/docs/ledger
-      description: The ledger contract guide.
+      $ref: "#/components/externalDocs/info"
     tags:
-      - name: ledger
-        description: Everything the ledger publishes.
-      - name: internal
-        description: Not exposed outside the platform.
-        externalDocs:
-          url: https://example.com/internal/ledger
-          description: The internal runbook.
+      - $ref: "#/components/tags/ledger"
+      - $ref: "#/components/tags/internal"
 channels: {}
 operations: {}
 components:
+  serverVariables:
+    tenant:
+      default: sandbox
+      description: The tenant this client connects as.
+      examples:
+        - sandbox
+        - acme
+    port:
+      enum:
+        - "5671"
+        - "5672"
+      default: "5671"
+      description: TLS on 5671.
+    vhost:
+      default: ledger
+      description: The virtual host to open.
   securitySchemes:
     ledger-oauth:
       type: oauth2
@@ -113,3 +102,17 @@ components:
     legacy-login:
       type: userPassword
       description: Kept for the legacy bridge only.
+  tags:
+    ledger:
+      name: ledger
+      description: Everything the ledger publishes.
+    internal:
+      name: internal
+      description: Not exposed outside the platform.
+      externalDocs:
+        url: https://example.com/internal/ledger
+        description: The internal runbook.
+  externalDocs:
+    info:
+      url: https://example.com/docs/ledger
+      description: The ledger contract guide.
