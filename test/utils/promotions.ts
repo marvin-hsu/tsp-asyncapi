@@ -22,5 +22,5 @@ export function noPromotions(): DocumentPromotions {
     channels: [],
     operations: [],
   };
-  return surveyDocument(service, { schemaKeyOwner: () => undefined });
+  return surveyDocument(service, { claimDerived: () => true });
 }

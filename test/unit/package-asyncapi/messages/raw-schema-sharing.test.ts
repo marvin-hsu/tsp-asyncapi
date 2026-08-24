@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { emitDocument } from "../../../utils/test-host.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { messagesOf, schemasOf } from "../../../utils/document.js";
+import { findDiagnostic } from "../../../utils/diagnostics.js";
 import { validateAsyncAPI } from "../../../utils/spec-validation.js";
 
 const PROTO = "message Order { string id = 1; }";
@@ -144,6 +145,96 @@ describe("Unit: sharing a raw payload", () => {
         $ref: "#/components/schemas/PlacedHeaders",
       });
     }
+  });
+
+  /**
+   * The key of a promoted raw schema is derived from a message model's name,
+   * so a model the author declared can want the same one. The survey runs
+   * before any model is walked, so it cannot ask who owns the key: it has to
+   * claim it. Without the claim the raw schema silently replaced the model's
+   * component, and every reference to that model pointed at a schema written
+   * in another language.
+   */
+  it("reports a model that wants the key a shared raw payload took", async () => {
+    const { diagnostics } = await emitDocumentWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      model PlacedPayload {
+        who: string;
+      }
+
+      @message
+      model Audited {
+        detail: PlacedPayload;
+      }
+
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @message
+      model Placed {}
+
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @message
+      model Shipped {}
+
+      @channel("orders")
+      interface OrderChannel {
+        @send
+        op audit(event: Audited): void;
+
+        @send
+        op place(event: Placed): void;
+
+        @send
+        op ship(event: Shipped): void;
+      }
+    `);
+
+    // The message names the real cause. The lifted-header wording would send
+    // the author to `@headers`, which has nothing to do with this.
+    const reported = findDiagnostic(diagnostics, "raw-schema-key-taken");
+    expect(reported.message).toContain("PlacedPayload");
+    expect(reported.message).toContain("Placed");
+    expect(reported.severity).toBe("error");
+  });
+
+  /**
+   * One message carrying the raw schema means no promotion, so the key is
+   * never claimed and the model keeps it.
+   */
+  it("leaves the key alone when the raw schema is used once", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      model PlacedPayload {
+        who: string;
+      }
+
+      @message
+      model Audited {
+        detail: PlacedPayload;
+      }
+
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @message
+      model Placed {}
+
+      @channel("orders")
+      interface OrderChannel {
+        @send
+        op audit(event: Audited): void;
+
+        @send
+        op place(event: Placed): void;
+      }
+    `);
+
+    expect(schemasOf(doc).PlacedPayload).toStrictEqual({
+      type: "object",
+      properties: { who: { type: "string" } },
+      required: ["who"],
+    });
   });
 
   /**

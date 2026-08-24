@@ -346,8 +346,8 @@ export class DeclarationRegistry {
   }
 
   /** Claims a key derived from another, such as `<model>Payload`. */
-  public claimDerived(key: string, owner: Model): boolean {
-    return this.keyRegistry.claimDerived(key, owner);
+  public claimDerived(key: string, owner: Model, cause?: "payload" | "raw"): boolean {
+    return this.keyRegistry.claimDerived(key, owner, cause);
   }
 
   /**

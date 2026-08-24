@@ -26,26 +26,30 @@
  * is one copy inside one message. The case this file exists for is the same
  * schema reaching several messages.
  *
- * ## Why a claimed key means no promotion
+ * ## Why the key is claimed rather than checked
  *
  * The key comes from the message that carried the schema first, so it can
- * collide with a key the schema builder already claimed for a model. When it
- * does, this leaves the schema inline. The document is still correct, it just
- * repeats the text, which is what it did before this file existed. Reporting
- * a diagnostic would ask the author to rename something to enable an
- * optimisation they never asked for.
+ * collide with a key a model wants for itself. The survey runs before any
+ * model is walked, so asking who owns a key at this point always answers
+ * "nobody": the check has to be a claim.
+ *
+ * `claimDerived` is the same call the lifted-payload path makes, and it puts
+ * this key under the one collision rule every other key follows. A key
+ * another claim already holds leaves the schema inline, and a model that
+ * later wants the same name is reported rather than quietly replacing it.
  */
 
+import type { Model } from "@typespec/compiler";
 import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import type { MultiFormatSchemaObject } from "../../types/index.js";
 /**
- * The one question a survey asks about the schemas already claimed.
+ * The one thing a survey asks of the schema key registry.
  *
  * `SchemaBuilder` answers it. Naming the question rather than the builder is
  * what lets a test survey a document without compiling one.
  */
 export interface ClaimedSchemaKeys {
-  schemaKeyOwner(key: string): unknown;
+  claimDerived(key: string, target: Model): boolean;
 }
 import { Promoter } from "./promotion.js";
 
@@ -87,12 +91,18 @@ export class RawSchemaPromoter {
       new Promoter<MultiFormatSchemaObject>({ when: "repeated", key: (_value, site) => site });
     const payloads = make();
     const headers = make();
+    // The message each key was derived from, so the claim below can name it.
+    const owners = new Map<string, Model>();
     for (const message of service.messages) {
       if (message.payload.kind === "raw") {
-        payloads.survey(message.payload.schema, message.key + SUFFIX.payload);
+        const key = message.key + SUFFIX.payload;
+        payloads.survey(message.payload.schema, key);
+        owners.set(key, message.target);
       }
       if (message.headers.kind === "raw") {
-        headers.survey(message.headers.schema, message.key + SUFFIX.headers);
+        const key = message.key + SUFFIX.headers;
+        headers.survey(message.headers.schema, key);
+        owners.set(key, message.target);
       }
     }
     payloads.freeze();
@@ -100,9 +110,11 @@ export class RawSchemaPromoter {
 
     const promoted = new RawSchemaPromoter(payloads, headers);
     for (const [key, schema] of [...payloads.entries(), ...headers.entries()]) {
-      // A key the schema builder owns belongs to a model. Leaving this one
-      // inline is the safe answer, and it is what the emitter did before.
-      if (schemas.schemaKeyOwner(key) !== undefined) continue;
+      // The claim is made on behalf of the message the key was derived from,
+      // so a later collision names that message rather than sending the
+      // author to look for a second declaration.
+      const target = owners.get(key);
+      if (target === undefined || !schemas.claimDerived(key, target)) continue;
       promoted.#keys.set(key, schema);
     }
     return promoted;

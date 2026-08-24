@@ -83,6 +83,23 @@ export class SchemaBuilder {
   }
 
   /**
+   * Claims a `components.schemas` key that no type owns, on behalf of the
+   * message the key was derived from.
+   *
+   * The raw schema survey uses this. It runs before any model is walked, so
+   * asking who owns a key would always answer "nobody": the check has to be
+   * a claim. Routing it through here puts a derived key under the same
+   * collision rule as every other one.
+   *
+   * @param key - The derived key
+   * @param target - The message model the key was derived from
+   * @returns True when the key was free
+   */
+  public claimDerived(key: string, target: Model): boolean {
+    return this.declarations.claimDerived(key, target, "raw");
+  }
+
+  /**
    * Returns the `components.schemas` key `model` would claim, without
    * registering it and without building anything.
    * The message builder uses this to tell two models apart. Two models that

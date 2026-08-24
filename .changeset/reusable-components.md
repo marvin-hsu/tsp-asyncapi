@@ -24,3 +24,6 @@ Every emitted document still passes the official AsyncAPI parser.
 
 `declarationNameFor` accepts a `Scalar`, and `sanitizeDeclarationName` is
 now exported.
+
+A new diagnostic, `raw-schema-key-taken`, reports a model that wants the
+`components.schemas` key a shared raw schema took.

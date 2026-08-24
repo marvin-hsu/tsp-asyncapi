@@ -2,6 +2,26 @@ import { Type, Model, Enum, Scalar, Union, Program, compilerAssert } from "@type
 import { reportDiagnostic, declarationNameFor, fallbackDeclarationName } from "tsp-asyncapi-core";
 
 /**
+ * Why a key belongs to no type the author wrote.
+ *
+ * A collision on such a key names the message it was derived from, and the
+ * advice depends on why that message needed a key of its own.
+ */
+type DerivedKeyCause = "payload" | "raw";
+
+/** The diagnostic each cause reports. */
+const CAUSE_CODE = {
+  payload: "payload-schema-key-taken",
+  raw: "raw-schema-key-taken",
+} as const;
+
+/** A derived key, and the message that needed it. */
+interface DerivedKey {
+  readonly target: Model;
+  readonly cause: DerivedKeyCause;
+}
+
+/**
  * Key-collision policy for `components.schemas`. A name collision reports
  * a hard diagnostic error (`duplicate-schema-key`). This registry does not
  * rename on collision. This matches `@typespec/openapi`'s own
@@ -15,7 +35,7 @@ export class SchemaKeyRegistry {
   // mapped to the message model they were derived from. A collision on such
   // a key has a cause the generic message cannot name: the author wrote no
   // second type with that name. So the report needs the message.
-  private readonly derivedFrom = new Map<string, Model>();
+  private readonly derivedFrom = new Map<string, DerivedKey>();
   // Memoizes each type's computed name, including the `undefined` an
   // unspeakable template instantiation resolves to. `declarationNameFor`
   // walks a template argument chain recursively, and every caller asks for
@@ -111,18 +131,18 @@ export class SchemaKeyRegistry {
    * @param target - The message model the key is derived from
    * @returns True when the key was free
    */
-  public claimDerived(key: string, target: Model): boolean {
+  public claimDerived(key: string, target: Model, cause: DerivedKeyCause = "payload"): boolean {
     const owner = this.claimedBy.get(key);
     if (owner !== undefined && owner !== target) {
       reportDiagnostic(this.program, {
-        code: "payload-schema-key-taken",
+        code: CAUSE_CODE[cause],
         target,
         format: { name: key, message: target.name },
       });
       return false;
     }
     this.claimedBy.set(key, target);
-    this.derivedFrom.set(key, target);
+    this.derivedFrom.set(key, { target, cause });
     return true;
   }
 
@@ -132,15 +152,15 @@ export class SchemaKeyRegistry {
    * A key that `claimDerived` produced belongs to no type the author wrote.
    * A generic "duplicate schema name" would send the author looking for a
    * second declaration that does not exist. So such a collision names the
-   * message whose payload needs the key instead.
+   * message the key was derived from, and says why that message needed one.
    */
   private reportCollision(key: string, target: Type): void {
     const derived = this.derivedFrom.get(key);
     if (derived !== undefined) {
       reportDiagnostic(this.program, {
-        code: "payload-schema-key-taken",
+        code: CAUSE_CODE[derived.cause],
         target,
-        format: { name: key, message: derived.name },
+        format: { name: key, message: derived.target.name },
       });
       return;
     }
