@@ -4,7 +4,12 @@ import { messagesOf, schemasOf } from "../../../utils/document.js";
 import { findDiagnostic } from "../../../utils/diagnostics.js";
 import { validateAsyncAPI } from "../../../utils/spec-validation.js";
 
-const PROTO = "message Order { string id = 1; }";
+// The text a test author writes is parsed for real, so it has to be a
+// legal proto3 file: without the syntax line, protobufjs reads proto2 and
+// rejects an unlabeled field. The escaped copy is what a TypeSpec string
+// literal carries.
+const PROTO = 'syntax = "proto3"; message Order { string id = 1; }';
+const PROTO_SRC = PROTO.replaceAll('"', String.raw`\"`);
 
 /**
  * Two messages carrying one schema written in another language.
@@ -20,11 +25,11 @@ describe("Unit: sharing a raw payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Shipped {}
 
@@ -62,7 +67,7 @@ describe("Unit: sharing a raw payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
@@ -86,11 +91,14 @@ describe("Unit: sharing a raw payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "message Ship { string id = 1; }")
+      @rawPayload(
+        "application/vnd.google.protobuf;version=3",
+        "syntax = \\"proto3\\"; message Ship { string id = 1; }"
+      )
       @message
       model Shipped {}
 
@@ -114,13 +122,13 @@ describe("Unit: sharing a raw payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @rawHeaders("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawHeaders("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {
         id: string;
       }
 
-      @rawHeaders("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawHeaders("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Shipped {
         id: string;
@@ -169,11 +177,11 @@ describe("Unit: sharing a raw payload", () => {
         detail: PlacedPayload;
       }
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Shipped {}
 
@@ -216,7 +224,7 @@ describe("Unit: sharing a raw payload", () => {
         detail: PlacedPayload;
       }
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
@@ -247,11 +255,11 @@ describe("Unit: sharing a raw payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Placed {}
 
-      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO}")
+      @rawPayload("application/vnd.google.protobuf;version=3", "${PROTO_SRC}")
       @message
       model Shipped {}
 

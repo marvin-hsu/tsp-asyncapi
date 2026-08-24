@@ -4,10 +4,16 @@ syntax = "proto3";
 
 package com.example.orders;
 
+// An amount of money, as the smallest unit of one currency.
+message Money {
+  string currency = 1;
+  int64 amount = 2;
+}
+
 // One order a customer placed.
 message OrderPlaced {
   string orderId = 1;
-  int32 amountCents = 2;
+  Money total = 2;
 }
 
 // One order that left the warehouse.

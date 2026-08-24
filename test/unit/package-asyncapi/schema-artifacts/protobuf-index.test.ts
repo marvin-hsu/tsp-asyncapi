@@ -119,12 +119,14 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
 
     expect(reported).toHaveLength(0);
     const artifact = artifacts.payloadFor.get(modelIn("Orders", "OrderCreated"));
-    // The identity is the name the decorator gives, not the namespace name.
-    expect(artifact?.identity).toBe("com.example.orders");
+    // The identity carries the name the decorator gives, not the namespace
+    // name, and the message the payload is. A null byte separates the halves.
+    expect(artifact?.identity).toBe("com.example.orders\u0000OrderCreated");
     expect(artifact?.provider).toBe("protobuf");
     expect(artifact?.schemaFormat).toBe("application/vnd.google.protobuf;version=3");
     expect(artifact?.schema).toContain("package com.example.orders;");
     expect(artifact?.schema).toContain("string orderId = 1;");
+    expect(artifact?.schema).toContain("message OrderCreated {");
   });
 
   it("resolves a nested namespace to its nearest package", async () => {
@@ -154,12 +156,12 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const inner = artifacts.payloadFor.get(modelIn("Shipping.Deep", "Label"));
     const outer = artifacts.payloadFor.get(modelIn("Shipping", "Parcel"));
     // The inner namespace declares a package of its own, so the outer one loses.
-    expect(inner?.identity).toBe("com.example.inner");
+    expect(inner?.identity).toBe("com.example.inner\u0000Label");
     expect(inner?.schema).toContain("string code = 1;");
     expect(inner?.schema).not.toContain("message Parcel");
     // The nearest package wins on both sides of the boundary, so the outer
     // file holds its own model and not the one the inner package claimed.
-    expect(outer?.identity).toBe("com.example.outer");
+    expect(outer?.identity).toBe("com.example.outer\u0000Parcel");
     expect(outer?.schema).toContain("message Parcel");
     expect(outer?.schema).not.toContain("message Label");
   });
@@ -190,8 +192,8 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     expect(reported).toHaveLength(0);
     const left = artifacts.payloadFor.get(modelIn("Left", "OrderCreated"));
     const right = artifacts.payloadFor.get(modelIn("Right", "OrderCreated"));
-    expect(left?.identity).toBe("com.example.left");
-    expect(right?.identity).toBe("com.example.right");
+    expect(left?.identity).toBe("com.example.left\u0000OrderCreated");
+    expect(right?.identity).toBe("com.example.right\u0000OrderCreated");
     // Each text holds its own field, so neither model got the other package.
     expect(left?.schema).toContain("string leftOnly = 1;");
     expect(left?.schema).not.toContain("string rightOnly = 1;");
@@ -199,7 +201,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     expect(right?.schema).not.toContain("string leftOnly = 1;");
   });
 
-  it("gives every model of one package the same artifact", async () => {
+  it("gives two models of one package two artifacts", async () => {
     const { artifacts } = await index(`
       @package({ name: "com.example.orders" })
       namespace Orders {
@@ -220,11 +222,60 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     `);
 
     const first = artifacts.payloadFor.get(modelIn("Orders", "First"));
+    const second = artifacts.payloadFor.get(modelIn("Orders", "Second"));
     expect(first).toBeDefined();
-    expect(artifacts.payloadFor.get(modelIn("Orders", "Second"))).toBe(first);
-    // The artifact is the whole package, so it holds both messages.
-    expect(first?.schema).toContain("message First");
-    expect(first?.schema).toContain("message Second");
+    // Two messages of one package are two different payloads. One shared
+    // artifact would say a consumer can decode both with one type, and the
+    // wire formats disagree.
+    expect(second).not.toBe(first);
+    expect(second?.identity).not.toBe(first?.identity);
+    // Each text keeps the file header and its own message, and drops the
+    // declarations its message never reaches. A payload describes itself.
+    expect(first?.schema).toContain('syntax = "proto3";');
+    expect(first?.schema).toContain("package com.example.orders;");
+    expect(first?.schema).toContain("message First {");
+    expect(first?.schema).not.toContain("message Second");
+    expect(second?.schema).toContain("message Second {");
+    expect(second?.schema).not.toContain("message First");
+  });
+
+  it("keeps a declaration the payload's message reaches", async () => {
+    const { artifacts, reported } = await index(`
+      @package({ name: "com.example.orders" })
+      namespace Orders {
+        @message
+        model Address {
+          @field(1)
+          street: string;
+        }
+
+        @AsyncAPI.message
+        @message
+        model Shipment {
+          @field(1)
+          destination: Address;
+        }
+
+        @AsyncAPI.message
+        @message
+        model Heartbeat {
+          @field(1)
+          at: int32;
+        }
+      }
+    `);
+
+    expect(reported).toHaveLength(0);
+    // A field of a message type pulls that declaration into the payload. A
+    // text without it would not compile for any consumer.
+    const shipment = artifacts.payloadFor.get(modelIn("Orders", "Shipment"));
+    expect(shipment?.schema).toContain("message Shipment {");
+    expect(shipment?.schema).toContain("message Address {");
+    // The pull is not symmetric: a payload that reaches nothing extra
+    // carries nothing extra.
+    const heartbeat = artifacts.payloadFor.get(modelIn("Orders", "Heartbeat"));
+    expect(heartbeat?.schema).not.toContain("message Address");
+    expect(heartbeat?.schema).not.toContain("message Shipment");
   });
 
   it("reports a model that carries the decorator with no package above it", async () => {
@@ -281,7 +332,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     // The official emitter writes no `package` line for such a package, so
     // the text is matched by the absence of one.
     const artifact = artifacts.payloadFor.get(modelIn("Plain", "Ping"));
-    expect(artifact?.identity).toBe("(no package name)");
+    expect(artifact?.identity).toBe("(no package name)\u0000Ping");
     expect(artifact?.schema).toContain("message Ping");
     expect(artifact?.schema).not.toContain("package ");
   });

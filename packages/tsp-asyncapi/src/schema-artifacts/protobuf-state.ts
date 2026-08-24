@@ -18,7 +18,14 @@
  * reads them, so an upgrade has one place to check.
  */
 
-import type { Model, Namespace, Program } from "@typespec/compiler";
+import {
+  getFriendlyName,
+  isTemplateInstance,
+  type Model,
+  type Namespace,
+  type Program,
+} from "@typespec/compiler";
+import { capitalize } from "@typespec/compiler/casing";
 
 /** The state key of `@Protobuf.message`, a set of the models that carry it. */
 const MESSAGE_STATE = Symbol.for("@typespec/protobuf.message");
@@ -105,4 +112,29 @@ function packageNameOf(details: unknown): string | undefined {
   const name = model?.properties.get("name");
   const value = name?.type;
   return value?.kind === "String" ? value.value : undefined;
+}
+
+/**
+ * The name the official emitter gives a model's proto message.
+ *
+ * This mirrors the pinned version's `getModelName`: a friendly name wins,
+ * and a plain model is its own name, both capitalized. It exists so the
+ * artifact of a model can point at that model's message inside the rendered
+ * text, and it is the naming half of what the upgrade gate re-checks.
+ *
+ * A template instantiation is refused rather than mirrored. Upstream builds
+ * its name from the template arguments, and a wrong guess here would silently
+ * annotate another message. Refusing keeps the model on the JSON Schema path
+ * with a diagnostic, which a later change can lift deliberately.
+ *
+ * @param program - The compiled program
+ * @param model - A model that carries `@Protobuf.message`
+ * @returns The message name, or `undefined` for a template instantiation
+ * @internal
+ */
+export function protoMessageNameOf(program: Program, model: Model): string | undefined {
+  const friendly = getFriendlyName(program, model);
+  if (friendly) return capitalize(friendly);
+  if (isTemplateInstance(model)) return undefined;
+  return capitalize(model.name);
 }

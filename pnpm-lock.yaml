@@ -213,6 +213,9 @@ importers:
       '@asyncapi/parser':
         specifier: ^3.6.3
         version: 3.6.3
+      '@asyncapi/protobuf-schema-parser':
+        specifier: ^3.9.0
+        version: 3.9.0
       '@changesets/cli':
         specifier: ^3.0.1
         version: 3.0.1
@@ -439,6 +442,10 @@ packages:
 
   '@asyncapi/parser@3.6.3':
     resolution: {integrity: sha512-MUC8xIUMcS2qNvqrqyx/ie0txu3d/OdIsrXs7UCzawdyR6P07gh35DpOqPz/z57s1UA3vERVpcheZYl3h8cVtw==}
+
+  '@asyncapi/protobuf-schema-parser@3.9.0':
+    resolution: {integrity: sha512-S8HH2gCb8qysKEuxVOOR0X+UV49n2oefeRRB9D+imtrYocOT+M4UgC+PgmcxgPSarIclG4mAzWYuH+hlKejDcw==}
+    engines: {node: '>=18'}
 
   '@asyncapi/specs@6.11.1':
     resolution: {integrity: sha512-A3WBLqAKGoJ2+6FWFtpjBlCQ1oFCcs4GxF7zsIGvNqp/klGUHjlA3aAcZ9XMMpLGE8zPeYDz2x9FmO6DSuKraQ==}
@@ -1893,6 +1900,9 @@ packages:
   '@types/node@26.2.0':
     resolution: {integrity: sha512-5IviulTZeRNp2vAJ514cc/HUlY5nZ9fCbq9DMyC52BrhFZACo3nI0R7qBxhQmo/d27NFe96ur/b7Wwxklda+kg==}
 
+  '@types/protocol-buffers-schema@3.4.3':
+    resolution: {integrity: sha512-8cCg6BiIj4jS0LXUFq3sndmd46yyPLYqMzvXLcTM1MRubh3sfZlQiehoCjGDxSHTqGSjjx8EtVNryIAl0njQWg==}
+
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
@@ -3253,6 +3263,9 @@ packages:
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
+  long@5.3.2:
+    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+
   lru-cache@11.5.2:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
@@ -3559,6 +3572,10 @@ packages:
 
   property-information@7.2.0:
     resolution: {integrity: sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg==}
+
+  protobufjs@8.7.2:
+    resolution: {integrity: sha512-oTVHV+oelUBtiu5iTuTNNZ0eLYsXSMxry4cgr30mayNkgIZL6qZ0IOQVPuSWGcyAaXKl/XgqwWHIC3a0khYVBA==}
+    engines: {node: '>=12.0.0'}
 
   proxy-from-env@2.1.0:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
@@ -4441,6 +4458,14 @@ snapshots:
       js-yaml: 4.3.1
       jsonpath-plus: 10.4.0
       node-fetch: 2.6.7
+    transitivePeerDependencies:
+      - encoding
+
+  '@asyncapi/protobuf-schema-parser@3.9.0':
+    dependencies:
+      '@asyncapi/parser': 3.6.3
+      '@types/protocol-buffers-schema': 3.4.3
+      protobufjs: 8.7.2
     transitivePeerDependencies:
       - encoding
 
@@ -5890,6 +5915,10 @@ snapshots:
   '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
+
+  '@types/protocol-buffers-schema@3.4.3':
+    dependencies:
+      '@types/node': 26.2.0
 
   '@types/unist@3.0.3': {}
 
@@ -7383,6 +7412,8 @@ snapshots:
 
   lodash@4.18.1: {}
 
+  long@5.3.2: {}
+
   lru-cache@11.5.2: {}
 
   lru-cache@5.1.1:
@@ -7705,6 +7736,10 @@ snapshots:
   progress@2.0.3: {}
 
   property-information@7.2.0: {}
+
+  protobufjs@8.7.2:
+    dependencies:
+      long: 5.3.2
 
   proxy-from-env@2.1.0:
     optional: true

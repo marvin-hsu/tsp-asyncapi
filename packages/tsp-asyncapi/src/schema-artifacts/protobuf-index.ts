@@ -34,7 +34,11 @@ import { NoTarget, type Diagnostic, type Model, type Program } from "@typespec/c
 import { listMessages, reportDiagnostic, type ExternalSchemaArtifact } from "tsp-asyncapi-core";
 import type { ProtobufCaptureResult } from "./protobuf-capture.js";
 import type { CollectedSchemaArtifacts } from "./provider.js";
-import { listProtobufMessageModels, resolveProtobufPackage } from "./protobuf-state.js";
+import {
+  listProtobufMessageModels,
+  protoMessageNameOf,
+  resolveProtobufPackage,
+} from "./protobuf-state.js";
 
 /**
  * The AsyncAPI schema format of proto3 text.
@@ -118,7 +122,7 @@ export function indexProtobufArtifacts(
 
   let refused = false;
   for (const model of listProtobufMessageModels(program)) {
-    const found = packageTextFor(lookup, model);
+    const found = payloadTextFor(lookup, model);
     if (found !== undefined) {
       payloadFor.set(model, artifactOf(artifacts, found.identity, found.text));
       continue;
@@ -206,6 +210,176 @@ function packageTextFor(lookup: PackageLookup, model: Model): PackageText | unde
   }
 
   return { identity, text };
+}
+
+/**
+ * The payload text of one model: the declarations its message needs, with
+ * that message marked as the root.
+ *
+ * A package text holds every declaration of the package, and most of them
+ * are not part of one message's payload. The slice keeps the file header,
+ * the model's own message, and every declaration that message reaches
+ * through its fields. What a consumer gets is a text that describes this
+ * payload and nothing else.
+ *
+ * The identity carries the message name too, because two messages of one
+ * package are two different payloads. Before both, two of them collapsed
+ * into one schema, and the official parser refused the text over its two
+ * roots.
+ *
+ * @param lookup - What every model in this program is matched against
+ * @param model - A model that carries `@Protobuf.message`
+ * @returns The sliced text and its identity, or `undefined` when the model
+ * has no payload
+ */
+function payloadTextFor(lookup: PackageLookup, model: Model): PackageText | undefined {
+  const found = packageTextFor(lookup, model);
+  if (found === undefined) return undefined;
+
+  const { program } = lookup;
+  const messageName = protoMessageNameOf(program, model);
+  const sliced = messageName === undefined ? undefined : sliceForRoot(found.text, messageName);
+  if (messageName === undefined || sliced === undefined) {
+    // Either the name cannot be mirrored (a template instantiation), or the
+    // rendered text holds no such top-level message. Both leave the payload
+    // unusable, and both are answered like a model the emitter refused.
+    if (lookup.asked.has(model)) {
+      reportDiagnostic(program, {
+        code: "protobuf-artifact-unavailable",
+        messageId: "not-converted",
+        target: model,
+        format: { name: model.name, package: found.identity },
+      });
+    }
+    return undefined;
+  }
+
+  return { identity: `${found.identity}\u0000${messageName}`, text: sliced };
+}
+
+/** One top-level declaration of a proto text, with its leading comments. */
+interface ProtoBlock {
+  /** The declared name, such as `OrderPlaced`. */
+  readonly name: string;
+  /** The lines of the block, leading comments included. */
+  readonly lines: readonly string[];
+}
+
+/** Matches the opening line of a top-level `message` or `enum` block. */
+const BLOCK_HEAD = /^(?:message|enum) (\w+) \{$/;
+
+/**
+ * Slices one package text down to what one root message needs.
+ *
+ * The pinned official emitter writes a top-level declaration at the start of
+ * its line and closes it with a `}` of its own line, so the split works on
+ * line anchors and cannot cut a nested declaration. The upgrade gate
+ * re-checks this rendering assumption.
+ *
+ * The kept declarations are the root and everything the root reaches: a
+ * block that names a kept block's declaration is pulled in, until nothing
+ * new is named. Comment lines are skipped by that scan, so a name mentioned
+ * in prose pulls nothing in. Order is the order of the original text.
+ *
+ * No root annotation is needed. The official AsyncAPI Protobuf parser takes
+ * the one message no other message references as the root, and the slice
+ * guarantees exactly one such message: everything else was pulled in by a
+ * reference. A self-referencing message still counts, because the parser
+ * ignores self-references. A mutually recursive pair is the one shape that
+ * parser cannot root, with or without its annotation.
+ *
+ * @param text - The rendered text of one package
+ * @param rootName - The name of the message the payload is
+ * @returns The sliced text, or `undefined` when no such message is declared
+ */
+function sliceForRoot(text: string, rootName: string): string | undefined {
+  const { header, blocks } = splitBlocks(text.split("\n"));
+  if (!blocks.some((block) => block.name === rootName)) return undefined;
+
+  const kept = closureOf(blocks, rootName);
+  const out = [...header];
+  for (const block of blocks) {
+    // The blank line between declarations is re-inserted here, because the
+    // split routed the original ones into the header.
+    if (kept.has(block.name)) out.push(...block.lines, "");
+  }
+  // Collapse the runs of blank lines the dropped blocks leave behind.
+  const joined = out.join("\n").replaceAll(/\n{3,}/g, "\n\n");
+  return joined.trimEnd() + "\n";
+}
+
+/**
+ * Splits the lines of a package text into the header and its declarations.
+ *
+ * @param lines - The lines of the rendered text
+ * @returns The header lines and every top-level block, in text order
+ */
+function splitBlocks(lines: readonly string[]): {
+  header: readonly string[];
+  blocks: readonly ProtoBlock[];
+} {
+  const header: string[] = [];
+  const blocks: ProtoBlock[] = [];
+  let pending: string[] = [];
+  let open: { name: string; lines: string[] } | undefined;
+
+  for (const line of lines) {
+    if (open !== undefined) {
+      open.lines.push(line);
+      if (line === "}") {
+        blocks.push(open);
+        open = undefined;
+      }
+      continue;
+    }
+    const head = BLOCK_HEAD.exec(line);
+    if (head !== null) {
+      open = { name: head[1], lines: [...pending, line] };
+      pending = [];
+      continue;
+    }
+    if (line.startsWith("//")) {
+      // A comment run right above a declaration belongs to it. Whether it
+      // does is only known when the next line arrives, so it waits here.
+      pending.push(line);
+      continue;
+    }
+    header.push(...pending, line);
+    pending = [];
+  }
+  header.push(...pending);
+  return { header, blocks };
+}
+
+/**
+ * The names one root reaches, the root included.
+ *
+ * A whole-word match is what "reaches" means: every field type reference is
+ * a standalone token, whatever wraps it.
+ *
+ * @param blocks - Every top-level block of the text
+ * @param rootName - The name the walk starts from
+ * @returns The names of the blocks the slice keeps
+ */
+function closureOf(blocks: readonly ProtoBlock[], rootName: string): ReadonlySet<string> {
+  const kept = new Set([rootName]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    const keptText = blocks
+      .filter((block) => kept.has(block.name))
+      .flatMap((block) => block.lines)
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n");
+    for (const block of blocks) {
+      if (kept.has(block.name)) continue;
+      if (new RegExp(`\\b${block.name}\\b`).test(keptText)) {
+        kept.add(block.name);
+        grew = true;
+      }
+    }
+  }
+  return kept;
 }
 
 /**

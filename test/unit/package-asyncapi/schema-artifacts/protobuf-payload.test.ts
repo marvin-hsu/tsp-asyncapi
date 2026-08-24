@@ -134,19 +134,64 @@ const TWO_PACKAGES = `
 `;
 
 describe("Unit: Protobuf generated payloads (Phase 16 P4)", () => {
-  it("writes one component for the package two messages share", async () => {
+  it("keeps two messages of one package apart", async () => {
     const doc = await emitClean(TWO_PACKAGES);
 
-    // The two messages of one package describe the same text, so the second
-    // use is what earns the component. The key comes from the message that
-    // carried the schema first.
-    const shared = doc.components?.schemas?.OrderCreatedPayload as { schema: string } | undefined;
-    expect(shared).toMatchObject({ schemaFormat: PROTOBUF });
-    expect(shared?.schema).toContain("package com.example.orders;");
+    // The two texts hold the same package, and each marks its own message as
+    // the root. So the payloads are two schemas, not one shared component. A
+    // shared one would tell a consumer that one type decodes both, and the
+    // wire formats disagree.
+    const created = doc.components?.messages?.OrderCreated.payload as
+      { schema: string } | undefined;
+    const shipped = doc.components?.messages?.OrderShipped.payload as
+      { schema: string } | undefined;
+    expect(created).toMatchObject({ schemaFormat: PROTOBUF });
+    expect(shipped).toMatchObject({ schemaFormat: PROTOBUF });
+    expect(created?.schema).toContain("message OrderCreated {");
+    expect(shipped?.schema).toContain("message OrderShipped {");
+    expect(doc.components?.schemas).toBeUndefined();
+  });
 
-    const reference = { $ref: "#/components/schemas/OrderCreatedPayload" };
-    expect(doc.components?.messages?.OrderCreated.payload).toEqual(reference);
-    expect(doc.components?.messages?.OrderShipped.payload).toEqual(reference);
+  it("writes one payload for one model two channels carry", async () => {
+    const doc = await emitClean(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @Protobuf.package({ name: "com.example.orders" })
+      namespace Test.Orders {
+        @message
+        @Protobuf.message
+        model OrderEvent {
+          @Protobuf.field(1)
+          orderId: string;
+        }
+      }
+
+      @channel("orders.created")
+      interface Created {
+        @send
+        op created(event: Test.Orders.OrderEvent): void;
+      }
+
+      @channel("orders.archived")
+      interface Archived {
+        @send
+        op archived(event: Test.Orders.OrderEvent): void;
+      }
+    `);
+
+    // One model is one message of the document, whatever names it. The
+    // message component is written once, both channels reference it, and the
+    // payload sits inside it. So the sharing a reused model needs already
+    // happens one level up, and no schema component is required for it.
+    const payload = doc.components?.messages?.OrderEvent.payload as { schema: string } | undefined;
+    expect(payload).toMatchObject({ schemaFormat: PROTOBUF });
+    expect(payload?.schema).toContain("message OrderEvent {");
+
+    const reference = { $ref: "#/components/messages/OrderEvent" };
+    expect(doc.channels?.["orders.created"]?.messages?.OrderEvent).toEqual(reference);
+    expect(doc.channels?.["orders.archived"]?.messages?.OrderEvent).toEqual(reference);
+    expect(doc.components?.schemas).toBeUndefined();
   });
 
   it("keeps a package only one message uses in place", async () => {
@@ -161,12 +206,12 @@ describe("Unit: Protobuf generated payloads (Phase 16 P4)", () => {
     expect(doc.components?.schemas?.InvoiceIssuedPayload).toBeUndefined();
   });
 
-  it("writes one component and no more for three generated payloads", async () => {
+  it("writes no schema component for three single-use payloads", async () => {
     const doc = await emitClean(TWO_PACKAGES);
 
-    // Every payload here is generated, so no model produced a schema of its
-    // own. The shared package is the only component the document needs.
-    expect(Object.keys(doc.components?.schemas ?? {})).toEqual(["OrderCreatedPayload"]);
+    // Each model is one payload used once, so every schema stays in its
+    // message and the schemas section is empty.
+    expect(doc.components?.schemas).toBeUndefined();
   });
 
   it("resolves every reference it wrote", async () => {
