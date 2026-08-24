@@ -100,6 +100,36 @@ decorator 放進 `src/decorators/` 底下對應文件區塊的資料夾。
 **emitter 無法表達的內容，一律回報，不要猜。** 發警告並省略該欄位，或發錯誤拒絕。
 絕不靜默改寫作者的意圖。每個 diagnostic 都要說明改怎麼寫。
 
+## 升級 `@typespec/protobuf`
+
+這個相依套件釘在單一確切版本，根 manifest 與
+`packages/tsp-asyncapi/package.json` 兩處都是。dependabot 已設定忽略它，
+所以例行維護的 pull request 不會動到它。
+
+釘住的原因是 Protobuf 轉接層讀了官方 library 的私有 decorator state。
+它透過 `Symbol.for("@typespec/protobuf.message")` 與
+`Symbol.for("@typespec/protobuf.package")` 取得 state。這兩個 key 與其
+背後的形狀都不在該 library 的相容性承諾內。轉接層還會呼叫該 library 的
+`$onEmit`，並攔截它寫檔用的 host 呼叫。一次改版就可能改掉其中任何一項，
+而且不需要是 major 版號。
+
+要換新版之前，先改兩處 manifest 的版本，再跑下面四個步驟。
+
+1. 跑 capture 測試：
+   `pnpm vitest run test/unit/package-asyncapi/schema-artifacts/protobuf-capture.test.ts`。
+   它證明該 emitter 仍然透過 host 寫檔，也證明 capture 會把 host 還原。
+2. 跑其餘的轉接層測試：
+   `pnpm vitest run test/unit/package-asyncapi/schema-artifacts`。它們證明
+   state 符號仍然解得到、每個 model 仍然對應到它的 package 文字，
+   而且每個 diagnostic 仍然回報。
+3. 跑 `pnpm check`，確認 exit code 是 0。
+4. 真的編譯一次範例：
+   `pnpm exec tsp compile examples/16-protobuf-payloads`。那個專案用同一份
+   source 跑兩個 emitter。用 `git status --short examples/16-protobuf-payloads`
+   確認 `asyncapi.yaml` 與 `proto/` 沒有變動。
+
+步驟 1 或步驟 2 失敗，代表轉接層需要修改。不要收下這次升級，把失敗留給別人。
+
 ## 發佈
 
 兩個套件獨立發版，所以 tag 說不出要發什麼。`tsp-asyncapi-core` 與 `tsp-asyncapi`

@@ -201,6 +201,8 @@ A model that carries both reports [`conflicting-message-schema-source`](../refer
 
 ## When no text is available
 
-A generated payload can be missing. The model can have no `@Protobuf.package` above it. The official emitter can refuse to convert the model. It can also write nothing for the whole program.
+A generated payload can be missing, for one of four reasons. The model can have no `@Protobuf.package` above it. The official emitter can refuse to convert the model. It can produce no file for the package the model belongs to. It can also write nothing for the whole program.
 
 Each of these reports [`protobuf-artifact-unavailable`](../reference/diagnostics#protobuf-artifact-unavailable), and the message says which one it is. The emitter reports the problem instead of writing an empty payload, because an empty payload reads as a schema that describes nothing.
+
+The whole-program case has one exception. `--dry-run` and `--no-emit` also make the official emitter write nothing, and neither of them writes an AsyncAPI document. Nothing is reported then, because no document went out without its payloads.

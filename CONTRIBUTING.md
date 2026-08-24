@@ -120,6 +120,40 @@ leave the field out, or refuse with an error. Never guess and never
 rewrite the author's intent in silence. Every diagnostic says what to
 write instead.
 
+## Upgrading `@typespec/protobuf`
+
+This dependency is pinned to one exact version, in the root manifest and
+in `packages/tsp-asyncapi/package.json`. Dependabot is told to ignore it,
+so no routine maintenance pull request moves it.
+
+The pin exists because the Protobuf adapter reads decorator state that the
+official library keeps private. It reaches the state through
+`Symbol.for("@typespec/protobuf.message")` and
+`Symbol.for("@typespec/protobuf.package")`. Neither key nor the shape
+behind it is covered by a compatibility promise. The adapter also calls
+that library's `$onEmit` and intercepts the host calls it makes to write a
+file. A release can change any of that without a major bump.
+
+Run these four steps before you take a new version. Change the version in
+both manifests first.
+
+1. Run the capture test:
+   `pnpm vitest run test/unit/package-asyncapi/schema-artifacts/protobuf-capture.test.ts`.
+   It proves the emitter still writes through the host, and that the
+   capture puts the host back.
+2. Run the rest of the adapter tests:
+   `pnpm vitest run test/unit/package-asyncapi/schema-artifacts`. They
+   prove the state symbols still resolve, that each model still maps to its
+   package text, and that every diagnostic still reports.
+3. Run `pnpm check` and confirm it exits 0.
+4. Compile the example for real:
+   `pnpm exec tsp compile examples/16-protobuf-payloads`. That project runs both
+   emitters over one source. Confirm `asyncapi.yaml` and `proto/` are
+   unchanged, with `git status --short examples/16-protobuf-payloads`.
+
+If step 1 or step 2 fails, the adapter needs work. Do not take the
+upgrade and leave the failure for someone else.
+
 ## Releasing
 
 The two packages version independently, so a tag cannot say what to release.

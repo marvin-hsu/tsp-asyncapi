@@ -31,6 +31,12 @@ updates:
       - dependency-name: "@typespec/compiler"
         update-types:
           - version-update:semver-major
+      # `@typespec/protobuf` is pinned to one exact version on purpose. The
+      # Protobuf adapter reads decorator state that library keeps private, so
+      # any release of it can break the adapter without a major bump. An
+      # upgrade goes through the gate written in CONTRIBUTING.md, and a
+      # routine maintenance pull request cannot run that gate.
+      - dependency-name: "@typespec/protobuf"
 
   # The workflow pins `actions/checkout`, `pnpm/action-setup` and the rest.
   # Those pins go stale the same way package versions do.

@@ -12,19 +12,19 @@ outline: 2
 
 emitter 會填這些區段：
 
-| 區段                | 放什麼                                         |
-| ------------------- | ---------------------------------------------- |
-| `schemas`           | 每個具名的 model、enum、union 與自訂 scalar    |
-| `serverVariables`   | 每個 server 位址變數                           |
-| `messages`          | 每個 `@message` model                          |
-| `securitySchemes`   | 每個 `@securityScheme`                         |
-| `parameters`        | 每個 channel 位址參數                          |
-| `correlationIds`    | 兩個以上的 message 寫出相同的 `@correlationId` |
-| `serverBindings`    | 兩個以上的 server 帶著相同的 Bindings Object   |
-| `channelBindings`   | 兩個以上的 channel 帶著相同的 Bindings Object  |
-| `operationBindings` | 兩個以上的操作帶著相同的 Bindings Object       |
-| `tags`              | 每個 tag                                       |
-| `externalDocs`      | 兩個以上的地方帶著相同的 `@externalDocs`       |
+| 區段                | 放什麼                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `schemas`           | 每個具名的 model、enum、union 與自訂 scalar。以其他語言撰寫的 schema，在第二次使用時 |
+| `serverVariables`   | 每個 server 位址變數                                                                 |
+| `messages`          | 每個 `@message` model                                                                |
+| `securitySchemes`   | 每個 `@securityScheme`                                                               |
+| `parameters`        | 每個 channel 位址參數                                                                |
+| `correlationIds`    | 兩個以上的 message 寫出相同的 `@correlationId`                                       |
+| `serverBindings`    | 兩個以上的 server 帶著相同的 Bindings Object                                         |
+| `channelBindings`   | 兩個以上的 channel 帶著相同的 Bindings Object                                        |
+| `operationBindings` | 兩個以上的操作帶著相同的 Bindings Object                                             |
+| `tags`              | 每個 tag                                                                             |
+| `externalDocs`      | 兩個以上的地方帶著相同的 `@externalDocs`                                             |
 
 `messageBindings` 的規則與另外三個 binding 區段相同。
 
@@ -88,13 +88,25 @@ components:
         bindingVersion: 0.5.0
 ```
 
+## 以其他語言撰寫的 schema
+
+payload 不一定是 TypeSpec model。[`@rawPayload`](./decorators/messages#rawpayload) 與 [`@rawHeaders`](./decorators/messages#rawheaders) 帶的是作者用其他語言寫的 schema。[preview 功能](../guide/protobuf-payloads)可以從來源產生一份。這兩種 schema，emitter 都不會讀進去。
+
+這種 schema 沒有自己的名字，所以走第二條規則：第二個帶著它的 message 讓它取得 `schemas` 的項目，兩個 message 接著都寫 `$ref`。只有一個 message 帶著的 schema 留在該 message 裡。
+
+元件的 key 是第一個帶著這份 schema 的 message 的 key，後面加一個字尾。payload 的字尾是 `Payload`，headers 區塊的字尾是 `Headers`。所以名為 `OrderPlaced` 的 message 會把項目命名為 `OrderPlacedPayload`。第二個帶著同一份 schema 的 message 指向那個 key，那個 key 取自第一個 message，不是取自它自己。
+
+payload 與 headers 兩個位置之間不共用。一個 message 的 payload 與 headers 帶著相同的文字時，兩邊都留在原地。
+
+這個 key 的宣告方式與其他衍生 key 相同。model 已經占用的 key 會讓 schema 留在原地，而之後有 model 要求同一個 key 時會回報 [`raw-schema-key-taken`](./diagnostics#raw-schema-key-taken)。
+
 ## 元件怎麼取名
 
 每個 key 都來自作者寫過的東西。emitter 不會用內容的雜湊值自創 key。
 
 1. 片段自己的名稱。tag 用 `name`。參數與 server 變數用它所在那張 map 的 key。model、enum、union 與 scalar 用宣告名稱。
 2. 片段掛著的宣告。Bindings Object 用套用該 decorator 的那個型別的名稱。上面的例子就是 `Orders` 這個 namespace。
-3. 第一個帶著它的地方。External Documentation Object 走這一條，因為沒有別的東西替它命名。
+3. 第一個帶著它的地方。External Documentation Object 走這一條，因為沒有別的東西替它命名。以其他語言撰寫的 schema 也走這一條。
 
 key 會淨化成 AsyncAPI 規定的 `components` key 字元集。這個編碼與 `components.schemas` 現行使用的相同，所以兩個不同的名稱不會併成同一個 key。
 

@@ -201,6 +201,8 @@ Protobuf 描述資料。它沒有描述 message 走哪一個 channel、message �
 
 ## 取不到文字的情況
 
-產生的 payload 有可能不存在。model 上方可能沒有 `@Protobuf.package`。官方 emitter 可能拒絕轉換該 model。它也可能對整個程式都沒有寫出內容。
+產生的 payload 有可能不存在，原因有四種。model 上方可能沒有 `@Protobuf.package`。官方 emitter 可能拒絕轉換該 model。它可能對該 model 所屬的 package 沒有產出檔案。它也可能對整個程式都沒有寫出內容。
 
 以上每一種都會回報 [`protobuf-artifact-unavailable`](../reference/diagnostics#protobuf-artifact-unavailable)，訊息會說明是哪一種。emitter 選擇回報問題，而不是寫出空的 payload，因為空的 payload 讀起來像是什麼都沒描述的 schema。
+
+整個程式沒有寫出內容這一種有一個例外。`--dry-run` 與 `--no-emit` 同樣會讓官方 emitter 什麼都不寫，而這兩種模式也都不會寫出 AsyncAPI 文件。這時不回報任何訊息，因為沒有任何缺少 payload 的文件被送出去。

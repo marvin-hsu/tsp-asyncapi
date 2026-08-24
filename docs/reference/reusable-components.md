@@ -12,19 +12,19 @@ The emitter decides this for you. There is no decorator and no emitter option to
 
 The emitter fills these sections of `components`:
 
-| Section             | What goes there                                          |
-| ------------------- | -------------------------------------------------------- |
-| `schemas`           | Every named model, enum, union, and user-declared scalar |
-| `serverVariables`   | Every server address variable                            |
-| `messages`          | Every `@message` model                                   |
-| `securitySchemes`   | Every `@securityScheme`                                  |
-| `parameters`        | Every channel address parameter                          |
-| `correlationIds`    | A `@correlationId` two or more messages state alike      |
-| `serverBindings`    | A Bindings Object two or more servers carry alike        |
-| `channelBindings`   | A Bindings Object two or more channels carry alike       |
-| `operationBindings` | A Bindings Object two or more operations carry alike     |
-| `tags`              | Every tag                                                |
-| `externalDocs`      | An `@externalDocs` two or more places carry alike        |
+| Section             | What goes there                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `schemas`           | Every named model, enum, union, and user-declared scalar. A schema written in another language, on its second use |
+| `serverVariables`   | Every server address variable                                                                                     |
+| `messages`          | Every `@message` model                                                                                            |
+| `securitySchemes`   | Every `@securityScheme`                                                                                           |
+| `parameters`        | Every channel address parameter                                                                                   |
+| `correlationIds`    | A `@correlationId` two or more messages state alike                                                               |
+| `serverBindings`    | A Bindings Object two or more servers carry alike                                                                 |
+| `channelBindings`   | A Bindings Object two or more channels carry alike                                                                |
+| `operationBindings` | A Bindings Object two or more operations carry alike                                                              |
+| `tags`              | Every tag                                                                                                         |
+| `externalDocs`      | An `@externalDocs` two or more places carry alike                                                                 |
 
 `messageBindings` follows the same rule as the other three binding sections.
 
@@ -88,13 +88,25 @@ components:
         bindingVersion: 0.5.0
 ```
 
+## A schema written in another language
+
+A payload is not always a TypeSpec model. [`@rawPayload`](./decorators/messages#rawpayload) and [`@rawHeaders`](./decorators/messages#rawheaders) carry a schema the author wrote in another language. A [preview feature](../guide/protobuf-payloads) can generate one from the source. The emitter never reads inside either kind.
+
+Such a schema carries no name of its own. So it follows the second rule: the second message that carries it earns it a `schemas` entry, and both messages then write a `$ref`. A schema one message carries stays in that message.
+
+The key is the key of the first message that carries the schema, plus a suffix. The suffix is `Payload` for a payload and `Headers` for a headers block. A message called `OrderPlaced` therefore names the entry `OrderPlacedPayload`. A second message carrying the same schema points at that key, which is named after the first message and not after itself.
+
+The two slots never share with each other. A message that carries the same text as its payload and its headers keeps both in place.
+
+The key is claimed the same way every other derived key is. A key that a model already claims leaves the schema inline, and a model that later asks for the same key reports [`raw-schema-key-taken`](./diagnostics#raw-schema-key-taken).
+
 ## How a component is named
 
 Every key comes from something the author wrote. The emitter never invents a key from a hash of the content.
 
 1. The fragment's own name, when it has one. A tag uses its `name`. A parameter and a server variable use the key of the map they sit in. A model, an enum, a union, and a scalar use their declaration name.
 2. The declaration the fragment hangs on. A Bindings Object uses the name of the type its decorator was applied to. In the example above that is the `Orders` namespace.
-3. The first place that carries it. An External Documentation Object uses this, because nothing else names it.
+3. The first place that carries it. An External Documentation Object uses this, because nothing else names it. A schema written in another language uses this too.
 
 A key is cleaned to the character set AsyncAPI states for a `components` key. This is the same encoding `components.schemas` already uses, so two names that differ never collapse onto one key.
 
