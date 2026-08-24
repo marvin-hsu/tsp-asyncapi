@@ -614,7 +614,7 @@ No document is written. Both artifacts are gone, so the model would fall back to
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. A name outside that set fails the option schema instead, and never reaches this diagnostic.
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`, and `protobuf` has a provider. So `avro` is the name that reports this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
 
 No file is written. A document emitted next to this error would ignore the request without saying so.
 

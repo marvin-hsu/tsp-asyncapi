@@ -3,7 +3,11 @@ import { reportDiagnostic } from "tsp-asyncapi-core";
 import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 import { buildAsyncAPIDocument } from "./pipeline.js";
 import { reportUnavailablePreviewFeatures } from "./preview-features.js";
-import { collectSchemaArtifacts } from "./schema-artifacts/provider.js";
+import {
+  availableFeatures,
+  collectSchemaArtifacts,
+  shippedProviders,
+} from "./schema-artifacts/provider.js";
 import yaml from "yaml";
 
 /**
@@ -22,6 +26,22 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
   const options = context.options;
   const program = context.program;
 
+  const providers = shippedProviders(context.perf);
+
+  // A requested feature with no provider behind it is refused. A document
+  // written now would ignore the request without saying so, so nothing is
+  // written.
+  if (reportUnavailablePreviewFeatures(program, options, availableFeatures(providers))) return;
+
+  // Every provider a preview feature turns on runs here, before resolve. A
+  // provider runs another emitter, and it reads `program.hasError()`, so this
+  // stays ahead of every diagnostic the stages below report.
+  const collected = await collectSchemaArtifacts(
+    program,
+    new Set(options["preview-features"] ?? []),
+    providers,
+  );
+
   const services = listServices(program);
   let service: Service | undefined = undefined;
   if (services.length > 0) {
@@ -33,18 +53,6 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
       });
     }
   }
-
-  // No preview feature has a provider in this release. A document written
-  // now would ignore the request without saying so, so nothing is written.
-  if (reportUnavailablePreviewFeatures(program, options)) return;
-
-  // Every provider a preview feature would turn on runs here, before resolve.
-  // The registry is empty in this release, so the set above is refused first
-  // and this collection always comes back empty.
-  const collected = await collectSchemaArtifacts(
-    program,
-    new Set(options["preview-features"] ?? []),
-  );
 
   // A conflict removes both artifacts, so the models it hit fall back to the
   // schema their TypeSpec type produces. That document answers the request

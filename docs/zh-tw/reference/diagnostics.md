@@ -614,7 +614,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。不在這個集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`，其中 `protobuf` 已經有實作。所以目前會回報這條診斷的是 `avro`。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
 
 不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
 

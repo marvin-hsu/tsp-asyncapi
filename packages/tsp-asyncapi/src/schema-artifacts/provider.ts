@@ -10,11 +10,11 @@
  * it writes nothing into the document and hands the next step an immutable
  * value.
  *
- * The registry below is empty. The seam is complete without a provider in it,
- * and a provider is what the next step adds.
+ * The registry below names every provider this release ships. A preview
+ * feature with no provider in it is refused before anything is written.
  */
 
-import type { Model, Program } from "@typespec/compiler";
+import type { EmitContext, Model, Program } from "@typespec/compiler";
 import {
   emptySchemaArtifacts,
   reportDiagnostic,
@@ -22,6 +22,7 @@ import {
   type SchemaArtifactIndex,
 } from "tsp-asyncapi-core";
 import type { PreviewFeature } from "../emitter-options.js";
+import { createProtobufProvider } from "./protobuf.js";
 
 /**
  * One tool that generates schemas for the models of a program.
@@ -49,10 +50,35 @@ export interface SchemaArtifactProvider {
 /**
  * Every provider this release ships.
  *
- * It is empty, so every requested preview feature is still refused before a
- * document is written.
+ * The registry is a function of the performance reporter, because a provider
+ * runs another emitter and that emitter is handed the reporter of the emit
+ * that asked for it. Nothing here reads a module-level value, so two emits of
+ * one program each get their own providers.
+ *
+ * What this list holds also decides which preview feature is available. A
+ * reserved name with no provider here is refused, and the emitter writes no
+ * document for it.
+ *
+ * @param perf - The performance reporter this emit was given
+ * @returns The providers, in a fixed order
+ * @internal
  */
-const PROVIDERS: readonly SchemaArtifactProvider[] = [];
+export function shippedProviders(perf: EmitContext["perf"]): readonly SchemaArtifactProvider[] {
+  return [createProtobufProvider(perf)];
+}
+
+/**
+ * The preview features a registry can honor.
+ *
+ * @param providers - The registry to read
+ * @returns The id of every provider in it
+ * @internal
+ */
+export function availableFeatures(
+  providers: readonly SchemaArtifactProvider[],
+): ReadonlySet<PreviewFeature> {
+  return new Set(providers.map((provider) => provider.id));
+}
 
 /** The two slots of a message that take a generated schema. */
 type ArtifactSlot = "payload" | "headers";
@@ -85,7 +111,7 @@ export interface CollectedSchemaArtifacts {
 export async function collectSchemaArtifacts(
   program: Program,
   features: ReadonlySet<PreviewFeature>,
-  providers: readonly SchemaArtifactProvider[] = PROVIDERS,
+  providers: readonly SchemaArtifactProvider[],
 ): Promise<CollectedSchemaArtifacts> {
   const enabled = providers.filter((provider) => features.has(provider.id));
   if (enabled.length === 0) return { artifacts: emptySchemaArtifacts, refused: false };

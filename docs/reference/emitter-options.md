@@ -42,10 +42,12 @@ An unknown option name fails validation (`additionalProperties: false`), so a ty
 
 ## Preview features
 
-A preview feature changes the emitted document. No preview feature has a provider in this release, so asking for one reports `preview-feature-unavailable` and no file is written.
+A preview feature changes the emitted document. `protobuf` has a provider in this release. A model that carries the official `TypeSpec.Protobuf` decorators then gets the proto3 text of its whole package as its message payload.
+
+`avro` is reserved and has no provider yet. Asking for it reports `preview-feature-unavailable`, and no file is written. Asking for both names is refused the same way, because the document would still leave out what `avro` asked for.
 
 ::: warning
 Nothing is emitted when a preview feature is refused. A document written next to the error would ignore the request without saying so.
 :::
 
-The names are reserved before the features exist. Reserving them early means a project that writes `protobuf` gets an answer about the feature, not a schema error about an unknown value.
+A name is reserved before the feature behind it exists. Reserving it early means a project that writes the name gets an answer about the feature, not a schema error about an unknown value.

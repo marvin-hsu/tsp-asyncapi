@@ -42,10 +42,12 @@ tsp compile . --emit tsp-asyncapi \
 
 ## 預覽功能
 
-預覽功能會改變輸出的文件。本版沒有任何預覽功能有對應的實作，所以請求任一個都會回報 `preview-feature-unavailable`，而且不寫出檔案。
+預覽功能會改變輸出的文件。本版的 `protobuf` 已經有對應的實作。帶有官方 `TypeSpec.Protobuf` decorator 的 model，payload 會是整個 package 的 proto3 文字。
+
+`avro` 是保留名稱，還沒有對應的實作。請求它會回報 `preview-feature-unavailable`，而且不寫出檔案。同時請求兩個名稱一樣會被拒絕，因為文件仍然缺少 `avro` 要求的內容。
 
 ::: warning
 預覽功能被拒絕時不會輸出任何東西。在錯誤旁邊寫出一份文件，等於忽略了請求卻不說明。
 :::
 
-名稱在功能存在之前就先保留。先保留的用意是：專案寫下 `protobuf` 時，得到的是關於這個功能的答覆，而不是「未知的值」這種 schema 錯誤。
+名稱在功能存在之前就先保留。先保留的用意是：專案寫下這個名稱時，得到的是關於這個功能的答覆，而不是「未知的值」這種 schema 錯誤。

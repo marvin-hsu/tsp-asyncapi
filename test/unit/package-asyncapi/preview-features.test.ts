@@ -19,12 +19,16 @@ const SOURCE = `
 `;
 
 /**
- * The `preview-features` option, and what happens to a feature this release
- * cannot do yet.
+ * The `preview-features` option, and which of the reserved names work.
  *
- * Both reserved names are refused in this release. The option exists first,
- * and a provider fills it in later, so the case a project meets today is the
- * one where the name is known and the provider is not there.
+ * `protobuf` has a provider, so asking for it is answered. `avro` is reserved
+ * on the same terms and has none, so asking for it is refused. Both cases
+ * matter: the option has to turn a feature on, and it has to say so when it
+ * cannot.
+ *
+ * The source below carries no Protobuf decorator. So the provider has nothing
+ * to generate for it, which is what makes it the right source for the cases
+ * about the option itself.
  */
 describe("Unit: preview-features", () => {
   /**
@@ -40,19 +44,45 @@ describe("Unit: preview-features", () => {
   });
 
   /**
+   * The feature that has a provider is accepted. The compilation stays clean
+   * and the file is written, which is the whole difference from a name the
+   * emitter cannot honor.
+   */
+  it("accepts a feature that has a provider", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
+      "preview-features": ["protobuf"],
+    });
+
+    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toHaveLength(0);
+    expect(doc).not.toBeNull();
+  });
+
+  /**
+   * Turning the feature on moves nothing on its own. The provider generates a
+   * payload for a model that carries the decorators of the other language,
+   * and this source carries none.
+   */
+  it("leaves a document with no Protobuf model unchanged", async () => {
+    const withoutOption = await emitDocument(SOURCE);
+    const withProtobuf = await emitDocument(SOURCE, { "preview-features": ["protobuf"] });
+
+    expect(withProtobuf).toStrictEqual(withoutOption);
+  });
+
+  /**
    * A reserved name with no provider stops the compile. Accepting it quietly
    * would hand back a document that describes something other than what the
    * project asked for.
    */
   it("reports a reserved feature that has no provider yet", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
-      "preview-features": ["protobuf"],
+      "preview-features": ["avro"],
     });
 
     const reported = findDiagnostic(diagnostics, "preview-feature-unavailable");
     expect(reported.severity).toBe("error");
     // The message has to name the feature and where to remove it from.
-    expect(reported.message).toContain("protobuf");
+    expect(reported.message).toContain("avro");
     expect(reported.message).toContain("preview-features");
   });
 
@@ -64,28 +94,25 @@ describe("Unit: preview-features", () => {
    */
   it("writes no document when a feature is refused", async () => {
     const { doc } = await emitDocumentWithDiagnostics(SOURCE, {
-      "preview-features": ["protobuf"],
+      "preview-features": ["avro"],
     });
 
     expect(doc).toBeNull();
   });
 
-  /** `avro` is reserved on the same terms, and refused the same way. */
-  it("reports avro as reserved and unavailable", async () => {
-    const { diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
-      "preview-features": ["avro"],
-    });
-
-    expect(findDiagnostic(diagnostics, "preview-feature-unavailable").message).toContain("avro");
-  });
-
-  /** Two unavailable features are two reports, not one for the pair. */
-  it("reports each unavailable feature once", async () => {
-    const { diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
+  /**
+   * One available name does not rescue the request. The document would still
+   * leave out what the other name asked for, so nothing is written.
+   */
+  it("refuses the whole request when one of two features is unavailable", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["protobuf", "avro"],
     });
 
-    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toHaveLength(2);
+    const reported = diagnosticsWith(diagnostics, "preview-feature-unavailable");
+    expect(reported).toHaveLength(1);
+    expect(reported[0]?.message).toContain("avro");
+    expect(doc).toBeNull();
   });
 
   /**
