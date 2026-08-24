@@ -165,21 +165,42 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           pnpm_config_provenance: true
 
+      # What this run published, read once and used twice.
+      #
+      # `changeset publish` tags what it published and says nothing machine
+      # readable about which those were, so the tag list is diffed around it.
+      # A tag is `<name>@<version>`, which is also what the steps below need.
+      #
+      # An empty list is the ordinary no-op case: every version on this
+      # commit was already on the registry, so nothing was published and
+      # nothing below has anything to do.
+      - name: Read what this run published
+        run: |
+          comm -13 "$RUNNER_TEMP/tags-before" <(git tag | sort) > "$RUNNER_TEMP/published"
+          if [ -s "$RUNNER_TEMP/published" ]; then
+            echo "Published:"; cat "$RUNNER_TEMP/published"
+          else
+            echo "Nothing published. Every version on this commit is already on the registry."
+          fi
+
       # The check that would have caught three unsigned releases.
       #
       # Provenance is configuration that fails quietly: the publish succeeds,
       # the run is green, and the attestation is simply absent. So the run
-      # asks the registry whether the thing it just published is signed,
-      # rather than trusting that the setting took.
+      # asks the registry whether what it just published is signed, rather
+      # than trusting that the setting took.
       #
-      # It reads the versions from the manifests rather than the tags,
-      # because a re-run that published nothing has nothing new to check and
-      # the manifests still name what is on the registry.
+      # Only what this run published. Reading the manifests instead would
+      # re-check the versions already on the registry, and 0.4.0 through
+      # 0.4.2 are on there without provenance for good: an attestation is
+      # bound to the build that made the tarball and cannot be added later.
+      # A no-op re-run would fail on them, which is the case the retry
+      # behaviour exists to make safe.
       - name: Assert the published versions carry provenance
         run: |
-          for dir in packages/*/; do
-            name=$(node -p "require('./${dir}package.json').name")
-            version=$(node -p "require('./${dir}package.json').version")
+          while IFS= read -r tag; do
+            name=${tag%@*}
+            version=${tag##*@}
             attested=$(curl -sf "https://registry.npmjs.org/$name/$version" \
               | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).dist?.attestations ? 'yes' : 'no'")
             if [ "$attested" != "yes" ]; then
@@ -187,7 +208,7 @@ jobs:
               exit 1
             fi
             echo "$name@$version carries provenance"
-          done
+          done < "$RUNNER_TEMP/published"
 
       # `--tags` pushes every tag, annotated or not. `--follow-tags` would also
       # work for what changesets creates, since those are annotated, but this
@@ -218,9 +239,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          published=$(comm -13 "$RUNNER_TEMP/tags-before" <(git tag | sort))
+          published=$(cat "$RUNNER_TEMP/published")
           if [ -z "$published" ]; then
-            echo "No new tags, so nothing was published. No release to create."
+            echo "Nothing was published, so there is no release to create."
             exit 0
           fi
 
