@@ -94,6 +94,7 @@ interface Sighting<T> {
 export class Promoter<T> {
   readonly #policy: PromotionPolicy<T>;
   readonly #seen = new Map<string, Sighting<T>>();
+  readonly #contested = new Set<string>();
   #frozen = false;
 
   public constructor(policy: PromotionPolicy<T>) {
@@ -120,8 +121,21 @@ export class Promoter<T> {
     seen.uses += 1;
   }
 
-  /** Closes the survey. Nothing is promoted before this runs. */
+  /**
+   * Closes the survey. Nothing is promoted before this runs.
+   *
+   * Two fragments can ask for one key: two Tag Objects can share a name and
+   * differ in their description, which makes them two fragments by identity
+   * and one key by name. Neither is promoted then. Picking a winner would
+   * silently give one site the other site's text, and `resolve/tags.ts`
+   * already reports the conflict it can see.
+   */
   public freeze(): void {
+    const claimed = new Set<string>();
+    for (const seen of this.#seen.values()) {
+      if (claimed.has(seen.key)) this.#contested.add(seen.key);
+      claimed.add(seen.key);
+    }
     this.#frozen = true;
   }
 
@@ -137,9 +151,7 @@ export class Promoter<T> {
       throw new Error("The survey is open. Call `freeze` before reading a key.");
     }
     const seen = this.#seen.get(identityOf(value));
-    if (seen === undefined) return undefined;
-    if (this.#policy.when === "repeated" && seen.uses < 2) return undefined;
-    return seen.key;
+    return seen === undefined || !this.#promotes(seen) ? undefined : seen.key;
   }
 
   /**
@@ -155,9 +167,14 @@ export class Promoter<T> {
     }
     const promoted = new Map<string, T>();
     for (const seen of this.#seen.values()) {
-      if (this.#policy.when === "repeated" && seen.uses < 2) continue;
-      promoted.set(seen.key, seen.value);
+      if (this.#promotes(seen)) promoted.set(seen.key, seen.value);
     }
     return promoted;
+  }
+
+  /** Whether one sighting earns its key. */
+  #promotes(seen: Sighting<T>): boolean {
+    if (this.#contested.has(seen.key)) return false;
+    return this.#policy.when === "named" || seen.uses > 1;
   }
 }

@@ -15,7 +15,7 @@ import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared } from "./components/survey.js";
+import { shared, sharedEach } from "./components/survey.js";
 
 /** Turns one resolved parameter into a Parameter Object. */
 function lowerParameter(node: ChannelParameterNode): ParameterObject {
@@ -72,7 +72,7 @@ function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelO
     ...present("parameters", lowerParameters(node.parameters)),
     ...present("messages", lowerMessages(node)),
     ...present("bindings", lowerBindings(node.bindings)),
-    ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
+    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.

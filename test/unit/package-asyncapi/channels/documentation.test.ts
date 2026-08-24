@@ -38,7 +38,7 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
       title: "Order events",
       description: "Every event about the life of an order.",
       messages: { OrderCreated: { $ref: "#/components/messages/OrderCreated" } },
-      tags: [{ name: "orders" }, { name: "public", description: "Open to every consumer." }],
+      tags: [{ $ref: "#/components/tags/orders" }, { $ref: "#/components/tags/public" }],
       externalDocs: { url: "https://example.com/orders", description: "The order guide." },
     });
   });
@@ -114,6 +114,6 @@ describe("Unit: Channel documentation (Phase 4.4)", () => {
     expect(doc.channels?.["orders.created"].description).toBe(
       "Every event about the life of an order.",
     );
-    expect(doc.channels?.["orders.created"].tags).toEqual([{ name: "public" }]);
+    expect(doc.channels?.["orders.created"].tags).toEqual([{ $ref: "#/components/tags/public" }]);
   });
 });

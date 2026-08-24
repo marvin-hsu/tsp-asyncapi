@@ -3,6 +3,7 @@ import type {
   ChannelObject,
   ComponentsObject,
   ExternalDocumentationObject,
+  TagObject,
   InfoObject,
   ReferenceObject,
   MessageObject,
@@ -291,4 +292,33 @@ export function externalDocsOf(
     );
   }
   return value;
+}
+
+/**
+ * The Tag Objects one site carries, with every reference followed.
+ *
+ * A tag carries the name its author wrote, so it is always shared through
+ * `components.tags` and every site writes a reference. A test about what a
+ * tag says — how two applications of `@asyncTag` merge, which fields survive
+ * — is not about where the tag is written, so it reads through this.
+ * `test/unit/package-asyncapi/lower/tag-promotion.test.ts` is where the
+ * placement itself is pinned.
+ *
+ * @param doc - The emitted document
+ * @param tags - The list one site carries
+ * @returns The Tag Objects, in the order the site lists them
+ */
+export function resolveTags(
+  doc: AsyncAPIDocument | null,
+  tags: readonly (TagObject | ReferenceObject)[] | undefined,
+): TagObject[] {
+  const components = doc?.components?.tags ?? {};
+  return (tags ?? []).map((tag) => {
+    if (!("$ref" in tag)) return tag;
+    const key = tag.$ref.replace("#/components/tags/", "");
+    if (!Object.hasOwn(components, key)) {
+      throw new Error(`The document references '${tag.$ref}', and nothing is there.`);
+    }
+    return components[key];
+  });
 }

@@ -3,9 +3,8 @@ info:
   title: Order Events
   version: 0.0.0
   tags:
-    - name: edge
-    - name: region
-      description: Where the broker runs.
+    - $ref: "#/components/tags/edge"
+    - $ref: "#/components/tags/region"
 servers:
   production:
     host: "{tenant}.kafka.example.com:9092"
@@ -30,9 +29,8 @@ servers:
       - $ref: "#/components/securitySchemes/kafka-scram"
       - $ref: "#/components/securitySchemes/oauth"
     tags:
-      - name: edge
-      - name: region
-        description: Where the broker runs.
+      - $ref: "#/components/tags/edge"
+      - $ref: "#/components/tags/region"
   sit:
     host: kafka.sit.example.com:9092
     protocol: kafka
@@ -40,9 +38,8 @@ servers:
       - $ref: "#/components/securitySchemes/kafka-scram"
       - $ref: "#/components/securitySchemes/oauth"
     tags:
-      - name: edge
-      - name: region
-        description: Where the broker runs.
+      - $ref: "#/components/tags/edge"
+      - $ref: "#/components/tags/region"
 channels: {}
 operations: {}
 components:
@@ -69,3 +66,9 @@ components:
             orders:write: Write orders
       scopes:
         - orders:read
+  tags:
+    edge:
+      name: edge
+    region:
+      name: region
+      description: Where the broker runs.

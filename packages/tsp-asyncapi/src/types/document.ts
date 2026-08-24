@@ -77,7 +77,7 @@ export interface InfoObject extends SpecificationExtensions {
   /** The license information for the exposed API. */
   license?: LicenseObject;
   /** A list of tags for API documentation control. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
@@ -122,7 +122,7 @@ export interface ServerObject {
    * `externalDocs` come from, so every server the namespace declares carries
    * the same set.
    */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this server. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
@@ -209,7 +209,7 @@ export interface ChannelObject extends SpecificationExtensions {
   /** The protocol-specific settings of this channel, keyed by protocol name. */
   bindings?: BindingsObject;
   /** The tags of this channel, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this channel. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
@@ -273,7 +273,7 @@ export interface OperationObject extends SpecificationExtensions {
    */
   security?: ReferenceObject[];
   /** The tags of this operation, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this operation. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** The protocol-specific settings of this operation, keyed by protocol name. */
@@ -435,7 +435,7 @@ export interface MessageObject extends SpecificationExtensions {
   /** The protocol-specific settings of this message, keyed by protocol name. */
   bindings?: BindingsObject;
   /** The tags of this message, each a full Tag Object. */
-  tags?: TagObject[];
+  tags?: (TagObject | ReferenceObject)[];
   /** Additional external documentation for this message. */
   externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** Worked examples of this message, in source order. */

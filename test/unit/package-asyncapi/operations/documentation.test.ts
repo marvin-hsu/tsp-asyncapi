@@ -39,7 +39,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       channel: { $ref: "#/channels/orders.created" },
       title: "Publish an order",
       description: "Sends one event for every order a customer places.",
-      tags: [{ name: "orders" }, { name: "events", description: "Domain events." }],
+      tags: [{ $ref: "#/components/tags/orders" }, { $ref: "#/components/tags/events" }],
       externalDocs: { url: "https://example.com/orders", description: "The order guide." },
       messages: [{ $ref: "#/channels/orders.created/messages/OrderCreated" }],
     });

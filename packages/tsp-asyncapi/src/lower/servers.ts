@@ -16,7 +16,7 @@ import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/in
 import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared } from "./components/survey.js";
+import { shared, sharedEach } from "./components/survey.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
 function lowerServerVariables(
@@ -63,7 +63,8 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   }
   const externalDocs = shared(promoted.externalDocs, "externalDocs", node.externalDocs);
   if (externalDocs !== undefined) server.externalDocs = externalDocs;
-  if (node.tags.length > 0) server.tags = structuredClone([...node.tags]);
+  const tags = sharedEach(promoted.tags, "tags", node.tags);
+  if (tags !== undefined) server.tags = tags;
   const bindings = lowerBindings(node.bindings);
   if (bindings !== undefined) server.bindings = structuredClone(bindings);
   return server;

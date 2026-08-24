@@ -21,6 +21,7 @@ import type {
   CorrelationIdObject,
   ExternalDocumentationObject,
   ReferenceObject,
+  TagObject,
 } from "../../types/index.js";
 
 import { componentRef } from "../json-pointer.js";
@@ -50,6 +51,18 @@ export interface DocumentPromotions {
   readonly rawSchemas: RawSchemaPromoter;
   readonly correlationIds: Promoter<CorrelationIdObject>;
   readonly externalDocs: Promoter<ExternalDocumentationObject>;
+  readonly tags: Promoter<TagObject>;
+}
+
+/**
+ * A promoter for a fragment that carries the name the author gave it.
+ *
+ * One use is enough, because the key is the author's own word rather than
+ * the site that happened to meet it first. This is the rule
+ * `plan/09-advanced.md` settled and `SchemaBuilder` has run since Phase 2.
+ */
+function byName<T extends { readonly name: string }>(): Promoter<T> {
+  return new Promoter<T>({ when: "named", key: (value) => keyFromSite(value.name) });
 }
 
 /** A promoter for a fragment the author never named. */
@@ -71,17 +84,25 @@ export function surveyDocument(
 ): DocumentPromotions {
   const correlationIds = anonymous<CorrelationIdObject>();
   const externalDocs = anonymous<ExternalDocumentationObject>();
+  const tags = byName<TagObject>();
 
-  const surveyDocs = (value: ExternalDocumentationObject | undefined, site: string): void => {
-    if (value !== undefined) externalDocs.survey(value, site);
+  const surveySite = (
+    site: string,
+    node: {
+      readonly externalDocs?: ExternalDocumentationObject;
+      readonly tags: readonly TagObject[];
+    },
+  ): void => {
+    if (node.externalDocs !== undefined) externalDocs.survey(node.externalDocs, site);
+    for (const tag of node.tags) tags.survey(tag, site);
   };
 
-  surveyDocs(service.info.externalDocs, "info");
-  for (const server of service.servers) surveyDocs(server.externalDocs, server.name);
-  for (const channel of service.channels) surveyDocs(channel.externalDocs, channel.key);
-  for (const operation of service.operations) surveyDocs(operation.externalDocs, operation.key);
+  surveySite("info", service.info);
+  for (const server of service.servers) surveySite(server.name, server);
+  for (const channel of service.channels) surveySite(channel.key, channel);
+  for (const operation of service.operations) surveySite(operation.key, operation);
   for (const message of service.messages) {
-    surveyDocs(message.externalDocs, message.key);
+    surveySite(message.key, message);
     if (message.correlationId !== undefined) {
       correlationIds.survey(message.correlationId, message.key);
     }
@@ -89,8 +110,14 @@ export function surveyDocument(
 
   correlationIds.freeze();
   externalDocs.freeze();
+  tags.freeze();
 
-  return { rawSchemas: RawSchemaPromoter.survey(service, schemas), correlationIds, externalDocs };
+  return {
+    rawSchemas: RawSchemaPromoter.survey(service, schemas),
+    correlationIds,
+    externalDocs,
+    tags,
+  };
 }
 
 /**
@@ -116,4 +143,28 @@ export function shared<T>(
   if (value === undefined) return undefined;
   const key = promoter.keyFor(value);
   return key === undefined ? structuredClone(value) : { $ref: componentRef(section, key) };
+}
+
+/**
+ * What one site writes for a list of fragments.
+ *
+ * A list is shared entry by entry rather than as a whole: two sites can
+ * carry one tag in common and differ in the rest, and the specification puts
+ * the reference at the entry.
+ *
+ * @param promoter - The closed survey for this kind of fragment
+ * @param section - The `components` section the references point into
+ * @param values - The fragments this site carries
+ * @returns The list, or `undefined` when the site carries none
+ * @internal
+ */
+export function sharedEach<T>(
+  promoter: Promoter<T>,
+  section: string,
+  values: readonly T[],
+): (T | ReferenceObject)[] | undefined {
+  if (values.length === 0) return undefined;
+  // Every entry went through the survey, so `shared` never answers
+  // `undefined` here.
+  return values.map((value) => shared(promoter, section, value) as T | ReferenceObject);
 }

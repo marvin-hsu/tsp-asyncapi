@@ -17,15 +17,10 @@
     },
     "tags": [
       {
-        "name": "orders",
-        "description": "The order domain as a whole.",
-        "externalDocs": {
-          "url": "https://example.com/orders",
-          "description": "The order guide."
-        }
+        "$ref": "#/components/tags/orders"
       },
       {
-        "name": "public"
+        "$ref": "#/components/tags/public"
       }
     ],
     "externalDocs": {
@@ -35,5 +30,20 @@
   },
   "defaultContentType": "application/json",
   "channels": {},
-  "operations": {}
+  "operations": {},
+  "components": {
+    "tags": {
+      "orders": {
+        "name": "orders",
+        "description": "The order domain as a whole.",
+        "externalDocs": {
+          "url": "https://example.com/orders",
+          "description": "The order guide."
+        }
+      },
+      "public": {
+        "name": "public"
+      }
+    }
+  }
 }

@@ -33,7 +33,7 @@ channels:
       CreateOrder:
         $ref: "#/components/messages/CreateOrder"
     tags:
-      - name: commands
+      - $ref: "#/components/tags/commands"
   shipped:
     address: orders.shipped
     messages:
@@ -108,3 +108,6 @@ components:
   securitySchemes:
     kafka-scram:
       type: scramSha512
+  tags:
+    commands:
+      name: commands

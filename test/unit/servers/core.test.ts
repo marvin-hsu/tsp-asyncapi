@@ -647,9 +647,15 @@ describe("Unit: servers — tags", () => {
       @message model Order { id: string; }
     `);
 
-    const expected = [{ name: "edge" }, { name: "region", description: "Where the broker runs." }];
-    expect(serversOf(doc).production.tags).toEqual(expected);
-    expect(serversOf(doc).failover.tags).toEqual(expected);
+    // A tag carries the name its author wrote, so it is written once in
+    // `components.tags` and every server points at it.
+    expect(doc.components?.tags).toStrictEqual({
+      edge: { name: "edge" },
+      region: { name: "region", description: "Where the broker runs." },
+    });
+    const expected = [{ $ref: "#/components/tags/edge" }, { $ref: "#/components/tags/region" }];
+    expect(serversOf(doc).production.tags).toStrictEqual(expected);
+    expect(serversOf(doc).failover.tags).toStrictEqual(expected);
   });
 
   it("gives each server its own copy of the tags", async () => {
@@ -660,12 +666,15 @@ describe("Unit: servers — tags", () => {
       @server("failover", #{ host: "b.example.com", protocol: "kafka" })
       namespace Test;
 
-      @message model Order { id: string; }
+      @message
+      @asyncTag("region")
+      model Order { id: string; }
     `);
 
-    // A Tag Object holds an External Documentation Object of its own, so a
-    // shallow copy would leave both servers pointing at one nested object.
-    // Editing one server's tag would then edit the other's.
+    // Two Tag Objects that share a name and differ elsewhere are two
+    // fragments asking for one key. Neither is promoted, so both servers
+    // write the tag itself — and a shallow copy would leave both pointing at
+    // one nested object, where editing one server's tag edits the other's.
     expect(serversOf(doc).production.tags).not.toBe(serversOf(doc).failover.tags);
     expect(serversOf(doc).production.tags?.[0]).not.toBe(serversOf(doc).failover.tags?.[0]);
   });

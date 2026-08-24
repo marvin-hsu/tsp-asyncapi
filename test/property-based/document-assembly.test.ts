@@ -103,9 +103,17 @@ describe("Integration: document assembly — a section exists when the model has
 
         // No message carries a model payload here, so no model claims a
         // `components.schemas` key.
-        const hasComponents = model.messages.length > 0 || model.securitySchemes.length > 0;
-        expect(Object.hasOwn(document, "components")).toBe(hasComponents);
-        if (!hasComponents) return;
+        const mustHave = model.messages.length > 0 || model.securitySchemes.length > 0;
+        // A tag or an external documentation link anywhere in the document
+        // can also open the section. Whether it does is the promotion rule,
+        // and that rule is stated in its own suites. What holds without
+        // restating it: a document carrying none of them has no `components`.
+        const sites = [model.info, ...model.servers, ...model.channels, ...model.operations];
+        const canHave =
+          mustHave || sites.some((site) => site.tags.length > 0 || site.externalDocs !== undefined);
+        if (mustHave) expect(Object.hasOwn(document, "components")).toBe(true);
+        if (!canHave) expect(Object.hasOwn(document, "components")).toBe(false);
+        if (!Object.hasOwn(document, "components")) return;
 
         const components = document.components as object;
         // An empty `components` states nothing, and the baseline snapshots

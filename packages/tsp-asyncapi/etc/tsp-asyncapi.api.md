@@ -116,7 +116,7 @@ export interface ChannelObject extends SpecificationExtensions {
     messages?: Record<string, ReferenceObject>;
     parameters?: Record<string, ParameterObject>;
     servers?: ReferenceObject[];
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
@@ -179,7 +179,7 @@ export interface InfoObject extends SpecificationExtensions {
     description?: string;
     externalDocs?: ExternalDocumentationObject | ReferenceObject;
     license?: LicenseObject;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     termsOfService?: string;
     title: string;
     version: string;
@@ -218,7 +218,7 @@ export interface MessageObject extends SpecificationExtensions {
     headers?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
     name?: string;
     payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
@@ -248,7 +248,7 @@ export interface OperationObject extends SpecificationExtensions {
     messages?: ReferenceObject[];
     reply?: OperationReplyObject;
     security?: ReferenceObject[];
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
 }
 
@@ -302,7 +302,7 @@ export interface ServerObject {
     protocolVersion?: string;
     security?: ReferenceObject[];
     summary?: string;
-    tags?: TagObject[];
+    tags?: (TagObject | ReferenceObject)[];
     title?: string;
     variables?: Record<string, ServerVariableObject>;
 }

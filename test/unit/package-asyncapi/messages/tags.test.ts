@@ -5,6 +5,7 @@ import { listServices } from "@typespec/compiler";
 import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { documentFrom } from "../../../utils/test-host.js";
+import { resolveTags } from "../../../utils/document.js";
 
 describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
   let runner: TesterInstance;
@@ -30,7 +31,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     const doc = documentFrom(runner.program);
 
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       {
         name: "orders",
         description: "Everything about orders.",
@@ -59,7 +60,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     // A field the metadata leaves out is absent, rather than present and
     // empty.
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders" },
       { name: "billing", description: "Money moves." },
     ]);
@@ -83,11 +84,9 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     // Decorators run bottom-up, so the recorded order is the reverse of what
     // the reader sees. The emitted array follows the source.
-    expect(doc.components?.messages?.OrderCreated.tags?.map((tag) => tag.name)).toEqual([
-      "first",
-      "second",
-      "third",
-    ]);
+    expect(
+      resolveTags(doc, doc.components?.messages?.OrderCreated.tags).map((tag) => tag.name),
+    ).toEqual(["first", "second", "third"]);
   });
 
   it("emits the external docs of a message", async () => {
@@ -160,7 +159,9 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     // One name means one Tag Object. The built-in @tag carries a name and
     // nothing that could disagree, so the metadata wins without an error.
-    expect(doc.info.tags).toEqual([{ name: "orders", description: "Everything about orders." }]);
+    expect(resolveTags(doc, doc.info.tags)).toEqual([
+      { name: "orders", description: "Everything about orders." },
+    ]);
   });
 
   it("keeps a built-in @tag that no @asyncTag names", async () => {
@@ -173,7 +174,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     const doc = buildAsyncAPIDocument(runner.program, listServices(runner.program)[0], {});
 
-    expect(doc.info.tags).toEqual([
+    expect(resolveTags(doc, doc.info.tags)).toEqual([
       { name: "orders" },
       { name: "billing", description: "Money moves." },
     ]);
@@ -197,7 +198,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // Neither application says anything the other contradicts, so the two
     // merge into one Tag Object.
     expect(diagnosticsWith(diagnostics, "conflicting-tag-metadata")).toEqual([]);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       {
         name: "orders",
         description: "Everything about orders.",
@@ -221,7 +222,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     const doc = documentFrom(runner.program);
 
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders", description: "Everything about orders." },
     ]);
   });
@@ -246,7 +247,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     expect(diagnostic.message).toMatch(/Tag 'orders' is declared more than once/);
     expect(diagnostic.message).toMatch(/'description'/);
     // The first application in source order keeps the field.
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders", description: "The first description." },
     ]);
   });
@@ -269,7 +270,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.message).toMatch(/'externalDocs'/);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders", externalDocs: { url: "https://example.com/one" } },
     ]);
   });
@@ -297,10 +298,10 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // AsyncAPI gives every object its own `tags` array, and those arrays are
     // independent. So one name may describe itself differently per message.
     expect(diagnosticsWith(diagnostics, "conflicting-tag-metadata")).toEqual([]);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders", description: "As the order service sees it." },
     ]);
-    expect(doc.components?.messages?.OrderBilled.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderBilled.tags)).toEqual([
       { name: "orders", description: "As the billing service sees it." },
     ]);
   });
@@ -325,7 +326,9 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // consumer can match. The rejected tag reaches no document, and the tag
     // beside it is unaffected.
     const doc = documentFrom(runner.program);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([{ name: "orders" }]);
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
+      { name: "orders" },
+    ]);
   });
 
   it("emits one entry when the built-in @tag repeats a name", async () => {
@@ -342,7 +345,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // AsyncAPI requires the names in one `tags` array to be unique. The
     // built-in tags keep the order the compiler records them in, and the
     // repeated name collapses to one entry.
-    expect(doc.info.tags).toEqual([{ name: "events" }, { name: "orders" }]);
+    expect(resolveTags(doc, doc.info.tags)).toEqual([{ name: "events" }, { name: "orders" }]);
   });
 
   it("merges the fields of two externalDocs that name one url", async () => {
@@ -367,7 +370,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     // the other tag fields follow.
     expect(diagnostics).toEqual([]);
     expect(diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata")).toHaveLength(0);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       {
         name: "orders",
         externalDocs: { url: "https://example.com/orders", description: "The order guide." },
@@ -397,7 +400,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.message).toMatch(/'externalDocs'/);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       {
         name: "orders",
         externalDocs: { url: "https://example.com/orders", description: "The first guide." },
@@ -430,7 +433,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
     const diagnostic = findDiagnostic(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(diagnostic.severity).toBe("error");
     expect(diagnostic.message).toMatch(/'description'/);
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       {
         name: "orders",
         description: "The first prose.",
@@ -458,7 +461,7 @@ describe("Unit: Message tags and externalDocs (Phase 3.6)", () => {
 
     // A blank description says nothing. It claims the tag has an empty
     // description rather than none, so the emitter leaves the field out.
-    expect(doc.components?.messages?.OrderCreated.tags).toEqual([
+    expect(resolveTags(doc, doc.components?.messages?.OrderCreated.tags)).toEqual([
       { name: "orders", externalDocs: { url: "https://example.com/orders" } },
     ]);
   });

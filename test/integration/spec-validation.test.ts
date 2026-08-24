@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { emitDocument } from "../utils/test-host.js";
-import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../utils/document.js";
+import {
+  channelsOf,
+  messagesOf,
+  operationsOf,
+  present,
+  resolveTags,
+  serversOf,
+} from "../utils/document.js";
 import type { MultiFormatSchemaObject, SqsChannelBindingObject } from "#emitter/types/index.js";
 
 describe("AsyncAPI emitted document", () => {
@@ -566,7 +573,9 @@ describe("AsyncAPI emitted document", () => {
       },
       tenant: { location: "$message.payload#" },
     });
-    expect(channelsOf(doc)["orders.{region}.{tenant}.created"].tags).toEqual([{ name: "orders" }]);
+    expect(resolveTags(doc, channelsOf(doc)["orders.{region}.{tenant}.created"].tags)).toEqual([
+      { name: "orders" },
+    ]);
     expect(channelsOf(doc)["orders.{region}.{tenant}.created"].externalDocs).toEqual({
       url: "https://example.com/orders",
       description: "How order events are routed.",

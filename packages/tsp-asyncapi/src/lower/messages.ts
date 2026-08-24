@@ -27,7 +27,7 @@ import {
 } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared } from "./components/survey.js";
+import { shared, sharedEach } from "./components/survey.js";
 import { componentRef, refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
@@ -103,7 +103,7 @@ function lowerMessage(
     payload: lowerPayload(schemas, promoted, node.payload),
     ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
     ...present("bindings", lowerBindings(node.bindings)),
-    ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
+    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),
     // The `x-` fields go last. They cannot collide with a specification

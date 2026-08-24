@@ -58,12 +58,14 @@ export function lowerComponents(
   const securitySchemes = lowerSecuritySchemes(service.securitySchemes);
   const correlationIds = Object.fromEntries(promoted.correlationIds.entries());
   const externalDocs = Object.fromEntries(promoted.externalDocs.entries());
+  const tags = Object.fromEntries(promoted.tags.entries());
 
   const components: ComponentsObject = {
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(messages ? { messages } : {}),
     ...(securitySchemes ? { securitySchemes } : {}),
     ...(Object.keys(correlationIds).length > 0 ? { correlationIds } : {}),
+    ...(Object.keys(tags).length > 0 ? { tags } : {}),
     ...(Object.keys(externalDocs).length > 0 ? { externalDocs } : {}),
   };
   return Object.keys(components).length > 0 ? components : undefined;

@@ -16,7 +16,7 @@ import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer
 import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared } from "./components/survey.js";
+import { shared, sharedEach } from "./components/survey.js";
 
 /** Turns resolved message keys into references into a channel's `messages`. */
 function lowerMessageRefs(nodes: readonly MessageRefNode[]): ReferenceObject[] | undefined {
@@ -50,7 +50,7 @@ function lowerOperation(node: OperationNode, promoted: DocumentPromotions): Oper
         ? node.security.map((name) => ({ $ref: securitySchemeRef(name) }))
         : undefined,
     ),
-    ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
+    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("messages", lowerMessageRefs(node.messages)),
