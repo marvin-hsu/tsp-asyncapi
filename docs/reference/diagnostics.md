@@ -598,6 +598,16 @@ Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` 
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
 
+### `preview-feature-unavailable`
+
+> The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
+
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. A name outside that set fails the option schema instead, and never reaches this diagnostic.
+
+No file is written. A document emitted next to this error would ignore the request without saying so.
+
+**Fix:** Remove the name from `preview-features` in `tspconfig.yaml`.
+
 ## Warnings
 
 ### `duplicate-channel-address`

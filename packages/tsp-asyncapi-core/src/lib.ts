@@ -130,6 +130,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Schema key '${"name"}' is claimed twice. Message '${"message"}' carries a raw schema that another message carries too, so that schema is written once in \`components.schemas\` under a key derived from the message model. Rename the other type that claims '${"name"}', or give one of the two messages a different name.`,
       },
     },
+    "preview-feature-unavailable": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The preview feature '${"feature"}' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '${"feature"}' from \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {

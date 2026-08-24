@@ -15,6 +15,37 @@
 import type { JSONSchemaType } from "@typespec/compiler";
 
 /**
+ * A feature this emitter names but does not promise to keep.
+ *
+ * A preview feature changes the output, so it stays off until a project asks
+ * for it. The names are fixed rather than left open, so a typo in
+ * `tspconfig.yaml` is a compiler error instead of a silently ignored line.
+ *
+ * A name is reserved before the provider behind it exists. Asking for a name
+ * with no provider is reported as `preview-feature-unavailable`.
+ *
+ * @public
+ */
+export type PreviewFeature = "protobuf" | "avro";
+
+/**
+ * Every reserved preview feature name, as the option schema lists them.
+ *
+ * The record is what makes the list and the type agree. `satisfies` requires
+ * one entry per member of {@link PreviewFeature}, and it refuses a key that
+ * is not a member. So a name can neither be forgotten here nor invented here.
+ * Without that, a name in the type and not in the list would be a public type
+ * the option schema rejects.
+ *
+ * `Object.keys` returns `string[]`, and the record above is what makes the
+ * cast back to the names safe.
+ */
+const PREVIEW_FEATURE_NAMES = Object.keys({
+  protobuf: true,
+  avro: true,
+} satisfies Record<PreviewFeature, true>) as PreviewFeature[];
+
+/**
  * Configuration options for the AsyncAPI emitter.
  *
  * @example
@@ -57,6 +88,17 @@ export interface AsyncAPIEmitterOptions {
    * @example "application/json"
    */
   "default-content-type"?: string;
+
+  /**
+   * The preview features to turn on.
+   *
+   * A preview feature changes the emitted document, so the default is an
+   * empty list and the output is unchanged without it.
+   *
+   * @defaultValue [] (no preview feature)
+   * @example ["protobuf"]
+   */
+  "preview-features"?: PreviewFeature[];
 }
 
 export const EmitterOptionsSchema: JSONSchemaType<AsyncAPIEmitterOptions> = {
@@ -67,6 +109,11 @@ export const EmitterOptionsSchema: JSONSchemaType<AsyncAPIEmitterOptions> = {
     "file-type": { type: "string", enum: ["yaml", "json"], nullable: true },
     "asyncapi-id": { type: "string", nullable: true },
     "default-content-type": { type: "string", nullable: true },
+    "preview-features": {
+      type: "array",
+      nullable: true,
+      items: { type: "string", enum: [...PREVIEW_FEATURE_NAMES] },
+    },
   },
   required: [],
 };

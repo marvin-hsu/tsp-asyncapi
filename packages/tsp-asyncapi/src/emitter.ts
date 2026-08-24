@@ -2,6 +2,7 @@ import { EmitContext, emitFile, resolvePath, listServices, Service } from "@type
 import { reportDiagnostic } from "tsp-asyncapi-core";
 import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 import { buildAsyncAPIDocument } from "./pipeline.js";
+import { reportUnavailablePreviewFeatures } from "./preview-features.js";
 import yaml from "yaml";
 
 /**
@@ -31,6 +32,10 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
       });
     }
   }
+
+  // No preview feature has a provider in this release. A document written
+  // now would ignore the request without saying so, so nothing is written.
+  if (reportUnavailablePreviewFeatures(program, options)) return;
 
   const doc = buildAsyncAPIDocument(program, service, options);
 
