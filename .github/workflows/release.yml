@@ -126,6 +126,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # `changeset publish` tags what it published and says nothing machine
+      # readable about which those were. Diffing the tag list around it is
+      # what tells the release note below what actually went out, and it is
+      # also what tells it that nothing did.
+      - name: Record the tags before publishing
+        run: git tag | sort > "$RUNNER_TEMP/tags-before"
+
       # `changeset publish` publishes only a version the registry does not have,
       # so a retry after a partial failure completes the release instead of
       # erroring on what already went out. It also tags each published package,
@@ -138,16 +145,107 @@ jobs:
       # It calls `pnpm publish` underneath, which rewrites every `workspace:~`
       # range into a real version. Without that the published `tsp-asyncapi`
       # would ask npm for a spec npm cannot resolve.
+      # `pnpm_config_provenance`, not `NPM_CONFIG_PROVENANCE`. pnpm reads its
+      # own `pnpm_config_` prefix for configuration from the environment, and
+      # ignores npm's.
+      #
+      # It has to come through the environment because `changeset publish`
+      # calls `pnpm publish` itself and forwards no flags. The workflow used
+      # to run `pnpm publish --provenance` directly, and moving to
+      # `changeset publish` in 0.4.0 dropped the flag with nothing to notice
+      # it: 0.4.0, 0.4.1 and 0.4.2 all published unsigned, and all three runs
+      # were green.
+      #
+      # Setting it through `publishConfig` in package.json does not work.
+      # 0.1.0 through 0.1.3 went out unsigned for exactly that reason: pnpm
+      # reads the flag and the config, not the manifest field.
       - name: Publish to npm
         run: pnpm exec changeset publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          pnpm_config_provenance: true
+
+      # The check that would have caught three unsigned releases.
+      #
+      # Provenance is configuration that fails quietly: the publish succeeds,
+      # the run is green, and the attestation is simply absent. So the run
+      # asks the registry whether the thing it just published is signed,
+      # rather than trusting that the setting took.
+      #
+      # It reads the versions from the manifests rather than the tags,
+      # because a re-run that published nothing has nothing new to check and
+      # the manifests still name what is on the registry.
+      - name: Assert the published versions carry provenance
+        run: |
+          for dir in packages/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            version=$(node -p "require('./${dir}package.json').version")
+            attested=$(curl -sf "https://registry.npmjs.org/$name/$version" \
+              | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).dist?.attestations ? 'yes' : 'no'")
+            if [ "$attested" != "yes" ]; then
+              echo "::error::$name@$version is published without provenance"
+              exit 1
+            fi
+            echo "$name@$version carries provenance"
+          done
 
       # `--tags` pushes every tag, annotated or not. `--follow-tags` would also
       # work for what changesets creates, since those are annotated, but this
       # does not depend on that detail staying true.
       - name: Push the release tags
         run: git push origin --tags
+
+      # One release per run, not per package.
+      #
+      # The two packages version independently, so no single number names a
+      # release. The date does. Each package keeps its own tag, which is the
+      # record of that version; this is the record of the run that shipped
+      # them, and it links out to what a reader actually installs.
+      #
+      # Every release is numbered within its day, starting at `.1`. A second
+      # one takes `.2`.
+      #
+      # The counter is unconditional so that one date always reads one way.
+      # Numbering only the second release would make `.1` mean "there were
+      # more", and a reader would have to know the rule to see that
+      # `2026-08-23` and `2026-08-23.2` are the same day rather than two.
+      #
+      # The suffix is also what keeps the tag from colliding. Without it a
+      # second release on one day fails `gh release create` after the
+      # packages are already on the registry, turning a published release
+      # into a red run.
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          published=$(comm -13 "$RUNNER_TEMP/tags-before" <(git tag | sort))
+          if [ -z "$published" ]; then
+            echo "No new tags, so nothing was published. No release to create."
+            exit 0
+          fi
+
+          date_tag="release-$(date -u +%Y-%m-%d)"
+          n=1
+          tag="$date_tag.$n"
+          while git rev-parse -q --verify "refs/tags/$tag" >/dev/null; do
+            n=$((n + 1))
+            tag="$date_tag.$n"
+          done
+
+          {
+            echo "Published from \`${{ inputs.ref }}\`."
+            echo
+            while IFS= read -r t; do
+              name=${t%@*}
+              version=${t##*@}
+              echo "- \`$t\` — https://www.npmjs.com/package/$name/v/$version"
+            done <<< "$published"
+          } > "$RUNNER_TEMP/notes.md"
+
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "${tag#release-}" \
+            --notes-file "$RUNNER_TEMP/notes.md"
 
   # A mirror, for anyone installing from this repository's registry. The package
   # names are scoped here; the dependency between them is not, so the scoped
