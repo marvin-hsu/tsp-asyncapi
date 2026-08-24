@@ -5,6 +5,7 @@ import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "#emitter/lower/schemas.js";
 import { buildDocSchema, compileSchemas } from "../../../utils/schema-host.js";
 import { propertiesOf, schemaOf } from "../../../utils/document.js";
+import { resolvedProperties } from "../../../utils/schema-host.js";
 
 describe("Unit: Schemas — documentation and examples", () => {
   it("should map a model's doc comment to description and @summary to title", async () => {
@@ -67,7 +68,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const field = schemaOf(propertiesOf(builder.getSchemas().M).field);
+    const field = schemaOf(resolvedProperties(builder, "M").field);
     expect(Object.hasOwn(field, "title")).toBe(false);
     expect(Object.hasOwn(field, "description")).toBe(false);
     expect(Object.hasOwn(field, "examples")).toBe(false);
@@ -93,7 +94,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.field).toEqual({
       type: "string",
       title: "Name",
@@ -109,7 +110,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.field).toEqual({ type: "string", examples: ["hello"] });
   });
 
@@ -143,7 +144,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     expect(builder.getSchemas().M.examples).toEqual([{ field: "a" }, { field: "b" }]);
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(schemaOf(props.field).examples).toEqual(["x", "y"]);
   });
 
@@ -159,7 +160,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
   });
 
@@ -174,7 +175,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.ip).toEqual({ type: "string" });
   });
 
@@ -189,7 +190,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.ips).toEqual({ type: "array", items: { type: "string" } });
   });
 
@@ -224,7 +225,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.e).toEqual({
       type: "string",
       title: "Email",
@@ -243,7 +244,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.e).toEqual({ type: "string", title: "PropTitle" });
   });
 
@@ -254,7 +255,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.field).toEqual({ type: "string" });
   });
 
@@ -267,7 +268,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // `@encode` says this moment travels as an integer count of seconds. The
     // schema has to say so, or a valid message fails to validate against it.
     expect(schemaOf(props.ts).type).toBe("integer");
@@ -288,7 +289,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.e).toEqual({
       type: "string",
       title: "Email",
@@ -322,7 +323,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       @@example(M.a, "aug2");
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(schemaOf(props.a).examples).toEqual(["aug1", "aug2"]);
   });
 
@@ -355,7 +356,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(schemaOf(props.p).examples).toEqual([{ ts: 1577836800 }]);
     const inner = builder.getSchemas().Inner;
     expect(propertiesOf(inner).ts).toEqual({ type: "integer", format: "unixtime" });
@@ -371,7 +372,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // The encoding is declared on the scalar, not on the property. It has to
     // reach the use site through the `baseScalar` chain.
     expect(schemaOf(props.a).type).toBe("integer");
@@ -519,7 +520,7 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
     expect(() => builder.buildSchema(M)).not.toThrow();
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(Object.hasOwn(props.d as object, "examples")).toBe(false);
     expect(program.diagnostics).toHaveLength(1);
     expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");
@@ -561,7 +562,7 @@ describe("Unit: Schemas — documentation and examples", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.e).toEqual({
       type: "string",
       title: "Email",

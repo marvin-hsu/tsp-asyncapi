@@ -4,6 +4,7 @@ import { t } from "@typespec/compiler/testing";
 import { buildDocSchema, compileSchemas } from "../../../utils/schema-host.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { propertiesOf, schemaOf } from "../../../utils/document.js";
+import { resolvedProperties } from "../../../utils/schema-host.js";
 
 describe("Unit: Schemas — validation keywords and extensions", () => {
   it("merges two separate applications' key/value pairs alongside a model's own properties", async () => {
@@ -34,7 +35,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     `);
     builder.buildSchema(M);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.name).toEqual({ type: "string", deprecated: true });
   });
 
@@ -75,7 +76,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.name).toEqual({ type: "string", minLength: 2, maxLength: 20 });
   });
 
@@ -87,7 +88,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.name).toEqual({ type: "string", pattern: "^[a-z]+$" });
   });
 
@@ -99,7 +100,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.id).toEqual({ type: "string", format: "uuid" });
   });
 
@@ -115,7 +116,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.name).toEqual({
       type: "string",
       minLength: 2,
@@ -135,7 +136,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.a).toEqual({ type: "string", format: "uri" });
   });
 
@@ -148,7 +149,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.a).toEqual({ type: "string", format: "uri-reference" });
   });
 
@@ -163,10 +164,14 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    // The property says nothing of its own about the value, only constrains
+    // it further, so it references the scalar's component. The hoist can
+    // only carry what the `allOf` branch holds, and the branch is a
+    // reference, so the scalar's own prose stays in its component rather
+    // than being copied to the property.
+    const props = resolvedProperties(builder, "M");
     expect(props.u).toEqual({
-      allOf: [{ type: "string", minLength: 5 }],
-      description: "A username",
+      allOf: [{ type: "string", minLength: 5, description: "A username" }],
       minLength: 2,
     });
   });
@@ -194,7 +199,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.id).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       title: "The key",
@@ -216,7 +221,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.v).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       description: "Tight",
@@ -233,7 +238,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.age).toEqual({ type: "integer", format: "int32", minimum: 18, maximum: 200 });
   });
 
@@ -246,7 +251,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.distance).toEqual({
       type: "number",
       format: "double",
@@ -265,7 +270,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.age).toEqual({ type: "integer", format: "int32", minimum: 18, maximum: 200 });
   });
 
@@ -278,7 +283,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.tags).toEqual({
       type: "array",
       items: { type: "string" },
@@ -331,7 +336,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.a).toEqual({ type: "string", minLength: 2 });
   });
 
@@ -347,7 +352,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // Tight's stricter minLength(5)/pattern must still be enforced
     // alongside Loose's own (weaker) minLength(2). Losing them would let
     // "ab" validate, even though Tight forbids it.
@@ -368,7 +373,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.v).toEqual({
       allOf: [{ type: "integer", format: "int32", minimum: 10 }],
       minimum: 1,
@@ -385,7 +390,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.name).toEqual({
       allOf: [{ type: "string", minLength: 2 }],
       minLength: 5,
@@ -404,7 +409,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // The scalar's own (stricter) constraints must still be enforced
     // alongside the property's own (weaker) ones. Losing them would let
     // `"AB"` validate, even though `Username` forbids it.
@@ -427,7 +432,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.u).toEqual({
       allOf: [{ type: "string", minLength: 5 }],
       description: "prop doc",
@@ -444,7 +449,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     // The exact bound cannot be represented as a JS number, so it is not
     // emitted as `minimum`/`maximum`. But the drop must be diagnosed.
     expect(schemaOf(props.v).minimum).toBeUndefined();
@@ -462,7 +467,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.at).toEqual({ type: "string", format: "date-time" });
     expect(
       diagnosticsWith(program.diagnostics, "unsupported-temporal-range-constraint").length,
@@ -477,7 +482,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(props.v).toEqual({ type: "string", minLength: 3 });
   });
 
@@ -489,7 +494,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(schemaOf(props.name).maxLength).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "unrepresentable-numeric-constraint").length,
@@ -504,7 +509,7 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    const props = propertiesOf(builder.getSchemas().M);
+    const props = resolvedProperties(builder, "M");
     expect(schemaOf(props.tags).minItems).toBeUndefined();
     expect(
       diagnosticsWith(program.diagnostics, "unrepresentable-numeric-constraint").length,

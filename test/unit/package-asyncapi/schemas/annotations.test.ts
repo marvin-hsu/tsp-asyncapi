@@ -5,8 +5,9 @@ import {
   holderProperties,
 } from "../../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
-import { present, propertiesOf, schemaOf } from "../../../utils/document.js";
+import { present, schemaOf } from "../../../utils/document.js";
 import type { SchemaObject } from "#emitter/types/index.js";
+import { resolvedProperties } from "../../../utils/schema-host.js";
 
 /**
  * The keywords that describe a value without constraining it: `default`,
@@ -116,7 +117,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
       builder.buildSchema(M);
 
-      const props = propertiesOf(builder.getSchemas().M);
+      const props = resolvedProperties(builder, "M");
       // A half-serialized default would put a value in the schema that the
       // schema itself rejects, so the keyword is left out entirely.
       expect("default" in props.ip).toBe(false);
@@ -267,7 +268,7 @@ describe("Unit: Schemas — annotations", () => {
       // warning is the message `#deprecated` carries; JSON Schema's
       // `deprecated` keyword is a bare boolean with nowhere to put it.
       expect(diagnostics.map((d) => d.code)).toEqual(["deprecated"]);
-      const props = propertiesOf(builder.getSchemas().M);
+      const props = resolvedProperties(builder, "M");
       expect(props.e).toEqual({ type: "string", deprecated: true });
     });
 

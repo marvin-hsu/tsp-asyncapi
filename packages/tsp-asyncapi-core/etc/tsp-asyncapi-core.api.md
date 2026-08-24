@@ -1134,7 +1134,7 @@ readonly default: "This anonymous type refers back to itself with no named type 
 }, C, M>) => Diagnostic;
 
 // @public
-export function declarationNameFor(program: Program, type: Model | Enum | Union): string | undefined;
+export function declarationNameFor(program: Program, type: Model | Enum | Scalar | Union): string | undefined;
 
 // Warning: (ae-internal-missing-underscore) The name "ExternalDocsState" should be prefixed with an underscore because the declaration is marked as @internal
 //

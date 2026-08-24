@@ -22,7 +22,7 @@
  * about identity.
  */
 
-import { Enum, Model, Program, Type, Union } from "@typespec/compiler";
+import { Enum, Model, Program, Scalar, Type, Union } from "@typespec/compiler";
 import { SchemaObject, ReferenceObject } from "../../types/index.js";
 import { refFor } from "../json-pointer.js";
 import { reportDiagnostic } from "tsp-asyncapi-core";
@@ -285,7 +285,10 @@ export class DeclarationRegistry {
    * one method. So the register/$ref/circular-guard logic lives in exactly
    * one place.
    */
-  private registerNamed(type: Model | Enum | Union, build: () => SchemaObject): ReferenceObject {
+  private registerNamed(
+    type: Model | Enum | Scalar | Union,
+    build: () => SchemaObject,
+  ): ReferenceObject {
     const key = this.keyRegistry.keyFor(type);
     if (this.declaredTypes.has(type) || this.building.has(type)) {
       return refFor(key);
@@ -388,7 +391,7 @@ export class DeclarationRegistry {
   }
 
   /** Registers a declaration under its key and returns a reference to it. */
-  public register(type: Model | Enum | Union, build: () => SchemaObject): ReferenceObject {
+  public register(type: Model | Enum | Scalar | Union, build: () => SchemaObject): ReferenceObject {
     return this.registerNamed(type, build);
   }
 }

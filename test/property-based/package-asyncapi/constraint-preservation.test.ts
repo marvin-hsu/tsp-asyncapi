@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { schemaOf, schemasOf } from "../../utils/document.js";
+import type { AsyncAPIDocument } from "#emitter/types/index.js";
+
+/** Where a schema reference points inside one document. */
+const SCHEMA_REF_PREFIX = "#/components/schemas/";
 
 /**
  * No declared constraint is erased by a more-derived level.
@@ -123,8 +127,27 @@ describe("Property: no declared constraint is erased", () => {
     // An error here means the generator built illegal TypeSpec. Fail loudly
     // instead of skipping, so the property cannot starve unnoticed.
     expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.code)).toEqual([]);
-    const schema: unknown = schemaOf(schemasOf(doc).Root).properties?.v;
-    return schema;
+    // A user-declared scalar earns a `components.schemas` entry, so the
+    // property may write a reference to it. The claim is about what the
+    // document says, not where it says it, so the reference is followed.
+    return followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
+  }
+
+  /** Replaces every `#/components/schemas/` reference with what it names. */
+  function followRefs(doc: AsyncAPIDocument | null, schema: unknown): unknown {
+    if (Array.isArray(schema)) return schema.map((item) => followRefs(doc, item));
+    if (schema === null || typeof schema !== "object") return schema;
+    const ref = (schema as { $ref?: unknown }).$ref;
+    if (typeof ref === "string" && ref.startsWith(SCHEMA_REF_PREFIX)) {
+      const key = ref.slice(SCHEMA_REF_PREFIX.length);
+      return followRefs(doc, schemasOf(doc)[key]);
+    }
+    return Object.fromEntries(
+      Object.entries(schema as Record<string, unknown>).map(([name, value]) => [
+        name,
+        followRefs(doc, value),
+      ]),
+    );
   }
 
   /** Asserts every declared pair survives into the emitted schema. */

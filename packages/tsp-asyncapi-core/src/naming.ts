@@ -2,6 +2,7 @@ import {
   Type,
   Model,
   Enum,
+  Scalar,
   Union,
   Namespace,
   Value,
@@ -526,7 +527,7 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  */
 export function declarationNameFor(
   program: Program,
-  type: Model | Enum | Union,
+  type: Model | Enum | Scalar | Union,
 ): string | undefined {
   const friendlyName = getFriendlyName(program, type);
   if (friendlyName !== undefined) {
@@ -542,9 +543,10 @@ export function declarationNameFor(
       return namespacePrefix(program, type.namespace) + instanceName;
     }
     case "Enum":
-      // An `Enum` never has template arguments, so there is no structural
-      // composition to build, only the bare declaration name. An `Enum` is
-      // always a named declaration; it can never be unspeakable.
+    case "Scalar":
+      // Neither takes template arguments, so there is no structural
+      // composition to build, only the bare declaration name. Both are
+      // always named declarations; neither can be unspeakable.
       return namespacePrefix(program, type.namespace) + sanitizeDeclarationName(type.name);
   }
 }

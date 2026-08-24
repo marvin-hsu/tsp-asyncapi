@@ -20,6 +20,10 @@ operations:
       - $ref: "#/channels/catalog.orders.placed/messages/OrderPlaced"
 components:
   schemas:
+    Email:
+      type: string
+      description: An RFC 5321 mailbox address.
+      maxLength: 254
     PostalAddress:
       type: object
       properties:
@@ -48,9 +52,7 @@ components:
           type: string
           format: uuid
         email:
-          type: string
-          description: An RFC 5321 mailbox address.
-          maxLength: 254
+          $ref: "#/components/schemas/Email"
         billingAddress:
           $ref: "#/components/schemas/PostalAddress"
         shippingAddress:

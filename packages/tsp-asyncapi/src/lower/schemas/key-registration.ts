@@ -1,4 +1,4 @@
-import { Type, Model, Enum, Union, Program, compilerAssert } from "@typespec/compiler";
+import { Type, Model, Enum, Scalar, Union, Program, compilerAssert } from "@typespec/compiler";
 import { reportDiagnostic, declarationNameFor, fallbackDeclarationName } from "tsp-asyncapi-core";
 
 /**
@@ -33,7 +33,7 @@ export class SchemaKeyRegistry {
    * inlines the type, or keys it under `fallbackDeclarationName` when inlining
    * cannot express it.
    */
-  public nameFor(type: Model | Enum | Union): string | undefined {
+  public nameFor(type: Model | Enum | Scalar | Union): string | undefined {
     if (this.names.has(type)) {
       return this.names.get(type);
     }
@@ -64,7 +64,7 @@ export class SchemaKeyRegistry {
    * it cannot inline the type, so the long fallback key never displaces a
    * compact one.
    */
-  public keyFor(type: Model | Enum | Union): string {
+  public keyFor(type: Model | Enum | Scalar | Union): string {
     const cached = this.schemaKeys.get(type);
     if (cached !== undefined) {
       return cached;
@@ -72,10 +72,11 @@ export class SchemaKeyRegistry {
     let name = this.nameFor(type);
     if (name === undefined) {
       // Only a `Model`/`Union` template instantiation can be unspeakable.
-      // An `Enum` takes no template arguments, so it always has a name.
+      // Neither an `Enum` nor a `Scalar` takes template arguments, so each
+      // always has a name.
       compilerAssert(
-        type.kind !== "Enum",
-        "Unspeakable declaration name for an 'Enum' reached key registration.",
+        type.kind !== "Enum" && type.kind !== "Scalar",
+        `Unspeakable declaration name for a '${type.kind}' reached key registration.`,
         type,
       );
       name = this.candidateFor(type);

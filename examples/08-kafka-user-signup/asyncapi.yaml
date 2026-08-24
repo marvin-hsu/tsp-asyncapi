@@ -158,6 +158,10 @@ operations:
       - $ref: "#/channels/signup.v1.{tenantId}.events.proto/messages/SignupEventProtoV1"
 components:
   schemas:
+    Email:
+      type: string
+      description: An RFC 5321 mailbox address.
+      maxLength: 254
     Plan:
       type: string
       enum:
@@ -214,9 +218,7 @@ components:
               enum:
                 - user.registered
             email:
-              type: string
-              description: An RFC 5321 mailbox address.
-              maxLength: 254
+              $ref: "#/components/schemas/Email"
             plan:
               $ref: "#/components/schemas/Plan"
             source:
@@ -239,9 +241,7 @@ components:
               enum:
                 - user.emailVerified
             email:
-              type: string
-              description: An RFC 5321 mailbox address.
-              maxLength: 254
+              $ref: "#/components/schemas/Email"
             attempt:
               type: integer
               format: int32
