@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { lowerServers } from "#emitter/lower/servers.js";
 import type { ServerNode } from "#core/resolve/service.js";
+import { noPromotions } from "../../utils/promotions.js";
 
 /** The smallest server node lowerServers accepts, keyed by the name under test. */
 function stubServer(name: string): ServerNode {
@@ -21,7 +22,7 @@ describe("Unit: lowering the servers of one document", () => {
     // none were declared, so the field is omitted. "No node" is a single
     // point, so it is stated rather than drawn; the non-empty half is the
     // keying property in `test/property-based/lower-transforms.test.ts`.
-    expect(lowerServers([])).toBeUndefined();
+    expect(lowerServers([], noPromotions())).toBeUndefined();
   });
 
   it("keeps the prototype of the built map untouched", () => {
@@ -29,7 +30,7 @@ describe("Unit: lowering the servers of one document", () => {
     // space of the claim.
     const names = ["__proto__", "constructor", "orders"];
 
-    const servers = lowerServers(names.map(stubServer)) as object;
+    const servers = lowerServers(names.map(stubServer), noPromotions()) as object;
 
     expect(Object.getPrototypeOf(servers)).toBe(Object.prototype);
     for (const name of names) expect(Object.hasOwn(servers, name)).toBe(true);

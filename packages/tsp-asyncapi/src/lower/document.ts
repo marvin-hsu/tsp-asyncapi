@@ -13,6 +13,7 @@ import type { AsyncAPIEmitterOptions } from "../emitter-options.js";
 import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import { SchemaBuilder } from "./schemas.js";
 import { lowerComponents } from "./components.js";
+import { surveyDocument } from "./components/survey.js";
 import { reportUnresolvedRawSchemaRefs } from "./raw-schema-refs.js";
 import { ASYNCAPI_VERSION, text } from "tsp-asyncapi-core";
 import { lowerChannels } from "./channels.js";
@@ -35,7 +36,10 @@ export function lowerDocument(
   options: AsyncAPIEmitterOptions,
 ): AsyncAPIDocument {
   const schemaBuilder = new SchemaBuilder(program);
-  const components = lowerComponents(program, service, schemaBuilder);
+  // The survey runs before anything is lowered, because a site has to know
+  // whether its fragment became a component before it writes it.
+  const promoted = surveyDocument(service, schemaBuilder);
+  const components = lowerComponents(program, service, schemaBuilder, promoted);
 
   const document: AsyncAPIDocument = {
     asyncapi: ASYNCAPI_VERSION,
@@ -44,15 +48,15 @@ export function lowerDocument(
     // rather than emitted as blank, and a padded one is trimmed. The options
     // schema sets no minimum length, so an author can write either.
     ...text("id", options["asyncapi-id"]),
-    info: lowerInfo(service.info),
+    info: lowerInfo(service.info, promoted),
     ...text("defaultContentType", options["default-content-type"]),
-    ...(service.servers.length > 0 ? { servers: lowerServers(service.servers) } : {}),
+    ...(service.servers.length > 0 ? { servers: lowerServers(service.servers, promoted) } : {}),
     // `channels` is required, so an empty map is emitted when the program
     // declares no channel.
-    channels: lowerChannels(service.channels),
+    channels: lowerChannels(service.channels, promoted),
     // `operations` is required, so an empty map is emitted when the program
     // declares no operation.
-    operations: lowerOperations(service.operations),
+    operations: lowerOperations(service.operations, promoted),
     ...(components ? { components } : {}),
   };
 

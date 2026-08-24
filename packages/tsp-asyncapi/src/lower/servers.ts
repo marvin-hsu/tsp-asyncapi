@@ -15,6 +15,8 @@ import type { ServerNode, ServerVariableNode } from "tsp-asyncapi-core/unstable"
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";
+import type { DocumentPromotions } from "./components/survey.js";
+import { shared } from "./components/survey.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
 function lowerServerVariables(
@@ -36,7 +38,7 @@ function lowerServerVariables(
 }
 
 /** Turns one resolved server into a Server Object. */
-function lowerServer(node: ServerNode): ServerObject {
+function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObject {
   const server: ServerObject = { host: node.host, protocol: node.protocol };
   // The field order follows the Server Object table of the specification.
   if (node.protocolVersion !== undefined) server.protocolVersion = node.protocolVersion;
@@ -59,7 +61,8 @@ function lowerServer(node: ServerNode): ServerObject {
     }));
     server.security = security;
   }
-  if (node.externalDocs !== undefined) server.externalDocs = { ...node.externalDocs };
+  const externalDocs = shared(promoted.externalDocs, "externalDocs", node.externalDocs);
+  if (externalDocs !== undefined) server.externalDocs = externalDocs;
   if (node.tags.length > 0) server.tags = structuredClone([...node.tags]);
   const bindings = lowerBindings(node.bindings);
   if (bindings !== undefined) server.bindings = structuredClone(bindings);
@@ -70,16 +73,18 @@ function lowerServer(node: ServerNode): ServerObject {
  * Builds the root `servers` map from resolved nodes.
  *
  * @param nodes - The resolved servers, in source order
+ * @param promoted - The closed surveys, asked what each shared fragment writes
  * @returns The `servers` map, or `undefined` when there is no node. The caller
  * then omits the field.
  * @internal
  */
 export function lowerServers(
   nodes: readonly ServerNode[],
+  promoted: DocumentPromotions,
 ): Record<string, ServerObject> | undefined {
   if (nodes.length === 0) return undefined;
   // The map is built from entries. A name such as `__proto__` is a legal
   // AsyncAPI key, and this way it becomes an own key instead of a write to
   // the prototype. A plain assignment would drop such a server.
-  return Object.fromEntries(nodes.map((node) => [node.name, lowerServer(node)]));
+  return Object.fromEntries(nodes.map((node) => [node.name, lowerServer(node, promoted)]));
 }

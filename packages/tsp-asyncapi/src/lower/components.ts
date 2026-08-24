@@ -20,7 +20,7 @@ import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import { SchemaBuilder } from "./schemas.js";
 import { lowerMessages, reportShadowedSchemaKeys } from "./messages.js";
 import { lowerSecuritySchemes } from "./security-schemes.js";
-import { surveyMessages } from "./components/raw-schemas.js";
+import type { DocumentPromotions } from "./components/survey.js";
 
 /**
  * Builds the `components` section.
@@ -34,6 +34,7 @@ import { surveyMessages } from "./components/raw-schemas.js";
  * @param program - The program, needed only to report a shadowed schema key
  * @param service - The semantic model
  * @param schemaBuilder - The builder that collects the schemas
+ * @param promoted - The closed surveys, holding every shared fragment
  * @returns The section, or `undefined` when nothing reached it
  * @internal
  */
@@ -41,10 +42,8 @@ export function lowerComponents(
   program: Program,
   service: AsyncAPIService,
   schemaBuilder: SchemaBuilder,
+  promoted: DocumentPromotions,
 ): ComponentsObject | undefined {
-  // The survey runs before anything is lowered, because a message has to know
-  // whether its raw schema became a component before it writes its payload.
-  const promoted = surveyMessages(service, schemaBuilder);
   const messages = lowerMessages(schemaBuilder, promoted, service.messages);
   // The shadow check reads the schema key owners, so it runs once every key
   // is claimed. A discriminated subtype claims its own only when the pending
@@ -58,12 +57,14 @@ export function lowerComponents(
   };
   const securitySchemes = lowerSecuritySchemes(service.securitySchemes);
   const correlationIds = Object.fromEntries(promoted.correlationIds.entries());
+  const externalDocs = Object.fromEntries(promoted.externalDocs.entries());
 
   const components: ComponentsObject = {
     ...(Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(messages ? { messages } : {}),
     ...(securitySchemes ? { securitySchemes } : {}),
     ...(Object.keys(correlationIds).length > 0 ? { correlationIds } : {}),
+    ...(Object.keys(externalDocs).length > 0 ? { externalDocs } : {}),
   };
   return Object.keys(components).length > 0 ? components : undefined;
 }

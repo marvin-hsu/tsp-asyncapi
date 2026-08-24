@@ -3,7 +3,7 @@ import { expectDiagnostics, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { buildServersFrom } from "../../../../utils/servers.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../../../utils/test-host.js";
-import { present, securitySchemesOf, serversOf } from "../../../../utils/document.js";
+import { channelsOf, present, securitySchemesOf, serversOf } from "../../../../utils/document.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 
 describe("Unit: server external docs", () => {
@@ -16,16 +16,51 @@ describe("Unit: server external docs", () => {
       namespace Test;
     `);
 
-    const expected = {
-      url: "https://example.com/brokers",
-      description: "How to reach the brokers",
-    };
-    expect(serversOf(doc).production.externalDocs).toEqual(expected);
-    expect(serversOf(doc).sit.externalDocs).toEqual(expected);
-    // The same namespace feeds `info`, so the link appears there as well.
-    // AsyncAPI defines the field on both objects, and a reader of a server
-    // should not have to look at `info` to find it.
-    expect(doc.info.externalDocs).toEqual(expected);
+    // One namespace feeds `info` and every server, so the same link reaches
+    // three places and is written once in `components`. `info` is the first
+    // site the survey meets, so it is the site the key is named after.
+    expect(doc.components?.externalDocs).toStrictEqual({
+      info: {
+        url: "https://example.com/brokers",
+        description: "How to reach the brokers",
+      },
+    });
+
+    const reference = { $ref: "#/components/externalDocs/info" };
+    expect(serversOf(doc).production.externalDocs).toStrictEqual(reference);
+    expect(serversOf(doc).sit.externalDocs).toStrictEqual(reference);
+    // AsyncAPI defines the field on `info` as well, and a reader of a server
+    // should not have to look there to find it.
+    expect(doc.info.externalDocs).toStrictEqual(reference);
+    await expect(doc).toBeValidAsyncAPI();
+  });
+
+  it("leaves a link only one site carries where it is", async () => {
+    const doc = await emitDocument(`
+      @service(#{ title: "Orders" })
+      @externalDocs("https://example.com/brokers")
+      namespace Test;
+
+      @message
+      model Placed {
+        id: string;
+      }
+
+      @channel("orders")
+      @externalDocs("https://example.com/orders")
+      interface OrderChannel {
+        @send
+        op place(event: Placed): void;
+      }
+    `);
+
+    // Two different links, each carried once. Neither has anything to share
+    // with, so a component would add a hop and save nothing.
+    expect(doc.components?.externalDocs).toBeUndefined();
+    expect(doc.info.externalDocs).toStrictEqual({ url: "https://example.com/brokers" });
+    expect(channelsOf(doc).orders.externalDocs).toStrictEqual({
+      url: "https://example.com/orders",
+    });
   });
 
   it("omits the external docs of a server when the namespace carries none", async () => {

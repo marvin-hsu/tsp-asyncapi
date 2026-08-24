@@ -7,6 +7,8 @@
  */
 
 import type { InfoNode } from "tsp-asyncapi-core/unstable";
+import type { DocumentPromotions } from "./components/survey.js";
+import { shared } from "./components/survey.js";
 import { present, text } from "tsp-asyncapi-core";
 import { InfoObject } from "../types/index.js";
 
@@ -16,10 +18,11 @@ import { InfoObject } from "../types/index.js";
  * The field order follows the Info Object table of the specification.
  *
  * @param node - The resolved `info`
+ * @param promoted - The closed surveys, asked what each shared fragment writes
  * @returns The Info Object
  * @internal
  */
-export function lowerInfo(node: InfoNode): InfoObject {
+export function lowerInfo(node: InfoNode, promoted: DocumentPromotions): InfoObject {
   return {
     title: node.title,
     version: node.version,
@@ -28,7 +31,7 @@ export function lowerInfo(node: InfoNode): InfoObject {
     ...present("contact", node.contact ? { ...node.contact } : undefined),
     ...present("license", node.license ? { ...node.license } : undefined),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
-    ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
     ...structuredClone(node.extensions),

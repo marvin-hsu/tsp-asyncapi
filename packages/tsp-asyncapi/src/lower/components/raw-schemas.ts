@@ -37,8 +37,16 @@
  */
 
 import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
-import type { CorrelationIdObject, MultiFormatSchemaObject } from "../../types/index.js";
-import type { SchemaBuilder } from "../schemas.js";
+import type { MultiFormatSchemaObject } from "../../types/index.js";
+/**
+ * The one question a survey asks about the schemas already claimed.
+ *
+ * `SchemaBuilder` answers it. Naming the question rather than the builder is
+ * what lets a test survey a document without compiling one.
+ */
+export interface ClaimedSchemaKeys {
+  schemaKeyOwner(key: string): unknown;
+}
 import { Promoter } from "./promotion.js";
 
 /** The suffix each kind of raw schema takes on its component key. */
@@ -50,7 +58,7 @@ const SUFFIX = { payload: "Payload", headers: "Headers" } as const;
  * Built before the messages are lowered, because a message needs to know
  * whether to write a reference or the schema itself.
  */
-class RawSchemaPromoter {
+export class RawSchemaPromoter {
   readonly #payloads: Promoter<MultiFormatSchemaObject>;
   readonly #headers: Promoter<MultiFormatSchemaObject>;
   readonly #keys = new Map<string, MultiFormatSchemaObject>();
@@ -71,7 +79,10 @@ class RawSchemaPromoter {
    * @returns A promoter ready to answer for each site
    * @internal
    */
-  public static survey(service: AsyncAPIService, schemas: SchemaBuilder): RawSchemaPromoter {
+  public static survey(
+    service: Pick<AsyncAPIService, "messages">,
+    schemas: ClaimedSchemaKeys,
+  ): RawSchemaPromoter {
     const make = () =>
       new Promoter<MultiFormatSchemaObject>({ when: "repeated", key: (_value, site) => site });
     const payloads = make();
@@ -114,42 +125,4 @@ class RawSchemaPromoter {
   public entries(): ReadonlyMap<string, MultiFormatSchemaObject> {
     return this.#keys;
   }
-}
-
-/**
- * Every promotion a message drives, surveyed together.
- *
- * A message carries several fragments that can be shared, and each needs the
- * survey closed before the message is lowered. One bag keeps the lowering
- * signature from growing a parameter per kind.
- */
-export interface MessagePromotions {
-  readonly rawSchemas: RawSchemaPromoter;
-  readonly correlationIds: Promoter<CorrelationIdObject>;
-}
-
-/**
- * Surveys every fragment a message can share.
- *
- * @param service - The semantic model
- * @param schemas - The builder, asked whether a schema key is already claimed
- * @returns The promotions, with every survey closed
- * @internal
- */
-export function surveyMessages(
-  service: AsyncAPIService,
-  schemas: SchemaBuilder,
-): MessagePromotions {
-  const correlationIds = new Promoter<CorrelationIdObject>({
-    when: "repeated",
-    key: (_value, site) => site,
-  });
-  for (const message of service.messages) {
-    if (message.correlationId !== undefined) {
-      correlationIds.survey(message.correlationId, message.key);
-    }
-  }
-  correlationIds.freeze();
-
-  return { rawSchemas: RawSchemaPromoter.survey(service, schemas), correlationIds };
 }

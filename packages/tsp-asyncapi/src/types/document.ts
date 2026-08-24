@@ -79,7 +79,7 @@ export interface InfoObject extends SpecificationExtensions {
   /** A list of tags for API documentation control. */
   tags?: TagObject[];
   /** Additional external documentation. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -124,7 +124,7 @@ export interface ServerObject {
    */
   tags?: TagObject[];
   /** Additional external documentation for this server. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -211,7 +211,7 @@ export interface ChannelObject extends SpecificationExtensions {
   /** The tags of this channel, each a full Tag Object. */
   tags?: TagObject[];
   /** Additional external documentation for this channel. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
 }
 
 /**
@@ -275,7 +275,7 @@ export interface OperationObject extends SpecificationExtensions {
   /** The tags of this operation, each a full Tag Object. */
   tags?: TagObject[];
   /** Additional external documentation for this operation. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** The protocol-specific settings of this operation, keyed by protocol name. */
   bindings?: BindingsObject;
   /**
@@ -437,7 +437,7 @@ export interface MessageObject extends SpecificationExtensions {
   /** The tags of this message, each a full Tag Object. */
   tags?: TagObject[];
   /** Additional external documentation for this message. */
-  externalDocs?: ExternalDocumentationObject;
+  externalDocs?: ExternalDocumentationObject | ReferenceObject;
   /** Worked examples of this message, in source order. */
   examples?: MessageExampleObject[];
 }

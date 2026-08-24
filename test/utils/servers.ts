@@ -4,6 +4,7 @@ import { builtSecuritySchemes } from "./security-schemes.js";
 import { BindingPlacements } from "#core/resolve/bindings.js";
 import { resolveServers } from "#core/resolve/servers.js";
 import { lowerServers } from "#emitter/lower/servers.js";
+import { noPromotions } from "./promotions.js";
 
 /**
  * Builds the `servers` map the way the document builder does.
@@ -24,5 +25,8 @@ export function buildServersFrom(
   namespace: Namespace,
 ): Record<string, ServerObject> | undefined {
   const declaredSchemes = new Set(Object.keys(builtSecuritySchemes(program) ?? {}));
-  return lowerServers(resolveServers(program, namespace, declaredSchemes, new BindingPlacements()));
+  return lowerServers(
+    resolveServers(program, namespace, declaredSchemes, new BindingPlacements()),
+    noPromotions(),
+  );
 }

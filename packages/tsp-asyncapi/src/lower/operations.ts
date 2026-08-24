@@ -15,6 +15,8 @@ import { present, text } from "tsp-asyncapi-core";
 import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer.js";
 import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
+import type { DocumentPromotions } from "./components/survey.js";
+import { shared } from "./components/survey.js";
 
 /** Turns resolved message keys into references into a channel's `messages`. */
 function lowerMessageRefs(nodes: readonly MessageRefNode[]): ReferenceObject[] | undefined {
@@ -36,7 +38,7 @@ function lowerReply(node: OperationReplyNode): OperationReplyObject {
  *
  * The field order follows the Operation Object table of the specification.
  */
-function lowerOperation(node: OperationNode): OperationObject {
+function lowerOperation(node: OperationNode, promoted: DocumentPromotions): OperationObject {
   return {
     action: node.action,
     channel: { $ref: channelRef(node.channelKey) },
@@ -49,7 +51,7 @@ function lowerOperation(node: OperationNode): OperationObject {
         : undefined,
     ),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
-    ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("messages", lowerMessageRefs(node.messages)),
     ...present("reply", node.reply ? lowerReply(node.reply) : undefined),
@@ -63,11 +65,15 @@ function lowerOperation(node: OperationNode): OperationObject {
  * Builds the root `operations` map from resolved nodes.
  *
  * @param nodes - The resolved operations, in source order
+ * @param promoted - The closed surveys, asked what each shared fragment writes
  * @returns The root `operations` map
  * @internal
  */
-export function lowerOperations(nodes: readonly OperationNode[]): Record<string, OperationObject> {
+export function lowerOperations(
+  nodes: readonly OperationNode[],
+  promoted: DocumentPromotions,
+): Record<string, OperationObject> {
   // The map is built from entries, so a key such as `__proto__` becomes an
   // own property instead of a write to the prototype.
-  return Object.fromEntries(nodes.map((node) => [node.key, lowerOperation(node)]));
+  return Object.fromEntries(nodes.map((node) => [node.key, lowerOperation(node, promoted)]));
 }

@@ -3,6 +3,7 @@ import { $lib } from "#core/lib.js";
 import { emitDocument, emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { byCodePoint } from "../utils/sort.js";
 import {
+  externalDocsOf,
   infoOf,
   messagesOf,
   present,
@@ -118,7 +119,7 @@ describe("Phase 1: Document Skeleton & Info", () => {
     expect(infoOf(doc).tags).toHaveLength(2);
     expect(infoOf(doc).tags).toContainEqual({ name: "orders" });
     expect(infoOf(doc).tags).toContainEqual({ name: "events" });
-    expect(infoOf(doc).externalDocs?.url).toBe("https://example.com/docs");
+    expect(externalDocsOf(infoOf(doc).externalDocs).url).toBe("https://example.com/docs");
     await expect(doc).toBeValidAsyncAPI();
   });
 

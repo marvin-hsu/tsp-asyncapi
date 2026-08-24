@@ -26,13 +26,14 @@ import {
   SchemaObject,
 } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
-import type { MessagePromotions } from "./components/raw-schemas.js";
+import type { DocumentPromotions } from "./components/survey.js";
+import { shared } from "./components/survey.js";
 import { componentRef, refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
 function lowerHeaders(
   schemas: SchemaBuilder,
-  promoted: MessagePromotions,
+  promoted: DocumentPromotions,
   node: MessageHeadersNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
   switch (node.kind) {
@@ -52,7 +53,7 @@ function lowerHeaders(
 /** Builds the `payload` of one Message Object. */
 function lowerPayload(
   schemas: SchemaBuilder,
-  promoted: MessagePromotions,
+  promoted: DocumentPromotions,
   node: MessagePayloadNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject {
   // A message with a raw payload carries the schema the author wrote, in the
@@ -75,7 +76,7 @@ function lowerPayload(
  * it in place.
  */
 function lowerCorrelationId(
-  promoted: MessagePromotions,
+  promoted: DocumentPromotions,
   node: CorrelationIdObject | undefined,
 ): CorrelationIdObject | ReferenceObject | undefined {
   if (node === undefined) return undefined;
@@ -90,7 +91,7 @@ function lowerCorrelationId(
  */
 function lowerMessage(
   schemas: SchemaBuilder,
-  promoted: MessagePromotions,
+  promoted: DocumentPromotions,
   node: MessageNode,
 ): MessageObject {
   return {
@@ -103,7 +104,7 @@ function lowerMessage(
     ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
-    ...present("externalDocs", node.externalDocs ? { ...node.externalDocs } : undefined),
+    ...present("externalDocs", shared(promoted.externalDocs, "externalDocs", node.externalDocs)),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
@@ -127,7 +128,7 @@ function lowerMessage(
  */
 export function lowerMessages(
   schemas: SchemaBuilder,
-  promoted: MessagePromotions,
+  promoted: DocumentPromotions,
   nodes: readonly MessageNode[],
 ): Record<string, MessageObject> | undefined {
   if (nodes.length === 0) return undefined;

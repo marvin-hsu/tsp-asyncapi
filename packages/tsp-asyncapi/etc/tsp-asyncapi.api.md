@@ -112,7 +112,7 @@ export interface ChannelObject extends SpecificationExtensions {
     address: string | null;
     bindings?: BindingsObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: Record<string, ReferenceObject>;
     parameters?: Record<string, ParameterObject>;
     servers?: ReferenceObject[];
@@ -177,7 +177,7 @@ export { IbmMqServerBindingObject }
 export interface InfoObject extends SpecificationExtensions {
     contact?: ContactObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     license?: LicenseObject;
     tags?: TagObject[];
     termsOfService?: string;
@@ -214,7 +214,7 @@ export interface MessageObject extends SpecificationExtensions {
     correlationId?: CorrelationIdObject | ReferenceObject;
     description?: string;
     examples?: MessageExampleObject[];
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     headers?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
     name?: string;
     payload?: MultiFormatSchemaObject | SchemaObject | ReferenceObject;
@@ -244,7 +244,7 @@ export interface OperationObject extends SpecificationExtensions {
     bindings?: BindingsObject;
     channel: ReferenceObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     messages?: ReferenceObject[];
     reply?: OperationReplyObject;
     security?: ReferenceObject[];
@@ -295,7 +295,7 @@ export { SecuritySchemeType }
 export interface ServerObject {
     bindings?: BindingsObject;
     description?: string;
-    externalDocs?: ExternalDocumentationObject;
+    externalDocs?: ExternalDocumentationObject | ReferenceObject;
     host: string;
     pathname?: string;
     protocol: string;

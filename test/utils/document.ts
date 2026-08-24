@@ -2,6 +2,7 @@ import type {
   AsyncAPIDocument,
   ChannelObject,
   ComponentsObject,
+  ExternalDocumentationObject,
   InfoObject,
   ReferenceObject,
   MessageObject,
@@ -263,4 +264,31 @@ export function countKey(node: unknown, key: string): number {
     total += countKey(value, key);
   }
   return total;
+}
+
+/**
+ * The external documentation of a value the test expects to be inline.
+ *
+ * A shared link is written as a reference into `components.externalDocs`, so
+ * a test that reads `url` has to say which arm it needs.
+ *
+ * @param value - An External Documentation Object or a reference
+ * @param name - What to call it in the failure message
+ * @returns The External Documentation Object
+ */
+export function externalDocsOf(
+  value: ExternalDocumentationObject | ReferenceObject | undefined,
+  name = "the value",
+): ExternalDocumentationObject {
+  if (value === undefined) {
+    throw new Error(
+      `This test needs ${name} to be external documentation, and there is nothing there.`,
+    );
+  }
+  if ("$ref" in value) {
+    throw new Error(
+      `This test needs ${name} to be external documentation, but the emitter wrote a reference.`,
+    );
+  }
+  return value;
 }
