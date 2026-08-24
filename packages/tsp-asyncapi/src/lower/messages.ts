@@ -25,17 +25,22 @@ import {
   SchemaObject,
 } from "../types/index.js";
 import { lowerBindings } from "./bindings.js";
+import type { RawSchemaPromoter } from "./components/raw-schemas.js";
+import { refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
 function lowerHeaders(
   schemas: SchemaBuilder,
+  raw: RawSchemaPromoter,
   node: MessageHeadersNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject | undefined {
   switch (node.kind) {
     case "none":
       return undefined;
-    case "raw":
-      return node.schema;
+    case "raw": {
+      const key = raw.keyFor("headers", node.schema);
+      return key === undefined ? node.schema : refFor(key);
+    }
     case "model":
       return schemas.buildDeclarationRef(node.model);
     case "fields":
@@ -46,14 +51,19 @@ function lowerHeaders(
 /** Builds the `payload` of one Message Object. */
 function lowerPayload(
   schemas: SchemaBuilder,
+  raw: RawSchemaPromoter,
   node: MessagePayloadNode,
 ): MultiFormatSchemaObject | SchemaObject | ReferenceObject {
   // A message with a raw payload carries the schema the author wrote, in the
   // format the author named. Nothing is built from the model, so that model
   // claims no `components.schemas` key and neither do the models it names.
-  return node.kind === "raw"
-    ? node.schema
-    : schemas.buildPayloadDeclaration(node.model, node.lifted);
+  //
+  // Two messages carrying the same schema share one component. One message
+  // carrying it alone keeps it here, because a component would add a `$ref`
+  // hop and save nothing.
+  if (node.kind !== "raw") return schemas.buildPayloadDeclaration(node.model, node.lifted);
+  const key = raw.keyFor("payload", node.schema);
+  return key === undefined ? node.schema : refFor(key);
 }
 
 /**
@@ -61,14 +71,18 @@ function lowerPayload(
  *
  * The field order follows the Message Object table of the specification.
  */
-function lowerMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject {
+function lowerMessage(
+  schemas: SchemaBuilder,
+  raw: RawSchemaPromoter,
+  node: MessageNode,
+): MessageObject {
   return {
     name: node.key,
     ...text("title", node.title),
     ...text("description", node.description),
     ...text("contentType", node.contentType),
-    ...present("headers", lowerHeaders(schemas, node.headers)),
-    payload: lowerPayload(schemas, node.payload),
+    ...present("headers", lowerHeaders(schemas, raw, node.headers)),
+    payload: lowerPayload(schemas, raw, node.payload),
     ...present("correlationId", node.correlationId),
     ...present("bindings", lowerBindings(node.bindings)),
     ...present("tags", node.tags.length > 0 ? structuredClone([...node.tags]) : undefined),
@@ -96,6 +110,7 @@ function lowerMessage(schemas: SchemaBuilder, node: MessageNode): MessageObject 
  */
 export function lowerMessages(
   schemas: SchemaBuilder,
+  raw: RawSchemaPromoter,
   nodes: readonly MessageNode[],
 ): Record<string, MessageObject> | undefined {
   if (nodes.length === 0) return undefined;
@@ -105,7 +120,7 @@ export function lowerMessages(
   // `SchemaBuilder.getSchemas`.
   const messages = Object.create(null) as Record<string, MessageObject>;
   for (const node of nodes) {
-    messages[node.key] = lowerMessage(schemas, node);
+    messages[node.key] = lowerMessage(schemas, raw, node);
   }
   return messages;
 }

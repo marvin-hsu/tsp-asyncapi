@@ -15,11 +15,12 @@
  */
 
 import { Program } from "@typespec/compiler";
-import { ComponentsObject } from "../types/index.js";
+import { ComponentsObject, MultiFormatSchemaObject, SchemaObject } from "../types/index.js";
 import type { AsyncAPIService } from "tsp-asyncapi-core/unstable";
 import { SchemaBuilder } from "./schemas.js";
 import { lowerMessages, reportShadowedSchemaKeys } from "./messages.js";
 import { lowerSecuritySchemes } from "./security-schemes.js";
+import { RawSchemaPromoter } from "./components/raw-schemas.js";
 
 /**
  * Builds the `components` section.
@@ -41,12 +42,20 @@ export function lowerComponents(
   service: AsyncAPIService,
   schemaBuilder: SchemaBuilder,
 ): ComponentsObject | undefined {
-  const messages = lowerMessages(schemaBuilder, service.messages);
+  // The survey runs before anything is lowered, because a message has to know
+  // whether its raw schema became a component before it writes its payload.
+  const rawSchemas = RawSchemaPromoter.survey(service, schemaBuilder);
+  const messages = lowerMessages(schemaBuilder, rawSchemas, service.messages);
   // The shadow check reads the schema key owners, so it runs once every key
   // is claimed. A discriminated subtype claims its own only when the pending
   // queue drains, which this call does first.
   reportShadowedSchemaKeys(program, schemaBuilder, service.messages);
-  const schemas = schemaBuilder.getSchemas();
+  // The built schemas first, then the shared raw ones. A raw schema is not
+  // built from a model, so the builder never held it.
+  const schemas: Record<string, SchemaObject | MultiFormatSchemaObject> = {
+    ...schemaBuilder.getSchemas(),
+    ...Object.fromEntries(rawSchemas.entries()),
+  };
   const securitySchemes = lowerSecuritySchemes(service.securitySchemes);
 
   const components: ComponentsObject = {
