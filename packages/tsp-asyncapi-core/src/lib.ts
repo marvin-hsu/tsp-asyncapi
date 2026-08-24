@@ -148,6 +148,7 @@ export const $lib = createTypeSpecLibrary({
         "no-package": paramMessage`Model '${"name"}' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.`,
         "not-converted": paramMessage`The official Protobuf emitter refused to convert model '${"name"}' of package '${"package"}', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.`,
         "no-file": paramMessage`The official Protobuf emitter produced no file for package '${"package"}', so model '${"name"}' has no generated payload. Check that the package holds at least one convertible declaration.`,
+        "emit-skipped": paramMessage`The official Protobuf emitter wrote no file for this program, because ${"reason"}. No message gets a generated Protobuf payload. Fix that first, then compile again.`,
       },
     },
     "conflicting-generated-schema-source": {

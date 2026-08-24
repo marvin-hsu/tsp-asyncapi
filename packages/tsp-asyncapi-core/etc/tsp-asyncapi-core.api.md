@@ -72,6 +72,7 @@ readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
 readonly "not-converted": CallableMessage<["name", "package"]>;
 readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "emit-skipped": CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -569,6 +570,7 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly "no-package": CallableMessage<["name"]>;
         readonly "not-converted": CallableMessage<["name", "package"]>;
         readonly "no-file": CallableMessage<["package", "name"]>;
+        readonly "emit-skipped": CallableMessage<["reason"]>;
     };
     "conflicting-generated-schema-source": {
         readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -901,6 +903,7 @@ readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
 readonly "not-converted": CallableMessage<["name", "package"]>;
 readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "emit-skipped": CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -1600,6 +1603,7 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly "no-package": CallableMessage<["name"]>;
         readonly "not-converted": CallableMessage<["name", "package"]>;
         readonly "no-file": CallableMessage<["package", "name"]>;
+        readonly "emit-skipped": CallableMessage<["reason"]>;
     };
     "conflicting-generated-schema-source": {
         readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -1932,6 +1936,7 @@ readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
 readonly "not-converted": CallableMessage<["name", "package"]>;
 readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "emit-skipped": CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;

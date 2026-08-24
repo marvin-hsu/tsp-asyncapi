@@ -624,7 +624,17 @@ No file is written. A document emitted next to this error would ignore the reque
 
 > Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
 
-Three problems report this code, and the message names which one it is. The model has no package above it. The official Protobuf emitter refused to convert the model. That emitter produced no file for the package of the model.
+> The official Protobuf emitter refused to convert model '\<name\>' of package '\<package\>', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.
+
+> The official Protobuf emitter produced no file for package '\<package\>', so model '\<name\>' has no generated payload. Check that the package holds at least one convertible declaration.
+
+> The official Protobuf emitter wrote no file for this program, because \<reason\>. No message gets a generated Protobuf payload. Fix that first, then compile again.
+
+Four problems report this code, and the message names which one it is. The model has no package above it. The official Protobuf emitter refused to convert the model. That emitter produced no file for the package of the model. That emitter wrote nothing for the whole program.
+
+The last message reports once, not once per model. The errors the official Protobuf emitter reported are reported too, so the message it wrote about a model is there to read. Those errors are left out when `emit` in `tspconfig.yaml` already runs `@typespec/protobuf`, because that run reports them itself.
+
+A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
 
 The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
 

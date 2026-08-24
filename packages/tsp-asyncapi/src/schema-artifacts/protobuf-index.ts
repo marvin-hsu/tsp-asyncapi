@@ -6,11 +6,11 @@
  * describes.
  *
  * The decision never comes from a file name or from a message of the same name
- * inside the text. It comes from the official decorator state: each
+ * inside the text. It comes from the official decorator state. Each
  * `@Protobuf.message` model resolves to its nearest `@Protobuf.package`
- * namespace, and that package name is matched against the `package`
- * declaration the text carries. So a renamed package, a nested namespace, and
- * two packages that hold a model of one name all map correctly.
+ * namespace. That package name is matched against the `package` declaration
+ * the text carries. So a renamed package, a nested namespace, and two packages
+ * that hold a model of one name all map correctly.
  *
  * A model of a package is described by the whole package text, not by the one
  * message inside it. The syntax line, the imports, the enums, and every
@@ -20,10 +20,19 @@
  * Nothing here falls back to an empty payload. A model with no package, a
  * package with no captured file, and a model the official emitter refused all
  * report a diagnostic instead.
+ *
+ * ## Who gets told
+ *
+ * An artifact is built for every `@Protobuf.message` model that has one. A
+ * diagnostic is reported only for a model the document asks a payload for,
+ * which is a model that also carries `@AsyncAPI.message`. A project that uses
+ * the official decorators for types outside the document keeps its build
+ * green.
  */
 
-import type { Diagnostic, Model, Program } from "@typespec/compiler";
+import { NoTarget, type Diagnostic, type Model, type Program } from "@typespec/compiler";
 import {
+  listMessages,
   reportDiagnostic,
   type ExternalSchemaArtifact,
   type SchemaArtifactIndex,
@@ -42,11 +51,22 @@ const PROTOBUF_SCHEMA_FORMAT = "application/vnd.google.protobuf;version=3";
 /** The name of the provider, as a diagnostic and a test read it. */
 const PROVIDER_ID = "protobuf";
 
+/** The package name of the official Protobuf emitter, as an emit list names it. */
+const OFFICIAL_EMITTER = "@typespec/protobuf";
+
 /** What the identity of an artifact says for a package that declares no name. */
 const UNNAMED_PACKAGE_IDENTITY = "(no package name)";
 
 /** The `package` declaration of a proto file, which the text carries at most once. */
 const PACKAGE_DECLARATION = /^package\s+([^\s;]+)\s*;/m;
+
+/**
+ * Why the official emitter wrote no file at all.
+ *
+ * A silent reason needs no diagnostic, because the compilation writes no
+ * document either. Any other reason is reported once, for the whole program.
+ */
+type EmitSkip = { readonly silent: true } | { readonly silent: false; readonly reason: string };
 
 /**
  * Builds the artifact index of one capture.
@@ -60,49 +80,185 @@ export function indexProtobufArtifacts(
   program: Program,
   captured: ProtobufCaptureResult,
 ): SchemaArtifactIndex {
-  const texts = textByPackageName(captured.files);
-  const refused = modelsTheOfficialEmitterRefused(captured.diagnostics);
+  // The skip reason is read before anything is reported, because reporting an
+  // error sets the error flag the reason itself looks at.
+  const skipped = wholeEmitSkip(program, captured);
+  reportCapturedDiagnostics(program, captured.diagnostics);
+
+  if (skipped !== undefined) {
+    if (!skipped.silent) {
+      reportDiagnostic(program, {
+        code: "protobuf-artifact-unavailable",
+        messageId: "emit-skipped",
+        target: NoTarget,
+        format: { reason: skipped.reason },
+      });
+    }
+    return { payloadFor: new Map(), headersFor: new Map() };
+  }
+
+  const lookup: PackageLookup = {
+    program,
+    texts: textByPackageName(captured.files),
+    refused: modelsTheOfficialEmitterRefused(captured.diagnostics),
+    // A model outside the document gets no diagnostic. It still gets an
+    // artifact when one exists, so an operation naming it later can use it.
+    asked: listMessages(program),
+  };
   const artifacts = new Map<string, ExternalSchemaArtifact>();
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();
 
   for (const model of listProtobufMessageModels(program)) {
-    const target = resolveProtobufPackage(program, model);
-    if (target === undefined) {
+    const found = packageTextFor(lookup, model);
+    if (found !== undefined) {
+      payloadFor.set(model, artifactOf(artifacts, found.identity, found.text));
+    }
+  }
+
+  return { payloadFor, headersFor: new Map() };
+}
+
+/** What the per-model lookup reads, so the loop passes one value. */
+interface PackageLookup {
+  /** The program to report against. */
+  readonly program: Program;
+  /** The captured text of each package, by the name it declares. */
+  readonly texts: ReadonlyMap<string, string>;
+  /** The models the official emitter reported an error about. */
+  readonly refused: ReadonlySet<Model>;
+  /** The models the document asks a payload for. */
+  readonly asked: ReadonlyMap<Model, unknown>;
+}
+
+/** The text one model is described by, and what its artifact calls itself. */
+interface PackageText {
+  /** What the artifact calls itself, which is the package name. */
+  readonly identity: string;
+  /** The proto3 text of the whole package. */
+  readonly text: string;
+}
+
+/**
+ * Finds the package text of one model, reporting when there is none.
+ *
+ * The three ways a model gets no payload each have their own message. A model
+ * the document never mentions is told none of them.
+ *
+ * @param lookup - What every model in this program is matched against
+ * @param model - A model that carries `@Protobuf.message`
+ * @returns The text of its package, or `undefined` when it has none
+ */
+function packageTextFor(lookup: PackageLookup, model: Model): PackageText | undefined {
+  const { program } = lookup;
+  const tell = lookup.asked.has(model);
+  const target = resolveProtobufPackage(program, model);
+  if (target === undefined) {
+    if (tell) {
       reportDiagnostic(program, {
         code: "protobuf-artifact-unavailable",
         messageId: "no-package",
         target: model,
         format: { name: model.name },
       });
-      continue;
     }
+    return undefined;
+  }
 
-    const identity = target.name ?? UNNAMED_PACKAGE_IDENTITY;
-    if (refused.has(model)) {
+  const identity = target.name ?? UNNAMED_PACKAGE_IDENTITY;
+  if (lookup.refused.has(model)) {
+    if (tell) {
       reportDiagnostic(program, {
         code: "protobuf-artifact-unavailable",
         messageId: "not-converted",
         target: model,
         format: { name: model.name, package: identity },
       });
-      continue;
     }
+    return undefined;
+  }
 
-    const text = texts.get(target.name ?? "");
-    if (text === undefined) {
+  const text = lookup.texts.get(target.name ?? "");
+  if (text === undefined) {
+    if (tell) {
       reportDiagnostic(program, {
         code: "protobuf-artifact-unavailable",
         messageId: "no-file",
-        target: model,
+        // The missing file belongs to the package, so the package declaration
+        // is where the author has something to change.
+        target: target.namespace,
         format: { name: model.name, package: identity },
       });
-      continue;
     }
-
-    payloadFor.set(model, artifactOf(artifacts, identity, text));
+    return undefined;
   }
 
-  return { payloadFor, headersFor: new Map() };
+  return { identity, text };
+}
+
+/**
+ * Reports what the capture took off the program.
+ *
+ * The capture removes the diagnostics of its own invocation so that a project
+ * running the official emitter itself does not see each message twice. That
+ * removal must not throw the messages away. An error of the official emitter
+ * is the actionable answer, and some of them name a namespace, an enum, or an
+ * operation, which no artifact diagnostic covers.
+ *
+ * The messages are put back unless the emit list already runs the official
+ * emitter. That invocation reports the same problems on its own.
+ *
+ * @param program - The program to report against
+ * @param diagnostics - What the capture took off the program
+ */
+function reportCapturedDiagnostics(program: Program, diagnostics: readonly Diagnostic[]): void {
+  if (diagnostics.length === 0) return;
+  if (officialEmitterRunsItself(program)) return;
+  program.reportDiagnostics(diagnostics);
+}
+
+/**
+ * Says whether the project asked for the official Protobuf emitter too.
+ *
+ * An emit list holds either a package name or a path to one. Both forms end
+ * with the package name.
+ *
+ * @param program - The compiled program
+ * @returns Whether the official emitter runs in this compilation
+ */
+function officialEmitterRunsItself(program: Program): boolean {
+  const emit = program.compilerOptions.emit ?? [];
+  return emit.some((entry) => entry === OFFICIAL_EMITTER || entry.endsWith(`/${OFFICIAL_EMITTER}`));
+}
+
+/**
+ * Finds out whether the official emitter skipped writing for the whole program.
+ *
+ * That emitter writes nothing on a dry run, on `noEmit`, and when the program
+ * already has an error. One reason covers every model, so one answer replaces
+ * a per-model message that would name the wrong cause.
+ *
+ * A capture that reported an error of its own is not a skip. Those models are
+ * told what the official emitter refused, which is the better message.
+ *
+ * @param program - The compiled program
+ * @param captured - The files and the diagnostics of the capture
+ * @returns The reason, or `undefined` when the per-model answers apply
+ */
+function wholeEmitSkip(program: Program, captured: ProtobufCaptureResult): EmitSkip | undefined {
+  if (captured.files.size > 0) return undefined;
+
+  const options = program.compilerOptions;
+  // Neither mode writes a document either, so there is nothing to explain.
+  if (options.dryRun === true || options.noEmit === true) return { silent: true };
+
+  if (captured.diagnostics.some((diagnostic) => diagnostic.severity === "error")) return undefined;
+  if (program.hasError()) {
+    return {
+      silent: false,
+      reason: "the program has errors, and that emitter writes nothing after one",
+    };
+  }
+  return undefined;
 }
 
 /**
@@ -138,18 +294,31 @@ function artifactOf(
  * Keys the captured text by the package name the text itself declares.
  *
  * A file with no `package` line comes from a package that declares no name,
- * and it is keyed by the empty string. The official emitter reports a
+ * and it is keyed by the empty string. The pinned official emitter reports a
  * collision and writes nothing when two packages would share a name, so a key
- * arrives at most once. The first text of a key is kept if that ever changes.
+ * arrives at most once.
+ *
+ * That promise belongs to the pinned version, and this file exists because
+ * the behavior of that version is not promised for the next one. A second,
+ * different text under one key therefore throws. A wrong payload written in
+ * silence is the one outcome this file has to prevent.
  *
  * @param files - The captured text, by the path it would have been written to
  * @returns The text of each package, by the name it declares
+ * @throws When two captured files declare one package name with different text
  */
 function textByPackageName(files: ReadonlyMap<string, string>): Map<string, string> {
   const texts = new Map<string, string>();
-  for (const text of files.values()) {
+  for (const [path, text] of files) {
     const declared = PACKAGE_DECLARATION.exec(text)?.[1] ?? "";
-    if (!texts.has(declared)) texts.set(declared, text);
+    const existing = texts.get(declared);
+    if (existing !== undefined && existing !== text) {
+      const identity = declared === "" ? UNNAMED_PACKAGE_IDENTITY : declared;
+      throw new Error(
+        `The official Protobuf emitter produced two different files for package '${identity}', the second of them '${path}'. A model is matched to its package by that name, so this adapter cannot choose one.`,
+      );
+    }
+    texts.set(declared, text);
   }
   return texts;
 }
@@ -159,9 +328,7 @@ function textByPackageName(files: ReadonlyMap<string, string>): Map<string, stri
  *
  * An error means the official emitter could not convert what the author
  * wrote. It also stops that emitter from producing any file at all, so
- * without this the model would be told its package has no file. The error
- * itself is the actionable answer, and this keeps the diagnostic pointed at
- * it.
+ * without this the model would be told its package has no file.
  *
  * @param diagnostics - What the capture took off the program
  * @returns Every model an error names, directly or through a property

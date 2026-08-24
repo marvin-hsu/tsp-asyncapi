@@ -624,7 +624,17 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
 
-三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、官方 Protobuf emitter 拒絕轉換這個 model、官方 emitter 沒有為該 package 產出檔案。
+> The official Protobuf emitter refused to convert model '\<name\>' of package '\<package\>', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.
+
+> The official Protobuf emitter produced no file for package '\<package\>', so model '\<name\>' has no generated payload. Check that the package holds at least one convertible declaration.
+
+> The official Protobuf emitter wrote no file for this program, because \<reason\>. No message gets a generated Protobuf payload. Fix that first, then compile again.
+
+四種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、官方 Protobuf emitter 拒絕轉換這個 model、官方 emitter 沒有為該 package 產出檔案、官方 emitter 對整個程式什麼都沒寫。
+
+最後那一種只回報一次，不會每個 model 各報一次。官方 Protobuf emitter 自己回報的錯誤也會一併留下，所以它針對某個 model 寫的訊息看得到。如果 `tspconfig.yaml` 的 `emit` 已經列了 `@typespec/protobuf`，這些錯誤就不重複留下，因為那一次執行自己會報。
+
+只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
 
 `protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
 

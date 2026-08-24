@@ -9,6 +9,10 @@
  *
  * Every case compiles the official decorators and runs the official emitter.
  *
+ * Both libraries are loaded, because the mapping reports only about a model
+ * the document asks a payload for. Each of the two declares a decorator named
+ * `message`, so every source here writes the AsyncAPI one qualified.
+ *
  * The models are looked up by namespace and name instead of with a tester
  * marker. Two of these cases declare one model name twice, and a marker names
  * each model once.
@@ -21,19 +25,20 @@ import type { TesterInstance } from "@typespec/compiler/testing";
 import { fileURLToPath } from "node:url";
 import { captureProtobufFiles } from "#emitter/schema-artifacts/protobuf-capture.js";
 import { indexProtobufArtifacts } from "#emitter/schema-artifacts/protobuf-index.js";
+import { PACKAGE_NAME } from "#emitter/lib.js";
 import type { SchemaArtifactIndex } from "tsp-asyncapi-core";
 
 /** The root of the emitter package, which holds the official library as a dependency. */
 const PACKAGE_ROOT = fileURLToPath(new URL("../../../../packages/tsp-asyncapi", import.meta.url));
 
 /**
- * A tester that loads the official Protobuf library only.
+ * A tester that loads this emitter and the official Protobuf library.
  *
- * The mapping reads official decorator state and captured text. Neither needs
- * a decorator of this emitter, so nothing else is loaded.
+ * Only the Protobuf namespace is opened. `@AsyncAPI.message` is written out in
+ * full, because the other library exports that name too.
  */
 const ProtobufTester = createTester(PACKAGE_ROOT, {
-  libraries: ["@typespec/protobuf"],
+  libraries: [PACKAGE_NAME, "@typespec/protobuf"],
 })
   .importLibraries()
   .using("TypeSpec.Protobuf");
@@ -103,6 +108,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const { artifacts, reported } = await index(`
       @package({ name: "com.example.orders" })
       namespace Orders {
+        @AsyncAPI.message
         @message
         model OrderCreated {
           @field(1)
@@ -125,6 +131,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const { artifacts, reported } = await index(`
       @package({ name: "com.example.outer" })
       namespace Shipping {
+        @AsyncAPI.message
         @message
         model Parcel {
           @field(1)
@@ -133,6 +140,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
 
         @package({ name: "com.example.inner" })
         namespace Deep {
+          @AsyncAPI.message
           @message
           model Label {
             @field(1)
@@ -149,13 +157,18 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     expect(inner?.identity).toBe("com.example.inner");
     expect(inner?.schema).toContain("string code = 1;");
     expect(inner?.schema).not.toContain("message Parcel");
+    // The nearest package wins on both sides of the boundary, so the outer
+    // file holds its own model and not the one the inner package claimed.
     expect(outer?.identity).toBe("com.example.outer");
+    expect(outer?.schema).toContain("message Parcel");
+    expect(outer?.schema).not.toContain("message Label");
   });
 
   it("keeps two packages apart when both hold a model of one name", async () => {
     const { artifacts, reported } = await index(`
       @package({ name: "com.example.left" })
       namespace Left {
+        @AsyncAPI.message
         @message
         model OrderCreated {
           @field(1)
@@ -165,6 +178,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
 
       @package({ name: "com.example.right" })
       namespace Right {
+        @AsyncAPI.message
         @message
         model OrderCreated {
           @field(1)
@@ -189,12 +203,14 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const { artifacts } = await index(`
       @package({ name: "com.example.orders" })
       namespace Orders {
+        @AsyncAPI.message
         @message
         model First {
           @field(1)
           id: string;
         }
 
+        @AsyncAPI.message
         @message
         model Second {
           @field(1)
@@ -214,6 +230,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
   it("reports a model that carries the decorator with no package above it", async () => {
     const { artifacts, reported } = await index(`
       namespace Loose {
+        @AsyncAPI.message
         @message
         model Detached {
           @field(1)
@@ -230,10 +247,28 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     expect(unavailable?.target).toBe(model);
   });
 
+  it("stays quiet about a Protobuf model the document never mentions", async () => {
+    // The official decorators are also used for types outside the document. A
+    // model with no AsyncAPI message asks for no payload, so it gets no error.
+    const { artifacts, reported } = await index(`
+      namespace Internal {
+        @message
+        model GrpcOnly {
+          @field(1)
+          id: string;
+        }
+      }
+    `);
+
+    expect(reported).toHaveLength(0);
+    expect(artifacts.payloadFor.size).toBe(0);
+  });
+
   it("maps a package that declares no name", async () => {
     const { artifacts, reported } = await index(`
       @package
       namespace Plain {
+        @AsyncAPI.message
         @message
         model Ping {
           @field(1)
@@ -251,13 +286,15 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     expect(artifact?.schema).not.toContain("package ");
   });
 
-  it("reports a model whose package produced no file", async () => {
-    // The official emitter writes nothing on a dry run. Nothing is refused and
-    // nothing is captured, so the model is told its package has no file.
+  it("stays quiet on a dry run, where nothing is written anyway", async () => {
+    // The official emitter writes no file on a dry run. That is one cause for
+    // the whole program, and the compilation writes no document either, so a
+    // per-model error would name a problem the author does not have.
     await runner.compileAndDiagnose(
       `
       @package({ name: "com.example.orders" })
       namespace Orders {
+        @AsyncAPI.message
         @message
         model OrderCreated {
           @field(1)
@@ -274,11 +311,34 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
 
     expect(captured.files.size).toBe(0);
     expect(artifacts.payloadFor.size).toBe(0);
+    expect(program.diagnostics.slice(before)).toHaveLength(0);
+  });
+
+  it("reports a model whose package produced no file", async () => {
+    // No captured file, no captured error, and a healthy program. The cause is
+    // the package itself, so the diagnostic points at the namespace declaring it.
+    await runner.compileAndDiagnose(`
+      @package({ name: "com.example.orders" })
+      namespace Orders {
+        @AsyncAPI.message
+        @message
+        model OrderCreated {
+          @field(1)
+          orderId: string;
+        }
+      }
+    `);
+    const program = runner.program;
+    const before = program.diagnostics.length;
+    const artifacts = indexProtobufArtifacts(program, { files: new Map(), diagnostics: [] });
+
+    expect(artifacts.payloadFor.size).toBe(0);
     const unavailable = program.diagnostics
       .slice(before)
       .find((diagnostic) => diagnostic.code === UNAVAILABLE);
     expect(unavailable?.message).toContain("produced no file");
     expect(unavailable?.message).toContain("com.example.orders");
+    expect(unavailable?.target).toBe(modelIn("Orders", "OrderCreated").namespace);
   });
 
   it("reports a model the official emitter refused to convert", async () => {
@@ -288,6 +348,7 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const { artifacts, reported } = await index(`
       @package({ name: "com.example.orders" })
       namespace Orders {
+        @AsyncAPI.message
         @message
         model Broken {
           orderId: string;
@@ -300,5 +361,69 @@ describe("Unit: Protobuf artifact index (Phase 16 P3)", () => {
     const unavailable = reported.find((diagnostic) => diagnostic.code === UNAVAILABLE);
     expect(unavailable?.message).toContain("refused to convert");
     expect(unavailable?.message).toContain("com.example.orders");
+    // The error of the official emitter is what the author has to act on, so
+    // the capture must not swallow it.
+    expect(reported.some((diagnostic) => diagnostic.code.startsWith("@typespec/protobuf/"))).toBe(
+      true,
+    );
+  });
+
+  it("keeps the error of a problem no model diagnostic covers", async () => {
+    // A package name used twice is reported against a namespace. No artifact
+    // diagnostic names a namespace, so without the capture putting the error
+    // back the compilation would fail with nothing to read.
+    const { reported } = await index(`
+      @package({ name: "com.example.orders" })
+      namespace Left {
+        @AsyncAPI.message
+        @message
+        model Placed {
+          @field(1)
+          id: string;
+        }
+      }
+
+      @package({ name: "com.example.orders" })
+      namespace Right {
+        @AsyncAPI.message
+        @message
+        model Shipped {
+          @field(1)
+          id: string;
+        }
+      }
+    `);
+
+    const collision = reported.find((diagnostic) =>
+      diagnostic.code.endsWith("namespace-collision"),
+    );
+    expect(collision).toBeDefined();
+    expect(collision?.message).toContain("com.example.orders");
+  });
+
+  it("throws when two captured files claim one package name", async () => {
+    // The pinned official emitter cannot produce this. The adapter reads its
+    // undocumented behavior, so an upgrade that changes it has to stop here
+    // rather than hand a model the text of another package.
+    await runner.compileAndDiagnose(`
+      @package({ name: "com.example.orders" })
+      namespace Orders {
+        @AsyncAPI.message
+        @message
+        model OrderCreated {
+          @field(1)
+          orderId: string;
+        }
+      }
+    `);
+
+    const files = new Map([
+      ["/out/first.proto", 'syntax = "proto3";\n\npackage com.example.orders;\n\nmessage A {}\n'],
+      ["/out/second.proto", 'syntax = "proto3";\n\npackage com.example.orders;\n\nmessage B {}\n'],
+    ]);
+
+    expect(() => indexProtobufArtifacts(runner.program, { files, diagnostics: [] })).toThrow(
+      /com\.example\.orders/,
+    );
   });
 });
