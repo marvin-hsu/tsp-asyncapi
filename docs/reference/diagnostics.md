@@ -637,13 +637,21 @@ The second message names the construct it stopped at. This emitter writes the pr
 - a template instantiation
 - a type that carries `@Protobuf.externRef`, which includes the well known types
 - a property with no `@Protobuf.field` number
-- a `Protobuf.Map` type, which this release does not write yet
+- an array of `Protobuf.Map` values, which proto3 has no form for
+- a `Protobuf.Map` inside another type, such as the value of another map
+- a `Protobuf.Map` keyed by a type proto3 cannot key a map with
 - a model or enum of another Protobuf package
 - a model or enum that no `@Protobuf.package` covers
 - a model or enum whose name another declaration of the payload already takes
 - an enum whose first variant is not zero
 - an enum with a variant that is not an integer
 - a `@Protobuf.package` declaration this emitter cannot read
+- a `@Protobuf.reserve` list this emitter cannot read
+
+The last two come from the state of another library, and that library
+promises nothing about the shape of it. A shape this emitter does not know is
+refused rather than guessed at, because a guess would put wrong proto3 text in
+the document and say so nowhere.
 
 The third message names the scalar. This emitter maps the 15 scalars the Protobuf library maps. Nine of them are built in TypeSpec scalars, and six come from the Protobuf library. It also follows the chain a custom scalar extends. A scalar whose chain reaches none of the 15 has no type to write.
 

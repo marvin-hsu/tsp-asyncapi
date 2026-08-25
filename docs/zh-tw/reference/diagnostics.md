@@ -637,13 +637,18 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 - template 實例
 - 帶 `@Protobuf.externRef` 的型別，包含 well known 型別
 - 沒有 `@Protobuf.field` 編號的屬性
-- `Protobuf.Map` 型別，本版尚未寫出
+- `Protobuf.Map` 的陣列，proto3 沒有這種形式
+- 巢狀在其他型別裡的 `Protobuf.Map`，例如另一個 map 的值
+- 用 proto3 不能當 map key 的型別當 key 的 `Protobuf.Map`
 - 屬於其他 Protobuf package 的 model 或 enum
 - 沒有任何 `@Protobuf.package` 涵蓋的 model 或 enum
 - 名稱已被同一份 payload 的另一個宣告佔用的 model 或 enum
 - 第一個變體不是零的 enum
 - 有非整數變體的 enum
 - 這個 emitter 讀不懂的 `@Protobuf.package` 宣告
+- 這個 emitter 讀不懂的 `@Protobuf.reserve` 列表
+
+最後兩項來自另一個 library 的 state，那個 library 對它的形狀沒有任何承諾。遇到讀不懂的形狀就拒絕，不猜：猜錯會把錯的 proto3 文字寫進文件，而且不會有任何地方講出來。
 
 第三種訊息會指出是哪個 scalar。這個 emitter 對映 Protobuf library 對映的那 15 個 scalar。其中九個是 TypeSpec 內建的 scalar，六個來自 Protobuf library。它也會沿著自訂 scalar 的 extends 鏈往上找。整條鏈都碰不到那 15 個的 scalar，沒有型別可寫。
 

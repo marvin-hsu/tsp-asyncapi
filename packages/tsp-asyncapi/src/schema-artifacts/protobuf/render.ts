@@ -62,16 +62,45 @@ function renderDeclaration(declaration: ProtoDeclaration): string[] {
  */
 function renderMessage(message: ProtoMessage): string[] {
   const lines = renderDoc(message.doc, "");
-  if (message.fields.length === 0) {
+  const reserved = renderReservations(message);
+  if (message.fields.length === 0 && reserved.length === 0) {
     lines.push(`message ${message.name} {}`);
     return lines;
   }
-  lines.push(`message ${message.name} {`);
+  lines.push(`message ${message.name} {`, ...reserved);
+  // The reserved lines and the fields are two groups, so a message that has
+  // both gets a blank line between them.
+  if (reserved.length > 0 && message.fields.length > 0) lines.push("");
   for (const field of message.fields) {
     lines.push(...renderDoc(field.doc, INDENT));
     lines.push(`${INDENT}${labelOf(field)}${field.type} ${field.name} = ${String(field.index)};`);
   }
   lines.push("}");
+  return lines;
+}
+
+/**
+ * Renders what a message reserves, as the two lines proto3 gives it.
+ *
+ * proto3 keeps reserved numbers and reserved names apart, so a message that
+ * reserves both gets two lines. A range is written with the `to` keyword,
+ * which is how proto3 spells an inclusive range.
+ *
+ * @param message - The message to read the reservations of
+ * @returns The reserved lines, which is none when the message reserves nothing
+ */
+function renderReservations(message: ProtoMessage): string[] {
+  const lines: string[] = [];
+  if (message.reservedNumbers.length > 0) {
+    const written = message.reservedNumbers.map((one) =>
+      typeof one === "number" ? String(one) : `${String(one[0])} to ${String(one[1])}`,
+    );
+    lines.push(`${INDENT}reserved ${written.join(", ")};`);
+  }
+  if (message.reservedNames.length > 0) {
+    const quoted = message.reservedNames.map((one) => `"${one}"`);
+    lines.push(`${INDENT}reserved ${quoted.join(", ")};`);
+  }
   return lines;
 }
 

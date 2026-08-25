@@ -12,6 +12,16 @@
  * fields are walked, so a model that reaches itself finds its own name and
  * stops. Nothing here needs a second pass to prune or to check.
  *
+ * One message of a payload is the one the payload describes, and the closure
+ * says which without an annotation: every other declaration was pulled in by
+ * a reference, so the root is the one no other declaration references. A
+ * message that references itself still counts, because the official AsyncAPI
+ * Protobuf parser ignores a self reference. Two messages that reference each
+ * other are the one shape with no such message, and that parser cannot root
+ * them. Both payloads are still correct proto3, and both carry both
+ * declarations. Nothing here works around that limit, because working around
+ * it would mean dropping a declaration the text needs.
+ *
  * The structure below is the smallest one the printer needs. Every field it
  * does not have is a field a later release can add. Every field it has is one
  * the printer reads.
@@ -68,9 +78,16 @@ export interface ProtoMessage {
   readonly name: string;
   /** The documentation of the model, or `undefined` when it has none. */
   readonly doc: string | undefined;
+  /** The field numbers and ranges the message reserves, in source order. */
+  readonly reservedNumbers: readonly ProtoReservedNumber[];
+  /** The field names the message reserves, in source order. */
+  readonly reservedNames: readonly string[];
   /** The fields, in the order the model declares its properties. */
   readonly fields: readonly ProtoField[];
 }
+
+/** One reserved field number, or one inclusive range of them. */
+type ProtoReservedNumber = number | readonly [number, number];
 
 /**
  * One field of a message.
@@ -158,6 +175,32 @@ const EXTERN_REF_STATE = Symbol.for("@typespec/protobuf.externRef");
 
 /** The state key that marks a `Protobuf.Map` instantiation. */
 const MAP_STATE = Symbol.for("@typespec/protobuf._map");
+
+/** The state key of `@Protobuf.reserve`, a map from model to its reservations. */
+const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
+
+/**
+ * The proto3 types a map key may take.
+ *
+ * proto3 allows an integral or a string key, and nothing else. TypeSpec
+ * constrains the key of `Protobuf.Map` the same way, so an author reaches
+ * this set through the constraint. It is checked again here, because the
+ * constraint belongs to another library and this emitter writes the text.
+ */
+const MAP_KEY_SCALARS = new Set([
+  "bool",
+  "string",
+  "int32",
+  "int64",
+  "uint32",
+  "uint64",
+  "sint32",
+  "sint64",
+  "fixed32",
+  "fixed64",
+  "sfixed32",
+  "sfixed64",
+]);
 
 /** What one walk carries, so each step takes one value rather than five. */
 interface Walk {
@@ -283,6 +326,9 @@ function visitModel(walk: Walk, model: Model): string | undefined {
   if (!claimName(walk, model, name)) return undefined;
   walk.declared.set(model, undefined);
 
+  const reserved = reservationsOf(walk, model, name);
+  if (reserved === undefined) return undefined;
+
   const fields: ProtoField[] = [];
   for (const property of model.properties.values()) {
     const field = fieldOf(walk, property);
@@ -294,9 +340,82 @@ function visitModel(walk: Walk, model: Model): string | undefined {
     kind: "message",
     name,
     doc: getDoc(walk.program, model),
+    reservedNumbers: reserved.numbers,
+    reservedNames: reserved.names,
     fields,
   });
   return name;
+}
+
+/** What one model reserves, split the way proto3 writes the two lines. */
+interface Reservations {
+  /** The reserved field numbers and inclusive ranges, in source order. */
+  readonly numbers: ProtoReservedNumber[];
+  /** The reserved field names, in source order. */
+  readonly names: string[];
+}
+
+/**
+ * Reads what a model reserves, or reports that the state is unreadable.
+ *
+ * `@Protobuf.reserve` stores a list of field numbers, inclusive ranges, and
+ * field names. The list belongs to the other library, which promises nothing
+ * about its shape. So every entry is checked, and an entry of any other shape
+ * ends the walk. Skipping such an entry would drop a reservation, and a
+ * dropped reservation lets a later author re-use a number that a released
+ * message already spent.
+ *
+ * @param walk - The walk in progress
+ * @param model - The model to read the reservations of
+ * @param name - The rendered message name, which a report names
+ * @returns The reservations, or `undefined` when the state is unreadable
+ */
+function reservationsOf(walk: Walk, model: Model, name: string): Reservations | undefined {
+  const stored = walk.program.stateMap(RESERVE_STATE).get(model) as unknown;
+  const reserved: Reservations = { numbers: [], names: [] };
+  if (stored === undefined) return reserved;
+
+  const construct = `message '${name}' with a @Protobuf.reserve list this emitter cannot read`;
+  if (!Array.isArray(stored)) {
+    refuse(walk, model, construct);
+    return undefined;
+  }
+
+  for (const entry of stored as unknown[]) {
+    if (typeof entry === "string") {
+      reserved.names.push(entry);
+    } else if (isFieldNumber(entry)) {
+      reserved.numbers.push(entry);
+    } else if (isFieldRange(entry)) {
+      reserved.numbers.push([entry[0], entry[1]]);
+    } else {
+      refuse(walk, model, construct);
+      return undefined;
+    }
+  }
+  return reserved;
+}
+
+/**
+ * Whether a value is a field number proto3 can write.
+ *
+ * @param value - The value to judge
+ * @returns Whether it is a non negative integer
+ */
+function isFieldNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * Whether a value is an inclusive range of field numbers.
+ *
+ * @param value - The value to judge
+ * @returns Whether it is two field numbers, the lower one first
+ */
+function isFieldRange(value: unknown): value is [number, number] {
+  if (!Array.isArray(value) || value.length !== 2) return false;
+  const range = value as unknown[];
+  return isFieldNumber(range[0]) && isFieldNumber(range[1]) && range[0] <= range[1];
 }
 
 /**
@@ -374,7 +493,7 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
     refuse(walk, property, `property '${property.name}' whose array element is not a type`);
     return undefined;
   }
-  const type = typeNameOf(walk, target, property);
+  const type = fieldTypeOf(walk, target, property, repeated);
   if (type === undefined) return undefined;
 
   return {
@@ -385,6 +504,74 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
     optional: takesOptionalLabel(property, repeated),
     doc: getDoc(walk.program, property),
   };
+}
+
+/**
+ * The type to write for one field, which is the one place a map may appear.
+ *
+ * proto3 gives a map field no label. It is neither repeated nor optional, and
+ * it cannot be the element of a list or the value of another map. So a map is
+ * read here, at the top of a field, and refused everywhere else.
+ *
+ * @param walk - The walk in progress
+ * @param target - The type of the field, with any array already unwrapped
+ * @param property - The property, which a diagnostic points at
+ * @param repeated - Whether the field already takes the `repeated` label
+ * @returns The type to write, or `undefined` when the field was refused
+ */
+function fieldTypeOf(
+  walk: Walk,
+  target: Type,
+  property: ModelProperty,
+  repeated: boolean,
+): string | undefined {
+  if (!walk.program.stateSet(MAP_STATE).has(target)) {
+    return typeNameOf(walk, target, property);
+  }
+  if (repeated) {
+    refuse(walk, property, `property '${property.name}' with an array of Protobuf.Map values`);
+    return undefined;
+  }
+  return mapTypeOf(walk, target as Model, property);
+}
+
+/**
+ * The `map<K, V>` type of one map field, adding the value to the closure.
+ *
+ * The key resolves through the same scalar table every other field uses, and
+ * it then has to be a type proto3 accepts as a key. The value resolves the
+ * same way any other field type does, so a message value joins the closure.
+ *
+ * @param walk - The walk in progress
+ * @param map - A `Protobuf.Map` instantiation
+ * @param property - The property, which a diagnostic points at
+ * @returns The map type, or `undefined` when the map was refused
+ */
+function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | undefined {
+  const args = map.templateMapper?.args ?? [];
+  if (args.length !== 2) {
+    refuse(walk, property, `property '${property.name}' of a Protobuf.Map with no key and value`);
+    return undefined;
+  }
+  const [key, value] = args;
+  if (!("kind" in key) || !("kind" in value)) {
+    refuse(walk, property, `property '${property.name}' of a Protobuf.Map of values, not types`);
+    return undefined;
+  }
+  if (key.kind !== "Scalar") {
+    refuse(walk, property, `property '${property.name}' of a Protobuf.Map keyed by a ${key.kind}`);
+    return undefined;
+  }
+
+  const keyName = scalarNameOf(walk, key);
+  if (keyName === undefined) return undefined;
+  if (!MAP_KEY_SCALARS.has(keyName)) {
+    refuse(walk, property, `property '${property.name}' of a Protobuf.Map keyed by '${keyName}'`);
+    return undefined;
+  }
+  const valueName = typeNameOf(walk, value, property);
+  if (valueName === undefined) return undefined;
+  return `map<${keyName}, ${valueName}>`;
 }
 
 /**
@@ -401,7 +588,7 @@ function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | u
     return undefined;
   }
   if (walk.program.stateSet(MAP_STATE).has(type)) {
-    refuse(walk, property, `property '${property.name}' of a Protobuf.Map type`);
+    refuse(walk, property, `property '${property.name}' with a Protobuf.Map inside another type`);
     return undefined;
   }
   if (isArrayInstance(type)) {

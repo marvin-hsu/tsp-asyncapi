@@ -197,6 +197,11 @@ describe("Unit: Protobuf payload parity (Phase 16 W1)", () => {
   /**
    * Two models that reach each other close the same way. Each payload holds
    * both, because each one reaches both.
+   *
+   * This pair is also the one shape the official AsyncAPI Protobuf parser
+   * cannot root: it takes the message no other message references, and here
+   * there is none. The text is still correct proto3, and dropping either
+   * declaration to give that parser a root would break it.
    */
   it("closes two models that reach each other", async () => {
     const source = `
@@ -221,6 +226,67 @@ describe("Unit: Protobuf payload parity (Phase 16 W1)", () => {
       expect(text).toContain("message Parent {");
       expect(text).toContain("message Child {");
     }
+  });
+
+  /** A map field carries the key and value types inside its own type. */
+  it("renders a Protobuf map the way the official emitter does", async () => {
+    const source = `
+      @Protobuf.package({ name: "com.example.maps" })
+      namespace Maps;
+
+      model Detail {
+        @Protobuf.field(1) note: string;
+      }
+
+      @Protobuf.message
+      model Record {
+        @Protobuf.field(1) labels: Protobuf.Map<string, string>;
+        @Protobuf.field(2) counts: Protobuf.Map<int32, int64>;
+        @Protobuf.field(3) details: Protobuf.Map<string, Detail>;
+      }
+    `;
+    await expectDescriptorParity(source, "Record");
+
+    const text = await renderPayload(source, "Record");
+    expect(text).toContain("map<string, string> labels = 1;");
+    expect(text).toContain("map<int32, int64> counts = 2;");
+    // A message value joins the closure the same way any other field does.
+    expect(text).toContain("map<string, Detail> details = 3;");
+    expect(text).toContain("message Detail {");
+  });
+
+  /** A reserved number, a reserved range, and a reserved name, all three. */
+  it("reserves the numbers and the names the model reserves", async () => {
+    const source = `
+      @Protobuf.package({ name: "com.example.reserved" })
+      namespace Reserved;
+
+      @Protobuf.reserve(2, #[9, 11], "removed", "gone")
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `;
+    await expectDescriptorParity(source, "Event");
+
+    const text = await renderPayload(source, "Event");
+    expect(text).toContain("  reserved 2, 9 to 11;");
+    expect(text).toContain('  reserved "removed", "gone";');
+  });
+
+  /** A message that only reserves still gets a block rather than one line. */
+  it("writes a block for a message that reserves and holds no field", async () => {
+    const source = `
+      @Protobuf.package({ name: "com.example.emptyreserved" })
+      namespace EmptyReserved;
+
+      @Protobuf.reserve(1)
+      @Protobuf.message
+      model Marker {}
+    `;
+    await expectDescriptorParity(source, "Marker");
+
+    expect(await renderPayload(source, "Marker")).toContain("message Marker {\n  reserved 1;\n}");
   });
 
   /** A friendly name wins, and a plain name is capitalized. Both are mirrored. */

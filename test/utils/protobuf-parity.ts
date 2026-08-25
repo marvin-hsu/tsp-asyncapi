@@ -107,7 +107,7 @@ function renderNamed(program: Program, modelName: string): string {
  * @param modelName - The name the source gives the model
  * @returns That model
  */
-function messageModelNamed(program: Program, modelName: string): Model {
+export function messageModelNamed(program: Program, modelName: string): Model {
   const model = listProtobufMessageModels(program).find((one) => one.name === modelName);
   if (model === undefined) {
     throw new Error(`The source declares no @Protobuf.message model named '${modelName}'.`);
@@ -164,14 +164,20 @@ export async function expectDescriptorParity(source: string, modelName: string):
  *
  * @param source - The TypeSpec source, which compiles without an error
  * @param modelName - The model whose payload is asked for
+ * @param prepare - What to do to the program before the payload is asked for.
+ *   A case that stands in for another version of the official library writes
+ *   its state here, because no source can produce a shape that library does
+ *   not write today.
  * @returns The diagnostics the refusal reported
  */
 export async function refusePayload(
   source: string,
   modelName: string,
+  prepare?: (program: Program) => void,
 ): Promise<readonly Diagnostic[]> {
   const runner = await StateTester.createInstance();
   await runner.compile(source);
+  prepare?.(runner.program);
   const model = messageModelNamed(runner.program, modelName);
   expect(buildPayloadModel(runner.program, model)).toBeUndefined();
   return runner.program.diagnostics;

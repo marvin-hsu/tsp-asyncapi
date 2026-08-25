@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { Model, Program } from "@typespec/compiler";
 import { findDiagnostic } from "../../../../utils/diagnostics.js";
-import { refusePayload, renderPayload } from "../../../../utils/protobuf-parity.js";
+import {
+  messageModelNamed,
+  refusePayload,
+  renderPayload,
+} from "../../../../utils/protobuf-parity.js";
 
 /** The package declaration every case here shares. */
 const PACKAGE = '@Protobuf.package({ name: "com.example.render" })';
@@ -262,7 +267,11 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     );
   });
 
-  it("refuses a Protobuf map until the walk learns to write one", async () => {
+  /**
+   * proto3 gives a map field no label, so a map is only a field type. An
+   * array of maps has no form at all, and the walk says which one it saw.
+   */
+  it("refuses an array of Protobuf maps", async () => {
     const diagnostics = await refusePayload(
       `
       ${PACKAGE}
@@ -270,14 +279,88 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
 
       @Protobuf.message
       model Event {
-        @Protobuf.field(1) labels: Protobuf.Map<string, string>;
+        @Protobuf.field(1) many: Protobuf.Map<string, string>[];
       }
     `,
       "Event",
     );
 
     expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
-      "a Protobuf.Map type",
+      "an array of Protobuf.Map values",
+    );
+  });
+
+  it("refuses a Protobuf map whose value is another map", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) nested: Protobuf.Map<string, Protobuf.Map<string, string>>;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "a Protobuf.Map inside another type",
+    );
+  });
+
+  /**
+   * proto3 keys a map with an integral or a string type. The TypeSpec side
+   * constrains the key the same way, so this shape needs the state written
+   * by hand: it stands in for a library that widened its constraint.
+   */
+  it("refuses a Protobuf map keyed by a type proto3 cannot key with", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        const map = messageModelNamed(program, "Event").properties.get("keyed")?.type;
+        if (map?.kind !== "Model") throw new Error("The property 'keyed' is not a map.");
+        widenMapKey(program, map, "TypeSpec.float64");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "keyed by 'double'",
+    );
+  });
+
+  it("refuses a Protobuf map that carries no key and value", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        const map = messageModelNamed(program, "Event").properties.get("keyed")?.type;
+        if (map?.kind !== "Model") throw new Error("The property 'keyed' is not a map.");
+        // A map with no arguments at all: the shape a template with another
+        // signature would leave behind.
+        Object.assign(map, { templateMapper: undefined });
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "with no key and value",
     );
   });
 
@@ -445,6 +528,57 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     );
   });
 
+  /**
+   * The three cases below stand in for another version of the official
+   * library. The state they write is a shape this reader does not know, and
+   * no source can produce it against the pinned version. A reader that
+   * guessed here would put wrong proto3 text in the document, so it refuses.
+   */
+  it("refuses a field number the state does not hold as a number", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+      (program) => {
+        const property = messageModelNamed(program, "Event").properties.get("id");
+        if (property === undefined) throw new Error("The model declares no property 'id'.");
+        program.stateMap(FIELD_INDEX_STATE).set(property, "1");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no @Protobuf.field number",
+    );
+  });
+
+  it("refuses reservations the state does not hold as a list", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), 2);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  it("refuses a reservation of a shape it does not know", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      // A range of three numbers is a shape proto3 has no line for.
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), [[1, 2, 3]]);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
   /** A model and an enum converge on one name the same way, across kinds. */
   it("refuses a model and an enum that render to one name", async () => {
     const diagnostics = await refusePayload(
@@ -474,3 +608,39 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     );
   });
 });
+
+/** The state key of `@Protobuf.field`, which the compiler builds this way. */
+const FIELD_INDEX_STATE = Symbol.for("@typespec/protobuf.fieldIndex");
+
+/** The state key of `@Protobuf.reserve`. */
+const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
+
+/** One model that reserves nothing, so a case writes the reservations itself. */
+const RESERVED_SOURCE = `
+  ${PACKAGE}
+  namespace Render;
+
+  @Protobuf.message
+  model Event {
+    @Protobuf.field(1) id: string;
+  }
+`;
+
+/**
+ * Replaces the key type of a map with another scalar.
+ *
+ * The TypeSpec side constrains a map key to an integral or a string type, so
+ * a source cannot declare the shape this stands for. Writing the type here
+ * stands in for a library that widened that constraint.
+ *
+ * @param program - The compiled program
+ * @param map - The map instantiation to re-key
+ * @param scalarName - The qualified name of the scalar to key it with
+ */
+function widenMapKey(program: Program, map: Model, scalarName: string): void {
+  const [key] = program.resolveTypeReference(scalarName);
+  if (key === undefined) throw new Error(`The program declares no scalar '${scalarName}'.`);
+  const mapper = map.templateMapper;
+  if (mapper === undefined) throw new Error("The map carries no template arguments.");
+  Object.assign(mapper, { args: [key, mapper.args[1]] });
+}
