@@ -1,5 +1,5 @@
 ---
-"tsp-avro": minor
+"tsp-avro": patch
 ---
 
 Add `tsp-avro`, an experimental TypeSpec library and emitter for Apache Avro

@@ -266,7 +266,7 @@ Avro 描述資料。它沒有描述 message 走哪一個 channel、message 的�
 
 ## 取不到 schema 的情況
 
-Avro 走訪會拒絕 Avro 承載不了的構造。繼承、匿名 model、template 實例、無號整數，以及同一個型別出現兩次的 union，每一種都會被拒絕。[Avro schema 指南](./avro-schemas)列出全部的拒絕條件。
+Avro 走訪會拒絕 Avro 承載不了的構造。繼承、匿名 model、template 執行個體、無號整數，以及同一個型別出現兩次的 union，每一種都會被拒絕。[Avro schema 指南](./avro-schemas)列出全部的拒絕條件。
 
 文件指名的 model 被拒絕時，會回報 [`avro-artifact-unavailable`](../reference/diagnostics#avro-artifact-unavailable)。訊息裡引述走訪給出的原因。
 

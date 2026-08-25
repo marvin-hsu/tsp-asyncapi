@@ -100,6 +100,48 @@ describe("Unit: Avro run time independence", () => {
     expect(manifest.peerDependencies["tsp-avro"]).toBe("0.1.x");
     expect(manifest.peerDependenciesMeta["tsp-avro"]?.optional).toBe(true);
   });
+
+  /**
+   * The range has to admit the version the next publish produces.
+   *
+   * The range above is read from the manifest, and the guides are checked
+   * against that same manifest. So all three agree with each other and none of
+   * them agrees with the release. The pending changesets decide the version
+   * the library publishes, and a range that leaves that version out means the
+   * install command in the guides resolves to nothing.
+   */
+  it("declares a peer range the pending release of the library satisfies", async () => {
+    const root = new URL("../../../../../", import.meta.url);
+    const manifest = JSON.parse(
+      await readFile(new URL("packages/tsp-asyncapi/package.json", root), "utf8"),
+    ) as { peerDependencies: Record<string, string> };
+    const library = JSON.parse(
+      await readFile(new URL("packages/tsp-avro/package.json", root), "utf8"),
+    ) as { version: string };
+
+    const changesets = new URL(".changeset/", root);
+    const names = (await readdir(changesets)).filter(
+      (name) => name.endsWith(".md") && name !== "README.md",
+    );
+    const bumps: string[] = [];
+    for (const name of names) {
+      const bump = bumpOf(await readFile(new URL(name, changesets), "utf8"), "tsp-avro");
+      if (bump !== undefined) bumps.push(bump);
+    }
+    // A run that read no changeset would agree with every range.
+    expect(bumps.length).toBeGreaterThan(0);
+
+    // Changesets applies the strongest release type of the set, once.
+    const strongest = bumps.reduce(
+      (held, bump) => (BUMP_ORDER.indexOf(bump) > BUMP_ORDER.indexOf(held) ? bump : held),
+      "patch",
+    );
+    const release = bumped(library.version, strongest);
+
+    const range = manifest.peerDependencies["tsp-avro"];
+    expect(range).toMatch(/^\d+\.\d+\.x$/);
+    expect(`${release.split(".").slice(0, 2).join(".")}.x`, `release ${release}`).toBe(range);
+  });
 });
 
 /**
@@ -143,3 +185,34 @@ const SPECIFIER = String.raw`["']tsp-avro(?:\/[^"']*)?["']`;
  * the quote, and a dynamic `import("x")` has a parenthesis there instead.
  */
 const STATIC_IMPORT = new RegExp(String.raw`(?:from|import)\s+${SPECIFIER}`);
+
+/**
+ * The bump each pending changeset asks for on one package.
+ *
+ * A changeset names its packages in a YAML front matter block. Only the lines
+ * of that block that name this package matter here.
+ *
+ * @param text - The whole changeset file
+ * @param name - The package to read the bump of
+ * @returns The release type, or undefined when the file leaves the package out
+ */
+function bumpOf(text: string, name: string): string | undefined {
+  return new RegExp(String.raw`^"${name}":\s*(major|minor|patch)\s*$`, "m").exec(text)?.[1];
+}
+
+/**
+ * The version a release type produces from a version.
+ *
+ * @param version - The version the manifest declares
+ * @param bump - The release type
+ * @returns The version the release publishes
+ */
+function bumped(version: string, bump: string): string {
+  const [major, minor, patch] = version.split(".").map(Number);
+  if (bump === "major") return [major + 1, 0, 0].join(".");
+  if (bump === "minor") return [major, minor + 1, 0].join(".");
+  return [major, minor, patch + 1].join(".");
+}
+
+/** The order of the three release types, strongest last. */
+const BUMP_ORDER = ["patch", "minor", "major"];

@@ -634,7 +634,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 - union，以及其他 proto3 沒有對應形式的屬性型別
 - 匿名 model
-- template 實例
+- template 執行個體
 - 帶 `@Protobuf.externRef` 的型別，包含 well known 型別
 - 沒有 `@Protobuf.field` 編號的屬性
 - `Protobuf.Map` 的陣列，proto3 沒有這種形式

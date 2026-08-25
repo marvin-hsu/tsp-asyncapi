@@ -54,13 +54,35 @@ const FIRST_REASON_LIMITATION = [
 ] as const;
 
 /**
- * The examples index of each locale, with the count claim that page must not
- * make. This directory holds more than the usual three files, because the
- * Avro emitter also wrote schemas into it.
+ * The examples index of each locale, with the two counts it states in prose
+ * spelled in the words of that locale.
+ *
+ * The index states how many example directories there are, and how many of
+ * them hold a document. This example moved both numbers: it is a directory,
+ * and it emits a document. A page whose word no longer matches the tree tells
+ * a reader a number the tree contradicts.
+ *
+ * A count outside these two makes the lookup answer nothing, and the case
+ * fails rather than skipping the claim.
  */
 const EXAMPLE_INDEX = [
-  ["docs/guide/examples.md", "three files"],
-  ["docs/zh-tw/guide/examples.md", "三個檔案"],
+  ["docs/guide/examples.md", { 17: "Seventeen", 18: "Eighteen" }],
+  ["docs/zh-tw/guide/examples.md", { 17: "十七", 18: "十八" }],
+] as const;
+
+/** The directory every example lives under. */
+const EXAMPLES = new URL("../../examples/", import.meta.url);
+
+/**
+ * The sibling guide of each locale, and the link it has to carry.
+ *
+ * A reader who searches for Avro lands on the schema guide first, because
+ * that one names the library. Nothing there tells them the same schema can go
+ * into a document, so the route only ran one way.
+ */
+const SIBLING_GUIDES = [
+  ["docs/guide/avro-schemas.md", "](./avro-payloads)"],
+  ["docs/zh-tw/guide/avro-schemas.md", "](./avro-payloads)"],
 ] as const;
 
 /** The three files every other example directory holds. */
@@ -227,15 +249,23 @@ describe("Integration: the committed Avro payload example", () => {
   });
 
   /**
-   * The Avro library is an optional peer, pinned to one minor range. A reader
-   * who installs another range gets a library whose walk this emitter refuses
-   * to call. So each guide names the range next to the install command, and
-   * the manifest is the one place that range is decided.
+   * The Avro library is an optional peer, pinned to one minor range. That
+   * range is enforced at install time, by the package manager alone. The
+   * emitter reads no version: it calls whatever `tsp-avro` resolves to. So the
+   * guides have to name the range the manifest declares, or a reader installs
+   * a library this release was never tried against. The manifest is the one
+   * place that range is decided.
    */
   it.each(GUIDES)("names the supported range of the Avro library in %s", (guide) => {
     const page = readFileSync(new URL(guide, ROOT), "utf8");
 
     expect(page).toContain(SUPPORTED_RANGE);
+  });
+
+  it.each(SIBLING_GUIDES)("routes a reader from %s to this feature", (guide, link) => {
+    const page = readFileSync(new URL(guide, ROOT), "utf8");
+
+    expect(page).toContain(link);
   });
 
   it.each(FIRST_REASON_LIMITATION)("states the one-reason limitation in %s", (guide, phrase) => {
@@ -245,18 +275,30 @@ describe("Integration: the committed Avro payload example", () => {
   });
 
   /**
-   * The examples index says what one example directory holds. This one holds
-   * more, because the Avro emitter also wrote schemas into it. An index that
-   * states a fixed count contradicts its own table.
+   * The examples index describes the tree in prose. This example changed the
+   * tree twice: it is one more directory, one more document, and it holds
+   * files no other example does. So the intro has to state both counts the
+   * tree now has, and it has to name the extra files.
    */
-  it.each(EXAMPLE_INDEX)("admits the extra files of this example in %s", (guide, claim) => {
+  it.each(EXAMPLE_INDEX)("describes this example in the intro of %s", (guide, words) => {
     const extras = readdirSync(EXAMPLE).filter((name) => !USUAL_FILES.includes(name));
     expect(extras).not.toHaveLength(0);
+
+    const directories = readdirSync(EXAMPLES, { withFileTypes: true }).filter((entry) =>
+      entry.isDirectory(),
+    );
+    const documented = directories.filter((entry) =>
+      readdirSync(new URL(`${entry.name}/`, EXAMPLES)).includes("asyncapi.yaml"),
+    );
 
     const page = readFileSync(new URL(guide, ROOT), "utf8");
     const intro = page.slice(0, page.indexOf("## "));
 
-    expect(intro).not.toContain(claim);
+    for (const count of [directories.length, documented.length]) {
+      const word = (words as Record<number, string | undefined>)[count];
+      expect(word, `the word for ${String(count)}`).toBeDefined();
+      expect(intro).toContain(word);
+    }
     expect(intro).toContain(".avsc");
   });
 

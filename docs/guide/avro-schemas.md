@@ -11,6 +11,8 @@ description: "tsp-avro is a second emitter in this repository. It writes Apache 
 This package is experimental, and it is pre-1.0. Its decorators, its output and its diagnostics can change in any release. Pin an exact version if you depend on it.
 :::
 
+The `avro` preview feature of the AsyncAPI emitter calls this same library. With it on, a model that carries `` @Avro.`record` `` also gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](./avro-payloads) says how to turn that on.
+
 ## What it does
 
 The package is the Avro counterpart of [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/). It declares its own decorators, and it registers its own emitter.

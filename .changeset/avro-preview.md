@@ -1,7 +1,7 @@
 ---
 "tsp-asyncapi": minor
 "tsp-asyncapi-core": minor
-"tsp-avro": minor
+"tsp-avro": patch
 ---
 
 Generate Avro payloads from the `tsp-avro` decorators, behind a preview flag
