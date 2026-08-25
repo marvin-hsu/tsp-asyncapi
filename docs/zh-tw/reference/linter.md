@@ -153,6 +153,32 @@ namespace 可以宣告多種通訊協定的 server。只要其中一個對得上
 
 **修法：** 改掉 `@server` 的 `protocol`，或移除這個 binding。
 
+### `protobuf-content-type-undeclared`
+
+在 `recommended` 裡。只在 [`preview-features`](./emitter-options#預覽功能) 指名 `protobuf` 時執行。
+
+> Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it a Protobuf payload.
+
+`@contentType` 說明線上的位元組如何編碼，它不產生那些位元組。所以一個 message 可以指名 Protobuf 媒體型別，而它的 payload 仍然由 TypeSpec model 降級而來。這樣的文件等於叫消費端用 Protobuf 解碼，卻用 JSON Schema 描述同一批位元組。
+
+```typespec
+// 會回報。content type 說是 Protobuf，payload 卻是 JSON Schema。
+@Protobuf.package({ name: "com.example.orders" })
+namespace Orders {
+  @message
+  @contentType("application/vnd.google.protobuf")
+  model OrderPlaced {
+    id: string;
+  }
+}
+```
+
+兩種寫法會給 message 一份 Protobuf payload，任一種都會讓這條規則安靜。`@Protobuf.message` 加上每個屬性的 `@Protobuf.field`，讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的文字。
+
+規則讀媒體型別本身，忽略分號後面的內容，所以 `;version=3` 這種參數不會遮住問題。`application/vnd.google.protobuf`、`application/x-protobuf`、`application/protobuf` 與 `application/octet-stream+protobuf` 都算。
+
+**修法：** 加上 `@Protobuf.message` 與每個屬性的 `@Protobuf.field`，或用 `@rawPayload` 寫下 schema。
+
 ### `unused-security-scheme`
 
 不在 `recommended` 內，要指名開啟。

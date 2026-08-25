@@ -23,3 +23,11 @@ options:
     # The official emitter writes one file per package. This puts them in
     # `proto/` next to `main.tsp`.
     emitter-output-dir: "{project-root}/proto"
+
+# Turns on the recommended lint rules. One of them,
+# `protobuf-content-type-undeclared`, only runs when the Protobuf preview
+# feature is on. It reports a message whose `@contentType` says Protobuf
+# while nothing gives it a Protobuf payload.
+linter:
+  extends:
+    - "tsp-asyncapi/recommended"

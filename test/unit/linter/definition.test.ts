@@ -17,6 +17,7 @@ describe("Unit: the linter definition", () => {
     "channel-without-operation",
     "operation-without-message",
     "server-protocol-mismatch",
+    "protobuf-content-type-undeclared",
   ];
 
   it("gives every rule a unique name", () => {
