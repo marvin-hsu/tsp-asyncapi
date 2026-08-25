@@ -1,7 +1,7 @@
 # tsp-avro
 
 **實驗性套件。** 這個套件把 TypeSpec 產出成 [Apache Avro][avro] schema 檔案。
-版本是 0.1.0，公開介面可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
+它尚未進入 1.0，公開介面可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
 
 它是 [`@typespec/protobuf`][protobuf] 的 Avro 同位物。它不是 AsyncAPI 套件：
 它宣告自己的 decorator、註冊自己的 `$onEmit`，並寫出 `.avsc` 檔案。

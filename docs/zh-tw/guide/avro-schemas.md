@@ -8,14 +8,14 @@ description: "tsp-avro 是這個 repository 的第二個 emitter。它把 TypeSp
 [`tsp-avro`](https://www.npmjs.com/package/tsp-avro) 是這個 repository 的第二個 emitter。它把 TypeSpec model 寫成 Apache Avro schema 檔案。它不寫 AsyncAPI 文件，也不需要任何 AsyncAPI decorator。
 
 ::: warning
-這是實驗性套件，版本為 0.1.0。它的 decorator、輸出與診斷都可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
+這是實驗性套件，尚未進入 1.0。它的 decorator、輸出與診斷都可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
 :::
 
 ## 這個套件做什麼
 
 它是 [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/) 的 Avro 同位物。它宣告自己的 decorator，也註冊自己的 emitter。
 
-標上 `@Avro.record` 的 model 會變成一個 `.avsc` 檔案。model 的 Avro namespace 決定那個檔案寫進哪個目錄。
+標上 `` @Avro.`record` `` 的 model 會變成一個 `.avsc` 檔案。model 的 Avro namespace 決定那個檔案寫進哪個目錄。
 
 Avro 需要的 decorator 很少，因為一個純 TypeSpec model 本來就是合法的 Avro record。Avro 沒有欄位編號。所以這裡的 decorator 只補 Avro 有、而 TypeSpec 表達不了的東西。
 
@@ -194,9 +194,9 @@ model OrderFulfilmentChanged {
 }
 ```
 
-`/** */` 註解會變成它所標註對象的 `doc`。`//` 註解不會輸出。
+`/** */` 註解會變成它所標註之宣告的 `doc`。`//` 註解不會輸出。
 
-這個檔案完整寫下 `Address` 與 `FulfilmentStatus`。這兩個 model 都沒有 `@Avro.record`，所以都沒有自己的檔案。
+這個檔案完整寫下 model `Address` 與 enum `FulfilmentStatus`。兩個宣告都沒有 `` @Avro.`record` ``，所以都沒有自己的檔案。
 
 ## 一個檔案裝一份完整的 schema
 

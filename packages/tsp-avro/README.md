@@ -1,8 +1,8 @@
 # tsp-avro
 
 **Experimental.** This package emits [Apache Avro][avro] schema files from
-TypeSpec. It is version 0.1.0, and its public surface may change in any
-release. Pin an exact version if you depend on it.
+TypeSpec. It is pre-1.0. Its public surface can change in any release. Pin an
+exact version if you depend on it.
 
 It is the Avro counterpart of [`@typespec/protobuf`][protobuf]. It is not an
 AsyncAPI package: it declares its own decorators, registers its own `$onEmit`,

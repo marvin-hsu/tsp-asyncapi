@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { emitAvro, expectInstanceRoundTrip, expectValueRoundTrip } from "../../utils/avro.js";
+import {
+  emitAvro,
+  expectInstanceRoundTrip,
+  expectValueRoundTrip,
+  fieldNamed,
+} from "../../utils/avro.js";
 
 /**
  * Properties of a graph of records, driven through `avsc`.
@@ -20,9 +25,14 @@ import { emitAvro, expectInstanceRoundTrip, expectValueRoundTrip } from "../../u
  *
  * The shapes a random draw reaches rarely are pinned by hand below instead.
  * Recursion, mutual recursion, a node two records share, and an optional
- * field each have a written source and a written instance. A counter over
- * random draws would fire on a run and not on the next one, and a test that
- * depends on the seed proves nothing about the code.
+ * field each have a written source and a written instance.
+ *
+ * The shapes the draws are about are counted as they are rendered, and the
+ * counts are asserted after the run. A record with no field is a legal draw,
+ * so a generator that stopped producing a cross-record reference, an array or
+ * a map would still round-trip everything it drew. The counters are what says
+ * the run was about anything. The seed is fixed, so the counts are the same on
+ * every run.
  */
 
 /** The Avro namespace every generated program declares. */
@@ -31,10 +41,31 @@ const NAMESPACE = "com.example.generated";
 /** The primitive types a generated field may hold. */
 const PRIMITIVES = ["string", "int32", "int64", "float64", "boolean", "bytes"] as const;
 
+/**
+ * The default each primitive can carry, as TypeSpec source.
+ *
+ * `bytes` is left out. Avro reads a default for `bytes` as a string of one
+ * byte per character, and TypeSpec has no literal that says that. A record
+ * reference and an enum are left out for the same kind of reason: neither has
+ * a literal the generator can write without knowing what was drawn.
+ */
+const DEFAULTS: Readonly<Record<string, string>> = {
+  string: '"a"',
+  int32: "1",
+  int64: "2",
+  float64: "1.5",
+  boolean: "true",
+};
+
+/** How a generated field wraps its base type. */
+type Wrapper = "plain" | "array" | "map";
+
 /** One field of a generated record. */
 interface FieldDecl {
-  /** The type expression, before optionality is applied. */
-  readonly type: string;
+  /** The type the field is built from. */
+  readonly base: string;
+  /** What the field wraps that type in. */
+  readonly wrapper: Wrapper;
   /** Whether the field is optional. */
   readonly optional: boolean;
   /** The default the field declares, as source text, or none. */
@@ -47,32 +78,46 @@ interface RecordDecl {
 }
 
 /**
- * The type expressions record `index` may hold.
+ * The base types record `index` may hold.
  *
  * A reference to an earlier record keeps the graph acyclic. The enum is
  * always declared, so it is always available.
  */
-function typesFor(index: number): fc.Arbitrary<string> {
-  const bases = [
+function basesFor(index: number): fc.Arbitrary<string> {
+  return fc.constantFrom(
     ...PRIMITIVES,
     "Status",
     ...Array.from({ length: index }, (_, i) => `M${String(i)}`),
-  ];
-  const base = fc.constantFrom(...bases);
-  return fc.oneof(
-    { weight: 3, arbitrary: base },
-    { weight: 1, arbitrary: base.map((type) => `${type}[]`) },
-    { weight: 1, arbitrary: base.map((type) => `Record<${type}>`) },
   );
 }
 
-/** One field of record `index`. */
+/** What a field wraps its base type in. A plain field is the common one. */
+const WRAPPERS: fc.Arbitrary<Wrapper> = fc.oneof(
+  { weight: 3, arbitrary: fc.constant<Wrapper>("plain") },
+  { weight: 1, arbitrary: fc.constant<Wrapper>("array") },
+  { weight: 1, arbitrary: fc.constant<Wrapper>("map") },
+);
+
+/**
+ * One field of record `index`.
+ *
+ * A default is drawn only where one can be written: the field is plain, and
+ * its base type has a literal. Everything else draws no default.
+ */
 function fieldFor(index: number): fc.Arbitrary<FieldDecl> {
-  return fc.record({
-    type: typesFor(index),
-    optional: fc.boolean(),
-    initializer: fc.constant(undefined),
-  });
+  return fc
+    .record({
+      base: basesFor(index),
+      wrapper: WRAPPERS,
+      optional: fc.boolean(),
+      defaulted: fc.boolean(),
+    })
+    .map(({ base, wrapper, optional, defaulted }) => ({
+      base,
+      wrapper,
+      optional,
+      initializer: wrapper === "plain" && defaulted ? DEFAULTS[base] : undefined,
+    }));
 }
 
 /**
@@ -93,11 +138,37 @@ const recordGraph: fc.Arbitrary<readonly RecordDecl[]> = fc
     ),
   );
 
-/** Writes one field as TypeSpec source. */
+/**
+ * How many draws reached each shape this property is about.
+ *
+ * The counts are taken while a draw is written out, so they say what the run
+ * actually contained. The property asserts them after the run.
+ */
+const reached = { crossRecord: 0, array: 0, map: 0, optional: 0, defaulted: 0 };
+
+/** Whether a base type names another record of the same program. */
+function isRecordReference(base: string): boolean {
+  return /^M\d+$/.test(base);
+}
+
+/** Writes the type expression of one field. */
+function renderType(field: FieldDecl): string {
+  if (field.wrapper === "array") return `${field.base}[]`;
+  if (field.wrapper === "map") return `Record<${field.base}>`;
+  return field.base;
+}
+
+/** Writes one field as TypeSpec source, and counts the shapes it reaches. */
 function renderField(field: FieldDecl, index: number): string {
+  if (isRecordReference(field.base)) reached.crossRecord++;
+  if (field.wrapper === "array") reached.array++;
+  if (field.wrapper === "map") reached.map++;
+  if (field.optional) reached.optional++;
+  if (field.initializer !== undefined) reached.defaulted++;
+
   const mark = field.optional ? "?" : "";
   const initializer = field.initializer === undefined ? "" : ` = ${field.initializer}`;
-  return `  f${String(index)}${mark}: ${field.type}${initializer};`;
+  return `  f${String(index)}${mark}: ${renderType(field)}${initializer};`;
 }
 
 /** Writes a drawn graph as TypeSpec source. */
@@ -139,6 +210,15 @@ describe("Property: Avro — a graph of records", () => {
       }),
       { numRuns: 120, seed: 20260825 },
     );
+
+    // The run has to be about something. Each floor is well under what the
+    // fixed seed draws, so a floor that fails means the generator stopped
+    // producing that shape, not that a draw came out unlucky.
+    expect(reached.crossRecord).toBeGreaterThan(30);
+    expect(reached.array).toBeGreaterThan(50);
+    expect(reached.map).toBeGreaterThan(50);
+    expect(reached.optional).toBeGreaterThan(150);
+    expect(reached.defaulted).toBeGreaterThan(50);
   });
 
   /**
@@ -222,8 +302,18 @@ describe("Property: Avro — a graph of records", () => {
     const sender = result.files["com/example/generated/Sender.avsc"];
     const receiver = result.files["com/example/generated/Receiver.avsc"];
 
-    expect(JSON.stringify(sender)).toContain('"name":"Address"');
-    expect(JSON.stringify(receiver)).toContain('"name":"Address"');
+    // A name on its own would satisfy a search for the text `Address`, and a
+    // name is exactly what a file that failed to inline the definition would
+    // hold. So the whole definition is the expected value.
+    const address = {
+      type: "record",
+      name: "Address",
+      namespace: NAMESPACE,
+      fields: [{ name: "city", type: "string" }],
+    };
+
+    expect(fieldNamed(sender, "from").type).toEqual(address);
+    expect(fieldNamed(receiver, "to").type).toEqual(address);
     expectInstanceRoundTrip(sender);
     expectInstanceRoundTrip(receiver);
   });

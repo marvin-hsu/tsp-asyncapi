@@ -178,7 +178,7 @@ The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) sa
 
 ## Avro schemas
 
-This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experimental library and emitter that writes Apache Avro schema files. It is version 0.1.0, and its surface may change in any release.
+This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experimental library and emitter that writes Apache Avro schema files. It is pre-1.0, and its surface can change in any release.
 
 It is independent of the AsyncAPI emitter. It declares its own decorators, and it needs no AsyncAPI decorator. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says what it emits.
 

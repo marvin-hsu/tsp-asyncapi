@@ -8,14 +8,14 @@ description: "tsp-avro is a second emitter in this repository. It writes Apache 
 [`tsp-avro`](https://www.npmjs.com/package/tsp-avro) is a second emitter in this repository. It writes Apache Avro schema files from TypeSpec models. It writes no AsyncAPI document, and it needs no AsyncAPI decorator.
 
 ::: warning
-This package is experimental. It is version 0.1.0. Its decorators, its output and its diagnostics can change in any release. Pin an exact version if you depend on it.
+This package is experimental, and it is pre-1.0. Its decorators, its output and its diagnostics can change in any release. Pin an exact version if you depend on it.
 :::
 
 ## What it does
 
 The package is the Avro counterpart of [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/). It declares its own decorators, and it registers its own emitter.
 
-A model marked with `@Avro.record` becomes one `.avsc` file. The Avro namespace of the model becomes the directory that file is written into.
+A model marked with `` @Avro.`record` `` becomes one `.avsc` file. The Avro namespace of the model becomes the directory that file is written into.
 
 Avro needs few decorators, because a plain TypeSpec model is already a valid Avro record. Avro has no field number. So the decorators here cover what Avro has and TypeSpec cannot say.
 
@@ -196,7 +196,7 @@ That model becomes `schemas/com/example/orders/OrderFulfilmentChanged.avsc`.
 
 A `/** */` comment becomes the `doc` of what it sits on. A `//` comment is not emitted.
 
-The file holds `Address` and `FulfilmentStatus` in full. Neither model carries `@Avro.record`, and neither gets a file of its own.
+The file holds the model `Address` and the enum `FulfilmentStatus` in full. Neither declaration carries `` @Avro.`record` ``, so neither gets a file of its own.
 
 ## One file holds one whole schema
 

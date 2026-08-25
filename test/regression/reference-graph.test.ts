@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { referencesIn } from "../utils/references.js";
 
@@ -49,6 +49,32 @@ function resolve(document: unknown, pointer: string): unknown {
   return node;
 }
 
+/** The emitter whose output this suite walks. */
+const EMITTER = "tsp-asyncapi";
+
+/**
+ * The example directories that ask for an AsyncAPI document.
+ *
+ * An example names its emitters in its own `tspconfig.yaml`, and not every
+ * emitter here writes a document: the Avro example writes `.avsc` files, which
+ * carry no `$ref`. So the reason a directory is passed over is read from that
+ * file, never from the absence of the output. A directory that asks for a
+ * document and has none is a document that went missing, and the read below
+ * fails on it.
+ */
+function exampleDirectories(): string[] {
+  const directories: string[] = [];
+  for (const dir of readdirSync(EXAMPLES, { withFileTypes: true })) {
+    if (!dir.isDirectory()) continue;
+    const text = readFileSync(new URL(`${dir.name}/tspconfig.yaml`, EXAMPLES), "utf8");
+    const config: unknown = parseYaml(text);
+    const emit = (config as { emit?: unknown }).emit;
+    if (!Array.isArray(emit) || !emit.includes(EMITTER)) continue;
+    directories.push(dir.name);
+  }
+  return directories;
+}
+
 /** Every committed document, keyed by a name the failure message can use. */
 function committedDocuments(): [string, unknown][] {
   const documents: [string, unknown][] = [];
@@ -56,16 +82,9 @@ function committedDocuments(): [string, unknown][] {
     const text = readFileSync(new URL(file, SNAPSHOTS), "utf8");
     documents.push([`__snapshots__/${file}`, parseYaml(text)]);
   }
-  for (const dir of readdirSync(EXAMPLES, { withFileTypes: true })) {
-    if (!dir.isDirectory()) continue;
-    const path = new URL(`${dir.name}/asyncapi.yaml`, EXAMPLES);
-    // An example directory holds the output of the emitter it names in its
-    // own `tspconfig.yaml`, and not every emitter here writes a document.
-    // The Avro example writes `.avsc` files, which carry no `$ref`. The
-    // count below is what keeps this skip from hiding a document that went
-    // missing.
-    if (!existsSync(path)) continue;
-    documents.push([`examples/${dir.name}`, parseYaml(readFileSync(path, "utf8"))]);
+  for (const name of exampleDirectories()) {
+    const text = readFileSync(new URL(`${name}/asyncapi.yaml`, EXAMPLES), "utf8");
+    documents.push([`examples/${name}`, parseYaml(text)]);
   }
   return documents;
 }
@@ -73,7 +92,14 @@ function committedDocuments(): [string, unknown][] {
 describe("Output baseline: the reference graph", () => {
   const documents = committedDocuments();
 
-  /** A corpus that found no document would pass every claim below. */
+  /**
+   * A corpus that found no document would pass every claim below.
+   *
+   * This floor catches an empty corpus and nothing finer. What catches a
+   * single document that went missing is the read in `committedDocuments`: an
+   * example that asks for this emitter and has no document fails there, on the
+   * open, naming the file.
+   */
   it("reads every committed document", () => {
     expect(documents.length).toBeGreaterThan(20);
   });

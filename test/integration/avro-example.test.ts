@@ -73,7 +73,15 @@ function blocksOf(page: string, language: string): string[] {
   let from = page.indexOf(opening);
   while (from !== -1) {
     const body = page.slice(from + opening.length);
-    blocks.push(body.slice(0, body.indexOf("\n```") + 1));
+    const closing = body.indexOf("\n```");
+    // A fence that is never closed makes `indexOf` answer -1, and the slice
+    // that follows would then be the empty string. Every check below this
+    // point passes on the empty string, so a malformed page would read as a
+    // page that quotes the example correctly. It fails here instead.
+    if (closing === -1) {
+      throw new Error(`A \`${language}\` block on the page is never closed.`);
+    }
+    blocks.push(body.slice(0, closing + 1));
     from = page.indexOf(opening, from + opening.length);
   }
   return blocks;
@@ -110,6 +118,17 @@ describe("Integration: the Avro example", () => {
     );
   });
 
+  /**
+   * The reader of the two assertions below.
+   *
+   * An empty block is a substring of everything, so it would pass both of
+   * them. A page that lost the body of a block would then read as a page that
+   * quotes the example. This is what stops that.
+   */
+  it("refuses a block the page never closes", () => {
+    expect(() => blocksOf('```json\n{ "a": 1 }\n', "json")).toThrow(/never closed/);
+  });
+
   it.each(GUIDES)("%s quotes the source of the example", (guide) => {
     const page = readFileSync(new URL(guide, ROOT), "utf8");
     const blocks = blocksOf(page, "typespec");
@@ -117,6 +136,7 @@ describe("Integration: the Avro example", () => {
 
     expect(blocks).toHaveLength(2);
     for (const block of blocks) {
+      expect(block).not.toBe("");
       expect(source).toContain(block);
     }
   });
@@ -128,6 +148,7 @@ describe("Integration: the Avro example", () => {
 
     expect(blocks).toHaveLength(3);
     for (const block of blocks) {
+      expect(block).not.toBe("");
       expect(files.some((file) => file.includes(block))).toBe(true);
     }
   });
@@ -164,5 +185,111 @@ describe("Integration: the Avro diagnostics tables", () => {
     expect([...new Set(named)].sort((left, right) => left.localeCompare(right))).toEqual(
       [...CODES].sort((left, right) => left.localeCompare(right)),
     );
+  });
+});
+
+/**
+ * The pages that tell a reader this package is experimental.
+ *
+ * Every one of them says so in prose. None of them may say it by quoting a
+ * version, because a version in prose is a claim the next publish falsifies:
+ * the changeset raises the number and the prose keeps the old one, in six
+ * places at once. The word "experimental" and the range `0.x` both survive a
+ * release, so those are what the pages carry.
+ */
+const VERSION_PAGES = [
+  ...DIAGNOSTIC_PAGES,
+  "README.md",
+  "README.zh-TW.md",
+  ".changeset/avro-emitter.md",
+] as const;
+
+/** The version the package declares, read as the pages would have to. */
+function declaredVersion(): string {
+  const manifest: unknown = JSON.parse(
+    readFileSync(new URL("packages/tsp-avro/package.json", ROOT), "utf8"),
+  );
+  const version = (manifest as { version?: unknown }).version;
+  if (typeof version !== "string") {
+    throw new Error("The package manifest declares no version.");
+  }
+  return version;
+}
+
+/** The version the pages must not quote. */
+const VERSION = declaredVersion();
+
+describe("Integration: the Avro experimental notice", () => {
+  it.each(VERSION_PAGES)("%s quotes no exact version", (page) => {
+    const text = readFileSync(new URL(page, ROOT), "utf8");
+
+    expect(text, `${page} states version ${VERSION}, which the next release breaks`).not.toContain(
+      VERSION,
+    );
+  });
+
+  /** Dropping the version must not drop the notice it sat inside. */
+  it.each(VERSION_PAGES)("%s still calls the package experimental", (page) => {
+    const text = readFileSync(new URL(page, ROOT), "utf8");
+
+    expect(/experimental|實驗性/i.test(text), `${page} carries no experimental notice`).toBe(true);
+  });
+});
+
+/**
+ * The two decorator names TypeSpec reserves.
+ *
+ * `namespace` and `record` are reserved words, so a reader has to write
+ * `` @Avro.`record` `` with backticks around the name. A page that writes
+ * `@Avro.record` hands that reader a line the compiler answers with
+ * `reserved-identifier`. Every page carries the backticked form, and this is
+ * what keeps a plain one out.
+ */
+const RESERVED_NAMES = ["namespace", "record"] as const;
+
+describe("Integration: the Avro reserved decorator names", () => {
+  it.each([...DIAGNOSTIC_PAGES, "README.md", "README.zh-TW.md"])(
+    "%s writes every reserved decorator name in backticks",
+    (page) => {
+      const text = readFileSync(new URL(page, ROOT), "utf8");
+      const plain = RESERVED_NAMES.filter((name) => text.includes(`@Avro.${name}`));
+
+      expect(plain, `${page} writes a name the compiler rejects`).toEqual([]);
+    },
+  );
+});
+
+/**
+ * The Chinese pages of this package, in Taiwanese usage.
+ *
+ * The repository writes one term for one concept, and it writes the Taiwanese
+ * term. A mainland term reads as a second name for a thing that already has
+ * one. Each entry below is a word this repository has chosen against, paired
+ * with the word it uses instead, so a failure says what to write.
+ */
+const MAINLAND_TERMS: readonly (readonly [string, string])[] = [
+  ["對象", "物件"],
+  ["協議", "通訊協定"],
+  ["字段", "欄位"],
+  ["函數", "函式"],
+  ["接口", "介面"],
+  ["數組", "陣列"],
+  ["缺省", "預設"],
+];
+
+/** The Chinese pages this package owns. */
+const CHINESE_PAGES = [
+  "packages/tsp-avro/README.zh-TW.md",
+  "docs/zh-tw/guide/avro-schemas.md",
+] as const;
+
+describe("Integration: the Avro Chinese pages", () => {
+  it.each(CHINESE_PAGES)("%s uses the Taiwanese term throughout", (page) => {
+    const text = readFileSync(new URL(page, ROOT), "utf8");
+    const found = MAINLAND_TERMS.filter(([mainland]) => text.includes(mainland)).map(
+      ([mainland, taiwanese]) => `${mainland} -> ${taiwanese}`,
+    );
+
+    expect(found, `${page} uses a term this repository writes another way`).toEqual([]);
   });
 });

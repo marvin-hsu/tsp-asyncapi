@@ -178,7 +178,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 ## Avro schema
 
-這個 repository 另外收了 [`tsp-avro`](./packages/tsp-avro/)。它是一個實驗性的 library 與 emitter，寫出 Apache Avro schema 檔案。版本是 0.1.0，介面可能在任何一次發佈中改變。
+這個 repository 另外收了 [`tsp-avro`](./packages/tsp-avro/)。它是一個實驗性的 library 與 emitter，寫出 Apache Avro schema 檔案。它尚未進入 1.0，介面可能在任何一次發佈中改變。
 
 它與 AsyncAPI emitter 互相獨立。它宣告自己的 decorator，不需要任何 AsyncAPI decorator。它寫出什麼見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
 

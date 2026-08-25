@@ -4,9 +4,9 @@
 
 Add `tsp-avro`, an experimental TypeSpec library and emitter for Apache Avro
 
-This package is new. It is version 0.1.0, and it is experimental: its
-decorators, its output and its diagnostics may change in any release. Pin an
-exact version if you depend on it.
+This package is new, and it is experimental. It is pre-1.0. Its decorators,
+its output and its diagnostics may change in any release. Pin an exact version
+if you depend on it.
 
 It is the Avro counterpart of `@typespec/protobuf`, not an AsyncAPI package. It
 declares its own decorators, registers its own `$onEmit`, and writes `.avsc`
