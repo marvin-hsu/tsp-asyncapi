@@ -10,8 +10,7 @@
       "ignoreDependencies": ["@typespec/protobuf"]
     },
     "packages/tsp-avro": {
-      "entry": ["src/tsp-index.ts!"],
-      "ignoreDependencies": ["avsc"]
+      "entry": ["src/tsp-index.ts!"]
     }
   }
 }

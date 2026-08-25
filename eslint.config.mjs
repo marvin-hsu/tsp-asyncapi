@@ -119,6 +119,45 @@ export default tseslint.config(
       ],
     },
   },
+  // The Avro boundary, enforced.
+  //
+  // `tsp-avro` is a sibling of the upstream Protobuf emitter, not an AsyncAPI
+  // thing. It reads TypeSpec and writes Avro schema files, and it shares no
+  // model with the two AsyncAPI packages.
+  //
+  // The rule is here while the package is small, because the cheapest moment
+  // to refuse a dependency is before anything reaches for it. A helper the two
+  // sides both want is lifted to a place both can import, never imported
+  // across.
+  {
+    files: ["packages/tsp-avro/src/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "tsp-asyncapi",
+              message:
+                "Avro emits on its own. This package is the sibling of the Protobuf emitter, and it shares no model with the AsyncAPI packages. Lift a helper both sides need, rather than importing across.",
+            },
+            {
+              name: "tsp-asyncapi-core",
+              message:
+                "Avro emits on its own. This package is the sibling of the Protobuf emitter, and it shares no model with the AsyncAPI packages. Lift a helper both sides need, rather than importing across.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["**/tsp-asyncapi/**", "**/tsp-asyncapi-core/**"],
+              message:
+                "A relative path into an AsyncAPI package is the same dependency by another spelling. Avro emits on its own.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // The stage discipline, enforced.
   //
   // resolve answers "what did the author declare?". lower answers "how does

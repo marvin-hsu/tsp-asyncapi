@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { AvroTester } from "#avro/testing.js";
+import { $onEmit } from "#avro/emitter.js";
 import { $lib, PACKAGE_NAME } from "#avro/lib.js";
 
 /**
@@ -27,13 +28,19 @@ describe("tsp-avro skeleton", () => {
     expect(Object.keys(result.outputs)).toEqual([]);
   });
 
-  it("writes no file when the compilation already reported an error", async () => {
-    const [result, diagnostics] = await AvroTester.emit(PACKAGE_NAME).compileAndDiagnose(
-      `model OrderPlaced { id: NoSuchType; }`,
-    );
+  it("writes no file when it is called directly", async () => {
+    const runner = await AvroTester.createInstance();
+    await runner.compile(`model OrderPlaced { id: string; }`);
 
-    expect(diagnostics.length).toBeGreaterThan(0);
-    expect(Object.keys(result.outputs)).toEqual([]);
+    // The call above goes through the compiler, which loads the emitter from
+    // the build output. This one calls the source copy, which is the copy the
+    // coverage report is about. It is also where the walk will be driven from
+    // once it exists, without a compilation for every case.
+    const writeFile = vi.spyOn(runner.program.host, "writeFile");
+
+    $onEmit();
+
+    expect(writeFile).not.toHaveBeenCalled();
   });
 
   it("rejects an option the emitter does not declare", async () => {

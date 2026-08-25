@@ -5,7 +5,6 @@
 ```ts
 
 import { DiagnosticMessages } from '@typespec/compiler';
-import type { EmitContext } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 
 // @public
@@ -14,7 +13,7 @@ export const $lib: TypeSpecLibrary<    {
 }, AvroEmitterOptions, never>;
 
 // @public
-export function $onEmit(context: EmitContext<AvroEmitterOptions>): void;
+export function $onEmit(): void;
 
 // @public
 export type AvroEmitterOptions = Record<string, never>;

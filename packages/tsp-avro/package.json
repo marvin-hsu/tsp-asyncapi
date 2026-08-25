@@ -22,8 +22,6 @@
     "lib",
     "README.md",
     "README.zh-TW.md",
-    "CHANGELOG.md",
-    "CHANGELOG.zh-TW.md",
     "LICENSE"
   ],
   "author": "Marvin Hsu <contact@marvinhsu.dev> (https://github.com/marvin-hsu)",
@@ -63,7 +61,6 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@microsoft/api-extractor": "^7.58.12",
     "@typespec/compiler": "^1.15.0",
-    "avsc": "^5.7.9",
     "publint": "^0.3.23",
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3"
