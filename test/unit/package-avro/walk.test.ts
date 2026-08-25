@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   acceptSchema,
+  emitAvro,
   emitAvroFiles,
   expectInstanceRoundTrip,
   expectValueRoundTrip,
@@ -96,6 +97,7 @@ describe("the Avro walk", () => {
     `);
 
     expect(Object.keys(files)).toEqual(["com/example/deep/nested/Event.avsc"]);
+    expectInstanceRoundTrip(files["com/example/deep/nested/Event.avsc"]);
   });
 
   it("takes the namespace from the nearest ancestor that declares one", async () => {
@@ -114,6 +116,8 @@ describe("the Avro walk", () => {
       "com/example/inner/Event.avsc",
       "com/example/outer/Outside.avsc",
     ]);
+    expectInstanceRoundTrip(files["com/example/inner/Event.avsc"]);
+    expectInstanceRoundTrip(files["com/example/outer/Outside.avsc"]);
   });
 
   it("carries the doc comment of a record and of a field", async () => {
@@ -134,6 +138,7 @@ describe("the Avro walk", () => {
     expect(fieldNamed(files["com/example/docs/OrderPlaced.avsc"], "id").doc).toBe(
       "What the shop calls this order.",
     );
+    expectInstanceRoundTrip(files["com/example/docs/OrderPlaced.avsc"]);
   });
 
   it("writes an array, a map and an enum in their Avro forms", async () => {
@@ -168,6 +173,7 @@ describe("the Avro walk", () => {
 
     expect(fieldNamed(schema, "asked").type).toMatchObject({ type: "enum", name: "Currency" });
     expect(fieldNamed(schema, "paid").type).toBe("com.example.orders.Currency");
+    expectInstanceRoundTrip(schema);
   });
 
   it("writes a type that reaches itself as a name", async () => {
@@ -220,6 +226,7 @@ describe("the Avro walk", () => {
       ["single", "float"],
       ["twice", "double"],
     ]);
+    expectInstanceRoundTrip(schema);
   });
 
   it("maps a scalar the author declared through the scalar it extends", async () => {
@@ -232,19 +239,58 @@ describe("the Avro walk", () => {
     `);
 
     expect(fieldNamed(files["com/example/scalars/Person.avsc"], "age").type).toBe("int");
+    expectInstanceRoundTrip(files["com/example/scalars/Person.avsc"]);
   });
 
   it("writes the keys in one order, whichever schema they belong to", async () => {
     const files = await emitAvroFiles(ORDERS);
-    const text = JSON.stringify(files[ORDER_FILE]);
+    const schema = files[ORDER_FILE];
 
     // The order is the one the Avro specification lists: the type, then the
     // name, then the rest. Two runs of the emitter have to write the same
-    // bytes, and the key order is the only thing that could differ.
-    expect(text.indexOf(`"type"`)).toBeLessThan(text.indexOf(`"name"`));
-    expect(text.indexOf(`"name"`)).toBeLessThan(text.indexOf(`"namespace"`));
-    expect(text.indexOf(`"namespace"`)).toBeLessThan(text.indexOf(`"doc"`));
-    expect(text.indexOf(`"doc"`)).toBeLessThan(text.indexOf(`"fields"`));
+    // bytes, and the key order is the only thing that could differ. The key
+    // list of each object is read on its own, because a position inside the
+    // whole document says nothing about the object that holds it.
+    expect(Object.keys(schema as object)).toEqual(["type", "name", "namespace", "doc", "fields"]);
+
+    const nested = fieldNamed(schema, "shipping").type;
+    expect(Object.keys(nested as object)).toEqual(["type", "name", "namespace", "doc", "fields"]);
+
+    const currency = fieldNamed(fieldNamed(schema, "total").type, "currency").type;
+    expect(Object.keys(currency as object)).toEqual([
+      "type",
+      "name",
+      "namespace",
+      "doc",
+      "symbols",
+    ]);
+  });
+
+  it("writes the file as two-space indented JSON that ends in a newline", async () => {
+    const result = await emitAvro(`
+      @Avro.\`namespace\`("com.example.plain")
+      namespace Plain {
+        @Avro.\`record\` model Event { id: string; }
+      }
+    `);
+
+    // The bytes, not the parsed value. Indentation and the closing newline
+    // survive no other assertion in this file, and both are what makes the
+    // output readable in a diff.
+    expect(result.texts["com/example/plain/Event.avsc"]).toBe(
+      `{
+  "type": "record",
+  "name": "Event",
+  "namespace": "com.example.plain",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    }
+  ]
+}
+`,
+    );
   });
 
   it("leaves out a doc nobody wrote", async () => {
@@ -261,5 +307,6 @@ describe("the Avro walk", () => {
       namespace: "com.example.plain",
       fields: [{ name: "id", type: "string" }],
     });
+    expectInstanceRoundTrip(files["com/example/plain/Event.avsc"]);
   });
 });

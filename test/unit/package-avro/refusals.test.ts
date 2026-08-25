@@ -13,16 +13,34 @@ import { emitAvro } from "../../utils/avro.js";
  * marked below, arrive in a later phase. The rest have no Avro form at all.
  */
 
-async function expectRefusal(source: string, code: string): Promise<void> {
+/**
+ * Asserts that a source is refused, and that it is refused for the stated
+ * reasons.
+ *
+ * The whole rendered message is compared, not the diagnostic code. Eight of
+ * the cases below share two codes, so a code alone cannot tell one refusal
+ * from another, and a test would pass on a refusal it was not written for.
+ * The list is compared for equality, so a refusal nobody expected fails the
+ * test as well.
+ *
+ * @param source - The TypeSpec source
+ * @param refusals - Every expected diagnostic, as `code: message`, in order
+ */
+async function expectRefusal(source: string, ...refusals: string[]): Promise<void> {
   const result = await emitAvro(source);
 
-  expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(`tsp-avro/${code}`);
+  expect(
+    result.diagnostics.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`),
+  ).toEqual(refusals.map((refusal) => `tsp-avro/${refusal}`));
   expect(Object.keys(result.files)).toEqual([]);
 }
 
 describe("what the Avro walk refuses", () => {
   it("refuses a record with no Avro namespace above it", async () => {
-    await expectRefusal(`@Avro.\`record\` model Event { id: string; }`, "namespace-required");
+    await expectRefusal(
+      `@Avro.\`record\` model Event { id: string; }`,
+      `namespace-required: A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.`,
+    );
   });
 
   it("refuses an optional property, which needs a union with null", async () => {
@@ -31,7 +49,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { id?: string; } }
       `,
-      "unsupported-field",
+      `unsupported-field: The property "id" is optional, which is not supported yet.`,
     );
   });
 
@@ -41,7 +59,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { id: string = "none"; } }
       `,
-      "unsupported-field",
+      `unsupported-field: The property "id" carries a default, which is not supported yet.`,
     );
   });
 
@@ -51,7 +69,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { id: string | int32; } }
       `,
-      "unsupported-type",
+      `unsupported-type: A union is not supported yet.`,
     );
   });
 
@@ -63,7 +81,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { count: uint32; } }
       `,
-      "unsupported-type",
+      `unsupported-type: The scalar "uint32" has no Avro form.`,
     );
   });
 
@@ -73,7 +91,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { at: { city: string; }; } }
       `,
-      "unsupported-type",
+      `unsupported-type: An anonymous model has no name, and an Avro record needs one.`,
     );
   });
 
@@ -86,7 +104,7 @@ describe("what the Avro walk refuses", () => {
         @Avro.\`record\` model Event extends Base { at: string; }
       }
       `,
-      "unsupported-type",
+      `unsupported-type: The model "Event" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
     );
   });
 
@@ -100,7 +118,8 @@ describe("what the Avro walk refuses", () => {
         @Avro.\`record\` model Event { currency: Currency; }
       }
       `,
-      "enum-member-value",
+      `enum-member-value: The enum member "USD" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.`,
+      `enum-member-value: The enum member "EUR" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.`,
     );
   });
 
@@ -110,7 +129,8 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example-orders")
       namespace A { @Avro.\`record\` model Event { id: string; } }
       `,
-      "invalid-name",
+      `invalid-name: "com.example-orders" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
+      `namespace-required: A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.`,
     );
   });
 
@@ -120,7 +140,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model Event { \`order-id\`: string; } }
       `,
-      "invalid-name",
+      `invalid-name: "order-id" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
     );
   });
 
@@ -133,7 +153,7 @@ describe("what the Avro walk refuses", () => {
         @Avro.\`record\` model Event { colour: Colour; }
       }
       `,
-      "invalid-name",
+      `invalid-name: "off-white" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
     );
   });
 
@@ -146,7 +166,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A { @Avro.\`record\` model \`Order-Placed\` { id: string; } }
       `,
-      "invalid-name",
+      `invalid-name: "Order-Placed" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
     );
   });
 
@@ -159,7 +179,8 @@ describe("what the Avro walk refuses", () => {
         @Avro.\`record\` model Event { text: Box<string>; count: Box<int32>; }
       }
       `,
-      "unsupported-type",
+      `unsupported-type: The model "Box" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
+      `unsupported-type: The model "Box" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
     );
   });
 
@@ -172,7 +193,38 @@ describe("what the Avro walk refuses", () => {
         @Avro.\`record\` model Event { bag: Bag; }
       }
       `,
-      "unsupported-type",
+      `unsupported-type: The model "Bag" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.`,
+    );
+  });
+
+  it("refuses two declarations that take one Avro name", async () => {
+    // Two TypeSpec namespaces may carry one Avro namespace, so two models
+    // named Address can take one full name with no template in sight. Writing
+    // the second as a reference would give it the fields of the first.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.x")
+      namespace A { model Address { street: string; } }
+      @Avro.\`namespace\`("com.example.x")
+      namespace B { model Address { zip: int32; } }
+      @Avro.\`namespace\`("com.example.x")
+      namespace C {
+        @Avro.\`record\` model Event { a: A.Address; b: B.Address; }
+      }
+      `,
+      `unsupported-type: "B.Address" and "A.Address" both take the Avro name "com.example.x.Address". An Avro schema names each type once, so the second would read as the first.`,
+    );
+  });
+
+  it("refuses two records that write to one file", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.y")
+      namespace A { @Avro.\`record\` model Event { street: string; } }
+      @Avro.\`namespace\`("com.example.y")
+      namespace B { @Avro.\`record\` model Event { zip: int32; } }
+      `,
+      `duplicate-record: "B.Event" and "A.Event" both write to "/out/com/example/y/Event.avsc". One file holds one schema, so the second would replace the first.`,
     );
   });
 

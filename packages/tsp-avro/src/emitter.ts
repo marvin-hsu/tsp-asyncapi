@@ -21,10 +21,16 @@
  * @public
  */
 
-import { getDirectoryPath, resolvePath, type EmitContext } from "@typespec/compiler";
+import {
+  getDirectoryPath,
+  getTypeName,
+  resolvePath,
+  type EmitContext,
+  type Model,
+} from "@typespec/compiler";
 import { buildAvroRecord } from "./walk/model.js";
 import { listRecords } from "./decorators/record.js";
-import type { AvroEmitterOptions } from "./lib.js";
+import { reportDiagnostic, type AvroEmitterOptions } from "./lib.js";
 import { renderAvroFile } from "./render.js";
 import type { AvroRecord } from "./types.js";
 
@@ -49,13 +55,32 @@ function pathOf(outputDir: string, schema: AvroRecord): string {
 export async function $onEmit(context: EmitContext<AvroEmitterOptions>): Promise<void> {
   const program = context.program;
 
+  // The path a record takes is claimed by that record. Two records under one
+  // Avro namespace can carry one name, because two TypeSpec namespaces can
+  // carry one Avro namespace. Writing both would leave one file holding the
+  // second schema, and the first record would be gone without a word.
+  const claimed = new Map<string, Model>();
+
   const files: { path: string; text: string }[] = [];
   for (const model of listRecords(program)) {
     const schema = buildAvroRecord(program, model);
     if (schema === undefined) {
       continue;
     }
-    files.push({ path: pathOf(context.emitterOutputDir, schema), text: renderAvroFile(schema) });
+
+    const path = pathOf(context.emitterOutputDir, schema);
+    const owner = claimed.get(path);
+    if (owner !== undefined) {
+      reportDiagnostic(program, {
+        code: "duplicate-record",
+        format: { name: getTypeName(model), other: getTypeName(owner), path },
+        target: model,
+      });
+      continue;
+    }
+    claimed.set(path, model);
+
+    files.push({ path, text: renderAvroFile(schema) });
   }
 
   if (program.compilerOptions.dryRun === true || program.hasError()) {

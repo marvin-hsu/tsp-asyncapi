@@ -99,12 +99,22 @@ export async function emitAvro(source: string): Promise<AvroEmitResult> {
  * A diagnostic here means the test source is wrong, not that the assertion
  * below it failed. Failing on the spot says which of the two happened.
  *
+ * Every file goes past `avsc` before it is handed back, so a test gets the
+ * acceptance layer whether or not its author asked for it. A wrong primitive
+ * name or a reference to a name nothing defines fails here, in the test that
+ * produced it. The round trip layer is not run here, because a record that
+ * reaches itself through a plain field makes `random` recurse until the stack
+ * runs out; those tests call `expectValueRoundTrip` with an instance instead.
+ *
  * @param source - The TypeSpec source
  * @returns The parsed files, by path relative to the output directory
  */
 export async function emitAvroFiles(source: string): Promise<Record<string, unknown>> {
   const result = await emitAvro(source);
   expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([]);
+  for (const schema of Object.values(result.files)) {
+    acceptSchema(schema);
+  }
   return result.files;
 }
 
@@ -126,6 +136,14 @@ export function acceptSchema(schema: unknown): avro.Type {
  * because one random instance can miss a branch: an array can come back
  * empty, and an enum lands on one symbol.
  *
+ * The generated value is checked against the schema, and the decoded value is
+ * then encoded again and compared. Comparing the first decode with the
+ * generated value would be wrong for one Avro type: `float` is four bytes on
+ * the wire, `random` hands out a JavaScript double, and 818.6408281326294
+ * comes back as 818.6408081054688. That is the Avro specification working,
+ * not the emitter failing. Encoding twice is the property that holds for
+ * every type: what the schema wrote out is what the schema reads back.
+ *
  * @param schema - One parsed `.avsc` file
  * @param rounds - How many random instances to try
  */
@@ -133,7 +151,10 @@ export function expectInstanceRoundTrip(schema: unknown, rounds = 20): void {
   const type = acceptSchema(schema);
   for (let round = 0; round < rounds; round++) {
     const value: unknown = type.random();
-    expect(type.fromBuffer(type.toBuffer(value))).toEqual(value);
+    expect(type.isValid(value)).toBe(true);
+
+    const decoded: unknown = type.fromBuffer(type.toBuffer(value));
+    expect(type.fromBuffer(type.toBuffer(decoded))).toEqual(decoded);
   }
 }
 

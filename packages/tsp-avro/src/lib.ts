@@ -13,7 +13,7 @@
  * `context.emitterOutputDir` is how this emitter reads it.
  */
 
-import { createTypeSpecLibrary, type JSONSchemaType } from "@typespec/compiler";
+import { createTypeSpecLibrary, paramMessage, type JSONSchemaType } from "@typespec/compiler";
 
 /**
  * Configuration options for the Avro emitter.
@@ -58,33 +58,40 @@ export const $lib = createTypeSpecLibrary({
     "invalid-name": {
       severity: "error",
       messages: {
-        default: `"{name}" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
-        namespace: `"{name}" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
+        default: paramMessage`"${"name"}" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
+        namespace: paramMessage`"${"name"}" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
       },
     },
     "unsupported-type": {
       severity: "error",
       messages: {
-        default: `A property of kind "{kind}" has no Avro form.`,
+        default: paramMessage`A property of kind "${"kind"}" has no Avro form.`,
         anonymous: "An anonymous model has no name, and an Avro record needs one.",
-        scalar: `The scalar "{name}" has no Avro form.`,
+        scalar: paramMessage`The scalar "${"name"}" has no Avro form.`,
         union: "A union is not supported yet.",
-        inheritance: `The model "{name}" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
-        template: `The model "{name}" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
-        indexer: `The model "{name}" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.`,
+        inheritance: paramMessage`The model "${"name"}" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
+        template: paramMessage`The model "${"name"}" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
+        indexer: paramMessage`The model "${"name"}" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.`,
+        duplicate: paramMessage`"${"name"}" and "${"other"}" both take the Avro name "${"fullName"}". An Avro schema names each type once, so the second would read as the first.`,
       },
     },
     "unsupported-field": {
       severity: "error",
       messages: {
-        optional: `The property "{name}" is optional, which is not supported yet.`,
-        default: `The property "{name}" carries a default, which is not supported yet.`,
+        optional: paramMessage`The property "${"name"}" is optional, which is not supported yet.`,
+        default: paramMessage`The property "${"name"}" carries a default, which is not supported yet.`,
+      },
+    },
+    "duplicate-record": {
+      severity: "error",
+      messages: {
+        default: paramMessage`"${"name"}" and "${"other"}" both write to "${"path"}". One file holds one schema, so the second would replace the first.`,
       },
     },
     "enum-member-value": {
       severity: "error",
       messages: {
-        default: `The enum member "{name}" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.`,
+        default: paramMessage`The enum member "${"name"}" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.`,
       },
     },
   },

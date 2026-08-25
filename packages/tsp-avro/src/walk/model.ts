@@ -19,6 +19,7 @@
 
 import {
   getDoc,
+  getTypeName,
   isArrayModelType,
   isRecordModelType,
   isTemplateInstance,
@@ -38,15 +39,20 @@ import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalar
 /**
  * What the walk carries from one type to the next.
  *
- * `defined` holds the full names already written into the file being built. It
- * is per file, because each file stands alone. `refused` is set once and never
- * cleared: the walk keeps going after a refusal so the author sees every
- * problem in one compile, and the caller drops the record at the end.
+ * `defined` maps every full name already written into the file being built to
+ * the declaration that took it. It is per file, because each file stands
+ * alone. The declaration is kept, not just the name: two TypeSpec declarations
+ * can resolve to one Avro name, and a name alone cannot tell that apart from a
+ * second visit to the same declaration.
+ *
+ * `refused` is set once and never cleared: the walk keeps going after a
+ * refusal so the author sees every problem in one compile, and the caller
+ * drops the record at the end.
  */
 interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
-  readonly defined: Set<string>;
+  readonly defined: Map<string, Model | Enum>;
   refused: boolean;
 }
 
@@ -63,7 +69,7 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
   const context: WalkContext = {
     program,
     scalars: createScalarTable(program),
-    defined: new Set(),
+    defined: new Map(),
     refused: false,
   };
 
@@ -211,13 +217,13 @@ function namedModelFor(
   if (fullName === undefined) {
     return undefined;
   }
-  if (context.defined.has(fullName)) {
+  const taken = defineName(context, fullName, model, target);
+  if (taken === false) {
+    return undefined;
+  }
+  if (taken === "again") {
     return fullName;
   }
-
-  // The name is remembered before the fields are walked. That is what makes a
-  // type that reaches itself end in a name rather than in another copy.
-  context.defined.add(fullName);
 
   const fields: AvroField[] = [];
   for (const property of model.properties.values()) {
@@ -297,10 +303,13 @@ function enumFor(
   if (fullName === undefined) {
     return undefined;
   }
-  if (context.defined.has(fullName)) {
+  const taken = defineName(context, fullName, target, source);
+  if (taken === false) {
+    return undefined;
+  }
+  if (taken === "again") {
     return fullName;
   }
-  context.defined.add(fullName);
 
   const symbols: string[] = [];
   for (const member of target.members.values()) {
@@ -332,6 +341,50 @@ function enumFor(
     doc: getDoc(context.program, target),
     symbols,
   };
+}
+
+/**
+ * Claims a full name for one declaration inside the file being built.
+ *
+ * The name is claimed before the fields are walked. That is what makes a type
+ * that reaches itself end in a name rather than in another copy.
+ *
+ * A name is claimed by one declaration. A second declaration that resolves to
+ * the same name is refused, because writing it as a reference would give it
+ * the fields of the first, which the author never wrote. Two TypeSpec
+ * namespaces may carry the same Avro namespace, so this needs no template to
+ * happen.
+ *
+ * @returns "first" to write the definition, "again" to write the name, or
+ *   false when the name belongs to another declaration
+ */
+function defineName(
+  context: WalkContext,
+  fullName: string,
+  declaration: Model | Enum,
+  target: DiagnosticTarget,
+): "first" | "again" | false {
+  const owner = context.defined.get(fullName);
+  if (owner === declaration) {
+    return "again";
+  }
+  if (owner !== undefined) {
+    reportDiagnostic(context.program, {
+      code: "unsupported-type",
+      messageId: "duplicate",
+      format: {
+        name: getTypeName(declaration),
+        other: getTypeName(owner),
+        fullName,
+      },
+      target,
+    });
+    markRefused(context);
+    return false;
+  }
+
+  context.defined.set(fullName, declaration);
+  return "first";
 }
 
 /**

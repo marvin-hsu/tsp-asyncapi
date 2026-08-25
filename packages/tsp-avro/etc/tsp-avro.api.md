@@ -4,6 +4,7 @@
 
 ```ts
 
+import { CallableMessage } from '@typespec/compiler';
 import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
 import { EmitContext } from '@typespec/compiler';
 import { Enum } from '@typespec/compiler';
@@ -18,24 +19,28 @@ export const $lib: TypeSpecLibrary<    {
 readonly default: "A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.";
 };
 "invalid-name": {
-readonly default: "\"{name}\" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.";
-readonly namespace: "\"{name}\" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.";
+readonly default: CallableMessage<["name"]>;
+readonly namespace: CallableMessage<["name"]>;
 };
 "unsupported-type": {
-readonly default: "A property of kind \"{kind}\" has no Avro form.";
+readonly default: CallableMessage<["kind"]>;
 readonly anonymous: "An anonymous model has no name, and an Avro record needs one.";
-readonly scalar: "The scalar \"{name}\" has no Avro form.";
+readonly scalar: CallableMessage<["name"]>;
 readonly union: "A union is not supported yet.";
-readonly inheritance: "The model \"{name}\" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.";
-readonly template: "The model \"{name}\" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.";
-readonly indexer: "The model \"{name}\" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.";
+readonly inheritance: CallableMessage<["name"]>;
+readonly template: CallableMessage<["name"]>;
+readonly indexer: CallableMessage<["name"]>;
+readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
 };
 "unsupported-field": {
-readonly optional: "The property \"{name}\" is optional, which is not supported yet.";
-readonly default: "The property \"{name}\" carries a default, which is not supported yet.";
+readonly optional: CallableMessage<["name"]>;
+readonly default: CallableMessage<["name"]>;
+};
+"duplicate-record": {
+readonly default: CallableMessage<["name", "other", "path"]>;
 };
 "enum-member-value": {
-readonly default: "The enum member \"{name}\" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.";
+readonly default: CallableMessage<["name"]>;
 };
 }, AvroEmitterOptions, never>;
 
