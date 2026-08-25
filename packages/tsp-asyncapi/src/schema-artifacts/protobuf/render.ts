@@ -72,8 +72,10 @@ function renderMessage(message: ProtoMessage): string[] {
   // both gets a blank line between them.
   if (reserved.length > 0 && message.fields.length > 0) lines.push("");
   for (const field of message.fields) {
-    lines.push(...renderDoc(field.doc, INDENT));
-    lines.push(`${INDENT}${labelOf(field)}${field.type} ${field.name} = ${String(field.index)};`);
+    lines.push(
+      ...renderDoc(field.doc, INDENT),
+      `${INDENT}${labelOf(field)}${field.type} ${field.name} = ${String(field.index)};`,
+    );
   }
   lines.push("}");
   return lines;
@@ -129,8 +131,10 @@ function renderEnum(target: ProtoEnum): string[] {
   lines.push(`enum ${target.name} {`);
   if (target.allowAlias) lines.push(`${INDENT}option allow_alias = true;`);
   for (const variant of target.variants) {
-    lines.push(...renderDoc(variant.doc, INDENT));
-    lines.push(`${INDENT}${variant.name} = ${String(variant.value)};`);
+    lines.push(
+      ...renderDoc(variant.doc, INDENT),
+      `${INDENT}${variant.name} = ${String(variant.value)};`,
+    );
   }
   lines.push("}");
   return lines;
