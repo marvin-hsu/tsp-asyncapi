@@ -327,9 +327,7 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     `,
       "Event",
       (program) => {
-        const map = messageModelNamed(program, "Event").properties.get("keyed")?.type;
-        if (map?.kind !== "Model") throw new Error("The property 'keyed' is not a map.");
-        widenMapKey(program, map, "TypeSpec.float64");
+        replaceMapKey(program, mapPropertyOf(program, "keyed"), "TypeSpec.float64");
       },
     );
 
@@ -351,16 +349,126 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     `,
       "Event",
       (program) => {
-        const map = messageModelNamed(program, "Event").properties.get("keyed")?.type;
-        if (map?.kind !== "Model") throw new Error("The property 'keyed' is not a map.");
         // A map with no arguments at all: the shape a template with another
         // signature would leave behind.
-        Object.assign(map, { templateMapper: undefined });
+        Object.assign(mapPropertyOf(program, "keyed"), { templateMapper: undefined });
       },
     );
 
     expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
       "with no key and value",
+    );
+  });
+
+  /**
+   * proto3 numbers a field from one, so zero is no field number at all. The
+   * TypeSpec side accepts it, and the official emitter writes it, so the
+   * descriptor oracle sees two texts that agree and stays quiet. Only this
+   * case says the text would be wrong.
+   */
+  it("refuses a reservation of zero, which proto3 cannot number", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      @Protobuf.reserve(0)
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  it("refuses a reservation above the highest field number proto3 has", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      // One past the maximum the official decorator itself enforces.
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), [536870912]);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  /**
+   * A map value takes no label, so a repeated value has no proto3 form. The
+   * report names the map, because the property has no array of arrays.
+   */
+  it("refuses a Protobuf map whose value is an array", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) many: Protobuf.Map<string, string[]>;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "a Protobuf.Map whose value is an array",
+    );
+  });
+
+  it("refuses a Protobuf map keyed by a declaration, not a scalar", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      model Key {
+        @Protobuf.field(1) id: string;
+      }
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        replaceMapKey(program, mapPropertyOf(program, "keyed"), "Render.Key");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "keyed by a Model",
+    );
+  });
+
+  it("refuses a Protobuf map whose arguments are values, not types", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        const mapper = mapPropertyOf(program, "keyed").templateMapper;
+        if (mapper === undefined) throw new Error("The map carries no template arguments.");
+        // A template argument the compiler passed as a value: the shape a
+        // library that took a value parameter would leave behind.
+        Object.assign(mapper, { args: [{ valueKind: "StringValue" }, mapper.args[1]] });
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "of a Protobuf.Map of values, not types",
     );
   });
 
@@ -558,6 +666,18 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     );
   });
 
+  it("refuses a field number the state does not hold as a whole number", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      const property = messageModelNamed(program, "Event").properties.get("id");
+      if (property === undefined) throw new Error("The model declares no property 'id'.");
+      program.stateMap(FIELD_INDEX_STATE).set(property, 1.5);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no @Protobuf.field number",
+    );
+  });
+
   it("refuses reservations the state does not hold as a list", async () => {
     const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
       program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), 2);
@@ -627,19 +747,32 @@ const RESERVED_SOURCE = `
 `;
 
 /**
- * Replaces the key type of a map with another scalar.
+ * Finds the map instantiation one property of `Event` carries.
+ *
+ * @param program - The compiled program
+ * @param propertyName - The property that carries the map
+ * @returns The map instantiation
+ */
+function mapPropertyOf(program: Program, propertyName: string): Model {
+  const map = messageModelNamed(program, "Event").properties.get(propertyName)?.type;
+  if (map?.kind !== "Model") throw new Error(`The property '${propertyName}' is not a map.`);
+  return map;
+}
+
+/**
+ * Replaces the key type of a map with another type.
  *
  * The TypeSpec side constrains a map key to an integral or a string type, so
- * a source cannot declare the shape this stands for. Writing the type here
+ * a source cannot declare the shapes this stands for. Writing the type here
  * stands in for a library that widened that constraint.
  *
  * @param program - The compiled program
  * @param map - The map instantiation to re-key
- * @param scalarName - The qualified name of the scalar to key it with
+ * @param typeName - The qualified name of the type to key it with
  */
-function widenMapKey(program: Program, map: Model, scalarName: string): void {
-  const [key] = program.resolveTypeReference(scalarName);
-  if (key === undefined) throw new Error(`The program declares no scalar '${scalarName}'.`);
+function replaceMapKey(program: Program, map: Model, typeName: string): void {
+  const [key] = program.resolveTypeReference(typeName);
+  if (key === undefined) throw new Error(`The program declares no type '${typeName}'.`);
   const mapper = map.templateMapper;
   if (mapper === undefined) throw new Error("The map carries no template arguments.");
   Object.assign(mapper, { args: [key, mapper.args[1]] });

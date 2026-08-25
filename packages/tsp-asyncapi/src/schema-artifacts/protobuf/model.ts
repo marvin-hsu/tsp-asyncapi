@@ -12,15 +12,15 @@
  * fields are walked, so a model that reaches itself finds its own name and
  * stops. Nothing here needs a second pass to prune or to check.
  *
- * One message of a payload is the one the payload describes, and the closure
- * says which without an annotation: every other declaration was pulled in by
- * a reference, so the root is the one no other declaration references. A
- * message that references itself still counts, because the official AsyncAPI
- * Protobuf parser ignores a self reference. Two messages that reference each
- * other are the one shape with no such message, and that parser cannot root
- * them. Both payloads are still correct proto3, and both carry both
- * declarations. Nothing here works around that limit, because working around
- * it would mean dropping a declaration the text needs.
+ * The root of a payload is the model the caller asks for, and this file takes
+ * it as an argument. A reader of the finished text has no such argument, so
+ * the official AsyncAPI Protobuf parser infers the root by reference: it
+ * takes the declaration no other declaration references, and it ignores a
+ * self reference while doing so. Two messages that reference each other leave
+ * that parser no such declaration, and it cannot root them. Both payloads are
+ * still correct proto3, and both carry both declarations. Nothing here works
+ * around that limit, because working around it would mean dropping a
+ * declaration the text needs.
  *
  * The structure below is the smallest one the printer needs. Every field it
  * does not have is a field a later release can add. Every field it has is one
@@ -397,13 +397,23 @@ function reservationsOf(walk: Walk, model: Model, name: string): Reservations | 
 }
 
 /**
+ * The highest field number proto3 gives a message, which the official
+ * decorator enforces as well.
+ */
+const MAX_FIELD_NUMBER = 2 ** 29 - 1;
+
+/**
  * Whether a value is a field number proto3 can write.
  *
+ * proto3 numbers a field from one, so zero is no field number. It also stops
+ * at a maximum, and a number above that has no line either.
+ *
  * @param value - The value to judge
- * @returns Whether it is a non negative integer
+ * @returns Whether it is a whole number in the range proto3 numbers with
  */
 function isFieldNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+  if (typeof value !== "number" || !Number.isInteger(value)) return false;
+  return value >= 1 && value <= MAX_FIELD_NUMBER;
 }
 
 /**
@@ -482,7 +492,7 @@ function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
  */
 function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
   const index = walk.program.stateMap(FIELD_INDEX_STATE).get(property) as unknown;
-  if (typeof index !== "number") {
+  if (!isFieldNumber(index)) {
     refuse(walk, property, `property '${property.name}' with no @Protobuf.field number`);
     return undefined;
   }
@@ -541,6 +551,8 @@ function fieldTypeOf(
  * The key resolves through the same scalar table every other field uses, and
  * it then has to be a type proto3 accepts as a key. The value resolves the
  * same way any other field type does, so a message value joins the closure.
+ * An array value is read here rather than passed on, because proto3 gives a
+ * map value no label and the author should hear about the map.
  *
  * @param walk - The walk in progress
  * @param map - A `Protobuf.Map` instantiation
@@ -567,6 +579,10 @@ function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | un
   if (keyName === undefined) return undefined;
   if (!MAP_KEY_SCALARS.has(keyName)) {
     refuse(walk, property, `property '${property.name}' of a Protobuf.Map keyed by '${keyName}'`);
+    return undefined;
+  }
+  if (isArrayInstance(value)) {
+    refuse(walk, property, `property '${property.name}' of a Protobuf.Map whose value is an array`);
     return undefined;
   }
   const valueName = typeNameOf(walk, value, property);
