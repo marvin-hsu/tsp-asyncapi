@@ -68,18 +68,17 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`A property of kind "${"kind"}" has no Avro form.`,
         anonymous: "An anonymous model has no name, and an Avro record needs one.",
         scalar: paramMessage`The scalar "${"name"}" has no Avro form.`,
-        union: "A union is not supported yet.",
+        intrinsic: paramMessage`The type "${"name"}" has no Avro form.`,
         inheritance: paramMessage`The model "${"name"}" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
         template: paramMessage`The model "${"name"}" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
         indexer: paramMessage`The model "${"name"}" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.`,
         duplicate: paramMessage`"${"name"}" and "${"other"}" both take the Avro name "${"fullName"}". An Avro schema names each type once, so the second would read as the first.`,
       },
     },
-    "unsupported-field": {
+    "duplicate-union-branch": {
       severity: "error",
       messages: {
-        optional: paramMessage`The property "${"name"}" is optional, which is not supported yet.`,
-        default: paramMessage`The property "${"name"}" carries a default, which is not supported yet.`,
+        default: paramMessage`Two branches of this union are both the Avro type "${"name"}". An Avro union holds each type once.`,
       },
     },
     "duplicate-record": {

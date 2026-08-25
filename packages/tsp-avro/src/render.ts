@@ -11,22 +11,29 @@
  * name, then the rest.
  */
 
-import type { AvroField, AvroSchema } from "./types.js";
+import { isAvroUnion, type AvroField, type AvroSchema } from "./types.js";
 
 /**
  * A JSON value, as `JSON.stringify` accepts it.
  */
-type JsonValue = string | JsonObject | JsonValue[];
+type JsonValue = null | boolean | number | string | JsonObject | readonly JsonValue[];
 
 interface JsonObject {
   readonly [key: string]: JsonValue | undefined;
 }
 
+/**
+ * Renders one field.
+ *
+ * `default` comes last, and it is written whenever the walk set one. Null is a
+ * default Avro allows, so null is written and undefined disappears.
+ */
 function renderField(field: AvroField): JsonObject {
   return {
     name: field.name,
     type: renderSchema(field.type),
     doc: field.doc,
+    default: field.default,
   };
 }
 
@@ -36,6 +43,9 @@ function renderField(field: AvroField): JsonObject {
 function renderSchema(schema: AvroSchema): JsonValue {
   if (typeof schema === "string") {
     return schema;
+  }
+  if (isAvroUnion(schema)) {
+    return schema.map(renderSchema);
   }
 
   switch (schema.type) {

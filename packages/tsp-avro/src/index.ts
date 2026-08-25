@@ -23,12 +23,17 @@ export {
   resolveAvroNamespace,
 } from "./decorators/index.js";
 
+export { isAvroUnion } from "./types.js";
+
 export type {
   AvroArray,
+  AvroBranch,
+  AvroDefault,
   AvroEnum,
   AvroField,
   AvroMap,
   AvroPrimitiveName,
   AvroRecord,
   AvroSchema,
+  AvroUnion,
 } from "./types.js";

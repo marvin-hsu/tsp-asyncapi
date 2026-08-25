@@ -168,6 +168,8 @@ export interface RenderedField {
   readonly name: string;
   readonly type: unknown;
   readonly doc?: string;
+  /** The default, which is absent unless the schema wrote one. Null is one. */
+  readonly default?: unknown;
 }
 
 /**
@@ -202,11 +204,12 @@ export function fieldNamed(schema: unknown, name: string): RenderedField {
 /**
  * Asserts that one instance the caller wrote survives a buffer round trip.
  *
- * Use this where `random` cannot terminate. A record that reaches itself
- * through a plain field has no branch that stops, so `random` recurses until
- * the stack runs out. That is a limit of the generator, not of the schema:
- * the value below stops because the array it holds is empty. Recursion gets a
- * generator that terminates once a field may be null, which is a later phase.
+ * Use this where `random` cannot terminate, and where a chosen instance says
+ * more than a random one. A record that reaches itself through a plain field
+ * has no branch that stops, so `random` recurses until the stack runs out.
+ * That is a limit of the generator, not of the schema. A record that reaches
+ * itself through an optional field does stop, because null is a branch, but
+ * it stops at a depth nobody picked. A written instance names the depth.
  *
  * @param schema - One parsed `.avsc` file
  * @param value - An instance the schema allows

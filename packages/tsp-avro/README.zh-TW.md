@@ -8,18 +8,35 @@
 
 ## 目前狀態
 
-走訪只完成一部分。它寫得出 record、欄位、陣列、map 與 enum。其餘一律拒絕，
-而拒絕就是錯誤。
+走訪只完成一部分。它寫得出 record、欄位、陣列、map、enum 與 union，
+也寫得出選填屬性與屬性預設值。其餘一律拒絕，而拒絕就是錯誤。
 
-以下項目尚未支援。每一項都會回報一個 diagnostic。
+以下項目會回報一個 diagnostic。
 
-- 選填屬性，以及帶預設值的屬性。
-- union。
 - 繼承其他 model 的 model。
 - 匿名 model。
 - template 實例，例如 `Box<string>`。
 - 同時帶索引簽章與欄位的 model。
 - 下方對照表以外的 scalar。
+- 同一個型別出現兩次的 union，例如 `string[] | int32[]`。
+
+## 選填屬性與預設值
+
+Avro 沒有選填欄位。可以不存在的欄位是一個帶 null 的 union。
+union 只有在預設值對得上第一個分支時才帶預設值。
+所以 TypeSpec 的 `?` 與 `= value` 一起決定輸出的形狀。
+
+| TypeSpec           | Avro                                                   |
+| ------------------ | ------------------------------------------------------ |
+| `x: string`        | `{"name":"x","type":"string"}`                         |
+| `x?: string`       | `{"name":"x","type":["null","string"],"default":null}` |
+| `x: string = "a"`  | `{"name":"x","type":"string","default":"a"}`           |
+| `x?: string = "a"` | `{"name":"x","type":["string","null"],"default":"a"}`  |
+
+最後一列的順序是反的。作者寫了一個不是 null 的預設值，所以 null 不能排第一。
+
+union 用 `|` 寫。union 裡的 union 會被攤平，因為 Avro 既不允許巢狀，
+也不允許重複的分支。具名型別以 full name 比對，其餘分支以 Avro 型別名稱比對。
 
 ## 安裝
 

@@ -200,6 +200,49 @@ describe("the Avro walk", () => {
     });
   });
 
+  it("writes a type that reaches itself through an optional field", async () => {
+    // The union with null is what lets an instance stop. Avro says recursion
+    // by name, so the schema needs no rule for it either way.
+    const files = await emitAvroFiles(`
+      @Avro.\`namespace\`("com.example.tree")
+      namespace Tree {
+        @Avro.\`record\` model Node {
+          value: string;
+          next?: Node;
+        }
+      }
+    `);
+    const schema = files["com/example/tree/Node.avsc"];
+
+    expect(fieldNamed(schema, "next").type).toEqual(["null", "com.example.tree.Node"]);
+    expectValueRoundTrip(schema, { value: "head", next: { value: "tail", next: null } });
+  });
+
+  it("writes two types that reach each other", async () => {
+    // Neither name is written twice. Branch is defined where it first
+    // appears, Leaf inside it, and the field that reaches back to Branch
+    // finds the name already claimed.
+    const files = await emitAvroFiles(`
+      @Avro.\`namespace\`("com.example.tree")
+      namespace Tree {
+        model Branch { leaf: Leaf; }
+        model Leaf { up?: Branch; }
+        @Avro.\`record\` model Plant { root: Branch; }
+      }
+    `);
+    const schema = files["com/example/tree/Plant.avsc"];
+
+    const branch = fieldNamed(schema, "root").type;
+    expect(branch).toMatchObject({ type: "record", name: "Branch" });
+    const leaf = fieldNamed(branch, "leaf").type;
+    expect(leaf).toMatchObject({ type: "record", name: "Leaf" });
+    expect(fieldNamed(leaf, "up").type).toEqual(["null", "com.example.tree.Branch"]);
+
+    expectValueRoundTrip(schema, {
+      root: { leaf: { up: { leaf: { up: null } } } },
+    });
+  });
+
   it("maps each supported scalar to its Avro primitive", async () => {
     const files = await emitAvroFiles(`
       @Avro.\`namespace\`("com.example.scalars")

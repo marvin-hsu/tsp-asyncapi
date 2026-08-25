@@ -26,14 +26,13 @@ readonly namespace: CallableMessage<["name"]>;
 readonly default: CallableMessage<["kind"]>;
 readonly anonymous: "An anonymous model has no name, and an Avro record needs one.";
 readonly scalar: CallableMessage<["name"]>;
-readonly union: "A union is not supported yet.";
+readonly intrinsic: CallableMessage<["name"]>;
 readonly inheritance: CallableMessage<["name"]>;
 readonly template: CallableMessage<["name"]>;
 readonly indexer: CallableMessage<["name"]>;
 readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
 };
-"unsupported-field": {
-readonly optional: CallableMessage<["name"]>;
+"duplicate-union-branch": {
 readonly default: CallableMessage<["name"]>;
 };
 "duplicate-record": {
@@ -60,6 +59,14 @@ export interface AvroArray {
 }
 
 // @public
+export type AvroBranch = string | AvroRecord | AvroEnum | AvroArray | AvroMap;
+
+// @public
+export type AvroDefault = null | boolean | number | string | readonly AvroDefault[] | {
+    readonly [key: string]: AvroDefault;
+};
+
+// @public
 export type AvroEmitterOptions = Record<string, never>;
 
 // @public
@@ -73,6 +80,7 @@ export interface AvroEnum {
 
 // @public
 export interface AvroField {
+    readonly default?: AvroDefault;
     readonly doc?: string;
     readonly name: string;
     readonly type: AvroSchema;
@@ -97,10 +105,16 @@ export interface AvroRecord {
 }
 
 // @public
-export type AvroSchema = string | AvroRecord | AvroEnum | AvroArray | AvroMap;
+export type AvroSchema = AvroBranch | AvroUnion;
+
+// @public
+export type AvroUnion = readonly AvroBranch[];
 
 // @public
 export function getAvroNamespace(program: Program, target: Namespace): string | undefined;
+
+// @public
+export function isAvroUnion(schema: AvroSchema): schema is AvroUnion;
 
 // @public
 export function isRecord(program: Program, target: Model): boolean;

@@ -11,6 +11,11 @@
  * is remembered before its fields are walked, so a field that reaches back to
  * the type it is inside finds the name already there.
  *
+ * Avro has no optional field and no nullable type. Both are one thing there: a
+ * union with null. So an optional property and a property default are decided
+ * together, because a default has to match the first branch of the union it
+ * sits in, and that is what settles the order of the branches.
+ *
  * A construct with no Avro form is refused, and the whole record is dropped.
  * Nothing is guessed and nothing is written half translated, because a half
  * translated schema is still a valid schema, and a schema registry would take
@@ -23,17 +28,27 @@ import {
   isArrayModelType,
   isRecordModelType,
   isTemplateInstance,
+  serializeValueAsJson,
   type DiagnosticTarget,
   type Enum,
   type Model,
   type ModelProperty,
   type Program,
   type Type,
+  type Union,
 } from "@typespec/compiler";
 import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { reportDiagnostic } from "../lib.js";
-import type { AvroField, AvroRecord, AvroSchema } from "../types.js";
+import {
+  isAvroUnion,
+  type AvroBranch,
+  type AvroDefault,
+  type AvroField,
+  type AvroRecord,
+  type AvroSchema,
+  type AvroUnion,
+} from "../types.js";
 import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
 
 /**
@@ -119,7 +134,17 @@ function typeFor(
     case "Enum":
       return enumFor(context, type, target);
     case "Union":
-      reportDiagnostic(context.program, { code: "unsupported-type", messageId: "union", target });
+      return unionFor(context, type, target);
+    case "Intrinsic":
+      if (type.name === "null") {
+        return "null";
+      }
+      reportDiagnostic(context.program, {
+        code: "unsupported-type",
+        messageId: "intrinsic",
+        format: { name: type.name },
+        target,
+      });
       markRefused(context);
       return undefined;
     default:
@@ -243,11 +268,99 @@ function namedModelFor(
 }
 
 /**
+ * Translates a union into a flat Avro union.
+ *
+ * Avro states two rules and this holds both. A union may not hold another
+ * union, so a nested one is flattened into the outer one. And a union may not
+ * name one type twice, so a repeated branch is refused.
+ *
+ * Flattening never fails, because a nested union always opens up. What fails
+ * is the rule underneath it: `(string | int32) | string` flattens to three
+ * branches, and two of them are `string`.
+ */
+function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroUnion {
+  const branches: AvroBranch[] = [];
+  const keys = new Set<string>();
+
+  for (const variant of union.variants.values()) {
+    const schema = typeFor(context, variant.type, target);
+    if (schema !== undefined) {
+      addBranch(context, branches, keys, schema, target);
+    }
+  }
+
+  return branches;
+}
+
+/**
+ * Adds one translated variant to a union, flattening it and refusing a repeat.
+ */
+function addBranch(
+  context: WalkContext,
+  branches: AvroBranch[],
+  keys: Set<string>,
+  schema: AvroSchema,
+  target: DiagnosticTarget,
+): void {
+  if (isAvroUnion(schema)) {
+    for (const inner of schema) {
+      addBranch(context, branches, keys, inner, target);
+    }
+    return;
+  }
+
+  const key = branchKey(schema);
+  if (keys.has(key)) {
+    reportDiagnostic(context.program, {
+      code: "duplicate-union-branch",
+      format: { name: key },
+      target,
+    });
+    markRefused(context);
+    return;
+  }
+
+  keys.add(key);
+  branches.push(schema);
+}
+
+/**
+ * The name Avro knows a branch by.
+ *
+ * Two branches clash when this is the same. A named type is compared by its
+ * full name, and everything else by its type name: Avro holds one array and
+ * one map in a union, whatever they carry, because a reader tells the branches
+ * apart by type alone.
+ */
+function branchKey(schema: AvroBranch): string {
+  if (typeof schema === "string") {
+    return schema;
+  }
+  switch (schema.type) {
+    case "record":
+    case "enum":
+      return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
+    case "array":
+    case "map":
+      return schema.type;
+  }
+}
+
+/**
  * Translates one model property into a field.
  *
- * An optional property and a property default both change the field into a
- * union with null, and unions are not supported yet. So both are refused here
- * rather than written without the union they need.
+ * Avro has no optional field. A property that may be absent becomes a union
+ * with null, and the default that goes with it is null. A property default is
+ * written as it stands, and it decides where null sits: Avro reads a default
+ * against the first branch of a union, so null leads unless a default that is
+ * not null takes that place.
+ *
+ * | TypeSpec           | Avro                               |
+ * | ------------------ | ---------------------------------- |
+ * | `x: string`        | `"string"`                         |
+ * | `x?: string`       | `["null", "string"]`, default null  |
+ * | `x: string = "a"`  | `"string"`, default "a"            |
+ * | `x?: string = "a"` | `["string", "null"]`, default "a"  |
  */
 function fieldFor(context: WalkContext, property: ModelProperty): AvroField | undefined {
   if (!isAvroName(property.name)) {
@@ -259,33 +372,57 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
     markRefused(context);
     return undefined;
   }
-  if (property.optional) {
-    reportDiagnostic(context.program, {
-      code: "unsupported-field",
-      messageId: "optional",
-      format: { name: property.name },
-      target: property,
-    });
-    markRefused(context);
-    return undefined;
-  }
-  if (property.defaultValue !== undefined) {
-    reportDiagnostic(context.program, {
-      code: "unsupported-field",
-      messageId: "default",
-      format: { name: property.name },
-      target: property,
-    });
-    markRefused(context);
+
+  const declared = typeFor(context, property.type, property);
+  if (declared === undefined) {
     return undefined;
   }
 
-  const type = typeFor(context, property.type, property);
-  if (type === undefined) {
-    return undefined;
+  const doc = getDoc(context.program, property);
+
+  const branches: AvroBranch[] = isAvroUnion(declared) ? [...declared] : [declared];
+  if (property.optional && !branches.includes("null")) {
+    branches.push("null");
   }
 
-  return { name: property.name, type, doc: getDoc(context.program, property) };
+  // The compiler hands a default over as `unknown`. It is assignable to the
+  // property type, and every type this walk accepts turns into a JSON value,
+  // so this is the one place the shape is narrowed.
+  const written = property.defaultValue;
+  const value =
+    written === undefined
+      ? null
+      : (serializeValueAsJson(context.program, written, property) as AvroDefault);
+
+  const ordered = orderNull(branches, value !== null);
+  const type = ordered.length === 1 ? ordered[0] : ordered;
+
+  // A field carries a default when the author wrote one, and when the field is
+  // optional. Nothing else does: a union with null is legal without a default,
+  // and Avro asks for one only where a reader has to fill the field in.
+  if (written === undefined && !property.optional) {
+    return { name: property.name, type, doc };
+  }
+  return { name: property.name, type, doc, default: value };
+}
+
+/**
+ * Moves null to the end of a union, or to the front.
+ *
+ * Avro reads the default of a field against the first branch of its union. So
+ * a field that defaults to null needs null first, and a field that defaults to
+ * anything else needs null out of the way.
+ *
+ * @param branches - The flattened branches
+ * @param last - True to put null at the end
+ * @returns The branches in that order
+ */
+function orderNull(branches: AvroBranch[], last: boolean): AvroBranch[] {
+  if (!branches.includes("null")) {
+    return branches;
+  }
+  const rest = branches.filter((branch) => branch !== "null");
+  return last ? [...rest, "null"] : ["null", ...rest];
 }
 
 /**

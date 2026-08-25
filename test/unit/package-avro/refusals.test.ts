@@ -9,8 +9,7 @@ import { emitAvro } from "../../utils/avro.js";
  * A half translated record would still be a valid Avro schema, and a schema
  * registry would accept it, which is why nothing is guessed.
  *
- * Each case here is a construct this phase does not handle. Some of them,
- * marked below, arrive in a later phase. The rest have no Avro form at all.
+ * Each case here is a construct with no Avro form, or one Avro forbids.
  */
 
 /**
@@ -43,33 +42,55 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
-  it("refuses an optional property, which needs a union with null", async () => {
+  it("refuses a union that names one primitive twice", async () => {
+    // TypeSpec keeps the two branches apart, and Avro cannot: a reader picks
+    // a branch by its type, so the second string is unreachable.
     await expectRefusal(
       `
       @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id?: string; } }
+      namespace A {
+        union Inner { a: string, b: int32 }
+        @Avro.\`record\` model Event { id: string | Inner; }
+      }
       `,
-      `unsupported-field: The property "id" is optional, which is not supported yet.`,
+      `duplicate-union-branch: Two branches of this union are both the Avro type "string". An Avro union holds each type once.`,
     );
   });
 
-  it("refuses a property default, which decides the order of a union", async () => {
+  it("refuses a union that names one record twice", async () => {
+    // A named type is compared by its full name, which is the name Avro
+    // knows it by.
     await expectRefusal(
       `
       @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: string = "none"; } }
+      namespace A {
+        model Address { street: string; }
+        @Avro.\`record\` model Event { at: Address | Address; }
+      }
       `,
-      `unsupported-field: The property "id" carries a default, which is not supported yet.`,
+      `duplicate-union-branch: Two branches of this union are both the Avro type "com.example.a.Address". An Avro union holds each type once.`,
     );
   });
 
-  it("refuses a union", async () => {
+  it("refuses a union of two arrays, whatever they hold", async () => {
+    // An array carries no name, so Avro has nothing to tell two of them
+    // apart by. The rule is the type, not the item type.
     await expectRefusal(
       `
       @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: string | int32; } }
+      namespace A { @Avro.\`record\` model Event { id: string[] | int32[]; } }
       `,
-      `unsupported-type: A union is not supported yet.`,
+      `duplicate-union-branch: Two branches of this union are both the Avro type "array". An Avro union holds each type once.`,
+    );
+  });
+
+  it("refuses a type the language names but Avro cannot hold", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A { @Avro.\`record\` model Event { id: unknown; } }
+      `,
+      `unsupported-type: The type "unknown" has no Avro form.`,
     );
   });
 
@@ -233,7 +254,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.\`namespace\`("com.example.a")
       namespace A {
         @Avro.\`record\` model Good { id: string; }
-        @Avro.\`record\` model Bad { id?: string; }
+        @Avro.\`record\` model Bad { id: uint32; }
       }
     `);
 

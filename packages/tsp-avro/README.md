@@ -10,18 +10,38 @@ and writes `.avsc` files.
 
 ## Status
 
-The walk is partial. It writes records, fields, arrays, maps and enums. It
-refuses everything else, and a refusal is an error.
+The walk is partial. It writes records, fields, arrays, maps, enums and
+unions. It also writes optional properties and property defaults. It refuses
+everything else, and a refusal is an error.
 
-These are not supported yet. Each one is refused with a diagnostic.
+These are refused with a diagnostic.
 
-- An optional property, and a property with a default value.
-- A union.
 - A model that extends another model.
 - An anonymous model.
 - A template instance, such as `Box<string>`.
 - A model that holds an index signature and fields together.
 - A scalar outside the table below.
+- A union that names one type twice, such as `string[] | int32[]`.
+
+## Optional properties and defaults
+
+Avro has no optional field. A field that may be absent is a union with null.
+A union carries a default only if the default matches its first branch. So the
+`?` and the `= value` of TypeSpec decide the shape together.
+
+| TypeSpec           | Avro                                                   |
+| ------------------ | ------------------------------------------------------ |
+| `x: string`        | `{"name":"x","type":"string"}`                         |
+| `x?: string`       | `{"name":"x","type":["null","string"],"default":null}` |
+| `x: string = "a"`  | `{"name":"x","type":"string","default":"a"}`           |
+| `x?: string = "a"` | `{"name":"x","type":["string","null"],"default":"a"}`  |
+
+The last row reverses the order. The author wrote a default that is not null,
+so null cannot lead.
+
+Write a union with `|`. A union inside a union is flattened, because Avro
+allows neither nesting nor a repeated branch. A named type is compared by its
+full name, and every other branch by its Avro type name.
 
 ## Install
 
