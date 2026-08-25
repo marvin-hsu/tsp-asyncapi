@@ -81,6 +81,13 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Two branches of this union are both the Avro type "${"name"}". An Avro union holds each type once.`,
       },
     },
+    "invalid-default": {
+      severity: "error",
+      messages: {
+        unserializable: paramMessage`The default of "${"name"}" has no JSON form the emitter can write. ${"detail"}`,
+        branch: paramMessage`The default of "${"name"}" belongs to no branch of its union. Avro reads a default against the first branch alone, so the default has to name one of them.`,
+      },
+    },
     "duplicate-record": {
       severity: "error",
       messages: {

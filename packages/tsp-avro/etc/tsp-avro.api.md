@@ -35,6 +35,10 @@ readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
 "duplicate-union-branch": {
 readonly default: CallableMessage<["name"]>;
 };
+"invalid-default": {
+readonly unserializable: CallableMessage<["name", "detail"]>;
+readonly branch: CallableMessage<["name"]>;
+};
 "duplicate-record": {
 readonly default: CallableMessage<["name", "other", "path"]>;
 };

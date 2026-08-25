@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   acceptSchema,
+  emitAvro,
   emitAvroFiles,
   expectInstanceRoundTrip,
   fieldNamed,
@@ -75,13 +76,17 @@ describe("how a field carries null and a default", () => {
     });
   });
 
-  it("puts null first in a union the author wrote, and adds no default", async () => {
+  it("keeps the branches of a union the author wrote, and adds no default", async () => {
     // `T | null` is the ordinary way to spell a nullable field. Nobody asked
     // for a default, so none is written: Avro wants one where a reader has to
     // fill the field in, and this field is always present.
+    //
+    // With no default, nothing makes one branch have to lead, so the author's
+    // order stands. The position of a branch is its index on the wire, so
+    // moving null here would change what the schema means.
     expect(await fieldOf(`x: string | null;`)).toEqual({
       name: "x",
-      type: ["null", "string"],
+      type: ["string", "null"],
     });
   });
 
@@ -161,5 +166,73 @@ describe("how a field carries null and a default", () => {
 
     expect(type.fromBuffer(type.toBuffer({ x: "b" }))).toEqual({ x: "b" });
     expect(type.fromBuffer(type.toBuffer({ x: null }))).toEqual({ x: null });
+  });
+
+  it("puts the branch the default belongs to first, wherever the author wrote it", async () => {
+    // The author wrote `string` first and a default of 3. Avro reads a default
+    // against the first branch alone, so `int` has to lead. The order the
+    // author wrote is not a promise the emitter can keep here.
+    expect(await fieldOf(`x?: string | int32 = 3;`)).toEqual({
+      name: "x",
+      type: ["int", "string", "null"],
+      default: 3,
+    });
+  });
+
+  it("puts that branch first in a required union too", async () => {
+    expect(await fieldOf(`x: string | int32 = 3;`)).toEqual({
+      name: "x",
+      type: ["int", "string"],
+      default: 3,
+    });
+  });
+
+  it("puts an enum branch first when the default is one of its symbols", async () => {
+    const files = await emitAvroFiles(`
+      @Avro.\`namespace\`("com.example.rows")
+      namespace Rows {
+        enum Colour { Red, Green }
+        @Avro.\`record\` model Row { x?: string | Colour = Colour.Red; }
+      }
+    `);
+    const field = fieldNamed(files["com/example/rows/Row.avsc"], "x");
+
+    expect(field.default).toBe("Red");
+    expect((field.type as { name?: string }[])[0].name).toBe("Colour");
+  });
+
+  it("refuses a default that no branch of the union can carry", async () => {
+    // A model literal in a union says nothing about which record it is, so
+    // the branch that has to lead cannot be named. Writing the field anyway
+    // would put the default against whichever branch came first.
+    const result = await emitAvro(`
+      @Avro.\`namespace\`("com.example.rows")
+      namespace Rows {
+        model Inner { a: string; }
+        @Avro.\`record\` model Row { x?: Inner | int32 = #{ a: "z" }; }
+      }
+    `);
+
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      "tsp-avro/invalid-default",
+    ]);
+    expect(Object.keys(result.files)).toEqual([]);
+  });
+
+  it("refuses a default the compiler cannot write out as JSON", async () => {
+    // 9007199254740993 is one past what a double holds. The compiler answers
+    // null for it, and null is a legal Avro default, so an emitter that took
+    // the answer would quietly write a field the author never asked for.
+    const result = await emitAvro(`
+      @Avro.\`namespace\`("com.example.rows")
+      namespace Rows {
+        @Avro.\`record\` model Row { x?: int64 = 9007199254740993; }
+      }
+    `);
+
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      "tsp-avro/invalid-default",
+    ]);
+    expect(Object.keys(result.files)).toEqual([]);
   });
 });

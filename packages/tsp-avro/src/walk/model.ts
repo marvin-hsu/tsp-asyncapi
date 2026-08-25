@@ -29,6 +29,7 @@ import {
   isRecordModelType,
   isTemplateInstance,
   serializeValueAsJson,
+  UnserializableValueError,
   type DiagnosticTarget,
   type Enum,
   type Model,
@@ -36,6 +37,7 @@ import {
   type Program,
   type Type,
   type Union,
+  type Value,
 } from "@typespec/compiler";
 import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
@@ -351,9 +353,9 @@ function branchKey(schema: AvroBranch): string {
  *
  * Avro has no optional field. A property that may be absent becomes a union
  * with null, and the default that goes with it is null. A property default is
- * written as it stands, and it decides where null sits: Avro reads a default
- * against the first branch of a union, so null leads unless a default that is
- * not null takes that place.
+ * written as it stands, and it decides the order of the branches: Avro reads a
+ * default against the first branch of a union and against no other, so the
+ * branch the default belongs to has to lead.
  *
  * | TypeSpec           | Avro                               |
  * | ------------------ | ---------------------------------- |
@@ -361,6 +363,10 @@ function branchKey(schema: AvroBranch): string {
  * | `x?: string`       | `["null", "string"]`, default null  |
  * | `x: string = "a"`  | `"string"`, default "a"            |
  * | `x?: string = "a"` | `["string", "null"]`, default "a"  |
+ *
+ * A field with no default orders nothing. Nothing has to lead there, and the
+ * position of a branch is its index on the wire, so the order the author wrote
+ * stands.
  */
 function fieldFor(context: WalkContext, property: ModelProperty): AvroField | undefined {
   if (!isAvroName(property.name)) {
@@ -385,44 +391,178 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
     branches.push("null");
   }
 
-  // The compiler hands a default over as `unknown`. It is assignable to the
-  // property type, and every type this walk accepts turns into a JSON value,
-  // so this is the one place the shape is narrowed.
-  const written = property.defaultValue;
-  const value =
-    written === undefined
-      ? null
-      : (serializeValueAsJson(context.program, written, property) as AvroDefault);
-
-  const ordered = orderNull(branches, value !== null);
-  const type = ordered.length === 1 ? ordered[0] : ordered;
-
   // A field carries a default when the author wrote one, and when the field is
   // optional. Nothing else does: a union with null is legal without a default,
   // and Avro asks for one only where a reader has to fill the field in.
+  const written = property.defaultValue;
   if (written === undefined && !property.optional) {
-    return { name: property.name, type, doc };
+    return { name: property.name, type: schemaOf(branches), doc };
   }
-  return { name: property.name, type, doc, default: value };
+
+  const value = written === undefined ? { value: null } : defaultOf(context, property, written);
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const ordered = leadWithDefault(context, property, branches, written);
+  if (ordered === undefined) {
+    return undefined;
+  }
+
+  return { name: property.name, type: schemaOf(ordered), doc, default: value.value };
 }
 
 /**
- * Moves null to the end of a union, or to the front.
+ * Reads a property default as the JSON value Avro writes.
  *
- * Avro reads the default of a field against the first branch of its union. So
- * a field that defaults to null needs null first, and a field that defaults to
- * anything else needs null out of the way.
+ * The compiler hands a default over as `unknown`. It is assignable to the
+ * property type, and every type this walk accepts turns into a JSON value, so
+ * this is the one place the shape is narrowed.
+ *
+ * Two answers are not values. The compiler throws where a value has no JSON
+ * form, and it answers with nothing where a numeric fits no double. Neither is
+ * a default, and null is not a stand in for either: null is a legal Avro
+ * default, so taking the answer would write a field the author never asked
+ * for.
+ *
+ * @returns The value in a wrapper, so a default of null is not the refusal,
+ *   or undefined when the default was refused
+ */
+function defaultOf(
+  context: WalkContext,
+  property: ModelProperty,
+  written: Value,
+): { value: AvroDefault } | undefined {
+  let serialized: unknown;
+  try {
+    serialized = serializeValueAsJson(context.program, written, property);
+  } catch (error) {
+    if (!(error instanceof UnserializableValueError)) {
+      throw error;
+    }
+    refuseDefault(context, property, error.message);
+    return undefined;
+  }
+
+  if (serialized === undefined || (serialized === null && written.valueKind !== "NullValue")) {
+    refuseDefault(
+      context,
+      property,
+      "The compiler had no JSON value for it. A number no double holds is one cause.",
+    );
+    return undefined;
+  }
+  return { value: serialized as AvroDefault };
+}
+
+/**
+ * Reports a default the emitter cannot write, and refuses the record.
+ */
+function refuseDefault(context: WalkContext, property: ModelProperty, detail: string): void {
+  reportDiagnostic(context.program, {
+    code: "invalid-default",
+    messageId: "unserializable",
+    format: { name: property.name, detail },
+    target: property,
+  });
+  markRefused(context);
+}
+
+/**
+ * Puts the branch the default belongs to at the front of a union.
+ *
+ * Avro reads the default of a field against the first branch and against no
+ * other. So the branch that carries the default leads, and the rest keep the
+ * order the author gave them.
+ *
+ * A default that belongs to no branch is refused. It has no place to sit, and
+ * a union that led with any other branch would describe a default the author
+ * never wrote.
  *
  * @param branches - The flattened branches
- * @param last - True to put null at the end
- * @returns The branches in that order
+ * @param written - The default the author wrote, or undefined when the field
+ *   is optional and defaults to null
+ * @returns The branches in that order, or undefined when the default was
+ *   refused
  */
-function orderNull(branches: AvroBranch[], last: boolean): AvroBranch[] {
-  if (!branches.includes("null")) {
+function leadWithDefault(
+  context: WalkContext,
+  property: ModelProperty,
+  branches: AvroBranch[],
+  written: Value | undefined,
+): AvroBranch[] | undefined {
+  if (branches.length === 1) {
     return branches;
   }
-  const rest = branches.filter((branch) => branch !== "null");
-  return last ? [...rest, "null"] : ["null", ...rest];
+
+  const key = written === undefined ? "null" : defaultBranchKey(context, written);
+  const index = key === undefined ? -1 : branches.findIndex((one) => branchKey(one) === key);
+  if (index < 0) {
+    reportDiagnostic(context.program, {
+      code: "invalid-default",
+      messageId: "branch",
+      format: { name: property.name },
+      target: property,
+    });
+    markRefused(context);
+    return undefined;
+  }
+
+  return [branches[index], ...branches.slice(0, index), ...branches.slice(index + 1)];
+}
+
+/**
+ * The union branch a written default belongs to, as {@link branchKey} spells
+ * it.
+ *
+ * The value carries the answer, not the property type: `string | int32 = 3`
+ * has a union for its type, and the checker has already settled that the 3 is
+ * an `int32`.
+ *
+ * A model literal settles nothing. Its type is the whole union, so two record
+ * branches are both candidates and nothing tells them apart. That is undefined
+ * here, and the caller refuses it.
+ *
+ * @returns The key, or undefined when the value names no one branch
+ */
+function defaultBranchKey(context: WalkContext, written: Value): string | undefined {
+  switch (written.valueKind) {
+    case "NullValue":
+      return "null";
+    case "BooleanValue":
+    case "NumericValue":
+    case "StringValue":
+      return written.scalar === undefined
+        ? undefined
+        : avroScalarFor(context.scalars, written.scalar);
+    case "EnumValue":
+      // The enum was walked on the way here, so its full name is already the
+      // name of a branch. Reading it back is what keeps the two spellings one.
+      return definedNameOf(context, written.value.enum);
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Finds the full name a declaration took in the file being built.
+ */
+function definedNameOf(context: WalkContext, declaration: Model | Enum): string | undefined {
+  for (const [fullName, owner] of context.defined) {
+    if (owner === declaration) {
+      return fullName;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Writes a list of branches as a schema.
+ *
+ * Avro spells a union of one as the type itself, not as an array of one.
+ */
+function schemaOf(branches: AvroBranch[]): AvroSchema {
+  return branches.length === 1 ? branches[0] : branches;
 }
 
 /**
