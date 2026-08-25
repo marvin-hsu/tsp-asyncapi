@@ -150,6 +150,18 @@ export const $lib = createTypeSpecLibrary({
         "unknown-scalar": paramMessage`Scalar '${"scalar"}' has no proto3 type, and no scalar it extends has one either. So model '${"name"}' of package '${"package"}' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.`,
       },
     },
+    "avro-artifact-unavailable": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Model '${"name"}' carries @Avro.record, and the Avro walk refused it: ${"reason"} So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.`,
+      },
+    },
+    "avro-library-missing": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: ${"reason"} That library holds the Avro walk, and this emitter carries no copy of it. Install 'tsp-avro' beside this emitter, or remove 'avro' from \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
     "conflicting-generated-schema-source": {
       severity: "error",
       messages: {

@@ -614,7 +614,7 @@ No document is written. Both artifacts are gone, so the model would fall back to
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Only `avro` has no provider, so only that name reports this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Both have a provider in this release, so no name reports this today. The code stays, because it answers the next reserved name that arrives before its provider does. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
 
 No file is written. A document emitted next to this error would ignore the request without saying so.
 
@@ -667,6 +667,34 @@ The `protobuf` preview feature reports this while it collects generated payloads
 The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. This emitter reads the decorator state, so a renamed package is matched by the name it declares.
 
 **Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
+
+### `avro-artifact-unavailable`
+
+> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+
+A model carries `@Avro.record` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
+
+The reason is quoted rather than forwarded. A diagnostic carries the code of the library that built it. A project that emits only this library should not read the codes of another one. A project that emits both would otherwise read every refusal twice, once from each emitter.
+
+Only the first reason is quoted. The Avro walk keeps going after a refusal, so one model can collect several. To read all of them, put `tsp-avro` in `emit` and compile again.
+
+No document is written. The payload of that model would fall back to the schema its TypeSpec type produces. That file answers a request for Avro with ordinary JSON Schema, and nothing in it says so.
+
+A model that carries `@Avro.record` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that writes Avro records for other types keeps its build green.
+
+**Fix:** change the part of the model the reason names, or remove `@Avro.record` from the model.
+
+### `avro-library-missing`
+
+> The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: \<reason\> That library holds the Avro walk, and this emitter carries no copy of it. Install 'tsp-avro' beside this emitter, or remove 'avro' from `preview-features` in `tspconfig.yaml`.
+
+The [`preview-features`](./emitter-options#preview-features) option names `avro`, and the load of `tsp-avro` failed. The message quotes what the load reported.
+
+`tsp-avro` is an optional peer dependency of this emitter. It is loaded only when the feature is on, so a project that never turns it on never needs it. A project that turns it on installs it itself.
+
+No document is written. Every Avro payload the project asked for is missing, and a document without them describes something else.
+
+**Fix:** install `tsp-avro`, or remove `avro` from `preview-features` in `tspconfig.yaml`.
 
 ## Warnings
 

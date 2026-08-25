@@ -42,9 +42,13 @@ An unknown option name fails validation (`additionalProperties: false`), so a ty
 
 ## Preview features
 
-A preview feature changes the emitted document. Two names are reserved: `protobuf` and `avro`. Only `protobuf` works in this release. Asking for `avro` reports `preview-feature-unavailable`, and no file is written. Asking for both names is refused the same way, because the request as a whole cannot be answered.
+A preview feature changes the emitted document. Two names are reserved: `protobuf` and `avro`. Both work in this release. A name with no provider behind it reports `preview-feature-unavailable`, and no file is written. A request that names one working feature and one unavailable one is refused the same way, because the request as a whole cannot be answered.
 
 `protobuf` gives a model that carries the official `TypeSpec.Protobuf` decorators a proto3 payload. The [Protobuf payloads guide](../guide/protobuf-payloads) shows what it writes.
+
+`avro` gives a model that carries the `tsp-avro` `@Avro.record` decorator an Avro payload. The payload is written as an object, because Avro is JSON. `tsp-avro` is an optional peer dependency of this emitter. Install it in the project that turns this feature on.
+
+Both features can be on at once. One model may carry only one of the two sets of decorators. A model that carries both is reported as `conflicting-generated-schema-source`, and no file is written.
 
 ::: warning
 Nothing is emitted when a preview feature is refused. A document written next to the error would ignore the request without saying so.

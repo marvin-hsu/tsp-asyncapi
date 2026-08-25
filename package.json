@@ -57,6 +57,7 @@
     }
   },
   "devDependencies": {
+    "@asyncapi/avro-schema-parser": "^3.0.24",
     "@asyncapi/parser": "^3.6.3",
     "@asyncapi/protobuf-schema-parser": "^3.9.0",
     "@changesets/cli": "^3.0.1",

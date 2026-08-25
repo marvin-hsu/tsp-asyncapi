@@ -1,6 +1,7 @@
 import { DiagnosticSeverity, Parser } from "@asyncapi/parser";
 import type { Diagnostic, Input } from "@asyncapi/parser";
 import { ProtoBuffSchemaParser } from "@asyncapi/protobuf-schema-parser";
+import { AvroSchemaParser } from "@asyncapi/avro-schema-parser";
 
 /**
  * Shared parser instance. The parser is stateless between calls.
@@ -10,9 +11,15 @@ import { ProtoBuffSchemaParser } from "@asyncapi/protobuf-schema-parser";
  * such a payload only gets a structural check, and a proto text no consumer
  * could decode still validates. The parser needs one root message per text,
  * which is exactly the property the emitted documents must hold.
+ *
+ * The Avro schema parser is registered for the same reason. A payload with an
+ * Avro `schemaFormat` carries an object, and an object passes every structural
+ * check whatever it holds. This parser reads it as Avro, so a record with no
+ * name or a field of a type Avro does not have fails here.
  */
 const parser = new Parser();
 parser.registerSchemaParser(ProtoBuffSchemaParser());
+parser.registerSchemaParser(AvroSchemaParser());
 
 /**
  * Human readable names for the severity scale of the parser.

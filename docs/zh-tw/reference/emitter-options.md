@@ -42,9 +42,13 @@ tsp compile . --emit tsp-asyncapi \
 
 ## 預覽功能
 
-預覽功能會改變輸出的文件。保留的名稱有兩個：`protobuf` 與 `avro`。本版只有 `protobuf` 可以使用。請求 `avro` 會回報 `preview-feature-unavailable`，而且不寫出檔案。同時請求兩個名稱一樣會被拒絕，因為整份請求無法被回應。
+預覽功能會改變輸出的文件。保留的名稱有兩個：`protobuf` 與 `avro`。本版兩個都可以使用。背後沒有實作的名稱會回報 `preview-feature-unavailable`，而且不寫出檔案。一份請求同時指名一個可用的功能與一個不可用的功能，一樣整份被拒絕，因為整份請求無法被回應。
 
 `protobuf` 讓帶有官方 `TypeSpec.Protobuf` decorator 的 model 拿到 proto3 payload。[Protobuf payload 指南](../guide/protobuf-payloads)說明它寫出什麼。
+
+`avro` 讓帶有 `tsp-avro` `@Avro.record` decorator 的 model 拿到 Avro payload。payload 是以物件寫出的，因為 Avro 就是 JSON。`tsp-avro` 是這個 emitter 的選用 peer dependency。開啟這個功能的專案要自行安裝它。
+
+兩個功能可以同時開啟。同一個 model 只能帶其中一組 decorator。兩組都帶的 model 會回報 `conflicting-generated-schema-source`，而且不寫出檔案。
 
 ::: warning
 預覽功能被拒絕時不會輸出任何東西。在錯誤旁邊寫出一份文件，等於忽略了請求卻不說明。

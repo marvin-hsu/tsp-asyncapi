@@ -22,6 +22,7 @@ import {
   type SchemaArtifactIndex,
 } from "tsp-asyncapi-core";
 import type { PreviewFeature } from "../emitter-options.js";
+import { createAvroProvider } from "./avro.js";
 import { createProtobufProvider } from "./protobuf.js";
 
 /**
@@ -57,14 +58,14 @@ export interface SchemaArtifactProvider {
  *
  * What this list holds also decides which preview feature is available. A
  * reserved name with no provider here is refused, and the emitter writes no
- * document for it. So a name this list does not answer, such as `avro`, is
- * refused today.
+ * document for it. Both reserved names are answered here, so nothing a
+ * project may write in the option is refused for want of a provider.
  *
  * @returns The providers, in a fixed order
  * @internal
  */
 export function shippedProviders(): readonly SchemaArtifactProvider[] {
-  return [createProtobufProvider()];
+  return [createProtobufProvider(), createAvroProvider()];
 }
 
 /**

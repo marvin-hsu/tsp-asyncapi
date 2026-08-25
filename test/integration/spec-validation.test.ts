@@ -774,4 +774,52 @@ describe("AsyncAPI spec validation helper", () => {
   it("should reject an empty document", async () => {
     await expect(null).toBeInvalidAsyncAPI(/got nothing/);
   });
+
+  /**
+   * The Avro payload of a message reaches the Avro schema parser.
+   *
+   * Without that parser an Avro payload gets a structural check alone, and any
+   * object at all passes one. The two cases below are the proof that the
+   * parser is registered and that it reads what it is given: the same document
+   * is valid with a legal record in it and invalid with a record that has no
+   * name.
+   */
+  const documentWithAvroPayload = (schema: unknown): unknown => ({
+    asyncapi: "3.1.0",
+    info: { title: "Orders", version: "1.0.0" },
+    channels: {
+      orders: {
+        address: "orders",
+        messages: { placed: { $ref: "#/components/messages/placed" } },
+      },
+    },
+    components: {
+      messages: {
+        placed: {
+          name: "placed",
+          payload: {
+            schemaFormat: "application/vnd.apache.avro;version=1.9.0",
+            schema,
+          },
+        },
+      },
+    },
+  });
+
+  it("should accept a message whose Avro payload is a legal record", async () => {
+    await expect(
+      documentWithAvroPayload({
+        type: "record",
+        name: "OrderPlaced",
+        namespace: "com.example.orders",
+        fields: [{ name: "orderId", type: "string" }],
+      }),
+    ).toBeValidAsyncAPI();
+  });
+
+  it("should reject a message whose Avro payload is a record with no name", async () => {
+    await expect(
+      documentWithAvroPayload({ type: "record", fields: [{ name: "orderId", type: "string" }] }),
+    ).toBeInvalidAsyncAPI(/must have required property "name"/);
+  });
 });
