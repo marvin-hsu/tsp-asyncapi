@@ -199,11 +199,11 @@ namespace Orders {
 }
 ```
 
-兩種寫法會給 message 一份 Avro payload，任一種都會讓這條規則安靜。`@Avro.record` 讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的 schema。
+兩種寫法會給 message 一份 Avro payload，任一種都會讓這條規則安靜。`` @Avro.`record` `` 讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的 schema。`record` 與 `namespace` 是 TypeSpec 的保留字，所以兩個 decorator 名稱都要加上反引號。
 
 規則讀媒體型別本身，忽略分號後面的內容，所以 `;version=1.9.0` 這種參數不會遮住問題。`application/vnd.apache.avro`、`application/vnd.apache.avro+json` 與 `application/vnd.apache.avro+yaml` 都算。
 
-**修法：** 加上 `@Avro.record`，或用 `@rawPayload` 寫下 schema。
+**修法：** 加上 `` @Avro.`record` ``，或用 `@rawPayload` 寫下 schema。
 
 ### `unused-security-scheme`
 

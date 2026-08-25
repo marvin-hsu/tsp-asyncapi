@@ -7,6 +7,11 @@
  *
  * The Avro decorators are written qualified, and `record` and `namespace` are
  * TypeSpec keywords, so they carry backticks as well.
+ *
+ * Every negative case asserts that its probe compiles before it asserts the
+ * silence. A misspelled decorator, or a probe that stopped compiling, reports
+ * no rule diagnostic either, so without that guard the case would pass for the
+ * wrong reason.
  */
 
 import { describe, expect, it } from "vitest";
@@ -63,10 +68,15 @@ const DECLARED = PROBE.replace(
   "@message\n    @Avro.`record`\n    @contentType",
 );
 
-/** The same message, with the schema the author wrote by hand. */
+/**
+ * The same message, with the schema the author wrote by hand.
+ *
+ * Avro is a JSON based schema language, so the emitter requires the schema as
+ * an object value. A string would be rejected before the rule ever runs.
+ */
 const AUTHORED = PROBE.replace(
   '@contentType("application/vnd.apache.avro")',
-  '@contentType("application/vnd.apache.avro")\n    @rawPayload("application/vnd.apache.avro;version=1.9.0", "{}")',
+  '@contentType("application/vnd.apache.avro")\n    @rawPayload("application/vnd.apache.avro;version=1.9.0", #{ type: "record", name: "OrderPlaced", fields: #[] })',
 );
 
 /** A message whose content type says nothing about Avro. */
@@ -85,24 +95,37 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
    * that does not work yet.
    */
   it("stays quiet when the feature is off", async () => {
-    expect((await lint(PROBE, [])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(PROBE, []);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet when the model carries the Avro decorator", async () => {
     const diagnostics = await lint(DECLARED, ["avro"]);
-    // A misspelled decorator would silence the rule as well, so the case also
-    // asserts that the probe compiles.
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /** An author who wrote the schema has already answered the question. */
   it("stays quiet when the author wrote the payload", async () => {
-    expect((await lint(AUTHORED, ["avro"])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(AUTHORED, ["avro"]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet for a content type that is not Avro", async () => {
-    expect((await lint(JSON_TYPE, ["avro"])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(JSON_TYPE, ["avro"]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
+  });
+
+  /**
+   * `record` is a reserved word, so the decorator only parses with backticks.
+   * An author who copies the advice must get a source file that compiles.
+   */
+  it("writes the remedy in the form that parses", async () => {
+    const found = (await lint(PROBE, ["avro"])).filter((d) => d.code === RULE);
+    expect(found[0]?.message).toContain("@Avro.`record`");
   });
 
   /**
