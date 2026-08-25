@@ -59,6 +59,13 @@ export function $aliases(
     return;
   }
 
+  // An empty list is nothing to record. A reader does nothing with it, and
+  // writing `"aliases": []` puts a member in the file that says as much as
+  // leaving it out.
+  if (names.length === 0) {
+    return;
+  }
+
   setAliasesInternal(context.program, target, names);
 }
 

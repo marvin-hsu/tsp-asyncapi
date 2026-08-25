@@ -55,6 +55,26 @@ describe("the Avro annotations", () => {
     });
   });
 
+  it("writes no aliases where the author named none", async () => {
+    // An empty alias list says nothing a reader can use, so it is nothing to
+    // write. Every other member the author left out disappears the same way.
+    const files = await emitAvroFiles(`
+      @Avro.\`namespace\`("${NAMESPACE}")
+      namespace A {
+        @Avro.aliases()
+        @Avro.\`record\`
+        model Event { id: string; }
+      }
+    `);
+
+    expect(files["com/example/a/Event.avsc"]).toEqual({
+      type: "record",
+      name: "Event",
+      namespace: NAMESPACE,
+      fields: [{ name: "id", type: "string" }],
+    });
+  });
+
   it("writes each of the three field orders, and nothing where none was declared", async () => {
     // Avro reads `ascending` where a field says nothing, so declaring it
     // changes the text of the schema and nothing a reader does.

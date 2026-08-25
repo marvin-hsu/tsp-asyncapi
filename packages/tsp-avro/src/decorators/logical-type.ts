@@ -60,7 +60,34 @@ export function $logicalType(
   target: Scalar | ModelProperty,
   name: string,
 ): void {
-  setLogicalTypeInternal(context.program, target, { name });
+  recordLogicalType(context, target, { name });
+}
+
+/**
+ * Records one logical type, or refuses a second one on the same target.
+ *
+ * `@logicalType` and `@decimal` write to one place, because a decimal is a
+ * logical type with parameters. So a target that carries both would keep
+ * whichever decorator ran last, and the compiler runs them from the
+ * declaration outwards. Refusing says which two were written, rather than
+ * dropping one without a word.
+ */
+function recordLogicalType(
+  context: DecoratorContext,
+  target: Scalar | ModelProperty,
+  annotation: AvroLogicalTypeAnnotation,
+): void {
+  const declared = getLogicalTypeInternal(context.program, target);
+  if (declared !== undefined) {
+    reportDiagnostic(context.program, {
+      code: "duplicate-logical-type",
+      format: { first: declared.name, second: annotation.name },
+      target: context.decoratorTarget,
+    });
+    return;
+  }
+
+  setLogicalTypeInternal(context.program, target, annotation);
 }
 
 /**
@@ -112,11 +139,7 @@ export function $decimal(
     return;
   }
 
-  setLogicalTypeInternal(context.program, target, {
-    name: "decimal",
-    precision,
-    scale: resolved,
-  });
+  recordLogicalType(context, target, { name: "decimal", precision, scale: resolved });
 }
 
 /**

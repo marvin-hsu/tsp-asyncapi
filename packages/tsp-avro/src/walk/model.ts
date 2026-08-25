@@ -59,7 +59,7 @@ import {
   type AvroSchema,
   type AvroUnion,
 } from "../types.js";
-import { applyLogicalType } from "./logical-types.js";
+import { applyLogicalType, namedTypeOf } from "./logical-types.js";
 import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
 
 /**
@@ -531,15 +531,28 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
     return undefined;
   }
 
+  const annotation = getAvroLogicalType(context.program, property);
+
+  // A named type is written out at its first occurrence and named after that,
+  // so a field annotation on one would go into the definition every other
+  // field reads. Which field carried the annotation would then decide what
+  // every other field means. The annotation belongs to the declaration.
+  const named = annotation === undefined ? undefined : namedTypeOf(walked);
+  if (annotation !== undefined && named !== undefined) {
+    reportDiagnostic(context.program, {
+      code: "logical-type-mismatch",
+      messageId: "named",
+      format: { name: annotation.name, fullName: named },
+      target: property,
+    });
+    markRefused(context);
+    return undefined;
+  }
+
   // A logical type on the field annotates what the field holds. It is written
   // before the union with null is built, so an optional timestamp comes out as
   // a null branch beside an annotated long rather than an annotated union.
-  const declared = withLogicalType(
-    context,
-    walked,
-    getAvroLogicalType(context.program, property),
-    property,
-  );
+  const declared = withLogicalType(context, walked, annotation, property);
   if (declared === undefined) {
     return undefined;
   }

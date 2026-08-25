@@ -66,6 +66,7 @@ readonly default: CallableMessage<["size"]>;
 readonly precision: CallableMessage<["precision"]>;
 readonly scale: CallableMessage<["scale", "precision"]>;
 readonly missing: "An Avro decimal is written with a precision and a scale. A reader cannot place the point without them, so use @decimal rather than @logicalType(\"decimal\").";
+readonly width: CallableMessage<["precision", "size", "max"]>;
 };
 "unknown-logical-type": {
 readonly default: CallableMessage<["name", "known"]>;
@@ -73,6 +74,10 @@ readonly default: CallableMessage<["name", "known"]>;
 "logical-type-mismatch": {
 readonly default: CallableMessage<["name", "underlying", "allowed"]>;
 readonly duration: "The logical type \"duration\" is written on a fixed type of twelve bytes, which hold the months, the days and the milliseconds.";
+readonly named: CallableMessage<["name", "fullName"]>;
+};
+"duplicate-logical-type": {
+readonly default: CallableMessage<["first", "second"]>;
 };
 "enum-default": {
 readonly default: CallableMessage<["enum", "name"]>;

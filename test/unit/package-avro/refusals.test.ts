@@ -353,7 +353,7 @@ describe("what the Avro walk refuses", () => {
         }
       }
       `,
-      `logical-type-mismatch: The logical type "uuid" is written on record. The Avro specification writes it on string.`,
+      `logical-type-mismatch: The logical type "uuid" is written on a field that holds the named type "com.example.a.Address". A named type carries one definition wherever it occurs, so the logical type belongs on that declaration.`,
     );
   });
 
@@ -408,6 +408,54 @@ describe("what the Avro walk refuses", () => {
       }
       `,
       `logical-type-mismatch: The logical type "duration" is written on a fixed type of twelve bytes, which hold the months, the days and the milliseconds.`,
+    );
+  });
+
+  it("refuses a decimal precision wider than the fixed type holds", async () => {
+    // A decimal rides in the bytes of the fixed type, and two bytes hold a
+    // number of four digits. A precision the width cannot carry describes a
+    // number nobody can write.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.decimal(20, 2) @Avro.fixed(2) scalar Odd extends bytes;
+        @Avro.\`record\` model Event { odd: Odd; }
+      }
+      `,
+      `invalid-decimal: A precision of "20" does not fit a fixed type of 2 bytes, which hold at most 4 digits.`,
+    );
+  });
+
+  it("refuses a field logical type on a named type, whichever field carries it", async () => {
+    // A named type is written out once and named after that, so an annotation
+    // on one field would land in the definition every other field reads. The
+    // two orderings have to agree, and they agree by refusing.
+    const refusal = `logical-type-mismatch: The logical type "duration" is written on a field that holds the named type "com.example.a.Span". A named type carries one definition wherever it occurs, so the logical type belongs on that declaration.`;
+    const event = (fields: string): string => `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.fixed(12) scalar Span extends bytes;
+        @Avro.\`record\` model Event { ${fields} }
+      }
+      `;
+
+    await expectRefusal(event(`@Avro.logicalType("duration") a: Span; b: Span;`), refusal);
+    await expectRefusal(event(`a: Span; @Avro.logicalType("duration") b: Span;`), refusal);
+  });
+
+  it("refuses two logical types on one declaration, in either spelling", async () => {
+    // The two decorators write to one place, so the second would replace the
+    // first without a word. Which one survives would depend on the order they
+    // were written in.
+    await expectRefusal(
+      `@Avro.logicalType("uuid") @Avro.decimal(9, 2) scalar Odd extends string;`,
+      `duplicate-logical-type: This declaration carries the logical types "decimal" and "uuid". Avro writes one logical type on a type, so the second would replace the first.`,
+    );
+
+    await expectRefusal(
+      `@Avro.decimal(9, 2) @Avro.logicalType("uuid") scalar Odd extends string;`,
+      `duplicate-logical-type: This declaration carries the logical types "uuid" and "decimal". Avro writes one logical type on a type, so the second would replace the first.`,
     );
   });
 

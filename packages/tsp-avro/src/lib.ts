@@ -109,6 +109,7 @@ export const $lib = createTypeSpecLibrary({
         precision: paramMessage`"${"precision"}" is not a precision an Avro decimal can have. A decimal holds a positive number of digits.`,
         scale: paramMessage`A scale of "${"scale"}" does not fit a precision of "${"precision"}". The scale counts the digits after the point, so it is neither negative nor larger than the precision.`,
         missing: `An Avro decimal is written with a precision and a scale. A reader cannot place the point without them, so use @decimal rather than @logicalType("decimal").`,
+        width: paramMessage`A precision of "${"precision"}" does not fit a fixed type of ${"size"} bytes, which hold at most ${"max"} digits.`,
       },
     },
     "unknown-logical-type": {
@@ -122,6 +123,13 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default: paramMessage`The logical type "${"name"}" is written on ${"underlying"}. The Avro specification writes it on ${"allowed"}.`,
         duration: `The logical type "duration" is written on a fixed type of twelve bytes, which hold the months, the days and the milliseconds.`,
+        named: paramMessage`The logical type "${"name"}" is written on a field that holds the named type "${"fullName"}". A named type carries one definition wherever it occurs, so the logical type belongs on that declaration.`,
+      },
+    },
+    "duplicate-logical-type": {
+      severity: "error",
+      messages: {
+        default: paramMessage`This declaration carries the logical types "${"first"}" and "${"second"}". Avro writes one logical type on a type, so the second would replace the first.`,
       },
     },
     "enum-default": {

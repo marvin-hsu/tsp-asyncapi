@@ -116,7 +116,8 @@ export function applyLogicalType(
     return undefined;
   }
 
-  if (annotation.name === "decimal" && annotation.precision === undefined) {
+  const precision = annotation.precision;
+  if (annotation.name === "decimal" && precision === undefined) {
     reportDiagnostic(program, { code: "invalid-decimal", messageId: "missing", target });
     return undefined;
   }
@@ -125,6 +126,22 @@ export function applyLogicalType(
   if (annotation.name === "duration" && fixed?.size !== DURATION_SIZE) {
     reportDiagnostic(program, { code: "logical-type-mismatch", messageId: "duration", target });
     return undefined;
+  }
+
+  // A decimal on bytes is as wide as the writer makes it. A decimal in a fixed
+  // type has the bytes of that type and no more, so the precision it can carry
+  // is bounded by the width the author declared.
+  if (fixed !== undefined && precision !== undefined) {
+    const max = maxPrecisionOf(fixed.size);
+    if (precision > max) {
+      reportDiagnostic(program, {
+        code: "invalid-decimal",
+        messageId: "width",
+        format: { precision: String(precision), size: String(fixed.size), max: String(max) },
+        target,
+      });
+      return undefined;
+    }
   }
 
   if (fixed !== undefined) {
@@ -142,6 +159,55 @@ export function applyLogicalType(
     precision: annotation.precision,
     scale: annotation.scale,
   };
+}
+
+/**
+ * The Avro name of a named type, when the schema is one.
+ *
+ * A record, an enum and a fixed type are named, and a string that is no
+ * primitive is a reference to one of them. A primitive, a union, an array and
+ * a map carry no name, and neither does an annotated primitive.
+ *
+ * The caller needs this because a named type is written out once and named
+ * after that. An annotation that reached one would land in the definition
+ * every later occurrence reads.
+ *
+ * @param schema - The schema to read
+ * @returns The full name, or undefined when the schema names nothing
+ *
+ * @internal
+ */
+export function namedTypeOf(schema: AvroSchema): string | undefined {
+  if (isAvroUnion(schema)) {
+    return undefined;
+  }
+  if (typeof schema === "string") {
+    return AVRO_PRIMITIVES.has(schema) ? undefined : schema;
+  }
+  switch (schema.type) {
+    case "record":
+    case "enum":
+    case "fixed":
+      return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * How many digits a decimal of a stated width holds.
+ *
+ * Avro carries the digits as a two's complement integer, so `size` bytes hold
+ * every number up to `2^(8 * size - 1) - 1`. The specification bounds the
+ * precision by the base ten logarithm of that number, which is one less than
+ * the count of its digits.
+ *
+ * @param size - The width of the fixed type, in bytes
+ * @returns The largest precision that width carries
+ */
+function maxPrecisionOf(size: number): number {
+  const largest = (1n << BigInt(8 * size - 1)) - 1n;
+  return largest.toString().length - 1;
 }
 
 /**
@@ -171,8 +237,10 @@ function describe(schema: AvroSchema, underlying: string | undefined): string {
     return "a union";
   }
   if (typeof schema === "string") {
-    // Every named type this package writes carries a namespace, so a string
-    // that is no primitive is a reference to one.
+    // A string that is no primitive is a reference to a named type. Neither
+    // caller hands one over: a scalar returns its reference unannotated, and a
+    // field refuses a named type before it gets here. This answer stands for
+    // the type checker.
     return `a reference to "${schema}"`;
   }
   return isAvroLogical(schema) ? `the logical type "${schema.logicalType}"` : schema.type;
