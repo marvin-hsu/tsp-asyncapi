@@ -78,12 +78,13 @@ export function createAvroProvider(load: AvroLoader = loadAvro): SchemaArtifactP
 /**
  * How the provider reaches the Avro library.
  *
- * The answer is `undefined` when the library is not there. The loader reports
- * why before it answers, so the caller has nothing left to say.
+ * The loader only loads. It rejects when the library is not there, and the
+ * caller turns that into a diagnostic. So a test that states a broken install
+ * states the failure alone, and the code that reports it is the shipped code.
  *
  * @internal
  */
-export type AvroLoader = (program: Program) => Promise<AvroLibrary | undefined>;
+export type AvroLoader = () => Promise<AvroLibrary>;
 
 /**
  * The part of `tsp-avro` this provider calls.
@@ -109,27 +110,16 @@ interface AvroFullName {
 }
 
 /**
- * Loads `tsp-avro`, or reports that it is not there.
+ * Loads `tsp-avro`.
  *
- * The author writes `@Avro.record`, so the library is installed whenever a
- * model carries it. A load that fails is a broken install, and the diagnostic
- * says so rather than leaving the emit silent.
+ * The two entry points are loaded together, because the provider calls both.
+ * A rejection means the library is not installed, and the caller says so.
  *
- * @param program - The program, to report against
- * @returns The library, or `undefined` when it could not be loaded
+ * @returns The two entry points of the library
  */
-async function loadAvro(program: Program): Promise<AvroLibrary | undefined> {
-  try {
-    const [main, unstable] = await Promise.all([import("tsp-avro"), import("tsp-avro/unstable")]);
-    return { main, unstable };
-  } catch (error) {
-    reportDiagnostic(program, {
-      code: "avro-library-missing",
-      target: program.getGlobalNamespaceType(),
-      format: { reason: messageOf(error) },
-    });
-    return undefined;
-  }
+async function loadAvro(): Promise<AvroLibrary> {
+  const [main, unstable] = await Promise.all([import("tsp-avro"), import("tsp-avro/unstable")]);
+  return { main, unstable };
 }
 
 /**
@@ -144,8 +134,20 @@ async function collectAvroArtifacts(
   program: Program,
   load: AvroLoader,
 ): Promise<CollectedSchemaArtifacts> {
-  const avro = await load(program);
-  if (avro === undefined) return { artifacts: emptySchemaArtifacts, refused: true };
+  let avro: AvroLibrary;
+  try {
+    avro = await load();
+  } catch (error) {
+    // The author writes `@Avro.record`, so the library is installed whenever a
+    // model carries it. A load that fails is a broken install, and the
+    // diagnostic says so rather than leaving the emit silent.
+    reportDiagnostic(program, {
+      code: "avro-library-missing",
+      target: program.getGlobalNamespaceType(),
+      format: { reason: messageOf(error) },
+    });
+    return { artifacts: emptySchemaArtifacts, refused: true };
+  }
 
   const asked = listMessages(program);
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();
@@ -189,11 +191,17 @@ async function collectAvroArtifacts(
  * here: a diagnostic says one thing, and the author reads the rest by running
  * the Avro emitter itself.
  *
+ * A walk that keeps its promise never reaches the fallback. A walk that breaks
+ * it must not produce a diagnostic with a hole in the middle, because the
+ * reason sits inside a sentence. So the fallback names the walk as the place
+ * the reason went missing.
+ *
  * @param diagnostics - What the walk collected
- * @returns The message of the first one
+ * @returns The message of the first one, or a sentence saying there was none
  */
 function firstReason(diagnostics: readonly Diagnostic[]): string {
-  return diagnostics[0]?.message ?? "";
+  const first = diagnostics.length === 0 ? "" : diagnostics[0].message;
+  return first === "" ? "The Avro walk gave no reason." : first;
 }
 
 /**

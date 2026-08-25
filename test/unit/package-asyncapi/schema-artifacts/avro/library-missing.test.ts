@@ -9,15 +9,15 @@
  * would carry ordinary JSON Schema for every model the project wanted Avro
  * for, and nothing in the file would say so.
  *
- * A broken install cannot be arranged from a TypeSpec source, so the loader is
- * stated here. Everything below it is the shipped path.
+ * A broken install cannot be arranged from a TypeSpec source, so a failing
+ * loader is stated here. The loader only fails. The code that reads the
+ * failure and reports it is the provider's, and that is what these cases
+ * measure.
  */
 
 import { describe, expect, it } from "vitest";
 import { createTester } from "@typespec/compiler/testing";
-import type { Program } from "@typespec/compiler";
 import { fileURLToPath } from "node:url";
-import { reportDiagnostic } from "tsp-asyncapi-core";
 import { PACKAGE_NAME } from "#emitter/lib.js";
 import { createAvroProvider } from "#emitter/schema-artifacts/avro.js";
 import { collectSchemaArtifacts } from "#emitter/schema-artifacts/provider.js";
@@ -56,14 +56,15 @@ const SOURCE = `
   }
 `;
 
-/** A loader that fails the way a missing package fails. */
-function failToLoad(program: Program): Promise<undefined> {
-  reportDiagnostic(program, {
-    code: "avro-library-missing",
-    target: program.getGlobalNamespaceType(),
-    format: { reason: "Cannot find package 'tsp-avro'." },
-  });
-  return Promise.resolve(undefined);
+/**
+ * A loader that fails the way a missing package fails.
+ *
+ * It only fails. The code that turns a failure into a diagnostic is the
+ * provider's, so this case measures the shipped wiring rather than a copy of
+ * it written here.
+ */
+function failToLoad(): Promise<never> {
+  return Promise.reject(new Error("Cannot find package 'tsp-avro'."));
 }
 
 describe("Unit: the Avro library is not installed", () => {
@@ -83,6 +84,9 @@ describe("Unit: the Avro library is not installed", () => {
     const reported = diagnosticsWith(program.diagnostics, "avro-library-missing");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
+    // The provider targets the global namespace, because a broken install
+    // belongs to no model.
+    expect(reported[0]?.target).toBe(program.getGlobalNamespaceType());
     // The message names the package, the reason, and the way out.
     expect(reported[0]?.message).toContain("tsp-avro");
     expect(reported[0]?.message).toContain("Cannot find package 'tsp-avro'.");
@@ -114,9 +118,9 @@ describe("Unit: the Avro library is not installed", () => {
     const program = runner.program;
 
     let loads = 0;
-    const counted = (): Promise<undefined> => {
+    const counted = (): Promise<never> => {
       loads += 1;
-      return Promise.resolve(undefined);
+      return Promise.reject(new Error("The loader was reached."));
     };
 
     const collected = await collectSchemaArtifacts(program, new Set(), [

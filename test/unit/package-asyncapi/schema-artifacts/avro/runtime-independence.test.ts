@@ -23,7 +23,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 describe("Unit: Avro run time independence", () => {
-  /** The three published packages, as paths from this file. */
+  /**
+   * The two packages that must not load the library, as paths from this file.
+   *
+   * The workspace publishes three. `tsp-avro` is left out because it is the
+   * library this case guards.
+   */
   const SOURCE_ROOTS = ["tsp-asyncapi-core", "tsp-asyncapi"].map((name) =>
     fileURLToPath(new URL(`../../../../../packages/${name}/src`, import.meta.url)),
   );
@@ -59,6 +64,21 @@ describe("Unit: Avro run time independence", () => {
     expect(offenders).toEqual([]);
     // A scan that found no file would also report no offender.
     expect(scanned).toBeGreaterThan(0);
+  });
+
+  it("names the library as a build time reference of this package", async () => {
+    const configPath = fileURLToPath(
+      new URL("../../../../../packages/tsp-asyncapi/tsconfig.json", import.meta.url),
+    );
+    const config = JSON.parse(await readFile(configPath, "utf8")) as {
+      references: { path: string }[];
+    };
+
+    // The provider names the library in a type position, so the build needs
+    // its declarations before this package compiles. Without the reference
+    // `tsc -b` picks the order itself, and a clean checkout builds this
+    // package first and fails. A tree that already holds `dist` hides that.
+    expect(config.references.map((reference) => reference.path)).toContain("../tsp-avro");
   });
 
   it("declares the library as an optional peer and a development dependency", async () => {
