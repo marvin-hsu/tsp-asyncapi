@@ -10,13 +10,6 @@
  * 實例 has no such second sense in these pages, so it is safe to forbid
  * outright. It kept coming back one page at a time, which is what a test
  * stops.
- *
- * ## Why the glossary is not read here
- *
- * The glossary lives under `.claude/`, which the repository does not track.
- * A case that read it passed on a machine that has it and failed everywhere
- * else, which is how it reached the default branch. The pair below is the
- * rule this file holds, written where the file can reach it.
  */
 
 import { readFile, readdir } from "node:fs/promises";
