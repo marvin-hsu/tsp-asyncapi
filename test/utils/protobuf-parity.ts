@@ -101,11 +101,14 @@ export async function compileWithProtobuf(source: string): Promise<Program> {
 /**
  * Renders the payload of one model of an already compiled program.
  *
+ * Exported for a caller that renders several payloads of one program. One
+ * compilation per payload would repeat the slowest step of the test.
+ *
  * @param program - The compiled program
  * @param modelName - The model to render the payload of
  * @returns The proto3 text this emitter produced
  */
-function renderNamed(program: Program, modelName: string): string {
+export function renderNamed(program: Program, modelName: string): string {
   const model = messageModelNamed(program, modelName);
   const payload = buildPayloadModel(program, model);
   if (payload === undefined) {
