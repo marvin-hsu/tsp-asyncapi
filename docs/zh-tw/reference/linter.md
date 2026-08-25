@@ -179,6 +179,32 @@ namespace Orders {
 
 **修法：** 加上 `@Protobuf.message` 與每個屬性的 `@Protobuf.field`，或用 `@rawPayload` 寫下 schema。
 
+### `avro-content-type-undeclared`
+
+在 `recommended` 裡。只在 [`preview-features`](./emitter-options#預覽功能) 指名 `avro` 時執行。
+
+> Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it an Avro payload.
+
+`@contentType` 說明線上的位元組如何編碼，它不產生那些位元組。所以一個 message 可以指名 Avro 媒體型別，而它的 payload 仍然由 TypeSpec model 降級而來。這樣的文件等於叫消費端用 Avro 解碼，卻用 JSON Schema 描述同一批位元組。
+
+```typespec
+// 會回報。content type 說是 Avro，payload 卻是 JSON Schema。
+@Avro.`namespace`("com.example.orders")
+namespace Orders {
+  @message
+  @contentType("application/vnd.apache.avro")
+  model OrderPlaced {
+    id: string;
+  }
+}
+```
+
+兩種寫法會給 message 一份 Avro payload，任一種都會讓這條規則安靜。`@Avro.record` 讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的 schema。
+
+規則讀媒體型別本身，忽略分號後面的內容，所以 `;version=1.9.0` 這種參數不會遮住問題。`application/vnd.apache.avro`、`application/vnd.apache.avro+json` 與 `application/vnd.apache.avro+yaml` 都算。
+
+**修法：** 加上 `@Avro.record`，或用 `@rawPayload` 寫下 schema。
+
 ### `unused-security-scheme`
 
 不在 `recommended` 內，要指名開啟。

@@ -179,6 +179,32 @@ The rule reads the media type and ignores what follows a semicolon, so a `;versi
 
 **Fix:** add `@Protobuf.message` and a `@Protobuf.field` on every property, or write the schema with `@rawPayload`.
 
+### `avro-content-type-undeclared`
+
+In `recommended`. It only runs when [`preview-features`](./emitter-options#preview-features) names `avro`.
+
+> Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it an Avro payload.
+
+`@contentType` states how the bytes on the wire are encoded. It does not produce them. So a message can name an Avro media type while its payload is still lowered from the TypeSpec model. The document then tells a consumer to decode Avro and describes those same bytes with a JSON Schema.
+
+```typespec
+// Reports. The content type says Avro, and the payload is JSON Schema.
+@Avro.`namespace`("com.example.orders")
+namespace Orders {
+  @message
+  @contentType("application/vnd.apache.avro")
+  model OrderPlaced {
+    id: string;
+  }
+}
+```
+
+Two things give a message an Avro payload, and either one silences the rule. `@Avro.record` lets the preview feature render the schema. `@rawPayload` carries the schema the author wrote.
+
+The rule reads the media type and ignores what follows a semicolon, so a `;version=1.9.0` parameter does not hide the mistake. `application/vnd.apache.avro`, `application/vnd.apache.avro+json` and `application/vnd.apache.avro+yaml` all count.
+
+**Fix:** add `@Avro.record`, or write the schema with `@rawPayload`.
+
 ### `unused-security-scheme`
 
 Not in `recommended`. Enable it by name.

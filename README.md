@@ -241,7 +241,7 @@ A name collision between two declarations reports a diagnostic error. It does no
 
 ## Linter
 
-Five optional rules catch mistakes the emitter accepts. Each one produces a
+Seven optional rules catch mistakes the emitter accepts. Each one produces a
 valid document that says something you did not mean, and no diagnostic covers
 any of them. A rule runs during semantic analysis, so an editor shows it
 without running the emitter.
@@ -254,7 +254,8 @@ linter:
 ```
 
 `recommended` enables `missing-service`, `channel-without-operation`,
-`operation-without-message`, and `server-protocol-mismatch`.
+`operation-without-message`, `server-protocol-mismatch`,
+`protobuf-content-type-undeclared`, and `avro-content-type-undeclared`.
 `unused-security-scheme` is enabled by name. See the Linter reference on the
 docs site for what each rule catches and how to fix it.
 

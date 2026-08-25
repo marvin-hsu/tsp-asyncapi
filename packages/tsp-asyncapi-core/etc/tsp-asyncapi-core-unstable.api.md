@@ -127,6 +127,11 @@ export function isProtobufExternRef(program: Program, type: Type): boolean;
 // @internal
 export function isProtobufMap(program: Program, type: Type): boolean;
 
+// Warning: (ae-internal-missing-underscore) The name "listAvroRecordModels" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function listAvroRecordModels(program: Program): Model[];
+
 // Warning: (ae-internal-missing-underscore) The name "listProtobufMessageModels" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal

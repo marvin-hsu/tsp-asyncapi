@@ -44,6 +44,10 @@ export {
   resolveProtobufPackage,
 } from "./protobuf-state.js";
 export type { ProtobufPackage, UnreadableProtobufPackage } from "./protobuf-state.js";
+// The Avro decorator state. Only a linter rule in this package reads it, and
+// it is exported here for the same reason the Protobuf readers are: one file
+// owns the state keys of another library.
+export { listAvroRecordModels } from "./avro-state.js";
 export type {
   AsyncAPIService,
   BindingNode,
