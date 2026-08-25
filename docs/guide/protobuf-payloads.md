@@ -24,8 +24,10 @@ Without the feature the official decorators change nothing here. The models lowe
 Install the official library next to this emitter.
 
 ```bash
-npm install @typespec/protobuf
+npm install "@typespec/protobuf@0.85.x"
 ```
+
+This release supports the `0.85.x` range of that library. The emitter reads the decorator state that range writes. Another range can write state it does not read, and the payload is then unavailable.
 
 Then name the feature in `tspconfig.yaml`.
 
@@ -42,7 +44,7 @@ The reserved names of [`preview-features`](../reference/emitter-options#preview-
 
 ## Writing the source
 
-The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel; the repository holds the whole file.
+The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel. The repository holds the whole file.
 
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
@@ -81,6 +83,23 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
+  }
+
+  /**
+   * One order that left the warehouse.
+   */
+  @message
+  @Protobuf.message
+  @messageExample(
+    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
+    #{ name: "shipped-order" }
+  )
+  model OrderShipped {
+    @Protobuf.field(1)
+    orderId: string;
+
+    @Protobuf.field(2)
+    carrier: string;
   }
 }
 
@@ -145,7 +164,9 @@ Each payload is proto3 text that stands on its own. It carries the `syntax` line
 
 `OrderPlaced` names `Money` in a field, so its payload carries both declarations. `OrderShipped` names nothing, so its payload carries itself alone. `Money` is not a message of the document, so it gets no payload of its own.
 
-The message of a payload is the one declaration nothing else in the text references. That is how a Protobuf reader finds the root. Every other declaration is there because a reference pulled it in, so there is always exactly one such declaration.
+The message of a payload is the declaration nothing else in the text references. That is how a Protobuf reader finds the root. Every other declaration is there because a reference pulled it in.
+
+Two models that reference each other leave no such declaration. Each of the two is referenced by the other, so a payload that carries the pair has no root. The text is still correct proto3, and this emitter writes it. The official AsyncAPI Protobuf schema parser rejects it, because that parser roots a schema on the declaration nothing references.
 
 Two models of one package are therefore two payloads. The wire formats differ. One shared schema would claim that one type decodes both.
 

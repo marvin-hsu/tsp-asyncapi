@@ -79,9 +79,23 @@ export function descriptorOf(text: string): unknown {
  * @returns The proto3 text this emitter produced
  */
 export async function renderPayload(source: string, modelName: string): Promise<string> {
+  return renderNamed(await compileWithProtobuf(source), modelName);
+}
+
+/**
+ * Compiles one source with both libraries loaded and no emitter run.
+ *
+ * This is the run time path a caller of the provider sees. The official
+ * decorators write their state, and nothing else has happened yet.
+ *
+ * @param source - The TypeSpec source, which must carry the official
+ *   decorators
+ * @returns The compiled program
+ */
+export async function compileWithProtobuf(source: string): Promise<Program> {
   const runner = await StateTester.createInstance();
   await runner.compile(source);
-  return renderNamed(runner.program, modelName);
+  return runner.program;
 }
 
 /**

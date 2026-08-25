@@ -24,8 +24,10 @@ description: "帶有官方 TypeSpec.Protobuf decorator 的 model，可以用 pro
 先在本 emitter 旁邊安裝官方套件。
 
 ```bash
-npm install @typespec/protobuf
+npm install "@typespec/protobuf@0.85.x"
 ```
+
+本版支援該套件的 `0.85.x` 範圍。本 emitter 讀取這個範圍寫下的 decorator state。其他範圍可能寫出本 emitter 不讀的 state，那時就取不到 payload。
 
 再於 `tspconfig.yaml` 指名這個功能。
 
@@ -42,7 +44,7 @@ options:
 
 ## 撰寫來源
 
-下面這份是 repository 裡的 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。下面節錄 orders package 與一個 channel，完整檔案在 repository 裡。
+下面這份是 repository 裡的 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。下面節錄 orders package 與一個 channel。完整檔案在 repository 裡。
 
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
@@ -81,6 +83,23 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
+  }
+
+  /**
+   * One order that left the warehouse.
+   */
+  @message
+  @Protobuf.message
+  @messageExample(
+    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
+    #{ name: "shipped-order" }
+  )
+  model OrderShipped {
+    @Protobuf.field(1)
+    orderId: string;
+
+    @Protobuf.field(2)
+    carrier: string;
   }
 }
 
@@ -147,7 +166,9 @@ components:
 
 `OrderPlaced` 的欄位引用 `Money`，所以它的 payload 帶著兩個宣告。`OrderShipped` 什麼都沒引用，payload 只有自己。`Money` 不是文件的 message，所以它自己沒有 payload。
 
-payload 的 message 就是文字裡沒有被任何宣告引用的那一個。Protobuf 讀取工具靠這一點找到根。其他每一個宣告都是被引用才進來的，所以這樣的宣告永遠恰好一個。
+payload 的 message 就是文字裡沒有被任何宣告引用的那一個。Protobuf 讀取工具靠這一點找到根。其他每一個宣告都是被引用才進來的。
+
+兩個互相引用的 model 沒有這樣的宣告。兩者都被對方引用，所以帶著這一對的 payload 沒有根。那份文字仍然是正確的 proto3，本 emitter 也會寫出它。官方的 AsyncAPI Protobuf schema parser 會拒絕它，因為那個 parser 用「沒有被引用的宣告」找根。
 
 因此同一個 package 的兩個 model 是兩份 payload。兩者的傳輸格式不同。共用一份 schema 等於宣稱一個型別可以解碼兩者。
 

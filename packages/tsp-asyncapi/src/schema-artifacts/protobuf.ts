@@ -8,9 +8,10 @@
  *
  * One model is one payload. A payload carries the message the model names and
  * every declaration that message reaches, so two messages of one package are
- * two texts and not one shared text. Each text then has exactly one
- * declaration nothing else references, which is how a Protobuf reader finds
- * the root of a schema it was handed alone.
+ * two texts and not one shared text. The root of a text is the message the
+ * payload was built for. A Protobuf reader finds that root as the declaration
+ * nothing else references, which holds unless two messages reference each
+ * other.
  *
  * ## Who gets told
  *
