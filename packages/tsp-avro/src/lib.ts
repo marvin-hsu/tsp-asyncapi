@@ -164,6 +164,18 @@ export const $lib = createTypeSpecLibrary({
 export const reportDiagnostic = $lib.reportDiagnostic.bind($lib);
 
 /**
+ * Builds one diagnostic from this library without reporting it.
+ *
+ * The walk builds its diagnostics with this and hands the list to its caller.
+ * Reporting is then the caller's decision, which is what lets an emitter in
+ * another package read the reason and say it under its own name. Two emitters
+ * over one program would otherwise report every refusal twice.
+ *
+ * @internal
+ */
+export const createDiagnostic = $lib.createDiagnostic.bind($lib);
+
+/**
  * This package's name, as declared in `package.json`.
  *
  * It is also the name a project writes in `tspconfig.yaml`, both under `emit:`
