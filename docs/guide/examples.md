@@ -1,13 +1,13 @@
 ---
 title: "Examples"
-description: "Fifteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+description: "Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
 ---
 
 # Examples
 
-Fifteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds three files: the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it.
+Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds three files: the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it.
 
-The output is committed, so you can read an input and its output side by side without running anything. Every one of the fifteen passes the official AsyncAPI parser.
+The output is committed, so you can read an input and its output side by side without running anything. Every one of the sixteen passes the official AsyncAPI parser.
 
 ## The examples
 

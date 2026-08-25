@@ -172,7 +172,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Fifteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
+Sixteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
 
@@ -267,10 +267,10 @@ is named.
 
 ### Planned
 
-| Planned work                                 | What it means today                                                                                                                                                                                  | Notes                                                                                                                                             |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| First-class support for `@typespec/protobuf` | One source compiles with both emitters today. A protobuf payload reaches the document through `@rawPayload`, written by hand. A `Protobuf.Map` and an `Extern` model lower to a bare `type: object`. | The emitter must take the protobuf schema from the generated `.proto`. `@typespec/protobuf` exports no accessor for `@field` or `@package` today. |
-| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                               | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                        |
+| Planned work                                 | What it means today                                                                                                                                                                                                               | Notes                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First-class support for `@typespec/protobuf` | A preview feature, off by default. Turn it on with `preview-features: ["protobuf"]`. A model that carries the official decorators then gets a proto3 payload. This emitter reads the decorator state and renders the text itself. | Preview means the option, the payload and the diagnostics can change in a minor release. An external reference, a template instance and a union are refused rather than translated. The [Protobuf payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/protobuf-payloads) says what it writes. |
+| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                                                            | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                                                                                                                                                                                |
 
 ### Waiting for a use case
 
