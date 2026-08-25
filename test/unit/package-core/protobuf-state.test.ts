@@ -5,8 +5,8 @@ import {
   listProtobufMessageModels,
   protoMessageNameOf,
   resolveProtobufPackage,
-} from "#emitter/schema-artifacts/protobuf/state.js";
-import { namespaceOf } from "../../../../utils/namespace.js";
+} from "#core/protobuf-state.js";
+import { namespaceOf } from "../../utils/namespace.js";
 
 /**
  * The state keys of `@typespec/protobuf`, as the compiler builds them.

@@ -26,7 +26,7 @@ import { expect } from "vitest";
 import type { Diagnostic, Model, Program } from "@typespec/compiler";
 import { buildPayloadModel } from "#emitter/schema-artifacts/protobuf/model.js";
 import { renderProtoFile } from "#emitter/schema-artifacts/protobuf/render.js";
-import { listProtobufMessageModels } from "#emitter/schema-artifacts/protobuf/state.js";
+import { listProtobufMessageModels } from "#core/protobuf-state.js";
 
 /**
  * The emitter package root, which is where the testers resolve libraries

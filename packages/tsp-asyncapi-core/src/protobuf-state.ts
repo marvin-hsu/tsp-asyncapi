@@ -6,6 +6,11 @@
  * which message name that model takes. The decorator state answers both
  * exactly, and this file is where the emitter reads it.
  *
+ * This is the ONLY place that reads that state. Two callers need it: the
+ * emitter renders payloads from it, and a linter rule asks whether a message
+ * carries the official decorators at all. So it sits here, in the package
+ * that owns the input language, rather than beside one of them.
+ *
  * The state belongs to `@typespec/protobuf` and is not part of its public
  * interface. The library keeps its state symbols in a module the package
  * exports map does not open. The symbols are still reachable, because the
@@ -22,8 +27,10 @@ import {
   isTemplateInstance,
   type Enum,
   type Model,
+  type ModelProperty,
   type Namespace,
   type Program,
+  type Type,
 } from "@typespec/compiler";
 import { capitalize } from "@typespec/compiler/casing";
 
@@ -172,4 +179,71 @@ export function protoMessageNameOf(program: Program, model: Model): string | und
   if (friendly) return capitalize(friendly);
   if (isTemplateInstance(model)) return undefined;
   return capitalize(model.name);
+}
+
+/** The state key of `@Protobuf.field`, a map from property to its number. */
+const FIELD_INDEX_STATE = Symbol.for("@typespec/protobuf.fieldIndex");
+
+/** The state key of `@Protobuf.externRef`, a map from type to its import. */
+const EXTERN_REF_STATE = Symbol.for("@typespec/protobuf.externRef");
+
+/** The state key that marks a `Protobuf.Map` instantiation. */
+const MAP_STATE = Symbol.for("@typespec/protobuf._map");
+
+/** The state key of `@Protobuf.reserve`, a map from model to its reservations. */
+const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
+
+/**
+ * The field number `@Protobuf.field` recorded for one property.
+ *
+ * The value is returned as it was stored. Deciding whether it is a number a
+ * proto3 field may take belongs to the caller that writes the field.
+ *
+ * @param program - The compiled program
+ * @param property - The property to read
+ * @returns What the decorator stored, or `undefined` when it carries none
+ * @internal
+ */
+export function protobufFieldIndexOf(program: Program, property: ModelProperty): unknown {
+  return program.stateMap(FIELD_INDEX_STATE).get(property) as unknown;
+}
+
+/**
+ * Whether a type is an `@Protobuf.externRef`, which names a declaration of
+ * another file.
+ *
+ * @param program - The compiled program
+ * @param type - The type to ask about
+ * @returns Whether the decorator marked it
+ * @internal
+ */
+export function isProtobufExternRef(program: Program, type: Type): boolean {
+  return program.stateMap(EXTERN_REF_STATE).has(type);
+}
+
+/**
+ * Whether a type is an instantiation of `Protobuf.Map`.
+ *
+ * @param program - The compiled program
+ * @param type - The type to ask about
+ * @returns Whether the library marked it
+ * @internal
+ */
+export function isProtobufMap(program: Program, type: Type): boolean {
+  return program.stateSet(MAP_STATE).has(type);
+}
+
+/**
+ * What `@Protobuf.reserve` recorded for one model.
+ *
+ * The value is returned as it was stored, for the same reason the field
+ * number is: what a reservation may hold is the writer's rule.
+ *
+ * @param program - The compiled program
+ * @param model - The model to read
+ * @returns What the decorator stored, or `undefined` when it carries none
+ * @internal
+ */
+export function protobufReservationsOf(program: Program, model: Model): unknown {
+  return program.stateMap(RESERVE_STATE).get(model) as unknown;
 }

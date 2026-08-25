@@ -30,7 +30,7 @@ import type { Model, Program } from "@typespec/compiler";
 import { listMessages, type ExternalSchemaArtifact } from "tsp-asyncapi-core";
 import { buildPayloadModel } from "./protobuf/model.js";
 import { renderProtoFile } from "./protobuf/render.js";
-import { listProtobufMessageModels } from "./protobuf/state.js";
+import { listProtobufMessageModels } from "tsp-asyncapi-core/unstable";
 import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provider.js";
 
 /**

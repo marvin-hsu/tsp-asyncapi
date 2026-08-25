@@ -43,7 +43,14 @@ import {
   type Type,
 } from "@typespec/compiler";
 import { reportDiagnostic } from "tsp-asyncapi-core";
-import { protoMessageNameOf, resolveProtobufPackage } from "./state.js";
+import {
+  isProtobufExternRef,
+  isProtobufMap,
+  protobufFieldIndexOf,
+  protobufReservationsOf,
+  protoMessageNameOf,
+  resolveProtobufPackage,
+} from "tsp-asyncapi-core/unstable";
 
 /**
  * One payload: the proto3 file that describes one model.
@@ -166,18 +173,6 @@ const PROTO_SCALARS = new Map<string, string>([
   ["TypeSpec.Protobuf.fixed32", "fixed32"],
   ["TypeSpec.Protobuf.fixed64", "fixed64"],
 ]);
-
-/** The state key of `@Protobuf.field`, a map from property to its number. */
-const FIELD_INDEX_STATE = Symbol.for("@typespec/protobuf.fieldIndex");
-
-/** The state key of `@Protobuf.externRef`, a map from type to its import. */
-const EXTERN_REF_STATE = Symbol.for("@typespec/protobuf.externRef");
-
-/** The state key that marks a `Protobuf.Map` instantiation. */
-const MAP_STATE = Symbol.for("@typespec/protobuf._map");
-
-/** The state key of `@Protobuf.reserve`, a map from model to its reservations. */
-const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
 
 /**
  * The proto3 types a map key may take.
@@ -371,7 +366,7 @@ interface Reservations {
  * @returns The reservations, or `undefined` when the state is unreadable
  */
 function reservationsOf(walk: Walk, model: Model, name: string): Reservations | undefined {
-  const stored = walk.program.stateMap(RESERVE_STATE).get(model) as unknown;
+  const stored = protobufReservationsOf(walk.program, model);
   const reserved: Reservations = { numbers: [], names: [] };
   if (stored === undefined) return reserved;
 
@@ -491,7 +486,7 @@ function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
  * @returns The field, or `undefined` when something was refused
  */
 function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
-  const index = walk.program.stateMap(FIELD_INDEX_STATE).get(property) as unknown;
+  const index = protobufFieldIndexOf(walk.program, property);
   if (!isFieldNumber(index)) {
     refuse(walk, property, `property '${property.name}' with no @Protobuf.field number`);
     return undefined;
@@ -535,7 +530,7 @@ function fieldTypeOf(
   property: ModelProperty,
   repeated: boolean,
 ): string | undefined {
-  if (!walk.program.stateSet(MAP_STATE).has(target)) {
+  if (!isProtobufMap(walk.program, target)) {
     return typeNameOf(walk, target, property);
   }
   if (repeated) {
@@ -599,11 +594,11 @@ function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | un
  * @returns The name to write, or `undefined` when the type was refused
  */
 function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | undefined {
-  if (walk.program.stateMap(EXTERN_REF_STATE).has(type)) {
+  if (isProtobufExternRef(walk.program, type)) {
     refuse(walk, property, `property '${property.name}' of an @Protobuf.externRef type`);
     return undefined;
   }
-  if (walk.program.stateSet(MAP_STATE).has(type)) {
+  if (isProtobufMap(walk.program, type)) {
     refuse(walk, property, `property '${property.name}' with a Protobuf.Map inside another type`);
     return undefined;
   }

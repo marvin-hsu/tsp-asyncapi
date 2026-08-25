@@ -5,10 +5,11 @@
 ```ts
 
 import { DiagnosticTarget } from '@typespec/compiler';
+import { Enum } from '@typespec/compiler';
 import { LinterDefinition } from '@typespec/compiler';
-import type { Model } from '@typespec/compiler';
-import type { ModelProperty } from '@typespec/compiler';
-import type { Namespace } from '@typespec/compiler';
+import { Model } from '@typespec/compiler';
+import { ModelProperty } from '@typespec/compiler';
+import { Namespace } from '@typespec/compiler';
 import type { Operation } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 import { Service } from '@typespec/compiler';
@@ -116,6 +117,21 @@ export interface InfoNode {
     readonly version: string;
 }
 
+// Warning: (ae-internal-missing-underscore) The name "isProtobufExternRef" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function isProtobufExternRef(program: Program, type: Type): boolean;
+
+// Warning: (ae-internal-missing-underscore) The name "isProtobufMap" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function isProtobufMap(program: Program, type: Type): boolean;
+
+// Warning: (ae-internal-missing-underscore) The name "listProtobufMessageModels" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function listProtobufMessageModels(program: Program): Model[];
+
 // Warning: (ae-internal-missing-underscore) The name "MessageHeadersNode" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -205,6 +221,35 @@ export interface OperationReplyNode {
     readonly messages: readonly MessageRefNode[];
 }
 
+// Warning: (ae-internal-missing-underscore) The name "protobufFieldIndexOf" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function protobufFieldIndexOf(program: Program, property: ModelProperty): unknown;
+
+// Warning: (ae-internal-missing-underscore) The name "ProtobufPackage" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface ProtobufPackage {
+    readonly kind: "declared";
+    readonly name: string | undefined;
+    readonly namespace: Namespace;
+}
+
+// Warning: (ae-internal-missing-underscore) The name "protobufReservationsOf" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function protobufReservationsOf(program: Program, model: Model): unknown;
+
+// Warning: (ae-internal-missing-underscore) The name "protoMessageNameOf" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function protoMessageNameOf(program: Program, model: Model): string | undefined;
+
+// Warning: (ae-internal-missing-underscore) The name "resolveProtobufPackage" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export function resolveProtobufPackage(program: Program, type: Model | Enum): ProtobufPackage | UnreadableProtobufPackage | undefined;
+
 // Warning: (ae-internal-missing-underscore) The name "resolveService" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
@@ -255,6 +300,14 @@ export interface ServerVariableNode {
     readonly description?: string;
     readonly enum?: readonly string[];
     readonly examples?: readonly string[];
+}
+
+// Warning: (ae-internal-missing-underscore) The name "UnreadableProtobufPackage" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface UnreadableProtobufPackage {
+    readonly kind: "unreadable";
+    readonly namespace: Namespace;
 }
 
 // Warnings were encountered during analysis:
