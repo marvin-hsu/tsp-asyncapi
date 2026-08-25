@@ -172,9 +172,15 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Sixteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the AsyncAPI document the emitter wrote from it. Every protocol this library implements appears in at least one.
+Seventeen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the output an emitter wrote from it. Sixteen of them write an AsyncAPI document, and every protocol this library implements appears in at least one. The seventeenth writes Avro schema files.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
+
+## Avro schemas
+
+This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experimental library and emitter that writes Apache Avro schema files. It is pre-1.0, and its surface can change in any release.
+
+It is independent of the AsyncAPI emitter. It declares its own decorators, and it needs no AsyncAPI decorator. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says what it emits.
 
 ## Emitter options
 

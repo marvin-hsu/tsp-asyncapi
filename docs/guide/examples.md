@@ -1,13 +1,13 @@
 ---
 title: "Examples"
-description: "Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+description: "Seventeen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
 ---
 
 # Examples
 
-Sixteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the `asyncapi.yaml` the emitter wrote from it. The Protobuf example also holds the `.proto` files the official emitter wrote.
+Seventeen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source and the `tspconfig.yaml` it was compiled with. Sixteen of them also hold the `asyncapi.yaml` the emitter wrote from that source. The Protobuf example holds the `.proto` files the official emitter wrote. The Avro example holds the `.avsc` files `tsp-avro` wrote, and no document.
 
-The output is committed, so you can read an input and its output side by side without running anything. Every one of the sixteen passes the official AsyncAPI parser.
+The output is committed, so you can read an input and its output side by side without running anything. Every one of the sixteen documents passes the official AsyncAPI parser.
 
 ## The examples
 
@@ -29,6 +29,7 @@ The output is committed, so you can read an input and its output side by side wi
 | [Streaming platforms](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/14-streaming-platforms)           | NATS, Pulsar, Google Cloud Pub/Sub and Solace, and the fields each one requires.                                                    |
 | [Specification extensions](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions) | The `x-` fields the specification leaves to the author, on all four objects that take one.                                          |
 | [Protobuf payloads](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)               | Two Protobuf packages over RabbitMQ, with the `.proto` files emitted next to the document.                                          |
+| [Avro schemas](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)                         | One order domain written as Avro schema files by `tsp-avro`. No AsyncAPI document.                                                  |
 
 ## Running one
 

@@ -81,7 +81,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "lcov"],
-      include: ["packages/*/src/**/*.ts", "packages/tsp-asyncapi-core/dist/src/decorators/**/*.js"],
+      include: ["packages/*/src/**/*.ts", "packages/*/dist/src/decorators/**/*.js"],
       // The sources, plus the build output of the decorators only.
       //
       // A decorator module is live twice at run time. `lib/main.tsp` imports
@@ -97,8 +97,13 @@ export default defineConfig({
       // `dist`, because that is where their bodies run, and `src/decorators/**`
       // is excluded below to keep the pair from returning. Everything else
       // comes from `src`.
+      //
+      // Both patterns are a `packages/*` glob rather than one package name.
+      // A package added later carries decorators the compiler loads from its
+      // own `dist`, and a named pattern would collect that package from the
+      // copy whose bodies never run there.
       exclude: [
-        "packages/tsp-asyncapi-core/src/decorators/**/*.ts",
+        "packages/*/src/decorators/**/*.ts",
         "packages/*/src/index.ts",
         "packages/*/src/testing.ts",
         "test/**",
@@ -160,6 +165,11 @@ export default defineConfig({
       // gap sits in the half whose measurement is broken, so a target above
       // about 88% cannot be reached by adding tests. Fix the attribution
       // before setting one.
+      //
+      // Re-measured on 2026-08-25, after the two decorator patterns became a
+      // `packages/*` glob and picked `tsp-avro` up: statements 87.99,
+      // branches 80.64, functions 87.05, lines 88.99. The floors below stay
+      // where they are, because they are floors.
       thresholds: {
         statements: 85,
         branches: 78,

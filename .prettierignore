@@ -11,3 +11,10 @@ dist
 # today. A baseline that moves to another directory keeps its protection, and
 # the move is the moment the protection is easiest to forget.
 test/**/__snapshots__/
+
+# The Avro schema files an example emitted. Prettier reads `.avsc` as JSON and
+# would collapse a short array onto one line, so a formatted file is no longer
+# the bytes the emitter wrote. The example is committed so that deleting it and
+# recompiling reproduces it exactly, and that only holds while nothing else
+# rewrites it.
+**/*.avsc

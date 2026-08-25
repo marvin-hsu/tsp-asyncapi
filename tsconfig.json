@@ -14,5 +14,9 @@
     "noEmit": true
   },
   "include": ["test/**/*", "vitest.config.ts"],
-  "references": [{ "path": "packages/tsp-asyncapi-core" }, { "path": "packages/tsp-asyncapi" }]
+  "references": [
+    { "path": "packages/tsp-asyncapi-core" },
+    { "path": "packages/tsp-asyncapi" },
+    { "path": "packages/tsp-avro" }
+  ]
 }

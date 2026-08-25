@@ -72,6 +72,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "avsc": "^5.7.9",
     "eslint": "^10.8.1",
     "eslint-plugin-sonarjs": "^4.2.0",
     "fast-check": "^4.9.0",
@@ -82,6 +83,7 @@
     "protobufjs": "^8.7.2",
     "tsp-asyncapi": "workspace:*",
     "tsp-asyncapi-core": "workspace:*",
+    "tsp-avro": "workspace:*",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitepress": "^1.6.4",
@@ -94,6 +96,7 @@
   "private": true,
   "imports": {
     "#core/*": "./packages/tsp-asyncapi-core/src/*",
-    "#emitter/*": "./packages/tsp-asyncapi/src/*"
+    "#emitter/*": "./packages/tsp-asyncapi/src/*",
+    "#avro/*": "./packages/tsp-avro/src/*"
   }
 }

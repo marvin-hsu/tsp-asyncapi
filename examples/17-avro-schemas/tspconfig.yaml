@@ -1,0 +1,14 @@
+# This example runs one emitter, and it is not the AsyncAPI one. `tsp-avro`
+# writes Avro schema files from the same kind of TypeSpec models.
+emit:
+  - "tsp-avro"
+
+options:
+  "tsp-avro":
+    # Where the emitted files are written. The default buries them in
+    # `tsp-output/tsp-avro/`. `{project-root}/schemas` puts them next to
+    # `main.tsp`, under a directory a reader can find.
+    #
+    # The emitter has no other option. The Avro namespace decides the rest of
+    # the path, so `com.example.orders` becomes `com/example/orders/`.
+    emitter-output-dir: "{project-root}/schemas"
