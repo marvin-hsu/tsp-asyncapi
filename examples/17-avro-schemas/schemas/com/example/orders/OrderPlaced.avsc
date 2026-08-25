@@ -1,0 +1,115 @@
+{
+  "type": "record",
+  "name": "OrderPlaced",
+  "namespace": "com.example.orders",
+  "doc": "An order left the checkout.",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      },
+      "doc": "The identifier of the order."
+    },
+    {
+      "name": "placedAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "When the customer placed the order."
+    },
+    {
+      "name": "lines",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderLine",
+          "namespace": "com.example.orders",
+          "doc": "One line of an order.",
+          "fields": [
+            {
+              "name": "sku",
+              "type": "string",
+              "doc": "The stock keeping unit that was ordered."
+            },
+            {
+              "name": "quantity",
+              "type": "int"
+            },
+            {
+              "name": "unitPrice",
+              "type": {
+                "type": "bytes",
+                "logicalType": "decimal",
+                "precision": 12,
+                "scale": 2
+              },
+              "doc": "The price of one unit, in the currency of the order."
+            }
+          ]
+        }
+      },
+      "doc": "What was ordered."
+    },
+    {
+      "name": "shipping",
+      "type": {
+        "type": "record",
+        "name": "Address",
+        "namespace": "com.example.orders",
+        "doc": "Where an order goes.",
+        "fields": [
+          {
+            "name": "line1",
+            "type": "string",
+            "doc": "The street and the number."
+          },
+          {
+            "name": "line2",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "The flat, the floor, or whatever else the courier needs.",
+            "default": null
+          },
+          {
+            "name": "city",
+            "type": "string"
+          },
+          {
+            "name": "postcode",
+            "type": "string",
+            "doc": "The postcode, as the destination country writes it."
+          },
+          {
+            "name": "country",
+            "type": "string",
+            "doc": "The ISO 3166-1 alpha-2 code of the country."
+          }
+        ]
+      },
+      "doc": "Where the order goes."
+    },
+    {
+      "name": "billing",
+      "type": [
+        "null",
+        "com.example.orders.Address"
+      ],
+      "doc": "Where the invoice goes, when it is not the shipping address.",
+      "default": null
+    },
+    {
+      "name": "metadata",
+      "type": {
+        "type": "map",
+        "values": "string"
+      },
+      "doc": "Whatever the checkout wanted to carry along."
+    }
+  ]
+}

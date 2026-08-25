@@ -1,0 +1,94 @@
+{
+  "type": "record",
+  "name": "OrderFulfilmentChanged",
+  "namespace": "com.example.orders",
+  "doc": "The fulfilment of an order moved on.",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      },
+      "doc": "The identifier of the order.",
+      "aliases": [
+        "orderNumber"
+      ]
+    },
+    {
+      "name": "changedAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "When the fulfilment moved on."
+    },
+    {
+      "name": "status",
+      "type": {
+        "type": "enum",
+        "name": "FulfilmentStatus",
+        "namespace": "com.example.orders",
+        "doc": "How far an order has got.",
+        "symbols": [
+          "Unknown",
+          "Placed",
+          "Packed",
+          "Shipped",
+          "Delivered"
+        ],
+        "default": "Unknown"
+      },
+      "doc": "How far the order has got."
+    },
+    {
+      "name": "shipping",
+      "type": {
+        "type": "record",
+        "name": "Address",
+        "namespace": "com.example.orders",
+        "doc": "Where an order goes.",
+        "fields": [
+          {
+            "name": "line1",
+            "type": "string",
+            "doc": "The street and the number."
+          },
+          {
+            "name": "line2",
+            "type": [
+              "null",
+              "string"
+            ],
+            "doc": "The flat, the floor, or whatever else the courier needs.",
+            "default": null
+          },
+          {
+            "name": "city",
+            "type": "string"
+          },
+          {
+            "name": "postcode",
+            "type": "string",
+            "doc": "The postcode, as the destination country writes it."
+          },
+          {
+            "name": "country",
+            "type": "string",
+            "doc": "The ISO 3166-1 alpha-2 code of the country."
+          }
+        ]
+      },
+      "doc": "Where the order is going, as it stood at this moment."
+    },
+    {
+      "name": "trackingNumber",
+      "type": [
+        "string",
+        "null"
+      ],
+      "doc": "What the carrier calls this shipment.",
+      "default": "pending"
+    }
+  ]
+}

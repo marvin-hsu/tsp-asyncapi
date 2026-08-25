@@ -1,13 +1,13 @@
 ---
 title: "範例"
-description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄都有 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及..."
+description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十七個完整範例。每個目錄都有 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及..."
 ---
 
 # 範例
 
-這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄都有 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 產生的 `asyncapi.yaml`。Protobuf 範例另外有官方 emitter 產生的 `.proto` 檔案。
+這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十七個完整範例。每個目錄都有 TypeSpec 原始碼與編譯時用的 `tspconfig.yaml`。其中十六個另有 emitter 產生的 `asyncapi.yaml`。Protobuf 範例另外有官方 emitter 產生的 `.proto` 檔案。Avro 範例則是 `tsp-avro` 產生的 `.avsc` 檔案，沒有文件。
 
-輸出已經 commit，所以不必執行任何東西就能對照輸入與輸出。十六份都通過官方 AsyncAPI parser。
+輸出已經 commit，所以不必執行任何東西就能對照輸入與輸出。十六份文件都通過官方 AsyncAPI parser。
 
 ## 範例一覽
 
@@ -29,6 +29,7 @@ description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/
 | [Streaming platforms](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/14-streaming-platforms)         | NATS、Pulsar、Google Cloud Pub/Sub 與 Solace，以及各自的必填欄位。              |
 | [規格擴充](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions)               | 規格留給作者自己填的 `x-` 欄位，四種能承載它的物件各一例。                      |
 | [Protobuf payload](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)              | 兩個 Protobuf package 走 RabbitMQ，`.proto` 檔案與文件一起輸出。                |
+| [Avro schema](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)                        | 一個訂單領域寫成 Avro schema 檔案，由 `tsp-avro` 產生，沒有 AsyncAPI 文件。     |
 
 ## 執行其中一個
 

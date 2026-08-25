@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { referencesIn } from "../utils/references.js";
 
@@ -59,6 +59,12 @@ function committedDocuments(): [string, unknown][] {
   for (const dir of readdirSync(EXAMPLES, { withFileTypes: true })) {
     if (!dir.isDirectory()) continue;
     const path = new URL(`${dir.name}/asyncapi.yaml`, EXAMPLES);
+    // An example directory holds the output of the emitter it names in its
+    // own `tspconfig.yaml`, and not every emitter here writes a document.
+    // The Avro example writes `.avsc` files, which carry no `$ref`. The
+    // count below is what keeps this skip from hiding a document that went
+    // missing.
+    if (!existsSync(path)) continue;
     documents.push([`examples/${dir.name}`, parseYaml(readFileSync(path, "utf8"))]);
   }
   return documents;
