@@ -30,6 +30,7 @@ import {
   isTemplateInstance,
   serializeValueAsJson,
   UnserializableValueError,
+  type Diagnostic,
   type DiagnosticTarget,
   type Enum,
   type Model,
@@ -47,7 +48,7 @@ import { getAvroLogicalType, type AvroLogicalTypeAnnotation } from "../decorator
 import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { getAvroOrder } from "../decorators/order.js";
-import { reportDiagnostic } from "../lib.js";
+import { createDiagnostic } from "../lib.js";
 import {
   isAvroLogical,
   isAvroUnion,
@@ -74,6 +75,10 @@ import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalar
  * `refused` is set once and never cleared: the walk keeps going after a
  * refusal so the author sees every problem in one compile, and the caller
  * drops the record at the end.
+ *
+ * `diagnostics` holds every refusal the walk built. Nothing here reports one.
+ * The caller decides where they go, which is what lets an emitter in another
+ * package read a reason and say it under its own name.
  */
 type AvroDeclaration = Model | Enum | Scalar;
 
@@ -81,11 +86,13 @@ interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
+  readonly diagnostics: Diagnostic[];
   refused: boolean;
 }
 
 /**
- * Builds the Avro schema of one model marked with `@record`.
+ * Builds the Avro schema of one model marked with `@record`, and reports what
+ * it refused.
  *
  * @param program - The program the model belongs to
  * @param model - The marked model
@@ -94,23 +101,60 @@ interface WalkContext {
  * @internal
  */
 export function buildAvroRecord(program: Program, model: Model): AvroRecord | undefined {
+  const [schema, diagnostics] = buildAvroRecordWithDiagnostics(program, model);
+  program.reportDiagnostics(diagnostics);
+  return schema;
+}
+
+/**
+ * Builds the Avro schema of one model marked with `@record`, and collects what
+ * it refused.
+ *
+ * This is the walk. `buildAvroRecord` is this function plus a report, so there
+ * is one walk and two ways to hear about a refusal.
+ *
+ * A caller in another package needs this one. A diagnostic carries the code of
+ * the library that built it, and a user who asked for one emitter should not
+ * read the codes of another. Worse, two emitters over one program would each
+ * report the same refusal, and the author would read it twice. So the caller
+ * takes the reason and says it under its own name.
+ *
+ * A refusal always carries at least one reason, so a caller can say why
+ * without a fallback of its own.
+ *
+ * @param program - The program the model belongs to
+ * @param model - The marked model
+ * @returns The schema, or undefined when the walk refused any part of it, and
+ *   at least one diagnostic in that case
+ *
+ * @internal
+ */
+export function buildAvroRecordWithDiagnostics(
+  program: Program,
+  model: Model,
+): [AvroRecord | undefined, readonly Diagnostic[]] {
+  const diagnostics: Diagnostic[] = [];
+
   if (getAvroFixedSize(program, model) !== undefined) {
     // A file holds one schema, and `@record` says which models get one. A
     // fixed type is a width rather than a record, so the two marks ask for
     // two different things and neither one is safe to guess.
-    reportDiagnostic(program, {
-      code: "unsupported-type",
-      messageId: "fixedRecord",
-      format: { name: model.name },
-      target: model,
-    });
-    return undefined;
+    diagnostics.push(
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "fixedRecord",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
+    return [undefined, diagnostics];
   }
 
   const context: WalkContext = {
     program,
     scalars: createScalarTable(program),
     defined: new Map(),
+    diagnostics,
     refused: false,
   };
 
@@ -126,19 +170,59 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
     // The check stands because the walk answers with the wider type, and a
     // guess about which member came back is the kind of thing that stops being
     // true later.
-    return undefined;
+    return [undefined, refusalWithReason(model, diagnostics)];
   }
-  return schema;
+  return [schema, diagnostics];
+}
+
+/**
+ * Makes sure a refusal carries a reason.
+ *
+ * Only one of the four conditions that drop a record collects a diagnostic on
+ * the way there. The other three read the type the walk answered with, and
+ * they say nothing. A caller reads the first reason and says it under its own
+ * name, so an empty list would leave an author with a payload missing from a
+ * document and no word about why.
+ *
+ * @param model - The model the walk was asked for
+ * @param diagnostics - What the walk collected, which this may add to
+ * @returns The reasons, never empty
+ *
+ * @internal
+ */
+export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): readonly Diagnostic[] {
+  if (diagnostics.length === 0) {
+    diagnostics.push(
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "notRecord",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
+  }
+  return diagnostics;
 }
 
 /**
  * Records that the walk refused something.
  *
- * The caller reports why, calls this, and returns undefined. The record it is
+ * The caller collects why, calls this, and returns undefined. The record it is
  * building is dropped at the end.
  */
 function markRefused(context: WalkContext): void {
   context.refused = true;
+}
+
+/**
+ * Collects one refusal and drops the record being built.
+ *
+ * @param context - The walk
+ * @param diagnostic - Why the walk refused
+ */
+function refuse(context: WalkContext, diagnostic: Diagnostic): void {
+  context.diagnostics.push(diagnostic);
+  markRefused(context);
 }
 
 /**
@@ -162,21 +246,25 @@ function typeFor(
       if (type.name === "null") {
         return "null";
       }
-      reportDiagnostic(context.program, {
-        code: "unsupported-type",
-        messageId: "intrinsic",
-        format: { name: type.name },
-        target,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "unsupported-type",
+          messageId: "intrinsic",
+          format: { name: type.name },
+          target,
+        }),
+      );
       return undefined;
     default:
-      reportDiagnostic(context.program, {
-        code: "unsupported-type",
-        format: { kind: type.kind },
-        target,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "unsupported-type",
+          format: { kind: type.kind },
+          target,
+        }),
+      );
       return undefined;
   }
 }
@@ -198,13 +286,15 @@ function scalarFor(
   if (size === undefined) {
     base = avroScalarFor(context.scalars, scalar);
     if (base === undefined) {
-      reportDiagnostic(context.program, {
-        code: "unsupported-type",
-        messageId: "scalar",
-        format: { name: scalar.name },
-        target,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "unsupported-type",
+          messageId: "scalar",
+          format: { name: scalar.name },
+          target,
+        }),
+      );
       return undefined;
     }
   } else {
@@ -276,7 +366,7 @@ function withLogicalType(
     return schema;
   }
 
-  const written = applyLogicalType(context.program, schema, annotation, target);
+  const written = applyLogicalType(context.diagnostics, schema, annotation, target);
   if (written === undefined) {
     markRefused(context);
     return undefined;
@@ -323,18 +413,19 @@ function namedModelFor(
   target: DiagnosticTarget,
 ): AvroRecord | AvroFixed | string | undefined {
   if (model.name === "") {
-    reportDiagnostic(context.program, { code: "unsupported-type", messageId: "anonymous", target });
-    markRefused(context);
+    refuse(context, createDiagnostic({ code: "unsupported-type", messageId: "anonymous", target }));
     return undefined;
   }
   if (model.baseModel) {
-    reportDiagnostic(context.program, {
-      code: "unsupported-type",
-      messageId: "inheritance",
-      format: { name: model.name },
-      target: model,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "inheritance",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
     return undefined;
   }
 
@@ -342,38 +433,44 @@ function namedModelFor(
     // `Box<string>` and `Box<int32>` are both named `Box`. Avro names a type
     // once per schema, so the second one would come out as a reference to the
     // first, and it would mean something the author did not write.
-    reportDiagnostic(context.program, {
-      code: "unsupported-type",
-      messageId: "template",
-      format: { name: model.name },
-      target: model,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "template",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
     return undefined;
   }
   if (model.indexer !== undefined) {
     // A model that spreads `Record<T>` carries an index signature. An Avro
     // record has fields alone, so those values have nowhere to go.
-    reportDiagnostic(context.program, {
-      code: "unsupported-type",
-      messageId: "indexer",
-      format: { name: model.name },
-      target: model,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "indexer",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
     return undefined;
   }
 
   const size = getAvroFixedSize(context.program, model);
   if (size !== undefined) {
     if (model.properties.size > 0) {
-      reportDiagnostic(context.program, {
-        code: "unsupported-type",
-        messageId: "fixedFields",
-        format: { name: model.name },
-        target: model,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "unsupported-type",
+          messageId: "fixedFields",
+          format: { name: model.name },
+          target: model,
+        }),
+      );
       return undefined;
     }
     return fixedFor(context, model, size, target);
@@ -453,12 +550,14 @@ function addBranch(
 
   const key = branchKey(schema);
   if (keys.has(key)) {
-    reportDiagnostic(context.program, {
-      code: "duplicate-union-branch",
-      format: { name: key },
-      target,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "duplicate-union-branch",
+        format: { name: key },
+        target,
+      }),
+    );
     return;
   }
 
@@ -517,12 +616,14 @@ function branchKey(schema: AvroBranch): string {
  */
 function fieldFor(context: WalkContext, property: ModelProperty): AvroField | undefined {
   if (!isAvroName(property.name)) {
-    reportDiagnostic(context.program, {
-      code: "invalid-name",
-      format: { name: property.name },
-      target: property,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "invalid-name",
+        format: { name: property.name },
+        target: property,
+      }),
+    );
     return undefined;
   }
 
@@ -539,13 +640,15 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
   // every other field means. The annotation belongs to the declaration.
   const named = annotation === undefined ? undefined : namedTypeOf(walked);
   if (annotation !== undefined && named !== undefined) {
-    reportDiagnostic(context.program, {
-      code: "logical-type-mismatch",
-      messageId: "named",
-      format: { name: annotation.name, fullName: named },
-      target: property,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "logical-type-mismatch",
+        messageId: "named",
+        format: { name: annotation.name, fullName: named },
+        target: property,
+      }),
+    );
     return undefined;
   }
 
@@ -641,13 +744,15 @@ function defaultOf(
  * Reports a default the emitter cannot write, and refuses the record.
  */
 function refuseDefault(context: WalkContext, property: ModelProperty, detail: string): void {
-  reportDiagnostic(context.program, {
-    code: "invalid-default",
-    messageId: "unserializable",
-    format: { name: property.name, detail },
-    target: property,
-  });
-  markRefused(context);
+  refuse(
+    context,
+    createDiagnostic({
+      code: "invalid-default",
+      messageId: "unserializable",
+      format: { name: property.name, detail },
+      target: property,
+    }),
+  );
 }
 
 /**
@@ -680,13 +785,15 @@ function leadWithDefault(
   const key = written === undefined ? "null" : defaultBranchKey(context, written);
   const index = key === undefined ? -1 : branches.findIndex((one) => branchKey(one) === key);
   if (index < 0) {
-    reportDiagnostic(context.program, {
-      code: "invalid-default",
-      messageId: "branch",
-      format: { name: property.name },
-      target: property,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "invalid-default",
+        messageId: "branch",
+        format: { name: property.name },
+        target: property,
+      }),
+    );
     return undefined;
   }
 
@@ -773,21 +880,25 @@ function enumFor(
   const symbols: string[] = [];
   for (const member of target.members.values()) {
     if (!isAvroName(member.name)) {
-      reportDiagnostic(context.program, {
-        code: "invalid-name",
-        format: { name: member.name },
-        target: member,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "invalid-name",
+          format: { name: member.name },
+          target: member,
+        }),
+      );
       continue;
     }
     if (member.value !== undefined && member.value !== member.name) {
-      reportDiagnostic(context.program, {
-        code: "enum-member-value",
-        format: { name: member.name },
-        target: member,
-      });
-      markRefused(context);
+      refuse(
+        context,
+        createDiagnostic({
+          code: "enum-member-value",
+          format: { name: member.name },
+          target: member,
+        }),
+      );
       continue;
     }
     symbols.push(member.name);
@@ -830,17 +941,19 @@ function defineName(
     return "again";
   }
   if (owner !== undefined) {
-    reportDiagnostic(context.program, {
-      code: "unsupported-type",
-      messageId: "duplicate",
-      format: {
-        name: getTypeName(declaration),
-        other: getTypeName(owner),
-        fullName,
-      },
-      target,
-    });
-    markRefused(context);
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "duplicate",
+        format: {
+          name: getTypeName(declaration),
+          other: getTypeName(owner),
+          fullName,
+        },
+        target,
+      }),
+    );
     return false;
   }
 
@@ -859,15 +972,13 @@ function fullNameOf(
   target: DiagnosticTarget,
 ): string | undefined {
   if (!isAvroName(name)) {
-    reportDiagnostic(context.program, { code: "invalid-name", format: { name }, target });
-    markRefused(context);
+    refuse(context, createDiagnostic({ code: "invalid-name", format: { name }, target }));
     return undefined;
   }
 
   const namespace = resolveAvroNamespace(context.program, type);
   if (namespace === undefined) {
-    reportDiagnostic(context.program, { code: "namespace-required", target: type });
-    markRefused(context);
+    refuse(context, createDiagnostic({ code: "namespace-required", target: type }));
     return undefined;
   }
 

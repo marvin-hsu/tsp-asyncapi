@@ -11,6 +11,8 @@ description: "tsp-avro 是這個 repository 的第二個 emitter。它把 TypeSp
 這是實驗性套件，尚未進入 1.0。它的 decorator、輸出與診斷都可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
 :::
 
+AsyncAPI emitter 的 `avro` 預覽功能呼叫的是同一個套件。開啟之後，帶著 `` @Avro.`record` `` 的 model 也會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](./avro-payloads)。
+
 ## 這個套件做什麼
 
 它是 [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/) 的 Avro 同位物。它宣告自己的 decorator，也註冊自己的 emitter。
@@ -339,7 +341,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 
 - 繼承其他 model 的 model。Avro record 沒有繼承。
 - 匿名 model。Avro record 需要名稱。
-- template 實例，例如 `Box<string>`。同一個 template 的兩個實例共用一個名稱。
+- template 執行個體，例如 `Box<string>`。同一個 template 的兩個執行個體共用一個名稱。
 - 同時帶索引簽章與欄位的 model。
 - 上面對照表以外的 scalar。
 - 同一個型別出現兩次的 union，例如 `string[] | int32[]`。

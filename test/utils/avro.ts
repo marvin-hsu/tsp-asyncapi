@@ -25,7 +25,8 @@ import { expect } from "vitest";
 import { AvroTester } from "#avro/testing.js";
 import { $onEmit } from "#avro/emitter.js";
 import type { AvroEmitterOptions } from "#avro/lib.js";
-import type { Diagnostic, EmitContext } from "@typespec/compiler";
+import { listRecords } from "#avro/index.js";
+import type { Diagnostic, EmitContext, Model, Program } from "@typespec/compiler";
 
 /**
  * What one compile produced.
@@ -217,4 +218,35 @@ export function fieldNamed(schema: unknown, name: string): RenderedField {
 export function expectValueRoundTrip(schema: unknown, value: unknown): void {
   const type = acceptSchema(schema);
   expect(type.fromBuffer(type.toBuffer(value))).toEqual(value);
+}
+
+/**
+ * Compiles one source with the Avro library loaded and no emitter run.
+ *
+ * This is what a caller of the walk sees: the decorators have written their
+ * state and nothing else has happened. A caller that wants the files runs
+ * `emitAvro` instead.
+ *
+ * @param source - The TypeSpec source, which must carry the Avro decorators
+ * @returns The compiled program
+ */
+export async function compileAvro(source: string): Promise<Program> {
+  const runner = await AvroTester.createInstance();
+  await runner.diagnose(source);
+  return runner.program;
+}
+
+/**
+ * Finds one `@Avro.record` model by name.
+ *
+ * @param program - The compiled program
+ * @param modelName - The name the source gives the model
+ * @returns That model
+ */
+export function avroModelNamed(program: Program, modelName: string): Model {
+  const model = listRecords(program).find((one) => one.name === modelName);
+  if (model === undefined) {
+    throw new Error(`The source declares no @Avro.record model named '${modelName}'.`);
+  }
+  return model;
 }

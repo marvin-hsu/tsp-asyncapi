@@ -1,13 +1,13 @@
 ---
 title: "Examples"
-description: "Seventeen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+description: "Eighteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
 ---
 
 # Examples
 
-Seventeen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source and the `tspconfig.yaml` it was compiled with. Sixteen of them also hold the `asyncapi.yaml` the emitter wrote from that source. The Protobuf example holds the `.proto` files the official emitter wrote. The Avro example holds the `.avsc` files `tsp-avro` wrote, and no document.
+Eighteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source and the `tspconfig.yaml` it was compiled with. Seventeen of them also hold the `asyncapi.yaml` the emitter wrote from that source. The Protobuf example holds the `.proto` files the official emitter wrote. Two examples hold the `.avsc` files `tsp-avro` wrote. One of those two writes no document.
 
-The output is committed, so you can read an input and its output side by side without running anything. Every one of the sixteen documents passes the official AsyncAPI parser.
+The output is committed, so you can read an input and its output side by side without running anything. Every one of the seventeen documents passes the official AsyncAPI parser.
 
 ## The examples
 
@@ -30,6 +30,7 @@ The output is committed, so you can read an input and its output side by side wi
 | [Specification extensions](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions) | The `x-` fields the specification leaves to the author, on all four objects that take one.                                          |
 | [Protobuf payloads](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)               | Two Protobuf packages over RabbitMQ, with the `.proto` files emitted next to the document.                                          |
 | [Avro schemas](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)                         | One order domain written as Avro schema files by `tsp-avro`. No AsyncAPI document.                                                  |
+| [Avro payloads](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads)                       | Two Avro records over Kafka, with the `.avsc` files emitted next to the document.                                                   |
 
 ## Running one
 

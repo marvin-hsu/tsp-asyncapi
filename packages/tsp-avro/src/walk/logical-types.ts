@@ -15,9 +15,9 @@
  * schema no reader understands.
  */
 
-import type { DiagnosticTarget, Program } from "@typespec/compiler";
+import type { Diagnostic, DiagnosticTarget } from "@typespec/compiler";
 import type { AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
-import { reportDiagnostic } from "../lib.js";
+import { createDiagnostic } from "../lib.js";
 import {
   isAvroLogical,
   isAvroUnion,
@@ -78,7 +78,7 @@ const AVRO_PRIMITIVES: ReadonlySet<string> = new Set([
  * reference to a named type: a reference is a name, and the annotation belongs
  * to the definition that name points at.
  *
- * @param program - The program the diagnostic belongs to
+ * @param diagnostics - Where a refusal is collected
  * @param schema - The schema to annotate
  * @param annotation - What the author declared
  * @param target - Where a diagnostic points
@@ -87,44 +87,50 @@ const AVRO_PRIMITIVES: ReadonlySet<string> = new Set([
  * @internal
  */
 export function applyLogicalType(
-  program: Program,
+  diagnostics: Diagnostic[],
   schema: AvroSchema,
   annotation: AvroLogicalTypeAnnotation,
   target: DiagnosticTarget,
 ): AvroLogical | AvroFixed | undefined {
   const allowed = LOGICAL_TYPES.get(annotation.name);
   if (allowed === undefined) {
-    reportDiagnostic(program, {
-      code: "unknown-logical-type",
-      format: { name: annotation.name, known: [...LOGICAL_TYPES.keys()].join(", ") },
-      target,
-    });
+    diagnostics.push(
+      createDiagnostic({
+        code: "unknown-logical-type",
+        format: { name: annotation.name, known: [...LOGICAL_TYPES.keys()].join(", ") },
+        target,
+      }),
+    );
     return undefined;
   }
 
   const underlying = underlyingOf(schema);
   if (underlying === undefined || !allowed.includes(underlying)) {
-    reportDiagnostic(program, {
-      code: "logical-type-mismatch",
-      format: {
-        name: annotation.name,
-        underlying: describe(schema, underlying),
-        allowed: allowed.join(" or "),
-      },
-      target,
-    });
+    diagnostics.push(
+      createDiagnostic({
+        code: "logical-type-mismatch",
+        format: {
+          name: annotation.name,
+          underlying: describe(schema, underlying),
+          allowed: allowed.join(" or "),
+        },
+        target,
+      }),
+    );
     return undefined;
   }
 
   const precision = annotation.precision;
   if (annotation.name === "decimal" && precision === undefined) {
-    reportDiagnostic(program, { code: "invalid-decimal", messageId: "missing", target });
+    diagnostics.push(createDiagnostic({ code: "invalid-decimal", messageId: "missing", target }));
     return undefined;
   }
 
   const fixed = underlying === "fixed" ? (schema as AvroFixed) : undefined;
   if (annotation.name === "duration" && fixed?.size !== DURATION_SIZE) {
-    reportDiagnostic(program, { code: "logical-type-mismatch", messageId: "duration", target });
+    diagnostics.push(
+      createDiagnostic({ code: "logical-type-mismatch", messageId: "duration", target }),
+    );
     return undefined;
   }
 
@@ -134,12 +140,14 @@ export function applyLogicalType(
   if (fixed !== undefined && precision !== undefined) {
     const max = maxPrecisionOf(fixed.size);
     if (precision > max) {
-      reportDiagnostic(program, {
-        code: "invalid-decimal",
-        messageId: "width",
-        format: { precision: String(precision), size: String(fixed.size), max: String(max) },
-        target,
-      });
+      diagnostics.push(
+        createDiagnostic({
+          code: "invalid-decimal",
+          messageId: "width",
+          format: { precision: String(precision), size: String(fixed.size), max: String(max) },
+          target,
+        }),
+      );
       return undefined;
     }
   }

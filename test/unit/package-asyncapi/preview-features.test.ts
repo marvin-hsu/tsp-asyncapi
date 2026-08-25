@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { diagnosticsWith, findDiagnostic } from "../../utils/diagnostics.js";
+import { diagnosticsWith } from "../../utils/diagnostics.js";
 import { reportUnavailablePreviewFeatures } from "#emitter/preview-features.js";
+import { availableFeatures, shippedProviders } from "#emitter/schema-artifacts/provider.js";
 
 const SOURCE = `
   @service(#{ title: "Orders" })
@@ -22,12 +23,14 @@ const SOURCE = `
 /**
  * The `preview-features` option, and which of the reserved names work.
  *
- * `protobuf` has a provider and is honored. `avro` is reserved on the same
- * terms and has none, so it is refused: a request the emitter cannot answer
- * must never produce a document.
+ * Both reserved names have a provider in this release, so the shipped
+ * registry refuses neither. What the option still has to answer for is a name
+ * no registry holds: such a request cannot be answered, and it must never
+ * produce a document. Those cases call the refusal directly, against a
+ * registry they state, rather than against the one this release ships.
  *
- * The source below carries no Protobuf decorator. The cases here are about the
- * option itself, not about what a provider generates.
+ * The source below carries no Protobuf and no Avro decorator. The cases here
+ * are about the option itself, not about what a provider generates.
  */
 describe("Unit: preview-features", () => {
   /**
@@ -57,51 +60,84 @@ describe("Unit: preview-features", () => {
   });
 
   /**
-   * A reserved name with no provider stops the compile. Accepting it quietly
-   * would hand back a document that describes something other than what the
-   * project asked for.
+   * `avro` has a provider too. A source with no Avro decorator gives it
+   * nothing to answer for, and the document is the one the same source
+   * produces with the feature off.
    */
-  it("reports a reserved feature that has no provider yet", async () => {
-    const { diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
+  it("honors avro and leaves a source without its decorators alone", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["avro"],
     });
 
-    const reported = findDiagnostic(diagnostics, "preview-feature-unavailable");
-    expect(reported.severity).toBe("error");
+    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toEqual([]);
+    expect(doc).toStrictEqual(await emitDocument(SOURCE));
+  });
+
+  /**
+   * The registry decides which names are available, and the option decides
+   * which names a project may write. The two sets have to be the same one: a
+   * name the option accepts and the registry does not answer is refused after
+   * the project already wrote it.
+   */
+  it("answers every reserved name with a provider", () => {
+    expect([...availableFeatures(shippedProviders())].sort((a, b) => a.localeCompare(b))).toEqual([
+      "avro",
+      "protobuf",
+    ]);
+  });
+
+  /**
+   * A name no registry holds stops the compile. Accepting it quietly would
+   * hand back a document that describes something other than what the project
+   * asked for.
+   *
+   * The registry is stated here, because the shipped one answers every
+   * reserved name. What is under test is the refusal, not which names this
+   * release happens to ship.
+   */
+  it("reports a feature the registry does not answer", async () => {
+    const { program } = await emitDocumentWithDiagnostics(SOURCE);
+    const before = program.diagnostics.length;
+
+    const refused = reportUnavailablePreviewFeatures(
+      program,
+      { "preview-features": ["avro"] },
+      new Set(["protobuf"]),
+    );
+
+    expect(refused).toBe(true);
+    const reported = program.diagnostics.slice(before);
+    expect(reported).toHaveLength(1);
+    expect(reported[0]?.severity).toBe("error");
     // The message has to name the feature and where to remove it from.
-    expect(reported.message).toContain("avro");
-    expect(reported.message).toContain("preview-features");
+    expect(reported[0]?.message).toContain("avro");
+    expect(reported[0]?.message).toContain("preview-features");
   });
 
   /**
-   * The refusal has to reach the output, not only the diagnostic list. A
-   * document written next to an error describes something the project did
-   * not ask for, and nothing in the file says so. Writing nothing is what
-   * makes the error mean what it says.
-   */
-  it("writes no document when a feature is refused", async () => {
-    const { doc } = await emitDocumentWithDiagnostics(SOURCE, {
-      "preview-features": ["avro"],
-    });
-
-    expect(doc).toBeNull();
-  });
-
-  /**
-   * One available name and one refused name is still a request the document
-   * cannot answer. So the whole request is refused, and only the name with no
-   * provider behind it is reported.
+   * One available name and one unanswered name is still a request the
+   * document cannot answer. So the whole request is refused, and only the
+   * name with no provider behind it is reported.
+   *
+   * The emitter writes nothing on that answer. Two other cases prove the
+   * writing half, one per provider: a model a provider cannot answer for
+   * leaves the emitter with no document to write.
    */
   it("refuses the whole request when one of two features has no provider", async () => {
-    const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
-      "preview-features": ["protobuf", "avro"],
-    });
+    const { program } = await emitDocumentWithDiagnostics(SOURCE);
+    const before = program.diagnostics.length;
 
-    const reported = diagnosticsWith(diagnostics, "preview-feature-unavailable");
+    const refused = reportUnavailablePreviewFeatures(
+      program,
+      { "preview-features": ["protobuf", "avro"] },
+      new Set(["protobuf"]),
+    );
+
+    expect(refused).toBe(true);
+    const reported = program.diagnostics.slice(before);
     expect(reported.map((diagnostic) => diagnostic.message)).toEqual([
       expect.stringContaining("avro"),
     ]);
-    expect(doc).toBeNull();
   });
 
   /**
@@ -119,29 +155,6 @@ describe("Unit: preview-features", () => {
     // The message lists what is allowed, so the author does not have to
     // find the reserved names somewhere else.
     expect(violation?.message).toContain("protobuf, avro");
-  });
-
-  /**
-   * Two services and a refused feature are two separate answers. The emitter
-   * resolves the services before it refuses, so the project hears about both
-   * at once instead of one per compile.
-   */
-  it("reports the extra service as well as the refused feature", async () => {
-    const { doc, diagnostics } = await emitDocumentWithDiagnostics(
-      `
-        @service(#{ title: "Orders" })
-        namespace First {}
-
-        @service(#{ title: "Shipping" })
-        namespace Second {}
-      `,
-      { "preview-features": ["avro"] },
-      false,
-    );
-
-    expect(diagnosticsWith(diagnostics, "multiple-services")).toHaveLength(1);
-    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toHaveLength(1);
-    expect(doc).toBeNull();
   });
 
   /**

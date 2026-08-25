@@ -74,20 +74,28 @@ describe("Unit: the protobuf-content-type-undeclared rule", () => {
    * remedy that does not work yet.
    */
   it("stays quiet when the feature is off", async () => {
-    expect((await lint(PROBE, [])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(PROBE, []);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet when the model carries the official decorators", async () => {
-    expect((await lint(DECLARED, ["protobuf"])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(DECLARED, ["protobuf"]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /** An author who wrote the schema has already answered the question. */
   it("stays quiet when the author wrote the payload", async () => {
-    expect((await lint(AUTHORED, ["protobuf"])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(AUTHORED, ["protobuf"]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet for a content type that is not Protobuf", async () => {
-    expect((await lint(JSON_TYPE, ["protobuf"])).filter((d) => d.code === RULE)).toHaveLength(0);
+    const diagnostics = await lint(JSON_TYPE, ["protobuf"]);
+    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /**

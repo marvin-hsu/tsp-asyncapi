@@ -48,6 +48,7 @@ readonly indexer: CallableMessage<["name"]>;
 readonly fixedRecord: CallableMessage<["name"]>;
 readonly fixedFields: CallableMessage<["name"]>;
 readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
+readonly notRecord: CallableMessage<["name"]>;
 };
 "duplicate-union-branch": {
 readonly default: CallableMessage<["name"]>;

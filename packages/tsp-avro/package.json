@@ -12,6 +12,10 @@
       "types": "./dist/src/index.d.ts",
       "default": "./dist/src/index.js"
     },
+    "./unstable": {
+      "types": "./dist/src/unstable.d.ts",
+      "default": "./dist/src/unstable.js"
+    },
     "./testing": {
       "types": "./dist/src/testing.d.ts",
       "default": "./dist/src/testing.js"
@@ -22,6 +26,7 @@
     "lib",
     "README.md",
     "README.zh-TW.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "author": "Marvin Hsu <contact@marvinhsu.dev> (https://github.com/marvin-hsu)",
@@ -53,8 +58,8 @@
   "scripts": {
     "clean": "rimraf ./dist ./temp",
     "build": "tsc -b tsconfig.json",
-    "api-extractor:local": "api-extractor run --local",
-    "api-extractor:ci": "api-extractor run",
+    "api-extractor:local": "api-extractor run --local && api-extractor run --local -c api-extractor.unstable.json",
+    "api-extractor:ci": "api-extractor run && api-extractor run -c api-extractor.unstable.json",
     "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-avro-[0-9]*.tgz"
   },
   "devDependencies": {

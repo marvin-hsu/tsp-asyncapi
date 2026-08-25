@@ -6,5 +6,5 @@
     "tsBuildInfoFile": "temp/tsconfig.tsbuildinfo"
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../tsp-asyncapi-core" }]
+  "references": [{ "path": "../tsp-asyncapi-core" }, { "path": "../tsp-avro" }]
 }

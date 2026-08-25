@@ -172,7 +172,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Seventeen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the output an emitter wrote from it. Sixteen of them write an AsyncAPI document, and every protocol this library implements appears in at least one. The seventeenth writes Avro schema files.
+Eighteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the output an emitter wrote from it. Seventeen of them write an AsyncAPI document, and every protocol this library implements appears in at least one. The other one writes Avro schema files alone.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
 
@@ -181,6 +181,8 @@ The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) sa
 This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experimental library and emitter that writes Apache Avro schema files. It is pre-1.0, and its surface can change in any release.
 
 It is independent of the AsyncAPI emitter. It declares its own decorators, and it needs no AsyncAPI decorator. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says what it emits.
+
+The `avro` preview feature of this emitter calls the same library. A model that carries `` @Avro.`record` `` then gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says how to turn that on.
 
 ## Emitter options
 
@@ -241,7 +243,7 @@ A name collision between two declarations reports a diagnostic error. It does no
 
 ## Linter
 
-Five optional rules catch mistakes the emitter accepts. Each one produces a
+Seven optional rules catch mistakes the emitter accepts. Each one produces a
 valid document that says something you did not mean, and no diagnostic covers
 any of them. A rule runs during semantic analysis, so an editor shows it
 without running the emitter.
@@ -254,7 +256,8 @@ linter:
 ```
 
 `recommended` enables `missing-service`, `channel-without-operation`,
-`operation-without-message`, and `server-protocol-mismatch`.
+`operation-without-message`, `server-protocol-mismatch`,
+`protobuf-content-type-undeclared`, and `avro-content-type-undeclared`.
 `unused-security-scheme` is enabled by name. See the Linter reference on the
 docs site for what each rule catches and how to fix it.
 
@@ -276,7 +279,7 @@ is named.
 | Planned work                                 | What it means today                                                                                                                                                                                                               | Notes                                                                                                                                                                                                                                                                                                     |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | First-class support for `@typespec/protobuf` | A preview feature, off by default. Turn it on with `preview-features: ["protobuf"]`. A model that carries the official decorators then gets a proto3 payload. This emitter reads the decorator state and renders the text itself. | Preview means the option, the payload and the diagnostics can change in a minor release. An external reference, a template instance and a union are refused rather than translated. The [Protobuf payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/protobuf-payloads) says what it writes. |
-| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                                                            | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                                                                                                                                                                                |
+| First-class support for Avro                 | A preview feature, off by default. Turn it on with `preview-features: ["avro"]`. A model that carries the `tsp-avro` decorators then gets an Avro schema as its payload. This emitter calls the walk that library already has.    | Preview means the option, the payload and the diagnostics can change in a minor release. `tsp-avro` is pre-1.0, and it is an optional peer dependency. The [Avro payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says what it writes.                                      |
 
 ### Waiting for a use case
 

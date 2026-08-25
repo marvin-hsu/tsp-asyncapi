@@ -76,6 +76,7 @@ export const $lib = createTypeSpecLibrary({
         fixedRecord: paramMessage`The model "${"name"}" carries both @record and @fixed. A file holds one schema, and a fixed type is a width rather than a record, so there is nothing to write.`,
         fixedFields: paramMessage`The model "${"name"}" carries @fixed and declares fields. An Avro fixed type holds a number of bytes and nothing else, so the fields would be lost.`,
         duplicate: paramMessage`"${"name"}" and "${"other"}" both take the Avro name "${"fullName"}". An Avro schema names each type once, so the second would read as the first.`,
+        notRecord: paramMessage`The model "${"name"}" did not translate into an Avro record. @record asks for a record, and nothing else can be written in its place.`,
       },
     },
     "duplicate-union-branch": {
@@ -162,6 +163,18 @@ export const $lib = createTypeSpecLibrary({
  * @internal
  */
 export const reportDiagnostic = $lib.reportDiagnostic.bind($lib);
+
+/**
+ * Builds one diagnostic from this library without reporting it.
+ *
+ * The walk builds its diagnostics with this and hands the list to its caller.
+ * Reporting is then the caller's decision, which is what lets an emitter in
+ * another package read the reason and say it under its own name. Two emitters
+ * over one program would otherwise report every refusal twice.
+ *
+ * @internal
+ */
+export const createDiagnostic = $lib.createDiagnostic.bind($lib);
 
 /**
  * This package's name, as declared in `package.json`.

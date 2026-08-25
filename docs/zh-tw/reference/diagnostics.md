@@ -614,7 +614,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。目前只有 `avro` 還沒有實作，所以只有這個名稱會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。這兩個在本版都已經實作，所以目前沒有名稱會回報這條診斷。這個代碼保留下來，是為了回應下一個先被保留、實作還沒跟上的名稱。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
 
 不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
 
@@ -634,7 +634,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 - union，以及其他 proto3 沒有對應形式的屬性型別
 - 匿名 model
-- template 實例
+- template 執行個體
 - 帶 `@Protobuf.externRef` 的型別，包含 well known 型別
 - 沒有 `@Protobuf.field` 編號的屬性
 - `Protobuf.Map` 的陣列，proto3 沒有這種形式
@@ -662,6 +662,34 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。這個 emitter 讀 decorator state，所以改名過的 package 以它宣告的名稱比對。
 
 **修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`。另外兩種訊息則改寫訊息指名的型別，或從該 model 移除 `@Protobuf.message`。
+
+### `avro-artifact-unavailable`
+
+> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+
+某個 model 同時有 `@Avro.record` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
+
+原因是引述，不是原樣轉發。診斷會帶上建立它的那個套件的代碼。只 emit 這個套件的專案不該讀到另一個套件的代碼。同時 emit 兩者的專案，否則每一條拒絕都會讀到兩次，兩個 emitter 各一次。
+
+只引述第一條原因。Avro 的走訪遇到拒絕之後會繼續走，所以一個 model 可能累積多條。要讀到全部，把 `tsp-avro` 放進 `emit` 再編譯一次。
+
+不會寫出文件。那個 model 的 payload 會退回成它的 TypeSpec 型別產生的 schema。那份檔案用一般的 JSON Schema 回應了一個要求 Avro 的請求，而且檔案裡沒有任何一處說明這件事。
+
+只有 `@Avro.record` 而沒有 `@AsyncAPI.message` 的 model 不會回報任何東西。它沒有要求任何 payload，所以替其他型別寫 Avro record 的專案不會因此變紅。
+
+**修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.record`。
+
+### `avro-library-missing`
+
+> The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: \<reason\> That library holds the Avro walk, and this emitter carries no copy of it. Install 'tsp-avro' beside this emitter, or remove 'avro' from `preview-features` in `tspconfig.yaml`.
+
+[`preview-features`](./emitter-options#預覽功能) 選項指名了 `avro`，而載入 `tsp-avro` 失敗。訊息會引述載入時回報的內容。
+
+`tsp-avro` 是這個 emitter 的選用 peer dependency。只有功能開啟時才會載入它，所以沒開這個功能的專案完全不需要它。開啟這個功能的專案要自己安裝。
+
+不會寫出文件。專案要求的每一份 Avro payload 都不在，而少了它們的文件描述的是另一件事。
+
+**修法：** 安裝 `tsp-avro`，或是從 `tspconfig.yaml` 的 `preview-features` 移除 `avro`。
 
 ## 警告
 

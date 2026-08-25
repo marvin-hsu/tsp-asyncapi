@@ -36,6 +36,12 @@ Five, all optional: `output-file`, `file-type`, `asyncapi-id`,
 `default-content-type`, and `preview-features`. The [reference][options]
 describes each one.
 
+## Stability
+
+This package follows [semantic versioning](https://semver.org/). It is still
+`0.x`, so a minor release may carry a breaking change. The changelog says so at
+the top of any entry that does.
+
 ## Documentation
 
 Guide, decorator reference, binding reference, and every diagnostic code:

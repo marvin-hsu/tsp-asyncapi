@@ -1,0 +1,175 @@
+asyncapi: 3.1.0
+info:
+  title: Orders Service
+  version: 1.0.0
+  description: Order events, carried as Avro over Kafka.
+servers:
+  production:
+    host: kafka.example.com:9092
+    protocol: kafka
+    title: Kafka
+    description: The production cluster. Every payload is registered by subject.
+    bindings:
+      kafka:
+        schemaRegistryUrl: https://registry.example.com
+        schemaRegistryVendor: confluent
+        bindingVersion: 0.5.0
+channels:
+  orders.placed:
+    address: orders.placed
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    bindings:
+      kafka:
+        topic: orders.placed
+        partitions: 12
+        replicas: 3
+        bindingVersion: 0.5.0
+  orders.placed.retry:
+    address: orders.placed.retry
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+    bindings:
+      kafka:
+        topic: orders.placed.retry
+        partitions: 3
+        replicas: 3
+        bindingVersion: 0.5.0
+  orders.cancelled:
+    address: orders.cancelled
+    messages:
+      OrderCancelled:
+        $ref: "#/components/messages/OrderCancelled"
+    bindings:
+      kafka:
+        topic: orders.cancelled
+        partitions: 12
+        replicas: 3
+        bindingVersion: 0.5.0
+operations:
+  placed:
+    action: send
+    channel:
+      $ref: "#/channels/orders.placed"
+    messages:
+      - $ref: "#/channels/orders.placed/messages/OrderPlaced"
+  retried:
+    action: send
+    channel:
+      $ref: "#/channels/orders.placed.retry"
+    messages:
+      - $ref: "#/channels/orders.placed.retry/messages/OrderPlaced"
+  cancelled:
+    action: send
+    channel:
+      $ref: "#/channels/orders.cancelled"
+    messages:
+      - $ref: "#/channels/orders.cancelled/messages/OrderCancelled"
+components:
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      description: One order a customer placed.
+      contentType: application/vnd.apache.avro
+      payload:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderPlaced
+          namespace: com.example.orders
+          doc: One order a customer placed.
+          fields:
+            - name: id
+              type:
+                type: string
+                logicalType: uuid
+              doc: The identifier of the order.
+            - name: placedAt
+              type:
+                type: long
+                logicalType: timestamp-millis
+              doc: When the customer placed the order.
+            - name: shipping
+              type:
+                type: record
+                name: Address
+                namespace: com.example.orders
+                doc: Where an order goes.
+                fields:
+                  - name: line1
+                    type: string
+                    doc: The street and the number.
+                  - name: city
+                    type: string
+                  - name: country
+                    type: string
+                    doc: The ISO 3166-1 alpha-2 code of the country.
+              doc: Where the order goes.
+            - name: totalMinorUnits
+              type: long
+              doc: What the order came to, in the smallest unit of its currency.
+      bindings:
+        $ref: "#/components/messageBindings/OrderPlaced"
+    OrderCancelled:
+      name: OrderCancelled
+      description: One order the customer or the warehouse called off.
+      contentType: application/vnd.apache.avro
+      payload:
+        schemaFormat: application/vnd.apache.avro;version=1.9.0
+        schema:
+          type: record
+          name: OrderCancelled
+          namespace: com.example.orders
+          doc: One order the customer or the warehouse called off.
+          fields:
+            - name: id
+              type:
+                type: string
+                logicalType: uuid
+              doc: The identifier of the order.
+            - name: cancelledAt
+              type:
+                type: long
+                logicalType: timestamp-millis
+              doc: When the order was called off.
+            - name: reason
+              type:
+                type: enum
+                name: CancellationReason
+                namespace: com.example.orders
+                doc: Why an order was called off.
+                symbols:
+                  - Unknown
+                  - OutOfStock
+                  - CustomerAsked
+                  - PaymentFailed
+                default: Unknown
+              doc: Why it was called off.
+            - name: returnTo
+              type:
+                - "null"
+                - type: record
+                  name: Address
+                  namespace: com.example.orders
+                  doc: Where an order goes.
+                  fields:
+                    - name: line1
+                      type: string
+                      doc: The street and the number.
+                    - name: city
+                      type: string
+                    - name: country
+                      type: string
+                      doc: The ISO 3166-1 alpha-2 code of the country.
+              doc: Where the refunded goods go back to, when there are any.
+              default: null
+      bindings:
+        $ref: "#/components/messageBindings/OrderPlaced"
+  messageBindings:
+    OrderPlaced:
+      kafka:
+        schemaIdLocation: payload
+        schemaLookupStrategy: TopicIdStrategy
+        bindingVersion: 0.5.0

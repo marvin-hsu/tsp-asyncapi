@@ -40,7 +40,7 @@ options:
     preview-features: ["protobuf"]
 ```
 
-The reserved names of [`preview-features`](../reference/emitter-options#preview-features) are `protobuf` and `avro`. Only `protobuf` works in this release. A request for `avro` reports [`preview-feature-unavailable`](../reference/diagnostics#preview-feature-unavailable), and nothing is written.
+The reserved names of [`preview-features`](../reference/emitter-options#preview-features) are `protobuf` and `avro`. Both work in this release. The [Avro Payloads guide](./avro-payloads) covers the other one.
 
 ## Writing the source
 

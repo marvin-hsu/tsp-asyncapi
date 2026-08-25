@@ -173,6 +173,19 @@ export default tseslint.config(
   //
   // This grants the exception to the two files that hold that shape. Nothing
   // else in the package returns more than one type.
+  // `no-empty-test-file` looks for a test call written in the file. The walk
+  // conformance file registers its cases by calling one helper per walk, and
+  // the helper is what calls `describe` and `it`. The rule cannot see through
+  // that, so it reads a file of eight tests as empty.
+  //
+  // Inlining the cases would defeat the point: one file listing every walk
+  // that holds the shared contract is what makes a missing walk visible.
+  {
+    files: ["test/unit/walk-conformance.test.ts"],
+    rules: {
+      "sonarjs/no-empty-test-file": "off",
+    },
+  },
   {
     files: ["packages/tsp-avro/src/walk/model.ts", "packages/tsp-avro/src/render.ts"],
     rules: {

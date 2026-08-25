@@ -40,7 +40,7 @@ options:
     preview-features: ["protobuf"]
 ```
 
-[`preview-features`](../reference/emitter-options#預覽功能) 的保留名稱是 `protobuf` 與 `avro`。本版只有 `protobuf` 可以使用。請求 `avro` 會回報 [`preview-feature-unavailable`](../reference/diagnostics#preview-feature-unavailable)，而且不寫出任何檔案。
+[`preview-features`](../reference/emitter-options#預覽功能) 的保留名稱是 `protobuf` 與 `avro`。本版兩個都可以使用。另一個見 [Avro payload 指南](./avro-payloads)。
 
 ## 撰寫來源
 
