@@ -197,15 +197,7 @@ describe("Integration: the Avro diagnostics tables", () => {
  * places at once. The word "experimental" and the range `0.x` both survive a
  * release, so those are what the pages carry.
  */
-const VERSION_PAGES = [
-  ...DIAGNOSTIC_PAGES,
-  "README.md",
-  "README.zh-TW.md",
-  // The changeset that describes the Avro feature. The library itself carries
-  // no changeset while its first release is unpublished, so the page that
-  // speaks for it is the one the emitter's release brings.
-  ".changeset/avro-preview.md",
-] as const;
+const VERSION_PAGES = [...DIAGNOSTIC_PAGES, "README.md", "README.zh-TW.md"] as const;
 
 /**
  * Pages that must carry the notice but may name a version.
