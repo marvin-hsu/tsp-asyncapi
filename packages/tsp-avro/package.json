@@ -1,0 +1,71 @@
+{
+  "name": "tsp-avro",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Experimental. A TypeSpec library and emitter that writes Apache Avro schema files. The public surface may change in any release.",
+  "main": "dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "tspMain": "lib/main.tsp",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./testing": {
+      "types": "./dist/src/testing.d.ts",
+      "default": "./dist/src/testing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "lib",
+    "README.md",
+    "README.zh-TW.md",
+    "CHANGELOG.md",
+    "CHANGELOG.zh-TW.md",
+    "LICENSE"
+  ],
+  "author": "Marvin Hsu <contact@marvinhsu.dev> (https://github.com/marvin-hsu)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marvin-hsu/tsp-asyncapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marvin-hsu/tsp-asyncapi/issues"
+  },
+  "homepage": "https://marvin-hsu.github.io/tsp-asyncapi/",
+  "keywords": [
+    "typespec",
+    "avro",
+    "emitter",
+    "avsc",
+    "schema"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.15.0"
+  },
+  "scripts": {
+    "clean": "rimraf ./dist ./temp",
+    "build": "tsc -b tsconfig.json",
+    "api-extractor:local": "api-extractor run --local",
+    "api-extractor:ci": "api-extractor run",
+    "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-avro-[0-9]*.tgz"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@microsoft/api-extractor": "^7.58.12",
+    "@typespec/compiler": "^1.15.0",
+    "avsc": "^5.7.9",
+    "publint": "^0.3.23",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3"
+  }
+}

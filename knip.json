@@ -1,13 +1,17 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["docs/**"],
-  "ignoreDependencies": ["tsp-asyncapi", "tsp-asyncapi-core", "@typespec/protobuf"],
+  "ignoreDependencies": ["tsp-asyncapi", "tsp-asyncapi-core", "tsp-avro", "@typespec/protobuf"],
   "workspaces": {
     "packages/tsp-asyncapi-core": {
       "entry": ["src/tsp-index.ts!"]
     },
     "packages/tsp-asyncapi": {
       "ignoreDependencies": ["@typespec/protobuf"]
+    },
+    "packages/tsp-avro": {
+      "entry": ["src/tsp-index.ts!"],
+      "ignoreDependencies": ["avsc"]
     }
   }
 }

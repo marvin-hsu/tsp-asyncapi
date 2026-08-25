@@ -82,6 +82,7 @@
     "protobufjs": "^8.7.2",
     "tsp-asyncapi": "workspace:*",
     "tsp-asyncapi-core": "workspace:*",
+    "tsp-avro": "workspace:*",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
     "vitepress": "^1.6.4",
@@ -94,6 +95,7 @@
   "private": true,
   "imports": {
     "#core/*": "./packages/tsp-asyncapi-core/src/*",
-    "#emitter/*": "./packages/tsp-asyncapi/src/*"
+    "#emitter/*": "./packages/tsp-asyncapi/src/*",
+    "#avro/*": "./packages/tsp-avro/src/*"
   }
 }
