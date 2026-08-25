@@ -624,19 +624,23 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
 
-> The official Protobuf emitter refused to convert model '\<name\>' of package '\<package\>', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.
+> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
 
-> The official Protobuf emitter produced no file for package '\<package\>', so model '\<name\>' has no generated payload. Check that the package holds at least one convertible declaration.
+> Scalar '\<scalar\>' has no proto3 type, and no scalar it extends has one either. So model '\<name\>' of package '\<package\>' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.
 
-三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、這個 model 無法轉換、該 package 沒有產出 proto3 文字。
+三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、model 走到寫不成 proto3 的構造、欄位用了對映不到 proto3 型別的 scalar。
+
+第二種訊息會指出它停在哪個構造。這個 emitter 拒絕四種構造：union、匿名 model、template 實例，以及帶 `@Protobuf.externRef` 的 model。它寫的是單一 payload 的 proto3 文字，這四種在那裡都沒有誠實的 proto3 形式。
+
+第三種訊息會指出是哪個 scalar。這個 emitter 對映 Protobuf library 對映的那 16 個 scalar，並沿著自訂 scalar 的 extends 鏈往上找。整條鏈都碰不到那 16 個的 scalar，沒有型別可寫。
 
 只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
 
-`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
+`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。這個版本還沒有它的 provider，所以目前不會有任何地方回報這個代碼。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
 
-model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。改名過的 package 以它宣告的名稱比對，不以檔案名稱比對。
+model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。這個 emitter 讀 decorator state，所以改名過的 package 以它宣告的名稱比對。
 
-**修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`，或修正官方 Protobuf emitter 對它回報的錯誤。
+**修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`。另外兩種訊息則改寫訊息指名的型別，或從該 model 移除 `@Protobuf.message`。
 
 ## 警告
 

@@ -146,8 +146,8 @@ export const $lib = createTypeSpecLibrary({
         // take none.
         default: paramMessage`Model '${"name"}' has no generated Protobuf payload.`,
         "no-package": paramMessage`Model '${"name"}' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.`,
-        "not-converted": paramMessage`The official Protobuf emitter refused to convert model '${"name"}' of package '${"package"}', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.`,
-        "no-file": paramMessage`The official Protobuf emitter produced no file for package '${"package"}', so model '${"name"}' has no generated payload. Check that the package holds at least one convertible declaration.`,
+        "not-converted": paramMessage`Model '${"name"}' of package '${"package"}' reaches ${"construct"}, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.`,
+        "unknown-scalar": paramMessage`Scalar '${"scalar"}' has no proto3 type, and no scalar it extends has one either. So model '${"name"}' of package '${"package"}' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.`,
       },
     },
     "conflicting-generated-schema-source": {

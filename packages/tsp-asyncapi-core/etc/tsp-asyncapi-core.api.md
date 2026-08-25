@@ -70,8 +70,8 @@ readonly default: CallableMessage<["feature", "feature"]>;
 "protobuf-artifact-unavailable": {
 readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
-readonly "not-converted": CallableMessage<["name", "package"]>;
-readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "not-converted": CallableMessage<["name", "package", "construct"]>;
+readonly "unknown-scalar": CallableMessage<["scalar", "name", "package"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -567,8 +567,8 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     "protobuf-artifact-unavailable": {
         readonly default: CallableMessage<["name"]>;
         readonly "no-package": CallableMessage<["name"]>;
-        readonly "not-converted": CallableMessage<["name", "package"]>;
-        readonly "no-file": CallableMessage<["package", "name"]>;
+        readonly "not-converted": CallableMessage<["name", "package", "construct"]>;
+        readonly "unknown-scalar": CallableMessage<["scalar", "name", "package"]>;
     };
     "conflicting-generated-schema-source": {
         readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -899,8 +899,8 @@ readonly default: CallableMessage<["feature", "feature"]>;
 "protobuf-artifact-unavailable": {
 readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
-readonly "not-converted": CallableMessage<["name", "package"]>;
-readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "not-converted": CallableMessage<["name", "package", "construct"]>;
+readonly "unknown-scalar": CallableMessage<["scalar", "name", "package"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -1598,8 +1598,8 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     "protobuf-artifact-unavailable": {
         readonly default: CallableMessage<["name"]>;
         readonly "no-package": CallableMessage<["name"]>;
-        readonly "not-converted": CallableMessage<["name", "package"]>;
-        readonly "no-file": CallableMessage<["package", "name"]>;
+        readonly "not-converted": CallableMessage<["name", "package", "construct"]>;
+        readonly "unknown-scalar": CallableMessage<["scalar", "name", "package"]>;
     };
     "conflicting-generated-schema-source": {
         readonly default: CallableMessage<["slot", "first", "second"]>;
@@ -1930,8 +1930,8 @@ readonly default: CallableMessage<["feature", "feature"]>;
 "protobuf-artifact-unavailable": {
 readonly default: CallableMessage<["name"]>;
 readonly "no-package": CallableMessage<["name"]>;
-readonly "not-converted": CallableMessage<["name", "package"]>;
-readonly "no-file": CallableMessage<["package", "name"]>;
+readonly "not-converted": CallableMessage<["name", "package", "construct"]>;
+readonly "unknown-scalar": CallableMessage<["scalar", "name", "package"]>;
 };
 "conflicting-generated-schema-source": {
 readonly default: CallableMessage<["slot", "first", "second"]>;

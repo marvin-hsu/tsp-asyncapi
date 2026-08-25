@@ -624,19 +624,23 @@ No file is written. A document emitted next to this error would ignore the reque
 
 > Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
 
-> The official Protobuf emitter refused to convert model '\<name\>' of package '\<package\>', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.
+> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
 
-> The official Protobuf emitter produced no file for package '\<package\>', so model '\<name\>' has no generated payload. Check that the package holds at least one convertible declaration.
+> Scalar '\<scalar\>' has no proto3 type, and no scalar it extends has one either. So model '\<name\>' of package '\<package\>' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.
 
-Three problems report this code, and the message names which one it is. The model has no package above it. The model could not be converted. No proto3 text was produced for the package of the model.
+Three problems report this code, and the message names which one it is. The model has no package above it. The model reaches a construct this emitter cannot write as proto3. A field uses a scalar that maps to no proto3 type.
+
+The second message names the construct it stopped at. A union, an anonymous model, a template instance, and a model that carries `@Protobuf.externRef` are the constructs this emitter refuses. It writes the proto3 text of one payload, and none of the four has an honest proto3 form there.
+
+The third message names the scalar. This emitter maps the 16 scalars the Protobuf library maps, and it follows the chain a custom scalar extends. A scalar whose chain reaches none of the 16 has no type to write.
 
 A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
 
-The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
+The `protobuf` preview feature reports this while it collects generated payloads. That feature has no provider in this release, so nothing reports this code yet. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
 
-The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. A renamed package is matched by the name it declares, not by a file name.
+The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. This emitter reads the decorator state, so a renamed package is matched by the name it declares.
 
-**Fix:** add `@Protobuf.package` to the namespace of the model, or fix the errors the official Protobuf emitter reported about it.
+**Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
 
 ## Warnings
 

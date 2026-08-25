@@ -23,11 +23,13 @@ const PACKAGE_STATE = Symbol.for("@typespec/protobuf.package");
  * The source every case compiles. `Details` stands in for the argument of
  * `@Protobuf.package`, which is a model type whose `name` property is a
  * string literal. `Unnamed` is that argument with no name in it.
+ * `NameNotLiteral` stands in for a shape this reader does not know.
  */
 const SOURCE = `
   namespace Outer {
     model Details { name: "com.example.outer"; }
     model Unnamed {}
+    model NameNotLiteral { name: string; }
     model Root {}
 
     namespace Inner {
@@ -38,7 +40,7 @@ const SOURCE = `
 
   namespace Elsewhere {
     model Box<T> { value: T; }
-    @friendlyName("Renamed") model original {}
+    @friendlyName("renamed") model original {}
     model lower {}
     model Holder {
       plain: Box<string>;
@@ -93,6 +95,7 @@ describe("Unit: Protobuf decorator state (Phase 16 W0)", () => {
     program.stateMap(PACKAGE_STATE).set(outer, modelIn(outer, "Details"));
 
     expect(resolveProtobufPackage(program, modelIn(outer, "Root"))).toEqual({
+      kind: "declared",
       namespace: outer,
       name: "com.example.outer",
     });
@@ -106,6 +109,7 @@ describe("Unit: Protobuf decorator state (Phase 16 W0)", () => {
     program.stateMap(PACKAGE_STATE).set(nested, modelIn(nested, "Details"));
 
     expect(resolveProtobufPackage(program, modelIn(nested, "Leaf"))).toEqual({
+      kind: "declared",
       namespace: nested,
       name: "com.example.inner",
     });
@@ -132,6 +136,7 @@ describe("Unit: Protobuf decorator state (Phase 16 W0)", () => {
     program.stateMap(PACKAGE_STATE).set(outer, modelIn(outer, "Unnamed"));
 
     expect(resolveProtobufPackage(program, modelIn(outer, "Root"))).toEqual({
+      kind: "declared",
       namespace: outer,
       name: undefined,
     });
@@ -142,19 +147,39 @@ describe("Unit: Protobuf decorator state (Phase 16 W0)", () => {
     const outer = namespaceOf(program, "Outer");
     program.stateMap(PACKAGE_STATE).set(outer, undefined);
 
-    expect(resolveProtobufPackage(program, modelIn(outer, "Root"))?.name).toBeUndefined();
+    expect(resolveProtobufPackage(program, modelIn(outer, "Root"))).toEqual({
+      kind: "declared",
+      namespace: outer,
+      name: undefined,
+    });
   });
 
   /**
-   * A name that is not a string literal is not guessed at. The reader gives
-   * back no name, and the caller decides what a nameless package means.
+   * A name that is not a string literal is a shape this reader does not know.
+   * A package with no name at all prints no `package` line, so answering with
+   * no name would turn a drift in the other library into wrong proto3 text.
+   * The reader says the details are unreadable instead, and the caller refuses.
    */
-  it("reads no name from details of an unexpected shape", async () => {
+  it("refuses a name that is not a string literal", async () => {
     const program = await compiled();
     const outer = namespaceOf(program, "Outer");
-    program.stateMap(PACKAGE_STATE).set(outer, modelIn(outer, "Root"));
+    program.stateMap(PACKAGE_STATE).set(outer, modelIn(outer, "NameNotLiteral"));
 
-    expect(resolveProtobufPackage(program, modelIn(outer, "Root"))?.name).toBeUndefined();
+    expect(resolveProtobufPackage(program, modelIn(outer, "Root"))).toEqual({
+      kind: "unreadable",
+      namespace: outer,
+    });
+  });
+
+  it("refuses details that are not a model", async () => {
+    const program = await compiled();
+    const outer = namespaceOf(program, "Outer");
+    program.stateMap(PACKAGE_STATE).set(outer, outer);
+
+    expect(resolveProtobufPackage(program, modelIn(outer, "Root"))).toEqual({
+      kind: "unreadable",
+      namespace: outer,
+    });
   });
 
   it("capitalizes the name of a plain model", async () => {
@@ -164,7 +189,7 @@ describe("Unit: Protobuf decorator state (Phase 16 W0)", () => {
     expect(protoMessageNameOf(program, modelIn(elsewhere, "lower"))).toBe("Lower");
   });
 
-  it("prefers the friendly name of a model", async () => {
+  it("capitalizes the friendly name of a model", async () => {
     const program = await compiled();
     const elsewhere = namespaceOf(program, "Elsewhere");
 
