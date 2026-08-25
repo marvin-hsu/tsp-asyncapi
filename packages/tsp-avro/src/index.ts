@@ -15,15 +15,28 @@ export { $lib, PACKAGE_NAME } from "./lib.js";
 export type { AvroEmitterOptions } from "./lib.js";
 
 export {
+  $aliases,
+  $decimal,
+  $enumDefault,
+  $fixed,
+  $logicalType,
   $namespace,
+  $order,
   $record,
+  getAvroAliases,
+  getAvroEnumDefault,
+  getAvroFixedSize,
+  getAvroLogicalType,
   getAvroNamespace,
+  getAvroOrder,
   isRecord,
   listRecords,
   resolveAvroNamespace,
 } from "./decorators/index.js";
 
-export { isAvroUnion } from "./types.js";
+export type { AvroLogicalTypeAnnotation } from "./decorators/index.js";
+
+export { isAvroLogical, isAvroUnion } from "./types.js";
 
 export type {
   AvroArray,
@@ -31,6 +44,9 @@ export type {
   AvroDefault,
   AvroEnum,
   AvroField,
+  AvroFieldOrder,
+  AvroFixed,
+  AvroLogical,
   AvroMap,
   AvroPrimitiveName,
   AvroRecord,

@@ -37,6 +37,13 @@ export type AvroDefault =
   | { readonly [key: string]: AvroDefault };
 
 /**
+ * How a reader sorts records by one field.
+ *
+ * @public
+ */
+export type AvroFieldOrder = "ascending" | "descending" | "ignore";
+
+/**
  * One field of an Avro record.
  *
  * @public
@@ -55,6 +62,10 @@ export interface AvroField {
    * none. So the two are apart: `null` is written, `undefined` disappears.
    */
   readonly default?: AvroDefault;
+  /** The names a reader also knows the field by. */
+  readonly aliases?: readonly string[];
+  /** How a reader sorts records by this field. */
+  readonly order?: AvroFieldOrder;
 }
 
 /**
@@ -71,6 +82,8 @@ export interface AvroRecord {
   readonly namespace?: string;
   /** The documentation of the record. */
   readonly doc?: string;
+  /** The full names a reader also knows the record by. */
+  readonly aliases?: readonly string[];
   /** The fields, in declaration order. */
   readonly fields: readonly AvroField[];
 }
@@ -89,8 +102,63 @@ export interface AvroEnum {
   readonly namespace?: string;
   /** The documentation of the enum. */
   readonly doc?: string;
+  /** The full names a reader also knows the enum by. */
+  readonly aliases?: readonly string[];
   /** The symbols, in declaration order. */
   readonly symbols: readonly string[];
+  /** The symbol a reader falls back to when it meets one it does not hold. */
+  readonly default?: string;
+}
+
+/**
+ * An Avro fixed type: a named type of a stated number of bytes.
+ *
+ * @public
+ */
+export interface AvroFixed {
+  /** The Avro type keyword. */
+  readonly type: "fixed";
+  /** The unqualified name of the type. */
+  readonly name: string;
+  /** The namespace that qualifies the name. */
+  readonly namespace?: string;
+  /** The full names a reader also knows the type by. */
+  readonly aliases?: readonly string[];
+  /** How many bytes the type holds. */
+  readonly size: number;
+  /** The meaning a reader takes from those bytes. */
+  readonly logicalType?: string;
+  /** How many digits a decimal holds. */
+  readonly precision?: number;
+  /** How many of those digits sit after the point. */
+  readonly scale?: number;
+}
+
+/**
+ * A primitive, with the meaning Avro reads into it.
+ *
+ * A logical type is an attribute of a type rather than a type of its own. Avro
+ * writes `{"type": "long", "logicalType": "timestamp-millis"}`, and a reader
+ * that does not know the annotation reads the `long`. So the annotation never
+ * changes what is on the wire.
+ *
+ * A fixed type carries the same attribute, and {@link AvroFixed} holds it
+ * there for the same reason: the specification writes the annotation on the
+ * type, not around it.
+ *
+ * Precision and scale belong to `decimal` alone.
+ *
+ * @public
+ */
+export interface AvroLogical {
+  /** The type that is on the wire. */
+  readonly type: AvroPrimitiveName;
+  /** The meaning a reader takes from it. */
+  readonly logicalType: string;
+  /** How many digits a decimal holds. */
+  readonly precision?: number;
+  /** How many of those digits sit after the point. */
+  readonly scale?: number;
 }
 
 /**
@@ -125,7 +193,8 @@ export interface AvroMap {
  *
  * @public
  */
-export type AvroBranch = string | AvroRecord | AvroEnum | AvroArray | AvroMap;
+export type AvroBranch =
+  string | AvroRecord | AvroEnum | AvroFixed | AvroArray | AvroMap | AvroLogical;
 
 /**
  * An Avro union.
@@ -159,4 +228,31 @@ export type AvroSchema = AvroBranch | AvroUnion;
  */
 export function isAvroUnion(schema: AvroSchema): schema is AvroUnion {
   return Array.isArray(schema);
+}
+
+/**
+ * The keywords Avro names its complex types with.
+ *
+ * No primitive is spelled any of these, which is what makes the `type` member
+ * of a schema object say which member of {@link AvroBranch} it is.
+ */
+const AVRO_KEYWORDS: ReadonlySet<string> = new Set(["record", "enum", "fixed", "array", "map"]);
+
+/**
+ * Tells an annotated primitive from every other schema.
+ *
+ * An annotated primitive is spelled as an object, like a record or an array,
+ * and its `type` holds a primitive name rather than a keyword. That is the
+ * whole difference, and it is enough: the two sets of names do not meet.
+ *
+ * A fixed type carries an annotation too, and it is not this: it is a named
+ * type first, and the annotation is one more member of it.
+ *
+ * @param schema - Any schema that is not a union
+ * @returns True when the schema is a primitive with a logical type on it
+ *
+ * @public
+ */
+export function isAvroLogical(schema: AvroBranch): schema is AvroLogical {
+  return typeof schema !== "string" && !AVRO_KEYWORDS.has(schema.type);
 }

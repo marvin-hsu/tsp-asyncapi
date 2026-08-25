@@ -7,7 +7,16 @@
  * that uses a decorator from it.
  */
 
-import { $namespace, $record } from "./decorators/index.js";
+import {
+  $aliases,
+  $decimal,
+  $enumDefault,
+  $fixed,
+  $logicalType,
+  $namespace,
+  $order,
+  $record,
+} from "./decorators/index.js";
 
 export { $lib } from "./lib.js";
 
@@ -26,5 +35,11 @@ export const $decorators = {
   Avro: {
     namespace: $namespace,
     record: $record,
+    aliases: $aliases,
+    order: $order,
+    fixed: $fixed,
+    logicalType: $logicalType,
+    decimal: $decimal,
+    enumDefault: $enumDefault,
   },
 };

@@ -1,4 +1,4 @@
-import { DecoratorContext, Model, Enum, Namespace, Program } from "@typespec/compiler";
+import { DecoratorContext, Model, Enum, Namespace, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
 import { isAvroNamespace } from "./names.js";
@@ -68,12 +68,16 @@ export function getAvroNamespace(program: Program, target: Namespace): string | 
  * the caller refuses it.
  *
  * @param program - The program to read the state from
- * @param target - The model or enum to place
+ * @param target - The declaration to place. A scalar is one, because `@fixed`
+ *   turns a scalar into a named Avro type.
  * @returns The covering name, or undefined when no ancestor declares one
  *
  * @public
  */
-export function resolveAvroNamespace(program: Program, target: Model | Enum): string | undefined {
+export function resolveAvroNamespace(
+  program: Program,
+  target: Model | Enum | Scalar,
+): string | undefined {
   let scope = target.namespace;
   while (scope) {
     const name = getNamespaceInternal(program, scope);

@@ -260,4 +260,209 @@ describe("what the Avro walk refuses", () => {
 
     expect(Object.keys(result.files)).toEqual([]);
   });
+  it("refuses a fixed type of no width", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.fixed(0) scalar Empty extends bytes;
+        @Avro.\`record\` model Event { value: Empty; }
+      }
+      `,
+      `invalid-fixed: "0" is not a width an Avro fixed type can have. A fixed type holds a positive number of bytes.`,
+    );
+  });
+
+  it("refuses a fixed model that declares fields", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.fixed(4) model Word { byte: int32; }
+        @Avro.\`record\` model Event { word: Word; }
+      }
+      `,
+      `unsupported-type: The model "Word" carries @fixed and declares fields. An Avro fixed type holds a number of bytes and nothing else, so the fields would be lost.`,
+    );
+  });
+
+  it("refuses a model that is both a record and a fixed type", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.fixed(4) @Avro.\`record\` model Word {}
+      }
+      `,
+      `unsupported-type: The model "Word" carries both @record and @fixed. A file holds one schema, and a fixed type is a width rather than a record, so there is nothing to write.`,
+    );
+  });
+
+  it("refuses a logical type the Avro specification does not define", async () => {
+    // `avsc` accepts this one without a word, and it drops the annotation when
+    // it writes the schema back out. So this refusal is the only thing between
+    // an author and a schema no reader understands.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.logicalType("totally-made-up") scalar Odd extends int32;
+        @Avro.\`record\` model Event { value: Odd; }
+      }
+      `,
+      `unknown-logical-type: "totally-made-up" is not a logical type the Avro specification defines. The specification defines decimal, uuid, date, time-millis, time-micros, timestamp-millis, timestamp-micros, local-timestamp-millis, local-timestamp-micros, duration.`,
+    );
+  });
+
+  it("refuses a logical type written on an underlying type it does not go with", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.logicalType("uuid") scalar Id extends int32;
+        @Avro.\`record\` model Event { id: Id; }
+      }
+      `,
+      `logical-type-mismatch: The logical type "uuid" is written on int. The Avro specification writes it on string.`,
+    );
+  });
+
+  it("refuses a logical type written on a union", async () => {
+    // Avro annotates a type, and a union is not one.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.\`record\` model Event {
+          @Avro.logicalType("uuid") id: string | int32;
+        }
+      }
+      `,
+      `logical-type-mismatch: The logical type "uuid" is written on a union. The Avro specification writes it on string.`,
+    );
+  });
+
+  it("refuses a logical type written on a record", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        model Address { street: string; }
+        @Avro.\`record\` model Event {
+          @Avro.logicalType("uuid") at: Address;
+        }
+      }
+      `,
+      `logical-type-mismatch: The logical type "uuid" is written on record. The Avro specification writes it on string.`,
+    );
+  });
+
+  it("refuses a decimal with no precision", async () => {
+    // A reader cannot place the point without one, so the annotation alone
+    // describes nothing.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.logicalType("decimal") scalar Money extends bytes;
+        @Avro.\`record\` model Event { paid: Money; }
+      }
+      `,
+      `invalid-decimal: An Avro decimal is written with a precision and a scale. A reader cannot place the point without them, so use @decimal rather than @logicalType("decimal").`,
+    );
+  });
+
+  it("refuses a decimal precision that is not positive", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.decimal(0, 2) scalar Money extends bytes;
+        @Avro.\`record\` model Event { paid: Money; }
+      }
+      `,
+      `invalid-decimal: "0" is not a precision an Avro decimal can have. A decimal holds a positive number of digits.`,
+    );
+  });
+
+  it("refuses a decimal scale wider than its precision", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.decimal(2, 5) scalar Money extends bytes;
+        @Avro.\`record\` model Event { paid: Money; }
+      }
+      `,
+      `invalid-decimal: A scale of "5" does not fit a precision of "2". The scale counts the digits after the point, so it is neither negative nor larger than the precision.`,
+    );
+  });
+
+  it("refuses a duration on a fixed type of the wrong width", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.logicalType("duration") @Avro.fixed(8) scalar Span extends bytes;
+        @Avro.\`record\` model Event { span: Span; }
+      }
+      `,
+      `logical-type-mismatch: The logical type "duration" is written on a fixed type of twelve bytes, which hold the months, the days and the milliseconds.`,
+    );
+  });
+
+  it("refuses a field order Avro does not name", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.\`record\` model Event {
+          @Avro.order("sideways") id: string;
+        }
+      }
+      `,
+      `invalid-order: "sideways" is not an Avro field order. Avro orders a field by "ascending", by "descending", or not at all with "ignore".`,
+    );
+  });
+
+  it("refuses an alias of a named type that is not a full name", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old-events.Event")
+        @Avro.\`record\` model Event { id: string; }
+      }
+      `,
+      `invalid-name: "com.example.old-events.Event" is not a legal Avro alias. An alias of a named type is a full name: one or more legal Avro names, joined by dots.`,
+    );
+  });
+
+  it("refuses an alias of a field that is not a name", async () => {
+    // A field carries no namespace, so its alias is one plain name.
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.\`record\` model Event {
+          @Avro.aliases("order.id") id: string;
+        }
+      }
+      `,
+      `invalid-name: "order.id" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
+    );
+  });
+
+  it("refuses a fallback symbol the enum does not declare", async () => {
+    await expectRefusal(
+      `
+      @Avro.\`namespace\`("com.example.a")
+      namespace A {
+        @Avro.enumDefault("NOPE") enum Channel { WEB, MOBILE }
+        @Avro.\`record\` model Event { channel: Channel; }
+      }
+      `,
+      `enum-default: The enum "Channel" declares no member named "NOPE". An Avro enum falls back to one of its own symbols.`,
+    );
+  });
 });

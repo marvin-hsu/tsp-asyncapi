@@ -6,6 +6,18 @@
  * changes the API report.
  */
 
+export { $aliases, getAvroAliases } from "./aliases.js";
+
+export { $decimal, $logicalType, getAvroLogicalType } from "./logical-type.js";
+
+export type { AvroLogicalTypeAnnotation } from "./logical-type.js";
+
+export { $enumDefault, getAvroEnumDefault } from "./enum-default.js";
+
+export { $fixed, getAvroFixedSize } from "./fixed.js";
+
 export { $namespace, getAvroNamespace, resolveAvroNamespace } from "./namespace.js";
+
+export { $order, getAvroOrder } from "./order.js";
 
 export { $record, isRecord, listRecords } from "./record.js";

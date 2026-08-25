@@ -34,6 +34,8 @@ function renderField(field: AvroField): JsonObject {
     type: renderSchema(field.type),
     doc: field.doc,
     default: field.default,
+    order: field.order,
+    aliases: field.aliases === undefined ? undefined : [...field.aliases],
   };
 }
 
@@ -55,6 +57,7 @@ function renderSchema(schema: AvroSchema): JsonValue {
         name: schema.name,
         namespace: schema.namespace,
         doc: schema.doc,
+        aliases: schema.aliases === undefined ? undefined : [...schema.aliases],
         fields: schema.fields.map(renderField),
       };
     case "enum":
@@ -63,12 +66,34 @@ function renderSchema(schema: AvroSchema): JsonValue {
         name: schema.name,
         namespace: schema.namespace,
         doc: schema.doc,
+        aliases: schema.aliases === undefined ? undefined : [...schema.aliases],
         symbols: [...schema.symbols],
+        default: schema.default,
+      };
+    case "fixed":
+      return {
+        type: "fixed",
+        name: schema.name,
+        namespace: schema.namespace,
+        aliases: schema.aliases === undefined ? undefined : [...schema.aliases],
+        size: schema.size,
+        logicalType: schema.logicalType,
+        precision: schema.precision,
+        scale: schema.scale,
       };
     case "array":
       return { type: "array", items: renderSchema(schema.items) };
     case "map":
       return { type: "map", values: renderSchema(schema.values) };
+    default:
+      // A primitive with a logical type on it. Its `type` holds the primitive
+      // name rather than a keyword, which is what the cases above match on.
+      return {
+        type: schema.type,
+        logicalType: schema.logicalType,
+        precision: schema.precision,
+        scale: schema.scale,
+      };
   }
 }
 

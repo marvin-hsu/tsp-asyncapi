@@ -35,22 +35,31 @@ import {
   type Model,
   type ModelProperty,
   type Program,
+  type Scalar,
   type Type,
   type Union,
   type Value,
 } from "@typespec/compiler";
+import { getAvroAliases } from "../decorators/aliases.js";
+import { getAvroEnumDefault } from "../decorators/enum-default.js";
+import { getAvroFixedSize } from "../decorators/fixed.js";
+import { getAvroLogicalType, type AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
 import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
+import { getAvroOrder } from "../decorators/order.js";
 import { reportDiagnostic } from "../lib.js";
 import {
+  isAvroLogical,
   isAvroUnion,
   type AvroBranch,
   type AvroDefault,
   type AvroField,
+  type AvroFixed,
   type AvroRecord,
   type AvroSchema,
   type AvroUnion,
 } from "../types.js";
+import { applyLogicalType } from "./logical-types.js";
 import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
 
 /**
@@ -66,10 +75,12 @@ import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalar
  * refusal so the author sees every problem in one compile, and the caller
  * drops the record at the end.
  */
+type AvroDeclaration = Model | Enum | Scalar;
+
 interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
-  readonly defined: Map<string, Model | Enum>;
+  readonly defined: Map<string, AvroDeclaration>;
   refused: boolean;
 }
 
@@ -83,6 +94,19 @@ interface WalkContext {
  * @internal
  */
 export function buildAvroRecord(program: Program, model: Model): AvroRecord | undefined {
+  if (getAvroFixedSize(program, model) !== undefined) {
+    // A file holds one schema, and `@record` says which models get one. A
+    // fixed type is a width rather than a record, so the two marks ask for
+    // two different things and neither one is safe to guess.
+    reportDiagnostic(program, {
+      code: "unsupported-type",
+      messageId: "fixedRecord",
+      format: { name: model.name },
+      target: model,
+    });
+    return undefined;
+  }
+
   const context: WalkContext = {
     program,
     scalars: createScalarTable(program),
@@ -92,7 +116,16 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
 
   const schema = namedModelFor(context, model, model);
 
-  if (context.refused || typeof schema === "string") {
+  if (
+    context.refused ||
+    schema === undefined ||
+    typeof schema === "string" ||
+    schema.type !== "record"
+  ) {
+    // `@fixed` is refused above, so nothing here builds anything but a record.
+    // The check stands because the walk answers with the wider type, and a
+    // guess about which member came back is the kind of thing that stops being
+    // true later.
     return undefined;
   }
   return schema;
@@ -117,20 +150,8 @@ function typeFor(
   target: DiagnosticTarget,
 ): AvroSchema | undefined {
   switch (type.kind) {
-    case "Scalar": {
-      const primitive = avroScalarFor(context.scalars, type);
-      if (primitive === undefined) {
-        reportDiagnostic(context.program, {
-          code: "unsupported-type",
-          messageId: "scalar",
-          format: { name: type.name },
-          target,
-        });
-        markRefused(context);
-        return undefined;
-      }
-      return primitive;
-    }
+    case "Scalar":
+      return scalarFor(context, type, target);
     case "Model":
       return modelFor(context, type, target);
     case "Enum":
@@ -158,6 +179,109 @@ function typeFor(
       markRefused(context);
       return undefined;
   }
+}
+
+/**
+ * Translates a scalar.
+ *
+ * A scalar is an Avro primitive, unless `@fixed` makes it a named type of a
+ * stated width. Either way `@logicalType` or `@decimal` may then say what a
+ * reader takes it to mean.
+ */
+function scalarFor(
+  context: WalkContext,
+  scalar: Scalar,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  const size = getAvroFixedSize(context.program, scalar);
+  let base: AvroSchema | undefined;
+  if (size === undefined) {
+    base = avroScalarFor(context.scalars, scalar);
+    if (base === undefined) {
+      reportDiagnostic(context.program, {
+        code: "unsupported-type",
+        messageId: "scalar",
+        format: { name: scalar.name },
+        target,
+      });
+      markRefused(context);
+      return undefined;
+    }
+  } else {
+    base = fixedFor(context, scalar, size, target);
+    if (base === undefined) {
+      return undefined;
+    }
+    if (typeof base === "string") {
+      // The fixed type is already in this file, and its annotation went in
+      // with it. A reference is a name, so there is nothing to annotate here.
+      return base;
+    }
+  }
+
+  return withLogicalType(context, base, getAvroLogicalType(context.program, scalar), target);
+}
+
+/**
+ * Builds a fixed type, or a reference to one already in this file.
+ *
+ * A fixed type is a named Avro type, so it takes part in the first occurrence
+ * rule that every other named type does.
+ */
+function fixedFor(
+  context: WalkContext,
+  declaration: Model | Scalar,
+  size: number,
+  target: DiagnosticTarget,
+): AvroFixed | string | undefined {
+  const fullName = fullNameOf(context, declaration, declaration.name, target);
+  if (fullName === undefined) {
+    return undefined;
+  }
+  const taken = defineName(context, fullName, declaration, target);
+  if (taken === false) {
+    return undefined;
+  }
+  if (taken === "again") {
+    return fullName;
+  }
+
+  return {
+    type: "fixed",
+    name: declaration.name,
+    namespace: namespaceOf(fullName),
+    // A scalar never carries an alias, because `@aliases` targets a model, a
+    // field and an enum. Reading one here answers undefined and says so in one
+    // place rather than two.
+    aliases: getAvroAliases(context.program, declaration),
+    size,
+  };
+}
+
+/**
+ * Writes a logical type onto a schema, when the author declared one.
+ *
+ * A pair the Avro specification does not name is refused, and the record is
+ * dropped with it. Nothing is emitted unannotated instead: the annotation is
+ * what the author said the bytes mean, and dropping it writes a schema that
+ * means something else.
+ */
+function withLogicalType(
+  context: WalkContext,
+  schema: AvroSchema,
+  annotation: AvroLogicalTypeAnnotation | undefined,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  if (annotation === undefined) {
+    return schema;
+  }
+
+  const written = applyLogicalType(context.program, schema, annotation, target);
+  if (written === undefined) {
+    markRefused(context);
+    return undefined;
+  }
+  return written;
 }
 
 /**
@@ -197,7 +321,7 @@ function namedModelFor(
   context: WalkContext,
   model: Model,
   target: DiagnosticTarget,
-): AvroRecord | string | undefined {
+): AvroRecord | AvroFixed | string | undefined {
   if (model.name === "") {
     reportDiagnostic(context.program, { code: "unsupported-type", messageId: "anonymous", target });
     markRefused(context);
@@ -240,6 +364,21 @@ function namedModelFor(
     return undefined;
   }
 
+  const size = getAvroFixedSize(context.program, model);
+  if (size !== undefined) {
+    if (model.properties.size > 0) {
+      reportDiagnostic(context.program, {
+        code: "unsupported-type",
+        messageId: "fixedFields",
+        format: { name: model.name },
+        target: model,
+      });
+      markRefused(context);
+      return undefined;
+    }
+    return fixedFor(context, model, size, target);
+  }
+
   const fullName = fullNameOf(context, model, model.name, target);
   if (fullName === undefined) {
     return undefined;
@@ -265,6 +404,7 @@ function namedModelFor(
     name: model.name,
     namespace: namespaceOf(fullName),
     doc: getDoc(context.program, model),
+    aliases: getAvroAliases(context.program, model),
     fields,
   };
 }
@@ -338,9 +478,16 @@ function branchKey(schema: AvroBranch): string {
   if (typeof schema === "string") {
     return schema;
   }
+  // A logical type is an annotation, and a reader picks a branch by what is on
+  // the wire. So two branches that annotate one underlying type are one branch
+  // to Avro, whatever each of them means.
+  if (isAvroLogical(schema)) {
+    return branchKey(schema.type);
+  }
   switch (schema.type) {
     case "record":
     case "enum":
+    case "fixed":
       return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
     case "array":
     case "map":
@@ -379,12 +526,27 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
     return undefined;
   }
 
-  const declared = typeFor(context, property.type, property);
+  const walked = typeFor(context, property.type, property);
+  if (walked === undefined) {
+    return undefined;
+  }
+
+  // A logical type on the field annotates what the field holds. It is written
+  // before the union with null is built, so an optional timestamp comes out as
+  // a null branch beside an annotated long rather than an annotated union.
+  const declared = withLogicalType(
+    context,
+    walked,
+    getAvroLogicalType(context.program, property),
+    property,
+  );
   if (declared === undefined) {
     return undefined;
   }
 
   const doc = getDoc(context.program, property);
+  const aliases = getAvroAliases(context.program, property);
+  const order = getAvroOrder(context.program, property);
 
   const branches: AvroBranch[] = isAvroUnion(declared) ? [...declared] : [declared];
   if (property.optional && !branches.includes("null")) {
@@ -396,7 +558,7 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
   // and Avro asks for one only where a reader has to fill the field in.
   const written = property.defaultValue;
   if (written === undefined && !property.optional) {
-    return { name: property.name, type: schemaOf(branches), doc };
+    return { name: property.name, type: schemaOf(branches), doc, aliases, order };
   }
 
   const value = written === undefined ? { value: null } : defaultOf(context, property, written);
@@ -409,7 +571,14 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
     return undefined;
   }
 
-  return { name: property.name, type: schemaOf(ordered), doc, default: value.value };
+  return {
+    name: property.name,
+    type: schemaOf(ordered),
+    doc,
+    default: value.value,
+    aliases,
+    order,
+  };
 }
 
 /**
@@ -547,7 +716,7 @@ function defaultBranchKey(context: WalkContext, written: Value): string | undefi
 /**
  * Finds the full name a declaration took in the file being built.
  */
-function definedNameOf(context: WalkContext, declaration: Model | Enum): string | undefined {
+function definedNameOf(context: WalkContext, declaration: AvroDeclaration): string | undefined {
   for (const [fullName, owner] of context.defined) {
     if (owner === declaration) {
       return fullName;
@@ -616,7 +785,9 @@ function enumFor(
     name: target.name,
     namespace: namespaceOf(fullName),
     doc: getDoc(context.program, target),
+    aliases: getAvroAliases(context.program, target),
     symbols,
+    default: getAvroEnumDefault(context.program, target),
   };
 }
 
@@ -638,7 +809,7 @@ function enumFor(
 function defineName(
   context: WalkContext,
   fullName: string,
-  declaration: Model | Enum,
+  declaration: AvroDeclaration,
   target: DiagnosticTarget,
 ): "first" | "again" | false {
   const owner = context.defined.get(fullName);
@@ -670,7 +841,7 @@ function defineName(
  */
 function fullNameOf(
   context: WalkContext,
-  type: Model | Enum,
+  type: AvroDeclaration,
   name: string,
   target: DiagnosticTarget,
 ): string | undefined {
