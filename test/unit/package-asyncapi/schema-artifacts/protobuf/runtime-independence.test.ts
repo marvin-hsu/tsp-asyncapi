@@ -21,6 +21,19 @@ describe("Unit: Protobuf run time independence (Phase 16 W1)", () => {
     fileURLToPath(new URL(`../../../../../packages/${name}/src`, import.meta.url)),
   );
 
+  it("recognizes every form that would load the library", () => {
+    // A guard that saw one form would pass while another form shipped.
+    expect(loadsOfficialLibrary('import { x } from "@typespec/protobuf";')).toBe(true);
+    expect(loadsOfficialLibrary('import "@typespec/protobuf";')).toBe(true);
+    expect(loadsOfficialLibrary('await import("@typespec/protobuf")')).toBe(true);
+    expect(loadsOfficialLibrary('require("@typespec/protobuf")')).toBe(true);
+    expect(loadsOfficialLibrary("import x from '@typespec/protobuf/testing';")).toBe(true);
+
+    // The state keys spell the package name and load nothing.
+    expect(loadsOfficialLibrary('Symbol.for("@typespec/protobuf.fieldIndex")')).toBe(false);
+    expect(loadsOfficialLibrary("// this file reads @typespec/protobuf state")).toBe(false);
+  });
+
   it("names the official library in no source file of either package", async () => {
     const offenders: string[] = [];
     let scanned = 0;
@@ -28,8 +41,7 @@ describe("Unit: Protobuf run time independence (Phase 16 W1)", () => {
       for (const file of await typeScriptFilesIn(root)) {
         scanned += 1;
         const text = await readFile(file, "utf8");
-        // The import forms differ, and the package name is in all of them.
-        if (/from\s+["']@typespec\/protobuf/.test(text)) offenders.push(file);
+        if (loadsOfficialLibrary(text)) offenders.push(file);
       }
     }
 
@@ -69,3 +81,35 @@ async function typeScriptFilesIn(root: string): Promise<string[]> {
     .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
     .map((entry) => `${entry.parentPath}/${entry.name}`);
 }
+
+/**
+ * Whether a text loads the official library.
+ *
+ * Every specifier form counts: a static import, a side effect import, a
+ * dynamic import, and a `require` call. Each of them is a run time
+ * dependency.
+ *
+ * The closing quote sits right after the package name or after a subpath of
+ * it. That keeps the `Symbol.for("@typespec/protobuf.<key>")` state keys out,
+ * because those spell the name and load nothing.
+ *
+ * @param text - The source text to judge
+ * @returns Whether the text loads the library
+ */
+function loadsOfficialLibrary(text: string): boolean {
+  return LOADS_OFFICIAL_LIBRARY.test(text);
+}
+
+/** The specifier of the official library, with any subpath of it. */
+const SPECIFIER = String.raw`["']@typespec\/protobuf(?:\/[^"']*)?["']`;
+
+/**
+ * Every form that loads the library.
+ *
+ * The two branches stay apart so the expression never backtracks. One covers
+ * `from "x"` and `import "x"`. The other covers `import("x")` and
+ * `require("x")`.
+ */
+const LOADS_OFFICIAL_LIBRARY = new RegExp(
+  String.raw`(?:from|import)\s+${SPECIFIER}|(?:import|require)\s*\(\s*${SPECIFIER}`,
+);

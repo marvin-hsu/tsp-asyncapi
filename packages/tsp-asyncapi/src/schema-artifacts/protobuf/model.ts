@@ -169,8 +169,17 @@ interface Walk {
   readonly packageNamespace: Namespace;
   /** What a diagnostic calls the package of the root. */
   readonly packageLabel: string;
-  /** The closure so far. Insertion order is visit order. */
-  readonly declared: Map<string, ProtoDeclaration | undefined>;
+  /**
+   * The closure so far, keyed by the declaration itself. Insertion order is
+   * visit order.
+   *
+   * The key is the type and not the rendered name. Two declarations can carry
+   * one rendered name, and keying by that name would answer the first one for
+   * the second and describe two declarations as one message.
+   */
+  readonly declared: Map<Model | Enum, ProtoDeclaration | undefined>;
+  /** Which declaration took each rendered name, so a clash is seen. */
+  readonly claimed: Map<string, Model | Enum>;
 }
 
 /**
@@ -214,6 +223,7 @@ export function buildPayloadModel(program: Program, root: Model): ProtoPayloadMo
     // be named there. It is named by the namespace that declares it.
     packageLabel: found.name ?? getTypeName(found.namespace),
     declared: new Map(),
+    claimed: new Map(),
   };
   const rootName = visitModel(walk, root);
   if (rootName === undefined) return undefined;
@@ -268,12 +278,10 @@ function visitModel(walk: Walk, model: Model): string | undefined {
     refuse(walk, model, "a template instantiation");
     return undefined;
   }
-  if (walk.declared.has(name)) return name;
-  if (!belongsToPackage(walk, model)) {
-    refuse(walk, model, `model '${model.name}' of another Protobuf package`);
-    return undefined;
-  }
-  walk.declared.set(name, undefined);
+  if (!checkPackage(walk, model, "model", model.name)) return undefined;
+  if (walk.declared.has(model)) return name;
+  if (!claimName(walk, model, name)) return undefined;
+  walk.declared.set(model, undefined);
 
   const fields: ProtoField[] = [];
   for (const property of model.properties.values()) {
@@ -282,7 +290,7 @@ function visitModel(walk: Walk, model: Model): string | undefined {
     fields.push(field);
   }
 
-  walk.declared.set(name, {
+  walk.declared.set(model, {
     kind: "message",
     name,
     doc: getDoc(walk.program, model),
@@ -292,13 +300,15 @@ function visitModel(walk: Walk, model: Model): string | undefined {
 }
 
 /**
- * Tells whether a declaration the walk reached lives in the package of the
- * root.
+ * Checks that a declaration the walk reached lives in the package of the
+ * root, and reports why it does not.
  *
  * A declaration of another package goes into that package's own file, and a
  * field pointing at it needs an `import` line. One payload carries no
  * imports, so this emitter refuses rather than writing a name that resolves
- * to nothing.
+ * to nothing. A declaration under no package at all has no file to be
+ * imported from either, and it is named apart, because the author who reads
+ * the report wrote no second package.
  *
  * The two packages are compared by the namespace that declares them, not by
  * the name that namespace gives. Two namespaces may declare one name, and
@@ -306,11 +316,42 @@ function visitModel(walk: Walk, model: Model): string | undefined {
  *
  * @param walk - The walk in progress
  * @param type - The declaration the walk reached
+ * @param kind - What to call it in a report, `model` or `enum`
+ * @param name - The name the source gives it
  * @returns Whether it belongs to the package of the root
  */
-function belongsToPackage(walk: Walk, type: Model | Enum): boolean {
+function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string): boolean {
   const found = resolveProtobufPackage(walk.program, type);
-  return found?.namespace === walk.packageNamespace;
+  if (found?.namespace === walk.packageNamespace) return true;
+  if (found === undefined) {
+    refuse(walk, type, `${kind} '${name}' that no @Protobuf.package covers`);
+    return false;
+  }
+  refuse(walk, type, `${kind} '${name}' of another Protobuf package`);
+  return false;
+}
+
+/**
+ * Takes a rendered name for one declaration, or reports that it is taken.
+ *
+ * proto3 gives one file one name per declaration. Two declarations of one
+ * package can still render to one name: two sub namespaces may each declare
+ * `Foo`, and a model and an enum may converge once the model name is
+ * capitalized. Writing either pair would describe two declarations as one.
+ *
+ * @param walk - The walk in progress
+ * @param type - The declaration asking for the name
+ * @param name - The rendered name it asks for
+ * @returns Whether the name is now its own
+ */
+function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
+  const holder = walk.claimed.get(name);
+  if (holder !== undefined && holder !== type) {
+    refuse(walk, type, `the name '${name}', which another declaration already takes`);
+    return false;
+  }
+  walk.claimed.set(name, type);
+  return true;
 }
 
 /**
@@ -330,7 +371,7 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
   const repeated = isArrayInstance(property.type);
   const target = repeated ? elementOf(property.type as Model) : property.type;
   if (target === undefined) {
-    refuse(walk, property, `property '${property.name}' with an array of arrays`);
+    refuse(walk, property, `property '${property.name}' whose array element is not a type`);
     return undefined;
   }
   const type = typeNameOf(walk, target, property);
@@ -420,11 +461,9 @@ function scalarNameOf(walk: Walk, scalar: Scalar): string | undefined {
  */
 function visitEnum(walk: Walk, target: Enum): string | undefined {
   const name = target.name;
-  if (walk.declared.has(name)) return name;
-  if (!belongsToPackage(walk, target)) {
-    refuse(walk, target, `enum '${name}' of another Protobuf package`);
-    return undefined;
-  }
+  if (!checkPackage(walk, target, "enum", name)) return undefined;
+  if (walk.declared.has(target)) return name;
+  if (!claimName(walk, target, name)) return undefined;
 
   const members = [...target.members.values()];
   const values = members.map((member) => member.value);
@@ -437,7 +476,7 @@ function visitEnum(walk: Walk, target: Enum): string | undefined {
     return undefined;
   }
 
-  walk.declared.set(name, {
+  walk.declared.set(target, {
     kind: "enum",
     name,
     doc: getDoc(walk.program, target),

@@ -630,9 +630,22 @@ No file is written. A document emitted next to this error would ignore the reque
 
 Three problems report this code, and the message names which one it is. The model has no package above it. The model reaches a construct this emitter cannot write as proto3. A field uses a scalar that maps to no proto3 type.
 
-The second message names the construct it stopped at. A union, an anonymous model, a template instance, and a model that carries `@Protobuf.externRef` are the constructs this emitter refuses. It writes the proto3 text of one payload, and none of the four has an honest proto3 form there.
+The second message names the construct it stopped at. This emitter writes the proto3 text of one payload, and that text carries no `import` line. It refuses every construct that has no honest form there:
 
-The third message names the scalar. This emitter maps the 16 scalars the Protobuf library maps, and it follows the chain a custom scalar extends. A scalar whose chain reaches none of the 16 has no type to write.
+- a union, or any other property type proto3 has no form for
+- an anonymous model
+- a template instantiation
+- a type that carries `@Protobuf.externRef`, which includes the well known types
+- a property with no `@Protobuf.field` number
+- a `Protobuf.Map` type, which this release does not write yet
+- a model or enum of another Protobuf package
+- a model or enum that no `@Protobuf.package` covers
+- a model or enum whose name another declaration of the payload already takes
+- an enum whose first variant is not zero
+- an enum with a variant that is not an integer
+- a `@Protobuf.package` declaration this emitter cannot read
+
+The third message names the scalar. This emitter maps the 15 scalars the Protobuf library maps. Nine of them are built in TypeSpec scalars, and six come from the Protobuf library. It also follows the chain a custom scalar extends. A scalar whose chain reaches none of the 15 has no type to write.
 
 A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
 

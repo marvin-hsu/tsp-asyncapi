@@ -214,6 +214,9 @@ describe("Unit: Protobuf payload parity (Phase 16 W1)", () => {
       }
     `;
     for (const name of ["Parent", "Child"]) {
+      // Each closure is the whole package here, so the judge applies to both.
+      await expectDescriptorParity(source, name);
+
       const text = await renderPayload(source, name);
       expect(text).toContain("message Parent {");
       expect(text).toContain("message Child {");

@@ -348,4 +348,129 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
       "another Protobuf package",
     );
   });
+
+  /**
+   * The refusal above has to hold whichever field reaches the other package
+   * first. A closure keyed by the rendered name would answer the cached
+   * declaration here, and field two would point at the wrong message.
+   */
+  it("refuses a model of another package that shares a name with a local one", async () => {
+    const source = `
+      @Protobuf.package({ name: "com.example.near" })
+      namespace Near {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) mine: Shared;
+          @Protobuf.field(2) theirs: Far.Shared;
+        }
+      }
+
+      @Protobuf.package({ name: "com.example.far" })
+      namespace Far {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+      }
+    `;
+
+    const diagnostics = await refusePayload(source, "Event");
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "another Protobuf package",
+    );
+  });
+
+  it("refuses a model that no package covers, and says so", async () => {
+    const diagnostics = await refusePayload(
+      `
+      namespace Bare {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+      }
+
+      ${PACKAGE}
+      namespace Render {
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) shared: Bare.Shared;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "that no @Protobuf.package covers",
+    );
+  });
+
+  /**
+   * One package, two sub namespaces, one model name. Both render to `Foo`,
+   * and proto3 has one name to give. Writing one of them twice would describe
+   * two models as one message, so the walk refuses instead.
+   */
+  it("refuses two declarations of one package that render to one name", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render {
+        namespace One {
+          model Foo {
+            @Protobuf.field(1) a: string;
+          }
+        }
+
+        namespace Two {
+          model Foo {
+            @Protobuf.field(1) b: string;
+          }
+        }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) one: One.Foo;
+          @Protobuf.field(2) two: Two.Foo;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "the name 'Foo', which another declaration already takes",
+    );
+  });
+
+  /** A model and an enum converge on one name the same way, across kinds. */
+  it("refuses a model and an enum that render to one name", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render {
+        namespace Lower {
+          model status {
+            @Protobuf.field(1) a: string;
+          }
+        }
+
+        enum Status { Unknown: 0 }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) lowered: Lower.status;
+          @Protobuf.field(2) status: Status;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "the name 'Status', which another declaration already takes",
+    );
+  });
 });

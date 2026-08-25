@@ -630,9 +630,22 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、model 走到寫不成 proto3 的構造、欄位用了對映不到 proto3 型別的 scalar。
 
-第二種訊息會指出它停在哪個構造。這個 emitter 拒絕四種構造：union、匿名 model、template 實例，以及帶 `@Protobuf.externRef` 的 model。它寫的是單一 payload 的 proto3 文字，這四種在那裡都沒有誠實的 proto3 形式。
+第二種訊息會指出它停在哪個構造。這個 emitter 寫的是單一 payload 的 proto3 文字，那份文字不含 `import` 行。在那裡沒有誠實形式的構造一律拒絕：
 
-第三種訊息會指出是哪個 scalar。這個 emitter 對映 Protobuf library 對映的那 16 個 scalar，並沿著自訂 scalar 的 extends 鏈往上找。整條鏈都碰不到那 16 個的 scalar，沒有型別可寫。
+- union，以及其他 proto3 沒有對應形式的屬性型別
+- 匿名 model
+- template 實例
+- 帶 `@Protobuf.externRef` 的型別，包含 well known 型別
+- 沒有 `@Protobuf.field` 編號的屬性
+- `Protobuf.Map` 型別，本版尚未寫出
+- 屬於其他 Protobuf package 的 model 或 enum
+- 沒有任何 `@Protobuf.package` 涵蓋的 model 或 enum
+- 名稱已被同一份 payload 的另一個宣告佔用的 model 或 enum
+- 第一個變體不是零的 enum
+- 有非整數變體的 enum
+- 這個 emitter 讀不懂的 `@Protobuf.package` 宣告
+
+第三種訊息會指出是哪個 scalar。這個 emitter 對映 Protobuf library 對映的那 15 個 scalar。其中九個是 TypeSpec 內建的 scalar，六個來自 Protobuf library。它也會沿著自訂 scalar 的 extends 鏈往上找。整條鏈都碰不到那 15 個的 scalar，沒有型別可寫。
 
 只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
 
