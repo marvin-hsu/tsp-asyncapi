@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { collectRefs, countKey } from "../../utils/document.js";
+import { countKey } from "../../utils/document.js";
+import { referencesIn } from "../../utils/references.js";
 import { resolveRef } from "../../utils/json-pointer.js";
 
 /**
@@ -261,7 +262,7 @@ describe("Property: nested depth", () => {
         // reference check below applies to every case.
         expect(doc).not.toBeNull();
 
-        for (const ref of collectRefs(doc)) {
+        for (const ref of referencesIn(doc)) {
           refsChecked++;
           expect(resolveRef(doc, ref)).toBeDefined();
         }

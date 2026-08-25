@@ -31,8 +31,8 @@ Decorator 來自 [`tsp-asyncapi-core`][core]，這個套件相依它。只裝這
 
 ## Emitter 選項
 
-四個，全部選填：`output-file`、`file-type`、`asyncapi-id`、
-`default-content-type`。[參考文件][options]逐項說明。
+五個，全部選填：`output-file`、`file-type`、`asyncapi-id`、
+`default-content-type` 與 `preview-features`。[參考文件][options]逐項說明。
 
 ## 文件
 

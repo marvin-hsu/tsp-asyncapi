@@ -598,6 +598,46 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 **修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
 
+### `conflicting-generated-schema-source`
+
+> Two preview features generate the \<slot\> schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
+
+有兩個[預覽功能](./emitter-options#預覽功能)為同一個 model 產生 schema，而且落在 message 的同一個 slot。slot 是 `payload` 或 `headers`。
+
+emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider 的順序，而那個順序不是專案講出來的。
+
+這時不會輸出文件。兩份 artifact 都被丟掉，model 會退回它的 TypeSpec 型別產生的 schema，那份文件等於用忽略請求的內容回答請求。
+
+**修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除其中一個名稱。
+
+### `preview-feature-unavailable`
+
+> The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
+
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。兩者目前都還沒有實作，所以兩個名稱都會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+
+不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
+
+**修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除該名稱。
+
+### `protobuf-artifact-unavailable`
+
+> Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
+
+> The official Protobuf emitter refused to convert model '\<name\>' of package '\<package\>', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.
+
+> The official Protobuf emitter produced no file for package '\<package\>', so model '\<name\>' has no generated payload. Check that the package holds at least one convertible declaration.
+
+三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、這個 model 無法轉換、該 package 沒有產出 proto3 文字。
+
+只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
+
+`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
+
+model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。改名過的 package 以它宣告的名稱比對，不以檔案名稱比對。
+
+**修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`，或修正官方 Protobuf emitter 對它回報的錯誤。
+
 ## 警告
 
 ### `duplicate-channel-address`
@@ -921,3 +961,13 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 這一則是警告，因為 emitter 會自行復原。它只丟掉該欄位，其餘欄位照常輸出。其他 binding 診斷是錯誤，因為它們丟掉整個 binding。
 
 **修法：** 依訊息指出的範圍填值。
+
+### `conflicting-message-schema-source`
+
+> This message carries a payload written with @rawPayload, and the preview feature '\<provider\>' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '\<provider\>' off in `preview-features` in `tspconfig.yaml`.
+
+model 上有 `@rawPayload`，同時又有[預覽功能](./emitter-options#預覽功能)為它產生 payload schema。
+
+手寫的那份勝出。它是兩者中明示的一份，被產生的 schema 蓋掉會讓作者寫的內容從文件中消失。
+
+**修法：** 從 model 移除 `@rawPayload` 以改用產生的 schema，或從 `preview-features` 移除該功能以繼續手寫 payload。

@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
+import { referencesIn } from "../utils/references.js";
 
 /**
  * Every `$ref` in every committed output resolves.
  *
  * A promotion moves a fragment into `components` and leaves a reference
- * behind. Two of those steps can go wrong in a way no other suite sees. The
- * fragment can be left out of `components` while the reference is written,
- * which gives a document that says nothing where it claims to say something.
- * Or two fragments can claim one key, which points a reference at the wrong
- * fragment.
+ * behind. The fragment can be left out of `components` while the reference is
+ * written, which gives a document that says nothing where it claims to say
+ * something. No other suite sees that across committed output.
  *
  * The corpus snapshots and the examples are the whole set of documents this
- * repository commits. Walking their references catches both, in every
- * section at once, without naming any single promotion rule.
+ * repository commits. Walking their references catches it, in every section
+ * at once, without naming any single promotion rule.
+ *
+ * A schema written in another language is skipped, which the shared walk
+ * owns. One corpus case pins a pointer inside such a schema: the emitter
+ * rejects it and the document still keeps it as the author wrote it.
  *
  * A recursive schema is not a failure here. A model that names itself writes
  * a reference to its own component, and that component exists, so the walk
@@ -24,29 +27,6 @@ import { parse as parseYaml } from "yaml";
 
 const SNAPSHOTS = new URL("./__snapshots__/", import.meta.url);
 const EXAMPLES = new URL("../../examples/", import.meta.url);
-
-/** Every `$ref` string in one document, wherever it sits. */
-function referencesIn(node: unknown, found: string[] = []): string[] {
-  if (Array.isArray(node)) {
-    for (const item of node) referencesIn(item, found);
-    return found;
-  }
-  if (node === null || typeof node !== "object") return found;
-  // A schema written in another language is copied verbatim, so a `$ref`
-  // inside it is the author's text rather than something this emitter wrote.
-  // `reportUnresolvedRawSchemaRefs` owns that check, and one corpus case
-  // exists to pin a pointer it rejects while the document keeps it as
-  // written.
-  if ("schemaFormat" in node) return found;
-  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-    if (key === "$ref" && typeof value === "string") {
-      found.push(value);
-      continue;
-    }
-    referencesIn(value, found);
-  }
-  return found;
-}
 
 /**
  * Follows one JSON Pointer into `document`.

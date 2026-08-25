@@ -2,6 +2,12 @@ import { EmitContext, emitFile, resolvePath, listServices, Service } from "@type
 import { reportDiagnostic } from "tsp-asyncapi-core";
 import type { AsyncAPIEmitterOptions } from "./emitter-options.js";
 import { buildAsyncAPIDocument } from "./pipeline.js";
+import { reportUnavailablePreviewFeatures } from "./preview-features.js";
+import {
+  availableFeatures,
+  collectSchemaArtifacts,
+  shippedProviders,
+} from "./schema-artifacts/provider.js";
 import yaml from "yaml";
 
 /**
@@ -20,6 +26,17 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
   const options = context.options;
   const program = context.program;
 
+  const providers = shippedProviders();
+
+  // Every provider a preview feature turns on runs here, before resolve. What
+  // it produces is an input to resolve, so it has to exist before resolve
+  // starts.
+  const collected = await collectSchemaArtifacts(
+    program,
+    new Set(options["preview-features"] ?? []),
+    providers,
+  );
+
   const services = listServices(program);
   let service: Service | undefined = undefined;
   if (services.length > 0) {
@@ -32,7 +49,22 @@ export async function $onEmit(context: EmitContext<AsyncAPIEmitterOptions>) {
     }
   }
 
-  const doc = buildAsyncAPIDocument(program, service, options);
+  // Two refusals leave from here. A requested feature with no provider behind
+  // it is one. A conflict that removed both artifacts is the other, because
+  // the models it hit fall back to the schema their TypeSpec type produces.
+  // Either way a document written now would ignore the request without saying
+  // so, so nothing is written.
+  //
+  // The check sits below the service resolution on purpose. A project with
+  // two services hears about both faults from one compile.
+  const unavailable = reportUnavailablePreviewFeatures(
+    program,
+    options,
+    availableFeatures(providers),
+  );
+  if (unavailable || collected.refused) return;
+
+  const doc = await buildAsyncAPIDocument(program, service, options, collected.artifacts);
 
   // Default serialization
   const fileType = options["file-type"] ?? "yaml";

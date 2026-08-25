@@ -24,7 +24,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -52,7 +52,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.schemas ?? {})).toEqual(["OrderCreated"]);
     expect(doc.components?.schemas?.Unreferenced).toBeUndefined();
@@ -69,7 +69,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["custom-name"]);
     // The payload still points at the schema key the SchemaBuilder assigned,
@@ -99,7 +99,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Address",
@@ -122,7 +122,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const keys = Object.keys(doc.components?.messages ?? {});
     expect(keys).toEqual(["OrderSep47Created"]);
@@ -145,7 +145,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
     expect(diagnostic.severity).toBe("warning");
@@ -164,7 +164,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["order.created-v1"]);
     expect(diagnosticsWith(runner.program.diagnostics, "sanitized-message-key")).toHaveLength(0);
@@ -187,7 +187,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The message keys match the schema keys the SchemaBuilder assigned,
     // minus the namespace prefix that message keys deliberately omit.
@@ -226,7 +226,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
     expect(diagnostic.message).toMatch(/Duplicate message name: 'Shared'/);
@@ -260,7 +260,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "duplicate-message-key");
     expect(diagnostic.message).toMatch(/Duplicate message name: 'OrderCreated'/);
@@ -284,7 +284,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const messages = doc.components?.messages ?? {};
     expect(Object.keys(messages).sort(byCodePoint)).toEqual(["B", "__proto__"]);
@@ -314,7 +314,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The two instantiations are separate compiler types, but they share one
     // schema key, so they are one declaration in the document. No explicit
@@ -350,7 +350,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(runner.program.diagnostics, "message-key-shadows-schema-key");
     expect(diagnostic.severity).toBe("warning");
@@ -377,7 +377,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const messageKeys = Object.keys(doc.components?.messages ?? {}).filter((k) => k !== "Root");
     expect(messageKeys).toHaveLength(1);
@@ -426,7 +426,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(schemaOf(schemasOf(doc).Pet).discriminator).toBe("kind");
     // An indirect subtype is collected too. Only the model carrying
@@ -466,7 +466,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(schemaOf(schemasOf(doc).Pet).discriminator).toBeUndefined();
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
@@ -486,7 +486,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderCreated"]);
     const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
@@ -505,7 +505,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["OrderSep47Created"]);
     const diagnostic = findDiagnostic(runner.program.diagnostics, "sanitized-message-key");
@@ -534,7 +534,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(diagnosticsWith(runner.program.diagnostics, "sanitized-message-key")).toHaveLength(0);
   });
@@ -554,7 +554,7 @@ describe("Unit: Messages — declaration", () => {
     const diagnostic = findDiagnostic(diagnostics, "duplicate-message-decorator");
     expect(diagnostic.severity).toBe("error");
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     // The first application to run keeps the model. Decorators run
     // bottom-up, so that is the one written last.
     expect(Object.keys(doc.components?.messages ?? {})).toEqual(["two"]);
@@ -578,7 +578,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.["Sales.Ev"]).toEqual({
       name: "Sales.Ev",
@@ -600,7 +600,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(
       diagnosticsWith(runner.program.diagnostics, "message-key-shadows-schema-key"),
@@ -617,7 +617,7 @@ describe("Unit: Messages — declaration", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components).toBeUndefined();
   });

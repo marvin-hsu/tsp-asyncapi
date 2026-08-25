@@ -130,6 +130,38 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Schema key '${"name"}' is claimed twice. Message '${"message"}' carries a raw schema that another message carries too, so that schema is written once in \`components.schemas\` under a key derived from the message model. Rename the other type that claims '${"name"}', or give one of the two messages a different name.`,
       },
     },
+    "preview-feature-unavailable": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The preview feature '${"feature"}' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '${"feature"}' from \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
+    "protobuf-artifact-unavailable": {
+      severity: "error",
+      messages: {
+        // This code never reports under `default`, and it still carries one.
+        // The report type of the library is derived from the message ids every
+        // code shares. A code without a `default` leaves that shared set empty,
+        // and the derived type then demands a `format` argument from codes that
+        // take none.
+        default: paramMessage`Model '${"name"}' has no generated Protobuf payload.`,
+        "no-package": paramMessage`Model '${"name"}' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.`,
+        "not-converted": paramMessage`The official Protobuf emitter refused to convert model '${"name"}' of package '${"package"}', so this message has no generated payload. Fix the errors that emitter reported about this model, or remove @Protobuf.message from it.`,
+        "no-file": paramMessage`The official Protobuf emitter produced no file for package '${"package"}', so model '${"name"}' has no generated payload. Check that the package holds at least one convertible declaration.`,
+      },
+    },
+    "conflicting-generated-schema-source": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Two preview features generate the ${"slot"} schema of this model: '${"first"}' and '${"second"}'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
+    "conflicting-message-schema-source": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`This message carries a payload written with @rawPayload, and the preview feature '${"provider"}' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '${"provider"}' off in \`preview-features\` in \`tspconfig.yaml\`.`,
+      },
+    },
     "duplicate-message-key": {
       severity: "error",
       messages: {

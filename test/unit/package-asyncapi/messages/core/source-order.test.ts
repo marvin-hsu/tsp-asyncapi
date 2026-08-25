@@ -16,7 +16,7 @@ describe("Unit: Messages — source order", () => {
    */
   async function messageKeys(code: string): Promise<string[]> {
     await runner.compile(code);
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     return Object.keys(doc.components?.messages ?? {});
   }
 

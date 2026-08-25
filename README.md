@@ -180,12 +180,13 @@ The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) sa
 
 Set these in `tspconfig.yaml`, or pass them as CLI arguments:
 
-| Option                 | Type     | Default         | Description                                                              |
-| ---------------------- | -------- | --------------- | ------------------------------------------------------------------------ |
-| `output-file`          | `string` | `asyncapi.yaml` | Name of the emitted file.                                                |
-| `file-type`            | `string` | `yaml`          | Format of the generated document: `yaml` or `json`.                      |
-| `asyncapi-id`          | `string` | -               | Global identifier for the document. Maps to the `id` field.              |
-| `default-content-type` | `string` | -               | Default content type for message payloads. Maps to `defaultContentType`. |
+| Option                 | Type       | Default         | Description                                                              |
+| ---------------------- | ---------- | --------------- | ------------------------------------------------------------------------ |
+| `output-file`          | `string`   | `asyncapi.yaml` | Name of the emitted file.                                                |
+| `file-type`            | `string`   | `yaml`          | Format of the generated document: `yaml` or `json`.                      |
+| `asyncapi-id`          | `string`   | -               | Global identifier for the document. Maps to the `id` field.              |
+| `default-content-type` | `string`   | -               | Default content type for message payloads. Maps to `defaultContentType`. |
+| `preview-features`     | `string[]` | `[]`            | Turns on preview features. The reserved names are `protobuf` and `avro`. |
 
 ## Schema conversion
 

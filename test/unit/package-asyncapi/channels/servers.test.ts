@@ -29,7 +29,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
@@ -52,7 +52,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].servers).toEqual([
       { $ref: "#/servers/kafka-prod" },
@@ -76,7 +76,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"]).not.toHaveProperty("servers");
   });
@@ -99,7 +99,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const warning = findDiagnostic(diagnostics, "duplicate-use-server");
 
     expect(warning.severity).toBe("warning");
@@ -122,7 +122,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
     const warning = findDiagnostic(diagnostics, "use-server-without-channel");
 
     expect(warning.severity).toBe("warning");
@@ -146,7 +146,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = diagnosticsWith(diagnostics, "use-server-without-channel");
 
@@ -175,7 +175,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/typo" }]);
@@ -198,7 +198,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // `@useServer` takes a bare string and checks no character in it, unlike
     // `@server`. A raw `/` or `~` would make every conforming resolver read
@@ -237,7 +237,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       @@dynamicChannel(ReplyChannel);
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(doc.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");

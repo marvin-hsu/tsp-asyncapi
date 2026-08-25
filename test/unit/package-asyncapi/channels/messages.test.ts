@@ -32,7 +32,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.["orders.created"].messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },
@@ -61,7 +61,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual([
       "OrderCreated",
@@ -85,7 +85,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
@@ -106,7 +106,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
@@ -128,7 +128,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The model has properties, so it is a payload with an indexer, not an
     // `Array<T>` or a `Record<T>`. Unwrapping it would replace the message
@@ -162,7 +162,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // `Bag` carries no `@message`, so the walk does not stop at it and reaches
     // the collection check. It has properties of its own, so it is not a
@@ -188,7 +188,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Envelope"]);
   });
@@ -209,7 +209,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const messages = documentFrom(runner.program).channels?.orders.messages;
+    const messages = (await documentFrom(runner.program)).channels?.orders.messages;
 
     // The map is built with `Object.fromEntries`, so the key becomes an own
     // property instead of a write to the prototype.
@@ -234,7 +234,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["OrderCreated"]);
   });
@@ -255,7 +255,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.orders.messages).toEqual({
       "order-created": { $ref: "#/components/messages/order-created" },
@@ -282,7 +282,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.orders.messages).toBeUndefined();
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/channel-no-messages");
@@ -303,7 +303,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const warning = findDiagnostic(diagnostics, "channel-no-messages");
 
     expect(warning.severity).toBe("warning");
@@ -332,7 +332,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-message-key");
     expect(doc.channels?.orders).not.toHaveProperty("messages");
@@ -360,7 +360,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The compiler hands back the members of an interface in a map whose
     // order is not promised to be source order, so the builder sorts them.
@@ -393,7 +393,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // `Base` is declared after `OrderChannel`, so the inherited operation sits
     // later in the source than the own one. The compiler's member map puts an
@@ -418,7 +418,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // A model marked `@message` is the message, whatever it is declared as.
     // Unwrapping this one to its `string` element would drop the message
@@ -448,7 +448,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.orders.messages).toEqual({
       Items: { $ref: "#/components/messages/Items" },
@@ -474,7 +474,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // `model Tree is Array<Tree>` is legal TypeSpec. The walk must end on
     // the second visit rather than recurse until the stack runs out.
@@ -504,7 +504,7 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.channels?.orders.messages).toEqual({
       OrderCreated: { $ref: "#/components/messages/OrderCreated" },

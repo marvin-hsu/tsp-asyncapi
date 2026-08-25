@@ -180,12 +180,13 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 在 `tspconfig.yaml` 設定，或透過 CLI 參數傳入：
 
-| 選項                   | 型別     | 預設值          | 說明                                                          |
-| ---------------------- | -------- | --------------- | ------------------------------------------------------------- |
-| `output-file`          | `string` | `asyncapi.yaml` | 輸出檔案的名稱。                                              |
-| `file-type`            | `string` | `yaml`          | 輸出格式：`yaml` 或 `json`。                                  |
-| `asyncapi-id`          | `string` | -               | 文件的全域識別碼，對應 `id` 欄位。                            |
-| `default-content-type` | `string` | -               | 訊息 payload 的預設 content type，對應 `defaultContentType`。 |
+| 選項                   | 型別       | 預設值          | 說明                                                          |
+| ---------------------- | ---------- | --------------- | ------------------------------------------------------------- |
+| `output-file`          | `string`   | `asyncapi.yaml` | 輸出檔案的名稱。                                              |
+| `file-type`            | `string`   | `yaml`          | 輸出格式：`yaml` 或 `json`。                                  |
+| `asyncapi-id`          | `string`   | -               | 文件的全域識別碼，對應 `id` 欄位。                            |
+| `default-content-type` | `string`   | -               | 訊息 payload 的預設 content type，對應 `defaultContentType`。 |
+| `preview-features`     | `string[]` | `[]`            | 開啟預覽功能。保留的名稱是 `protobuf` 與 `avro`。             |
 
 ## Schema 轉換
 

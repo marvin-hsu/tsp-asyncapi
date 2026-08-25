@@ -24,7 +24,7 @@ export { $lib, PACKAGE_NAME } from "./lib.js";
 // `tsp-asyncapi/<rule>` rather than `tsp-asyncapi-core/<rule>`.
 export { asyncAPILinter as $linter } from "tsp-asyncapi-core/unstable";
 
-export type { AsyncAPIEmitterOptions } from "./emitter-options.js";
+export type { AsyncAPIEmitterOptions, PreviewFeature } from "./emitter-options.js";
 
 export type {
   AsyncAPIDocument,

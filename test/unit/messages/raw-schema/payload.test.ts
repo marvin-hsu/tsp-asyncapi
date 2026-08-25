@@ -29,7 +29,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -61,7 +61,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The model is a carrier for the decorators. Its own properties describe
     // nothing the document emits, so neither the model nor the models it
@@ -94,7 +94,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // Reachability is unchanged. The raw message simply stops being a root of
     // the walk, and every other message still collects what it reaches.
@@ -121,7 +121,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The raw model is not exempt from the schema walk. It only stops being a
     // root of it. Another message reaches it as a property type here, so it
@@ -155,7 +155,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // A lifting message reserves a derived `<Key>Payload` key. A raw payload
     // reserves none, so a model with that very name stays free of a clash.
@@ -173,7 +173,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
       schemaFormat: AVRO,
@@ -193,7 +193,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",

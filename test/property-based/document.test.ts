@@ -3,7 +3,8 @@ import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
 import { isSafeComponentsKey } from "#core/naming.js";
-import { collectRefs, schemasOf } from "../utils/document.js";
+import { schemasOf } from "../utils/document.js";
+import { referencesIn } from "../utils/references.js";
 
 /**
  * Properties of a whole emitted document.
@@ -122,7 +123,7 @@ describe("Integration: emitted document properties", () => {
           }
           rewrittenKeys += rewrittenHere;
           if (rewrittenHere > 0) rewrittenDocs++;
-          for (const ref of collectRefs(doc)) {
+          for (const ref of referencesIn(doc)) {
             // A reference that resolves to nothing leaves the reader with a
             // message it cannot describe.
             expect(resolveRef(doc, ref)).toBeDefined();

@@ -32,7 +32,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     expect(reported).toHaveLength(1);
@@ -58,7 +58,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // AsyncAPI types `examples` as strings, so the number has no place in it.
     // The type itself is the mistake the author is told about.
@@ -89,7 +89,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
     // Two operations declare `source`, so the first declaration is read
@@ -118,7 +118,7 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // Stacked decorators run bottom-up, so the recorded order is `us` then
     // `eu`. The emitted array is sorted back into source order.

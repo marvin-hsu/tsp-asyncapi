@@ -28,7 +28,7 @@ npm install tsp-asyncapi
 | `lib/main.tsp` | 全部 56 個 `extern dec` 宣告，以及它們接受的 model |
 | Decorator      | 實作。它們把 state 記在 program 上                 |
 | resolve 階段   | 把 program 與那些 state 轉成一份語意模型           |
-| Diagnostic     | 全部 103 個代碼，含 emitter 回報的那些             |
+| Diagnostic     | 全部 108 個代碼，含 emitter 回報的那些             |
 
 ## library 名稱不是套件名稱
 

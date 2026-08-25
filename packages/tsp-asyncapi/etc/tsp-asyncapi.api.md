@@ -101,6 +101,7 @@ export interface AsyncAPIEmitterOptions {
     "default-content-type"?: string;
     "file-type"?: "yaml" | "json";
     "output-file"?: string;
+    "preview-features"?: PreviewFeature[];
 }
 
 export { BindingObject }
@@ -276,6 +277,9 @@ export interface ParameterObject {
     examples?: string[];
     location?: string;
 }
+
+// @public
+export type PreviewFeature = "protobuf" | "avro";
 
 export { PulsarChannelBindingObject }
 

@@ -43,7 +43,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(
       resolveParameters(doc, doc.channels?.["orders.{region}.{orderId}.created"].parameters),
@@ -77,7 +77,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { enum: ["eu", "us"] },
@@ -100,7 +100,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
       orderId: {},
@@ -125,7 +125,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{id}"].parameters)).toEqual({ id: {} });
   });
@@ -146,7 +146,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // `default` is typed as a string in a Parameter Object, so a numeric
     // default is left out along with the rest of the declaration.
@@ -177,7 +177,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
   });
@@ -198,7 +198,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { default: "eu" },
@@ -226,7 +226,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { enum: ["eu", "us"], default: "eu" },
@@ -249,7 +249,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The union is still a string type, so it is not reported. It no longer
     // names a limited set, so no `enum` describes it.
@@ -275,7 +275,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
     // One non-string variant makes the whole union a non-string type. The
@@ -308,7 +308,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // A member names one string, so it names a set of one. The whole-enum
     // form already worked. The member form fell through to the default arm
@@ -343,7 +343,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect([...diagnostics, ...runner.program.diagnostics].map((d) => d.code)).toContain(
       "tsp-asyncapi/non-string-channel-param",
@@ -372,7 +372,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { enum: ["eu", "us"] },
@@ -399,7 +399,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The built-in check is by namespace, not by name. A scalar the author
     // declared and happened to call `string` is not the built-in one, and it
@@ -430,7 +430,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // A model is neither a string, a scalar, an enum nor a union, so it
     // reaches the last arm of the value reader. Nothing else in this suite

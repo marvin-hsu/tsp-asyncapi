@@ -30,7 +30,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
@@ -64,7 +64,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const message = doc.components?.messages?.OrderCreated;
 
     // The two slots are filled from one function, so identical input produces
@@ -92,7 +92,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // This is the recommended pair, so nothing is reported. The headers model
     // still gets its own component, because it goes through the schema layer.
@@ -116,7 +116,7 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.schemas).toBeUndefined();
   });

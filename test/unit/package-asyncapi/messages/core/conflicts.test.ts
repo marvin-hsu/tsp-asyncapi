@@ -40,7 +40,7 @@ describe("Unit: Messages — decorator conflicts", () => {
     // ordinary schema reference, and reusing a schema is not a mistake.
     expect(diagnostics).toEqual([]);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(schemaOf(schemasOf(doc).OrderCreated).properties?.firstLine).toEqual({
       $ref: "#/components/schemas/OrderLine",
@@ -75,7 +75,7 @@ describe("Unit: Messages — decorator conflicts", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The emitter reports nothing about a type it never reaches. A model
     // without `@message` produces no Message Object at all, so the absence
@@ -106,7 +106,7 @@ describe("Unit: Messages — decorator conflicts", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The key collision drops `B`, but the conflict inside `B` is a separate
     // mistake. Reporting it only after the collision is fixed would hand the

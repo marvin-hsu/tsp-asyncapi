@@ -28,7 +28,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const reported = findDiagnostic(runner.program.diagnostics, CODE);
     expect(reported.severity).toBe("error");
@@ -54,7 +54,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // This is the trap the rule exists for. A @rawPayload model stops being a
     // root of the schema walk, so it claims no key of its own. The obvious
@@ -80,7 +80,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.schemas?.OrderCreated).toBeDefined();
     expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
@@ -101,7 +101,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The whole document is the resolution root, not one section of it.
     expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
@@ -119,7 +119,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = findDiagnostic(runner.program.diagnostics, CODE);
     expect(reported.message).toContain("#/components/schemas/Missing");
@@ -135,7 +135,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The target sits outside this document. A registry or a file holds it,
     // and the emitter cannot read either one.
@@ -152,7 +152,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // A nested reference is written in the schema language itself, and the
     // emitter does not know that grammar. Only the top level is read.
@@ -170,7 +170,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // Every reference the emitter writes itself resolves by construction.
     expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
@@ -192,7 +192,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // A pointer token is an array index as well as an object key. An index
     // outside the array is a miss, and an index inside it is a hit.
@@ -214,7 +214,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // A pointer travels in the fragment of a URI, so it can carry
     // percent-encoding. `%4F` is `O`. A parser accepts this reference, so the
@@ -232,7 +232,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The text is not percent-encoding at all, so the text itself is the key,
     // and the document holds no such key.
@@ -256,7 +256,7 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = findDiagnostic(runner.program.diagnostics, CODE);
     expect(reported.message).toContain("#/components/messages/Other/tags/7");
