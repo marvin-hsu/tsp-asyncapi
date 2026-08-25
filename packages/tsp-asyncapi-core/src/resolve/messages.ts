@@ -41,6 +41,7 @@ import {
 } from "../naming.js";
 import { BindingPlacements, markBindingsPlaced, resolveBindings } from "./bindings.js";
 import { MessageHeadersNode, MessageNode, MessagePayloadNode } from "./service.js";
+import type { SchemaArtifactIndex } from "../schema-artifacts.js";
 
 /**
  * What the resolve half of the messages produces.
@@ -182,14 +183,48 @@ function resolveHeaders(plan: MessageHeaderPlan, model: Model): MessageHeadersNo
   return { kind: "fields", fields: source.fields };
 }
 
-/** How the payload of one message is described. */
+/**
+ * How the payload of one message is described.
+ *
+ * A schema of another format wins over the TypeSpec type, whoever wrote it.
+ * The author writes one with `@rawPayload`, and a preview feature generates
+ * one for a model that carries the decorators of another schema language.
+ * Both take the same raw node, so nothing after this point can tell them
+ * apart, and both skip the schema the model would otherwise produce.
+ *
+ * An authored schema wins over a generated one. It is the explicit statement
+ * of the two, and a generated schema that silently replaced it would leave
+ * the author's own text out of the document with nothing to say so.
+ *
+ * The author is told which of the two the document carries. The generated
+ * schema leaves the document, and a warning names the feature that produced
+ * it, so the author can drop their own text or turn the feature off.
+ */
 function resolvePayload(
   program: Program,
   plan: MessageHeaderPlan,
   model: Model,
+  artifacts: SchemaArtifactIndex,
 ): MessagePayloadNode {
-  const raw = getRawPayload(program, model);
-  if (raw !== undefined) return { kind: "raw", schema: buildRawSchema(raw) };
+  const authored = getRawPayload(program, model);
+  const generated = artifacts.payloadFor.get(model);
+
+  if (authored !== undefined) {
+    if (generated !== undefined) {
+      reportDiagnostic(program, {
+        code: "conflicting-message-schema-source",
+        target: model,
+        format: { provider: generated.provider },
+      });
+    }
+    return { kind: "raw", schema: buildRawSchema(authored) };
+  }
+  if (generated !== undefined) {
+    return {
+      kind: "raw",
+      schema: { schemaFormat: generated.schemaFormat, schema: generated.schema },
+    };
+  }
   return { kind: "model", model, lifted: liftedOf(plan, model) };
 }
 
@@ -214,11 +249,16 @@ function resolvePayload(
  * @param program - The program to read the messages from
  * @param placements - Where the binding applications this build placed are
  * recorded
+ * @param artifacts - The schemas another tool generated for this program
  * @returns The messages in source order, the key each surviving model
  * claimed, and every model whose extensions reached a Message Object
  * @internal
  */
-export function resolveMessages(program: Program, placements: BindingPlacements): ResolvedMessages {
+export function resolveMessages(
+  program: Program,
+  placements: BindingPlacements,
+  artifacts: SchemaArtifactIndex,
+): ResolvedMessages {
   const declared = listMessages(program);
   const models = [...declared.keys()];
   const plan = planMessageHeaders(program, models);
@@ -264,7 +304,7 @@ export function resolveMessages(program: Program, placements: BindingPlacements)
       ...textField("description", getDoc(program, model)),
       ...textField("contentType", getContentType(program, model)),
       headers: resolveHeaders(plan, model),
-      payload: resolvePayload(program, plan, model),
+      payload: resolvePayload(program, plan, model, artifacts),
       ...optional("correlationId", getCorrelationId(program, model)),
       examples: buildMessageExamples(program, model) ?? [],
       tags: buildTags(program, model) ?? [],

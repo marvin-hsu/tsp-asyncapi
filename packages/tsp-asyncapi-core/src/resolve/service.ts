@@ -7,6 +7,7 @@ import { resolveInfo } from "./info.js";
 import { resolveMessages } from "./messages.js";
 import { resolveOperations } from "./operations.js";
 import { resolveSecuritySchemes } from "./security-schemes.js";
+import { emptySchemaArtifacts, type SchemaArtifactIndex } from "../schema-artifacts.js";
 import {
   reportSecurityUsesWithoutServer,
   reportServersOutsideService,
@@ -658,6 +659,8 @@ export interface OperationReplyNode {
  * @param service - The service the document describes, if the program has one
  * @param placements - Where the binding applications this build placed are
  * recorded
+ * @param artifacts - The schemas another tool generated for this program.
+ * A build that ran no provider passes none.
  * @returns The semantic model, or `undefined` when the program declares no
  * service
  * @internal
@@ -666,6 +669,7 @@ export function resolveService(
   program: Program,
   service: Service | undefined,
   placements: BindingPlacements,
+  artifacts: SchemaArtifactIndex = emptySchemaArtifacts,
 ): AsyncAPIService {
   const securitySchemes = resolveSecuritySchemes(program);
   const declaredSchemes = new Set(securitySchemes.map((scheme) => scheme.name));
@@ -674,7 +678,7 @@ export function resolveService(
     messages,
     keys,
     extensionCarriers: messageCarriers,
-  } = resolveMessages(program, placements);
+  } = resolveMessages(program, placements, artifacts);
   const {
     channels,
     emitted,

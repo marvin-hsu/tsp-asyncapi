@@ -28,7 +28,7 @@ Install this package directly for one of two reasons:
 | `lib/main.tsp`    | All 56 `extern dec` declarations and the models they accept |
 | Decorators        | The implementations, which record state on the program      |
 | The resolve stage | Turns the program plus that state into one semantic model   |
-| Diagnostics       | All 103 codes, including the ones an emitter reports        |
+| Diagnostics       | All 108 codes, including the ones an emitter reports        |
 
 ## The library name is not the package name
 

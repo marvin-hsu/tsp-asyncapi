@@ -32,7 +32,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.publish).toEqual({
       action: "send",
@@ -61,7 +61,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     const operation = doc.operations?.publish ?? {};
 
     expect(operation).not.toHaveProperty("title");
@@ -91,7 +91,7 @@ describe("Unit: Operation documentation (Phase 5.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.publish).not.toHaveProperty("title");
     expect(doc.operations?.publish).not.toHaveProperty("description");

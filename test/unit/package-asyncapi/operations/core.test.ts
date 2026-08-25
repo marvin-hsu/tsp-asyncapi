@@ -27,7 +27,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.sendOrderCreated).toEqual({
       action: "send",
@@ -52,7 +52,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.onOrderCreated).toEqual({
       action: "receive",
@@ -77,7 +77,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.created" });
   });
@@ -103,7 +103,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders.inner" });
   });
@@ -129,7 +129,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The diagnostic is error severity, so no file is written and the
     // document has to be read from the builder.
@@ -154,7 +154,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["orders.send"]);
   });
@@ -175,7 +175,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations?.publish.channel).toEqual({ $ref: "#/channels/orders~1created" });
     expect(doc.operations?.publish.messages).toEqual([
@@ -189,7 +189,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       namespace Test;
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.operations).toEqual({});
   });
@@ -210,7 +210,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The operation still contributes its message to the channel.
     expect(doc.operations).toEqual({});
@@ -235,7 +235,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const diagnostic = findDiagnostic(diagnostics, "empty-operation-id");
     expect(targetText(diagnostic)).toBe(`"  "`);
@@ -264,7 +264,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(findDiagnostic(diagnostics, "duplicate-operation-id").message).toContain("'publish'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["publish"]);
@@ -314,7 +314,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       @@send(A.alpha, "dup");
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["dup"]);
     expect(doc.operations?.dup.channel).toEqual({ $ref: "#/channels/orders.b" });
@@ -339,7 +339,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'publish'");
     expect(doc.operations).toEqual({});
@@ -369,7 +369,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       interface Us extends Base {}
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(Object.keys(doc.operations ?? {})).toEqual(["Eu_publish", "Us_publish"]);
@@ -399,7 +399,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.keys(doc.operations ?? {})).toEqual(["republish"]);
   });
@@ -426,7 +426,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(findDiagnostic(diagnostics, "operation-without-channel").message).toContain("'second'");
     expect(Object.keys(doc.operations ?? {})).toEqual(["first"]);
@@ -450,7 +450,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     findDiagnostic(diagnostics, "duplicate-send-decorator");
     // Decorators run bottom-up, so the one written last runs first and wins.
@@ -475,7 +475,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     findDiagnostic(diagnostics, "duplicate-receive-decorator");
     expect(doc.operations?.consume.action).toBe("receive");
@@ -499,7 +499,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     findDiagnostic(diagnostics, "conflicting-operation-actions");
     expect(doc.operations).toEqual({});
@@ -567,7 +567,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The build reports into the same list, so it is read after the build.
     expect(runner.program.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([]);
@@ -607,7 +607,7 @@ describe("Unit: Operations (Phase 5.1)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(Object.hasOwn(doc.operations ?? {}, "__proto__")).toBe(true);
   });

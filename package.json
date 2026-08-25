@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@asyncapi/parser": "^3.6.3",
+    "@asyncapi/protobuf-schema-parser": "^3.9.0",
     "@changesets/cli": "^3.0.1",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
@@ -67,6 +68,7 @@
     "@types/node": "^26.2.0",
     "@types/yaml": "^1.9.7",
     "@typespec/compiler": "^1.15.0",
+    "@typespec/protobuf": "0.85.0",
     "@vitest/coverage-v8": "^4.1.10",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -77,6 +79,7 @@
     "knip": "^6.32.2",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
+    "protobufjs": "^8.7.2",
     "tsp-asyncapi": "workspace:*",
     "tsp-asyncapi-core": "workspace:*",
     "typescript": "^6.0.3",

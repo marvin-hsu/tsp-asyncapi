@@ -27,7 +27,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The ambiguity is the same on both headers mechanisms, so the check
     // covers the @headers model too.
@@ -59,7 +59,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     const reported = diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict");
     expect(reported).toHaveLength(1);
@@ -82,7 +82,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     expect(
       diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
@@ -108,7 +108,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const diagnostics = diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict");
     // Only the field that names the content type is reported. A header that
@@ -141,7 +141,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(
       diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
@@ -175,7 +175,7 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The derived message adopts the header its base already lifts. The
     // conflict is about one property, so it is reported once. The message

@@ -153,6 +153,32 @@ A namespace that declares servers of several protocols is not reported when one 
 
 **Fix:** change the `protocol` of the `@server`, or remove the binding.
 
+### `protobuf-content-type-undeclared`
+
+In `recommended`. It only runs when [`preview-features`](./emitter-options#preview-features) names `protobuf`.
+
+> Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it a Protobuf payload.
+
+`@contentType` states how the bytes on the wire are encoded. It does not produce them. So a message can name a Protobuf media type while its payload is still lowered from the TypeSpec model. The document then tells a consumer to decode Protobuf and describes those same bytes with a JSON Schema.
+
+```typespec
+// Reports. The content type says Protobuf, and the payload is JSON Schema.
+@Protobuf.package({ name: "com.example.orders" })
+namespace Orders {
+  @message
+  @contentType("application/vnd.google.protobuf")
+  model OrderPlaced {
+    id: string;
+  }
+}
+```
+
+Two things give a message a Protobuf payload, and either one silences the rule. `@Protobuf.message` with a `@Protobuf.field` on every property lets the preview feature render the schema. `@rawPayload` carries the text the author wrote.
+
+The rule reads the media type and ignores what follows a semicolon, so a `;version=3` parameter does not hide the mistake. `application/vnd.google.protobuf`, `application/x-protobuf`, `application/protobuf` and `application/octet-stream+protobuf` all count.
+
+**Fix:** add `@Protobuf.message` and a `@Protobuf.field` on every property, or write the schema with `@rawPayload`.
+
 ### `unused-security-scheme`
 
 Not in `recommended`. Enable it by name.

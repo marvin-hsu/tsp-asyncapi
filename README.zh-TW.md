@@ -172,7 +172,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 ## 範例
 
-[`examples/`](./examples/) 底下有十五個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的 AsyncAPI 文件。本 library 實作的每個通訊協定，都至少出現在其中一個範例裡。
+[`examples/`](./examples/) 底下有十六個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的 AsyncAPI 文件。本 library 實作的每個通訊協定，都至少出現在其中一個範例裡。
 
 各範例的內容見[範例頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/examples)。
 
@@ -180,12 +180,13 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 在 `tspconfig.yaml` 設定，或透過 CLI 參數傳入：
 
-| 選項                   | 型別     | 預設值          | 說明                                                          |
-| ---------------------- | -------- | --------------- | ------------------------------------------------------------- |
-| `output-file`          | `string` | `asyncapi.yaml` | 輸出檔案的名稱。                                              |
-| `file-type`            | `string` | `yaml`          | 輸出格式：`yaml` 或 `json`。                                  |
-| `asyncapi-id`          | `string` | -               | 文件的全域識別碼，對應 `id` 欄位。                            |
-| `default-content-type` | `string` | -               | 訊息 payload 的預設 content type，對應 `defaultContentType`。 |
+| 選項                   | 型別       | 預設值          | 說明                                                          |
+| ---------------------- | ---------- | --------------- | ------------------------------------------------------------- |
+| `output-file`          | `string`   | `asyncapi.yaml` | 輸出檔案的名稱。                                              |
+| `file-type`            | `string`   | `yaml`          | 輸出格式：`yaml` 或 `json`。                                  |
+| `asyncapi-id`          | `string`   | -               | 文件的全域識別碼，對應 `id` 欄位。                            |
+| `default-content-type` | `string`   | -               | 訊息 payload 的預設 content type，對應 `defaultContentType`。 |
+| `preview-features`     | `string[]` | `[]`            | 開啟預覽功能。保留的名稱是 `protobuf` 與 `avro`。             |
 
 ## Schema 轉換
 
@@ -257,10 +258,10 @@ linter:
 
 ### 計劃做
 
-| 計劃項目                               | 目前的狀態                                                                                                                                     | 說明                                                                                                             |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 對官方 `@typespec/protobuf` 的一級支援 | 一份原始碼目前可以同時餵給兩個 emitter。protobuf payload 要用 `@rawPayload` 手寫。`Protobuf.Map` 與 `Extern` model 只會降級成 `type: object`。 | emitter 要從產出的 `.proto` 檔取得 schema。`@typespec/protobuf` 目前沒有匯出 `@field` 與 `@package` 的讀取函式。 |
-| 新增 Avro emitter                      | Avro 目前只能用 `@rawPayload` 手寫進文件。沒有任何東西能從 TypeSpec model 產生 Avro schema。                                                   | 獨立套件。AsyncAPI emitter 會把該套件的產出內嵌進 message。                                                      |
+| 計劃項目                               | 目前的狀態                                                                                                                                                                  | 說明                                                                                                                                                                                                                     |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 對官方 `@typespec/protobuf` 的一級支援 | 預覽功能，預設關閉。用 `preview-features: ["protobuf"]` 開啟。開啟後，帶官方 decorator 的 model 會拿到 proto3 payload。這個 emitter 自己讀 decorator state 並產生那段文字。 | 預覽表示選項、payload 與診斷都可能在次版本更動。外部參照、template 實例與 union 一律拒絕，不做勉強的翻譯。它寫出什麼見[Protobuf payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/protobuf-payloads)。 |
+| 新增 Avro emitter                      | Avro 目前只能用 `@rawPayload` 手寫進文件。沒有任何東西能從 TypeSpec model 產生 Avro schema。                                                                                | 獨立套件。AsyncAPI emitter 會把該套件的產出內嵌進 message。                                                                                                                                                              |
 
 ### 等使用情境
 

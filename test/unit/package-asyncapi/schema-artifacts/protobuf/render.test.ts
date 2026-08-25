@@ -1,0 +1,779 @@
+import { describe, expect, it } from "vitest";
+import type { Model, Program } from "@typespec/compiler";
+import { findDiagnostic } from "../../../../utils/diagnostics.js";
+import {
+  messageModelNamed,
+  refusePayload,
+  renderPayload,
+} from "../../../../utils/protobuf-parity.js";
+
+/** The package declaration every case here shares. */
+const PACKAGE = '@Protobuf.package({ name: "com.example.render" })';
+
+/**
+ * The printer, and the dead ends of the walk that feeds it.
+ *
+ * Parity says the two emitters mean the same thing. It says nothing about the
+ * text this one writes, because a descriptor carries no comment and no
+ * layout. These cases cover that half.
+ *
+ * They also cover the other outcome of the walk. A construct with no proto3
+ * form ends the walk, and the walk then yields nothing at all. Nothing here
+ * asserts on a half built payload, because there is no such thing.
+ */
+describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
+  it("writes the syntax line, the package, and the fields in source order", async () => {
+    const text = await renderPayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(3) third: string;
+        @Protobuf.field(1) first: int32;
+      }
+    `,
+      "Event",
+    );
+
+    expect(text).toBe(
+      [
+        'syntax = "proto3";',
+        "",
+        "package com.example.render;",
+        "",
+        "message Event {",
+        "  string third = 3;",
+        "  int32 first = 1;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("writes documentation as leading comments", async () => {
+    const text = await renderPayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @doc("The event a channel carries.")
+      @Protobuf.message
+      model Event {
+        @doc("When it happened.")
+        @Protobuf.field(1)
+        at: int64;
+      }
+    `,
+      "Event",
+    );
+
+    expect(text).toContain("// The event a channel carries.\nmessage Event {");
+    expect(text).toContain("  // When it happened.\n  int64 at = 1;");
+  });
+
+  it("writes an empty message on one line", async () => {
+    const text = await renderPayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Ping {}
+    `,
+      "Ping",
+    );
+
+    expect(text).toContain("message Ping {}");
+  });
+
+  it("writes an alias option when two variants share a value", async () => {
+    const text = await renderPayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      enum Status { Unknown: 0, Active: 1, Running: 1 }
+
+      @Protobuf.message
+      model Job {
+        @Protobuf.field(1) status: Status;
+      }
+    `,
+      "Job",
+    );
+
+    expect(text).toContain("enum Status {\n  option allow_alias = true;\n  Unknown = 0;");
+  });
+
+  it("writes no package line when the package declares no name", async () => {
+    const text = await renderPayload(
+      `
+      @Protobuf.package
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+    );
+
+    expect(text.startsWith('syntax = "proto3";\n\nmessage Event {')).toBe(true);
+  });
+
+  /**
+   * Each case below is a dead end of the walk. The helper asserts the walk
+   * yielded nothing, and the assertion here names which report it made.
+   */
+  it("refuses a model with no package above it", async () => {
+    const diagnostics = await refusePayload(
+      `
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no namespace above it carries @Protobuf.package",
+    );
+  });
+
+  it("refuses a property with no field number", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+        unnumbered: string;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no @Protobuf.field number",
+    );
+  });
+
+  it("refuses a scalar whose chain reaches no proto3 type", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      scalar Moment extends utcDateTime;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) at: Moment;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "has no proto3 type",
+    );
+  });
+
+  it("refuses a union property", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) either: string | int32;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "of kind Union",
+    );
+  });
+
+  it("refuses an anonymous model property", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) inline: { @Protobuf.field(1) id: string };
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "an anonymous model",
+    );
+  });
+
+  it("refuses a template instantiation", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      model Box<T> {
+        @Protobuf.field(1) value: T;
+      }
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) boxed: Box<string>;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "a template instantiation",
+    );
+  });
+
+  it("refuses a well known type that needs an import", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) nothing: Protobuf.WellKnown.Empty;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.externRef",
+    );
+  });
+
+  /**
+   * proto3 gives a map field no label, so a map is only a field type. An
+   * array of maps has no form at all, and the walk says which one it saw.
+   */
+  it("refuses an array of Protobuf maps", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) many: Protobuf.Map<string, string>[];
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "an array of Protobuf.Map values",
+    );
+  });
+
+  it("refuses a Protobuf map whose value is another map", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) nested: Protobuf.Map<string, Protobuf.Map<string, string>>;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "a Protobuf.Map inside another type",
+    );
+  });
+
+  /**
+   * proto3 keys a map with an integral or a string type. The TypeSpec side
+   * constrains the key the same way, so this shape needs the state written
+   * by hand: it stands in for a library that widened its constraint.
+   */
+  it("refuses a Protobuf map keyed by a type proto3 cannot key with", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        replaceMapKey(program, mapPropertyOf(program, "keyed"), "TypeSpec.float64");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "keyed by 'double'",
+    );
+  });
+
+  it("refuses a Protobuf map that carries no key and value", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        // A map with no arguments at all: the shape a template with another
+        // signature would leave behind.
+        Object.assign(mapPropertyOf(program, "keyed"), { templateMapper: undefined });
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "with no key and value",
+    );
+  });
+
+  /**
+   * proto3 numbers a field from one, so zero is no field number at all. The
+   * TypeSpec side accepts it, and the official emitter writes it, so the
+   * descriptor oracle sees two texts that agree and stays quiet. Only this
+   * case says the text would be wrong.
+   */
+  it("refuses a reservation of zero, which proto3 cannot number", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      @Protobuf.reserve(0)
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  it("refuses a reservation above the highest field number proto3 has", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      // One past the maximum the official decorator itself enforces.
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), [536870912]);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  /**
+   * A map value takes no label, so a repeated value has no proto3 form. The
+   * report names the map, because the property has no array of arrays.
+   */
+  it("refuses a Protobuf map whose value is an array", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) many: Protobuf.Map<string, string[]>;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "a Protobuf.Map whose value is an array",
+    );
+  });
+
+  it("refuses a Protobuf map keyed by a declaration, not a scalar", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      model Key {
+        @Protobuf.field(1) id: string;
+      }
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        replaceMapKey(program, mapPropertyOf(program, "keyed"), "Render.Key");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "keyed by a Model",
+    );
+  });
+
+  it("refuses a Protobuf map whose arguments are values, not types", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) keyed: Protobuf.Map<string, string>;
+      }
+    `,
+      "Event",
+      (program) => {
+        const mapper = mapPropertyOf(program, "keyed").templateMapper;
+        if (mapper === undefined) throw new Error("The map carries no template arguments.");
+        // A template argument the compiler passed as a value: the shape a
+        // library that took a value parameter would leave behind.
+        Object.assign(mapper, { args: [{ valueKind: "StringValue" }, mapper.args[1]] });
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "of a Protobuf.Map of values, not types",
+    );
+  });
+
+  it("refuses an enum whose first variant is not zero", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      enum Status { Active: 1, Retired: 2 }
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) status: Status;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "whose first variant is not zero",
+    );
+  });
+
+  it("refuses an enum whose variants are not integers", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      enum Status { Unknown: "none" }
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) status: Status;
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "not an integer",
+    );
+  });
+
+  it("refuses a model of another package, which would need an import", async () => {
+    const diagnostics = await refusePayload(
+      `
+      @Protobuf.package({ name: "com.example.other" })
+      namespace Other {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+      }
+
+      ${PACKAGE}
+      namespace Render {
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) shared: Other.Shared;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "another Protobuf package",
+    );
+  });
+
+  /**
+   * The refusal above has to hold whichever field reaches the other package
+   * first. A closure keyed by the rendered name would answer the cached
+   * declaration here, and field two would point at the wrong message.
+   */
+  it("refuses a model of another package that shares a name with a local one", async () => {
+    const source = `
+      @Protobuf.package({ name: "com.example.near" })
+      namespace Near {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) mine: Shared;
+          @Protobuf.field(2) theirs: Far.Shared;
+        }
+      }
+
+      @Protobuf.package({ name: "com.example.far" })
+      namespace Far {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+      }
+    `;
+
+    const diagnostics = await refusePayload(source, "Event");
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "another Protobuf package",
+    );
+  });
+
+  it("refuses a model that no package covers, and says so", async () => {
+    const diagnostics = await refusePayload(
+      `
+      namespace Bare {
+        model Shared {
+          @Protobuf.field(1) id: string;
+        }
+      }
+
+      ${PACKAGE}
+      namespace Render {
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) shared: Bare.Shared;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "that no @Protobuf.package covers",
+    );
+  });
+
+  /**
+   * One package, two sub namespaces, one model name. Both render to `Foo`,
+   * and proto3 has one name to give. Writing one of them twice would describe
+   * two models as one message, so the walk refuses instead.
+   */
+  it("refuses two declarations of one package that render to one name", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render {
+        namespace One {
+          model Foo {
+            @Protobuf.field(1) a: string;
+          }
+        }
+
+        namespace Two {
+          model Foo {
+            @Protobuf.field(1) b: string;
+          }
+        }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) one: One.Foo;
+          @Protobuf.field(2) two: Two.Foo;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "the name 'Foo', which another declaration already takes",
+    );
+  });
+
+  /**
+   * The three cases below stand in for another version of the official
+   * library. The state they write is a shape this reader does not know, and
+   * no source can produce it against the pinned version. A reader that
+   * guessed here would put wrong proto3 text in the document, so it refuses.
+   */
+  it("refuses a field number the state does not hold as a number", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render;
+
+      @Protobuf.message
+      model Event {
+        @Protobuf.field(1) id: string;
+      }
+    `,
+      "Event",
+      (program) => {
+        const property = messageModelNamed(program, "Event").properties.get("id");
+        if (property === undefined) throw new Error("The model declares no property 'id'.");
+        program.stateMap(FIELD_INDEX_STATE).set(property, "1");
+      },
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no @Protobuf.field number",
+    );
+  });
+
+  it("refuses a field number the state does not hold as a whole number", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      const property = messageModelNamed(program, "Event").properties.get("id");
+      if (property === undefined) throw new Error("The model declares no property 'id'.");
+      program.stateMap(FIELD_INDEX_STATE).set(property, 1.5);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "no @Protobuf.field number",
+    );
+  });
+
+  it("refuses reservations the state does not hold as a list", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), 2);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  it("refuses a reservation of a shape it does not know", async () => {
+    const diagnostics = await refusePayload(RESERVED_SOURCE, "Event", (program) => {
+      // A range of three numbers is a shape proto3 has no line for.
+      program.stateMap(RESERVE_STATE).set(messageModelNamed(program, "Event"), [[1, 2, 3]]);
+    });
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "@Protobuf.reserve list this emitter cannot read",
+    );
+  });
+
+  /** A model and an enum converge on one name the same way, across kinds. */
+  it("refuses a model and an enum that render to one name", async () => {
+    const diagnostics = await refusePayload(
+      `
+      ${PACKAGE}
+      namespace Render {
+        namespace Lower {
+          model status {
+            @Protobuf.field(1) a: string;
+          }
+        }
+
+        enum Status { Unknown: 0 }
+
+        @Protobuf.message
+        model Event {
+          @Protobuf.field(1) lowered: Lower.status;
+          @Protobuf.field(2) status: Status;
+        }
+      }
+    `,
+      "Event",
+    );
+
+    expect(findDiagnostic(diagnostics, "protobuf-artifact-unavailable").message).toContain(
+      "the name 'Status', which another declaration already takes",
+    );
+  });
+});
+
+/** The state key of `@Protobuf.field`, which the compiler builds this way. */
+const FIELD_INDEX_STATE = Symbol.for("@typespec/protobuf.fieldIndex");
+
+/** The state key of `@Protobuf.reserve`. */
+const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
+
+/** One model that reserves nothing, so a case writes the reservations itself. */
+const RESERVED_SOURCE = `
+  ${PACKAGE}
+  namespace Render;
+
+  @Protobuf.message
+  model Event {
+    @Protobuf.field(1) id: string;
+  }
+`;
+
+/**
+ * Finds the map instantiation one property of `Event` carries.
+ *
+ * @param program - The compiled program
+ * @param propertyName - The property that carries the map
+ * @returns The map instantiation
+ */
+function mapPropertyOf(program: Program, propertyName: string): Model {
+  const map = messageModelNamed(program, "Event").properties.get(propertyName)?.type;
+  if (map?.kind !== "Model") throw new Error(`The property '${propertyName}' is not a map.`);
+  return map;
+}
+
+/**
+ * Replaces the key type of a map with another type.
+ *
+ * The TypeSpec side constrains a map key to an integral or a string type, so
+ * a source cannot declare the shapes this stands for. Writing the type here
+ * stands in for a library that widened that constraint.
+ *
+ * @param program - The compiled program
+ * @param map - The map instantiation to re-key
+ * @param typeName - The qualified name of the type to key it with
+ */
+function replaceMapKey(program: Program, map: Model, typeName: string): void {
+  const [key] = program.resolveTypeReference(typeName);
+  if (key === undefined) throw new Error(`The program declares no type '${typeName}'.`);
+  const mapper = map.templateMapper;
+  if (mapper === undefined) throw new Error("The map carries no template arguments.");
+  Object.assign(mapper, { args: [key, mapper.args[1]] });
+}

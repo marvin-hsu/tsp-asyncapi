@@ -1,10 +1,18 @@
 import { DiagnosticSeverity, Parser } from "@asyncapi/parser";
 import type { Diagnostic, Input } from "@asyncapi/parser";
+import { ProtoBuffSchemaParser } from "@asyncapi/protobuf-schema-parser";
 
 /**
  * Shared parser instance. The parser is stateless between calls.
+ *
+ * The Protobuf schema parser is registered, so a payload with a Protobuf
+ * `schemaFormat` has its text parsed rather than passed through. Without it,
+ * such a payload only gets a structural check, and a proto text no consumer
+ * could decode still validates. The parser needs one root message per text,
+ * which is exactly the property the emitted documents must hold.
  */
 const parser = new Parser();
+parser.registerSchemaParser(ProtoBuffSchemaParser());
 
 /**
  * Human readable names for the severity scale of the parser.

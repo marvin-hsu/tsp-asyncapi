@@ -26,7 +26,24 @@
 
 export { asyncAPILinter } from "./linter.js";
 export { resolveService } from "./resolve/service.js";
+// `resolveService` takes an index of generated schemas. A consumer of this
+// entry point has to be able to name the argument it passes.
+export { emptySchemaArtifacts } from "./schema-artifacts.js";
+export type { ExternalSchemaArtifact, SchemaArtifactIndex } from "./schema-artifacts.js";
 export { BindingPlacements } from "./resolve/bindings.js";
+// The official Protobuf decorator state. The emitter renders payloads from
+// it, and a linter rule in this package asks whether a message carries those
+// decorators, so the readers live here rather than beside either caller.
+export {
+  isProtobufExternRef,
+  isProtobufMap,
+  listProtobufMessageModels,
+  protobufFieldIndexOf,
+  protobufReservationsOf,
+  protoMessageNameOf,
+  resolveProtobufPackage,
+} from "./protobuf-state.js";
+export type { ProtobufPackage, UnreadableProtobufPackage } from "./protobuf-state.js";
 export type {
   AsyncAPIService,
   BindingNode,

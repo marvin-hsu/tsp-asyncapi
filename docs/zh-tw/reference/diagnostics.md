@@ -598,6 +598,71 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 **修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
 
+### `conflicting-generated-schema-source`
+
+> Two preview features generate the \<slot\> schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
+
+有兩個[預覽功能](./emitter-options#預覽功能)為同一個 model 產生 schema，而且落在 message 的同一個 slot。slot 是 `payload` 或 `headers`。
+
+emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider 的順序，而那個順序不是專案講出來的。
+
+這時不會輸出文件。兩份 artifact 都被丟掉，model 會退回它的 TypeSpec 型別產生的 schema，那份文件等於用忽略請求的內容回答請求。
+
+**修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除其中一個名稱。
+
+### `preview-feature-unavailable`
+
+> The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
+
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。目前只有 `avro` 還沒有實作，所以只有這個名稱會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+
+不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
+
+**修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除該名稱。
+
+### `protobuf-artifact-unavailable`
+
+> Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
+
+> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
+
+> Scalar '\<scalar\>' has no proto3 type, and no scalar it extends has one either. So model '\<name\>' of package '\<package\>' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.
+
+三種問題會回報這個代碼，訊息會指出是哪一種：model 上層沒有 package、model 走到寫不成 proto3 的構造、欄位用了對映不到 proto3 型別的 scalar。
+
+第二種訊息會指出它停在哪個構造。這個 emitter 寫的是單一 payload 的 proto3 文字，那份文字不含 `import` 行。在那裡沒有誠實形式的構造一律拒絕：
+
+- union，以及其他 proto3 沒有對應形式的屬性型別
+- 匿名 model
+- template 實例
+- 帶 `@Protobuf.externRef` 的型別，包含 well known 型別
+- 沒有 `@Protobuf.field` 編號的屬性
+- `Protobuf.Map` 的陣列，proto3 沒有這種形式
+- 巢狀在其他型別裡的 `Protobuf.Map`，例如另一個 map 的值
+- 用 proto3 不能當 map key 的型別當 key 的 `Protobuf.Map`
+- 值是陣列的 `Protobuf.Map`，因為 map 的值不帶 label
+- 沒有 key 和 value 的 `Protobuf.Map`
+- 傳進值而不是型別的 `Protobuf.Map`
+- 屬於其他 Protobuf package 的 model 或 enum
+- 沒有任何 `@Protobuf.package` 涵蓋的 model 或 enum
+- 名稱已被同一份 payload 的另一個宣告佔用的 model 或 enum
+- 第一個變體不是零的 enum
+- 有非整數變體的 enum
+- 這個 emitter 讀不懂的 `@Protobuf.package` 宣告
+- 這個 emitter 讀不懂的 `@Protobuf.reserve` 列表
+
+其中四項指的是這個 emitter 讀不懂的 state：沒有 key 和 value 的 `Protobuf.Map`、傳進值而不是型別的 `Protobuf.Map`、`@Protobuf.package` 宣告，以及 `@Protobuf.reserve` 列表。那些 state 屬於另一個 library，那個 library 對它的形狀沒有任何承諾。遇到讀不懂的形狀就拒絕，不猜：猜錯會把錯的 proto3 文字寫進文件，而且不會有任何地方講出來。
+
+第三種訊息會指出是哪個 scalar。這個 emitter 對映 Protobuf library 對映的那 15 個 scalar。其中九個是 TypeSpec 內建的 scalar，六個來自 Protobuf library。它也會沿著自訂 scalar 的 extends 鏈往上找。整條鏈都碰不到那 15 個的 scalar，沒有型別可寫。
+
+只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
+
+`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
+
+model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。這個 emitter 讀 decorator state，所以改名過的 package 以它宣告的名稱比對。
+
+**修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`。另外兩種訊息則改寫訊息指名的型別，或從該 model 移除 `@Protobuf.message`。
+
 ## 警告
 
 ### `duplicate-channel-address`
@@ -921,3 +986,13 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 這一則是警告，因為 emitter 會自行復原。它只丟掉該欄位，其餘欄位照常輸出。其他 binding 診斷是錯誤，因為它們丟掉整個 binding。
 
 **修法：** 依訊息指出的範圍填值。
+
+### `conflicting-message-schema-source`
+
+> This message carries a payload written with @rawPayload, and the preview feature '\<provider\>' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '\<provider\>' off in `preview-features` in `tspconfig.yaml`.
+
+model 上有 `@rawPayload`，同時又有[預覽功能](./emitter-options#預覽功能)為它產生 payload schema。
+
+手寫的那份勝出。它是兩者中明示的一份，被產生的 schema 蓋掉會讓作者寫的內容從文件中消失。
+
+**修法：** 從 model 移除 `@rawPayload` 以改用產生的 schema，或從 `preview-features` 移除該功能以繼續手寫 payload。

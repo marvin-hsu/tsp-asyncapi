@@ -27,7 +27,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-parameter-location");
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
@@ -55,7 +55,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(diagnostics).toEqual([]);
     expect(resolveParameters(doc, doc.channels?.["orders.{region}.{tenant}"].parameters)).toEqual({
@@ -80,7 +80,7 @@ describe("Unit: Channel parameters: @parameterLocation (Phase 4.3)", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     // The normative JSON Schema of AsyncAPI requires the `#`, and the
     // official parser rejects a document without it.

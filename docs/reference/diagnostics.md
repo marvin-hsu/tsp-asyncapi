@@ -598,6 +598,76 @@ Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` 
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
 
+### `conflicting-generated-schema-source`
+
+> Two preview features generate the \<slot\> schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
+
+Two [preview features](./emitter-options#preview-features) both generated a schema for one model, and both for the same slot of the message. The slot is `payload` or `headers`.
+
+The emitter picks neither. A winner would be the order the emitter lists its providers in, and that order is not something a project states.
+
+No document is written. Both artifacts are gone, so the model would fall back to the schema its TypeSpec type produces, and that file would answer the request with output that ignores it.
+
+**Fix:** Remove one of the two names from `preview-features` in `tspconfig.yaml`.
+
+### `preview-feature-unavailable`
+
+> The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
+
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Only `avro` has no provider, so only that name reports this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
+
+No file is written. A document emitted next to this error would ignore the request without saying so.
+
+**Fix:** Remove the name from `preview-features` in `tspconfig.yaml`.
+
+### `protobuf-artifact-unavailable`
+
+> Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
+
+> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
+
+> Scalar '\<scalar\>' has no proto3 type, and no scalar it extends has one either. So model '\<name\>' of package '\<package\>' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.
+
+Three problems report this code, and the message names which one it is. The model has no package above it. The model reaches a construct this emitter cannot write as proto3. A field uses a scalar that maps to no proto3 type.
+
+The second message names the construct it stopped at. This emitter writes the proto3 text of one payload, and that text carries no `import` line. It refuses every construct that has no honest form there:
+
+- a union, or any other property type proto3 has no form for
+- an anonymous model
+- a template instantiation
+- a type that carries `@Protobuf.externRef`, which includes the well known types
+- a property with no `@Protobuf.field` number
+- an array of `Protobuf.Map` values, which proto3 has no form for
+- a `Protobuf.Map` inside another type, such as the value of another map
+- a `Protobuf.Map` keyed by a type proto3 cannot key a map with
+- a `Protobuf.Map` whose value is an array, because a map value takes no label
+- a `Protobuf.Map` with no key and value
+- a `Protobuf.Map` of values, not types
+- a model or enum of another Protobuf package
+- a model or enum that no `@Protobuf.package` covers
+- a model or enum whose name another declaration of the payload already takes
+- an enum whose first variant is not zero
+- an enum with a variant that is not an integer
+- a `@Protobuf.package` declaration this emitter cannot read
+- a `@Protobuf.reserve` list this emitter cannot read
+
+Four entries name state this emitter cannot read. They are the `Protobuf.Map`
+with no key and value, the `Protobuf.Map` of values, the `@Protobuf.package`
+declaration, and the `@Protobuf.reserve` list. That state belongs to another
+library, and that library promises nothing about the shape of it. A shape this
+emitter does not know is refused rather than guessed at. A guess would put
+wrong proto3 text in the document and say so nowhere.
+
+The third message names the scalar. This emitter maps the 15 scalars the Protobuf library maps. Nine of them are built in TypeSpec scalars, and six come from the Protobuf library. It also follows the chain a custom scalar extends. A scalar whose chain reaches none of the 15 has no type to write.
+
+A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
+
+The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
+
+The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. This emitter reads the decorator state, so a renamed package is matched by the name it declares.
+
+**Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
+
 ## Warnings
 
 ### `duplicate-channel-address`
@@ -735,8 +805,6 @@ The `scopes` of an `oauth2` or an `openIdConnect` scheme holds an entry that is 
 `@useSecurity` names a scheme that the program never declares. The entry on a server is a reference into `components.securitySchemes`, so the reference would address a key the document does not carry.
 
 **Fix:** Add a `@securityScheme` with this name, or correct the name in the `@useSecurity`.
-
-> > > > > > > d5286af (feat(servers): add server variables, security schemes and externalDocs)
 
 ### `message-key-shadows-schema-key`
 
@@ -923,3 +991,13 @@ One field carries a value the binding specification forbids. The Kafka binding r
 This is a warning because the emitter recovers. It drops the one field and emits the rest of the binding. The other binding codes are errors, because each of them drops a whole binding.
 
 **Fix:** give the field a value the message names.
+
+### `conflicting-message-schema-source`
+
+> This message carries a payload written with @rawPayload, and the preview feature '\<provider\>' generated one for it too. The authored schema is the explicit statement of the two, so the document carries it and the generated one was dropped. Remove @rawPayload from this model, or turn '\<provider\>' off in `preview-features` in `tspconfig.yaml`.
+
+A model carries `@rawPayload` and a [preview feature](./emitter-options#preview-features) generated a payload schema for it as well.
+
+The authored schema wins. It is the explicit statement of the two, and a generated schema that replaced it would leave the author's own text out of the document.
+
+**Fix:** remove `@rawPayload` from the model to take the generated schema, or remove the feature from `preview-features` to keep writing the payload by hand.

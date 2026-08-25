@@ -145,7 +145,7 @@ describe("Unit: Builders (Phase 1)", () => {
         namespace Root {}
       `);
       const services = listServices(runner.program);
-      const doc = buildAsyncAPIDocument(runner.program, services[0], {
+      const doc = await buildAsyncAPIDocument(runner.program, services[0], {
         "asyncapi-id": "urn:test",
         "default-content-type": "application/json",
       });
@@ -158,7 +158,7 @@ describe("Unit: Builders (Phase 1)", () => {
 
     it("should generate fallback document when no service provided", async () => {
       await runner.compile(``);
-      const doc = documentFrom(runner.program);
+      const doc = await documentFrom(runner.program);
 
       expect(doc.asyncapi).toBe("3.1.0");
       expect(doc.info.title).toBe("AsyncAPI Document");

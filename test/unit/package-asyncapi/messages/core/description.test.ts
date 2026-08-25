@@ -25,7 +25,7 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     expect(doc.components?.messages?.["order.created"]).toEqual({
       name: "order.created",
@@ -47,7 +47,7 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
 
     const message = doc.components?.messages?.OrderCreated ?? {};
     // A field with no source is absent, rather than present and empty.
@@ -79,7 +79,7 @@ describe("Unit: Messages — description fields", () => {
     // Decorators run bottom-up, so the one written last in the source is the
     // one that reaches the state first, and it keeps the message. This is the
     // same winner @message, @headers, and @correlationId keep.
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.contentType).toBe("application/avro");
   });
 
@@ -101,7 +101,7 @@ describe("Unit: Messages — description fields", () => {
 
     // The message falls back to the document `defaultContentType`. The user
     // typed the empty string, so that fallback must not be silent.
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "contentType")).toBe(false);
   });
 
@@ -126,7 +126,7 @@ describe("Unit: Messages — description fields", () => {
     expect(diagnosticsWith(diagnostics, "empty-content-type")).toHaveLength(1);
     expect(diagnosticsWith(diagnostics, "duplicate-content-type-decorator")).toHaveLength(1);
 
-    const doc = documentFrom(runner.program);
+    const doc = await documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "contentType")).toBe(false);
   });
 
@@ -146,7 +146,7 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    documentFrom(runner.program);
+    await documentFrom(runner.program);
 
     // The empty value never reaches the document, so it is not a second
     // source of the content type. Only the empty value itself is reported.
