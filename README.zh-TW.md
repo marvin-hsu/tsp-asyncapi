@@ -172,7 +172,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 ## 範例
 
-[`examples/`](./examples/) 底下有十七個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的輸出。其中十六個產生 AsyncAPI 文件，本 library 實作的每個通訊協定都至少出現在其中一個。第十七個產生 Avro schema 檔案。
+[`examples/`](./examples/) 底下有十八個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的輸出。其中十七個產生 AsyncAPI 文件，本 library 實作的每個通訊協定都至少出現在其中一個。另一個只產生 Avro schema 檔案。
 
 各範例的內容見[範例頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/examples)。
 
@@ -181,6 +181,8 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 這個 repository 另外收了 [`tsp-avro`](./packages/tsp-avro/)。它是一個實驗性的 library 與 emitter，寫出 Apache Avro schema 檔案。它尚未進入 1.0，介面可能在任何一次發佈中改變。
 
 它與 AsyncAPI emitter 互相獨立。它宣告自己的 decorator，不需要任何 AsyncAPI decorator。它寫出什麼見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
+
+本 emitter 的 `avro` 預覽功能呼叫同一個套件。帶著 `` @Avro.`record` `` 的 model 會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
 
 ## Emitter 選項
 
@@ -267,7 +269,7 @@ linter:
 | 計劃項目                               | 目前的狀態                                                                                                                                                                  | 說明                                                                                                                                                                                                                     |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 對官方 `@typespec/protobuf` 的一級支援 | 預覽功能，預設關閉。用 `preview-features: ["protobuf"]` 開啟。開啟後，帶官方 decorator 的 model 會拿到 proto3 payload。這個 emitter 自己讀 decorator state 並產生那段文字。 | 預覽表示選項、payload 與診斷都可能在次版本更動。外部參照、template 實例與 union 一律拒絕，不做勉強的翻譯。它寫出什麼見[Protobuf payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/protobuf-payloads)。 |
-| 新增 Avro emitter                      | Avro 目前只能用 `@rawPayload` 手寫進文件。沒有任何東西能從 TypeSpec model 產生 Avro schema。                                                                                | 獨立套件。AsyncAPI emitter 會把該套件的產出內嵌進 message。                                                                                                                                                              |
+| 對 Avro 的一級支援                     | 預覽功能，預設關閉。用 `preview-features: ["avro"]` 開啟。開啟後，帶 `tsp-avro` decorator 的 model 會拿到 Avro schema 當作 payload。這個 emitter 呼叫該套件既有的走訪。     | 預覽表示選項、payload 與診斷都可能在次版本更動。`tsp-avro` 尚未進入 1.0，而且是選用的 peer dependency。它寫出什麼見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。           |
 
 ### 等使用情境
 

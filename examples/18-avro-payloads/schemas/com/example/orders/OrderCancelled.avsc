@@ -1,0 +1,71 @@
+{
+  "type": "record",
+  "name": "OrderCancelled",
+  "namespace": "com.example.orders",
+  "doc": "One order the customer or the warehouse called off.",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      },
+      "doc": "The identifier of the order."
+    },
+    {
+      "name": "cancelledAt",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "When the order was called off."
+    },
+    {
+      "name": "reason",
+      "type": {
+        "type": "enum",
+        "name": "CancellationReason",
+        "namespace": "com.example.orders",
+        "doc": "Why an order was called off.",
+        "symbols": [
+          "Unknown",
+          "OutOfStock",
+          "CustomerAsked",
+          "PaymentFailed"
+        ],
+        "default": "Unknown"
+      },
+      "doc": "Why it was called off."
+    },
+    {
+      "name": "returnTo",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "Address",
+          "namespace": "com.example.orders",
+          "doc": "Where an order goes.",
+          "fields": [
+            {
+              "name": "line1",
+              "type": "string",
+              "doc": "The street and the number."
+            },
+            {
+              "name": "city",
+              "type": "string"
+            },
+            {
+              "name": "country",
+              "type": "string",
+              "doc": "The ISO 3166-1 alpha-2 code of the country."
+            }
+          ]
+        }
+      ],
+      "doc": "Where the refunded goods go back to, when there are any.",
+      "default": null
+    }
+  ]
+}

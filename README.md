@@ -172,7 +172,7 @@ An operation refers to a message through its channel, never through `components.
 
 ## Examples
 
-Seventeen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the output an emitter wrote from it. Sixteen of them write an AsyncAPI document, and every protocol this library implements appears in at least one. The seventeenth writes Avro schema files.
+Eighteen worked examples live in [`examples/`](./examples/), each with its TypeSpec source and the output an emitter wrote from it. Seventeen of them write an AsyncAPI document, and every protocol this library implements appears in at least one. The other one writes Avro schema files alone.
 
 The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) says what each one shows.
 
@@ -181,6 +181,8 @@ The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) sa
 This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experimental library and emitter that writes Apache Avro schema files. It is pre-1.0, and its surface can change in any release.
 
 It is independent of the AsyncAPI emitter. It declares its own decorators, and it needs no AsyncAPI decorator. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says what it emits.
+
+The `avro` preview feature of this emitter calls the same library. A model that carries `` @Avro.`record` `` then gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says how to turn that on.
 
 ## Emitter options
 
@@ -277,7 +279,7 @@ is named.
 | Planned work                                 | What it means today                                                                                                                                                                                                               | Notes                                                                                                                                                                                                                                                                                                     |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | First-class support for `@typespec/protobuf` | A preview feature, off by default. Turn it on with `preview-features: ["protobuf"]`. A model that carries the official decorators then gets a proto3 payload. This emitter reads the decorator state and renders the text itself. | Preview means the option, the payload and the diagnostics can change in a minor release. An external reference, a template instance and a union are refused rather than translated. The [Protobuf payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/protobuf-payloads) says what it writes. |
-| An Avro emitter                              | Avro reaches the document through `@rawPayload`, written by hand. Nothing builds an Avro schema from a TypeSpec model.                                                                                                            | A separate package. The AsyncAPI emitter inlines what that package writes.                                                                                                                                                                                                                                |
+| First-class support for Avro                 | A preview feature, off by default. Turn it on with `preview-features: ["avro"]`. A model that carries the `tsp-avro` decorators then gets an Avro schema as its payload. This emitter calls the walk that library already has.    | Preview means the option, the payload and the diagnostics can change in a minor release. `tsp-avro` is pre-1.0, and it is an optional peer dependency. The [Avro payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says what it writes.                                      |
 
 ### Waiting for a use case
 

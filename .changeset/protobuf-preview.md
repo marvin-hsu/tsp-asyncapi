@@ -7,9 +7,9 @@ Generate proto3 payloads from the official Protobuf decorators, behind a preview
 
 A new emitter option, `preview-features`, turns on a feature that changes the
 emitted document. It takes an array of reserved names. Two names are reserved:
-`protobuf` and `avro`. Only `protobuf` works in this release. A request for a
-reserved name with nothing behind it reports `preview-feature-unavailable`, and
-no file is written.
+`protobuf` and `avro`. This entry covers `protobuf`, and `avro` has an entry of
+its own. A request for a reserved name with nothing behind it reports
+`preview-feature-unavailable`, and no file is written.
 
 With `protobuf` on, a model that carries the official `TypeSpec.Protobuf`
 decorators gets proto3 text as its AsyncAPI payload. This emitter reads the
