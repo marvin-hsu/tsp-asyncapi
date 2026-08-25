@@ -5,6 +5,9 @@
   "workspaces": {
     "packages/tsp-asyncapi-core": {
       "entry": ["src/tsp-index.ts!"]
+    },
+    "packages/tsp-asyncapi": {
+      "ignoreDependencies": ["@typespec/protobuf"]
     }
   }
 }

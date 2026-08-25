@@ -20,6 +20,7 @@
 import {
   getFriendlyName,
   isTemplateInstance,
+  type Enum,
   type Model,
   type Namespace,
   type Program,
@@ -100,7 +101,8 @@ const UNREADABLE = Symbol("unreadable package details");
  * emitter follows, so an inner package wins over an outer one.
  *
  * @param program - The compiled program
- * @param model - A model that carries `@Protobuf.message`
+ * @param type - A declaration the walk reached. An enum belongs to a package
+ *   the same way a model does, so both are read here.
  * @returns The nearest package, that package marked unreadable when its
  *   details have an unknown shape, or `undefined` when no namespace declares
  *   one
@@ -108,10 +110,10 @@ const UNREADABLE = Symbol("unreadable package details");
  */
 export function resolveProtobufPackage(
   program: Program,
-  model: Model,
+  type: Model | Enum,
 ): ProtobufPackage | UnreadableProtobufPackage | undefined {
   const packages = program.stateMap(PACKAGE_STATE);
-  let namespace = model.namespace;
+  let namespace = type.namespace;
   while (namespace !== undefined) {
     if (packages.has(namespace)) {
       const name = packageNameOf(packages.get(namespace));

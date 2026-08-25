@@ -78,6 +78,7 @@
     "knip": "^6.32.2",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
+    "protobufjs": "^8.7.2",
     "tsp-asyncapi": "workspace:*",
     "tsp-asyncapi-core": "workspace:*",
     "typescript": "^6.0.3",
