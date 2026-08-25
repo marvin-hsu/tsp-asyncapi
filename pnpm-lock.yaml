@@ -219,6 +219,9 @@ importers:
       '@asyncapi/protobuf-schema-parser':
         specifier: ^3.9.0
         version: 3.9.0
+      '@changesets/changelog-git':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@changesets/cli':
         specifier: ^3.0.1
         version: 3.0.1

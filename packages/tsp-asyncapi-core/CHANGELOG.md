@@ -1,11 +1,5 @@
 # Changelog
 
-This package follows [semantic versioning](https://semver.org/). It is still in
-`0.x`, so a minor release may carry a breaking change. Any that does says so at
-the top of its entry.
-
-The Traditional Chinese version is [CHANGELOG.zh-TW.md](./CHANGELOG.zh-TW.md).
-
 ## 0.1.1
 
 Exports `PACKAGE_NAME`. It was defined here and used by the test host, and both

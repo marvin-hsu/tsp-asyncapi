@@ -201,8 +201,20 @@ const VERSION_PAGES = [
   ...DIAGNOSTIC_PAGES,
   "README.md",
   "README.zh-TW.md",
-  ".changeset/avro-emitter.md",
+  // The changeset that describes the Avro feature. The library itself carries
+  // no changeset while its first release is unpublished, so the page that
+  // speaks for it is the one the emitter's release brings.
+  ".changeset/avro-preview.md",
 ] as const;
+
+/**
+ * Pages that must carry the notice but may name a version.
+ *
+ * A changelog names versions; that is what it is for. It still has to say the
+ * package is experimental, because a reader who arrives at the entry for the
+ * first release learns it there.
+ */
+const NOTICE_PAGES = [...VERSION_PAGES, "packages/tsp-avro/CHANGELOG.md"] as const;
 
 /** The version the package declares, read as the pages would have to. */
 function declaredVersion(): string {
@@ -229,7 +241,7 @@ describe("Integration: the Avro experimental notice", () => {
   });
 
   /** Dropping the version must not drop the notice it sat inside. */
-  it.each(VERSION_PAGES)("%s still calls the package experimental", (page) => {
+  it.each(NOTICE_PAGES)("%s still calls the package experimental", (page) => {
     const text = readFileSync(new URL(page, ROOT), "utf8");
 
     expect(/experimental|實驗性/i.test(text), `${page} carries no experimental notice`).toBe(true);

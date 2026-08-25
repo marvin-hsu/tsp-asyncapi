@@ -128,15 +128,18 @@ describe("Unit: Avro run time independence", () => {
       const bump = bumpOf(await readFile(new URL(name, changesets), "utf8"), "tsp-avro");
       if (bump !== undefined) bumps.push(bump);
     }
-    // A run that read no changeset would agree with every range.
-    expect(bumps.length).toBeGreaterThan(0);
-
+    // The library carries no changeset of its own while its first release is
+    // still unpublished, so the version it publishes is the version in the
+    // manifest. A changeset for it later moves that version, and the range
+    // has to follow. Both cases are read here, so neither is a surprise.
+    //
     // Changesets applies the strongest release type of the set, once.
-    const strongest = bumps.reduce(
-      (held, bump) => (BUMP_ORDER.indexOf(bump) > BUMP_ORDER.indexOf(held) ? bump : held),
-      "patch",
+    const strongest = bumps.reduce<string | undefined>(
+      (held, bump) =>
+        held === undefined || BUMP_ORDER.indexOf(bump) > BUMP_ORDER.indexOf(held) ? bump : held,
+      undefined,
     );
-    const release = bumped(library.version, strongest);
+    const release = strongest === undefined ? library.version : bumped(library.version, strongest);
 
     const range = manifest.peerDependencies["tsp-avro"];
     expect(range).toMatch(/^\d+\.\d+\.x$/);
