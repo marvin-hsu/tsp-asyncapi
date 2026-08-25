@@ -21,7 +21,7 @@ import type { Model, Program } from "@typespec/compiler";
 import type { AvroRecord } from "#avro/types.js";
 import { AvroTester } from "#avro/testing.js";
 import { listRecords } from "#avro/decorators/record.js";
-import { buildAvroRecord } from "#avro/walk/model.js";
+import { buildAvroRecord, refusalWithReason } from "#avro/walk/model.js";
 import { renderAvroFile } from "#avro/render.js";
 import { buildAvroRecordWithDiagnostics, renderAvroSchema } from "#avro/unstable.js";
 
@@ -150,13 +150,77 @@ describe("the rendered schema an embedding caller gets", () => {
     expectNoUndefined(rendered, "schema");
   });
 
+  it("writes the members in the order the Avro specification names them", async () => {
+    const rendered = renderAvroSchema(await acceptedRecord());
+
+    // The order is the reason this function exists. The walk builds its
+    // objects in whatever order its code runs, so the keys are pinned here
+    // rather than read back off the value under test.
+    expect(Object.keys(rendered as object)).toEqual(["type", "name", "namespace", "fields"]);
+    expect(rendered).toEqual({
+      type: "record",
+      name: "OrderPlaced",
+      namespace: "com.example.orders",
+      fields: [
+        { name: "id", type: "string" },
+        { name: "note", type: ["null", "string"], default: null },
+      ],
+    });
+  });
+
   it("is what the file is written from", async () => {
     const record = await acceptedRecord();
 
-    // The file is the rendered value and nothing else, so promoting the
-    // renderer cannot move a byte of an `.avsc` file.
+    // The bytes are spelled out rather than rebuilt from the value under
+    // test. A rebuilt expectation moves whenever the renderer moves, so it
+    // would pass through the one change this test exists to catch:
+    // promoting the renderer must not move a byte of an `.avsc` file.
     expect(renderAvroFile(record)).toBe(
-      `${JSON.stringify(renderAvroSchema(record), undefined, 2)}\n`,
+      `{
+  "type": "record",
+  "name": "OrderPlaced",
+  "namespace": "com.example.orders",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "note",
+      "type": [
+        "null",
+        "string"
+      ],
+      "default": null
+    }
+  ]
+}
+`,
     );
+  });
+});
+
+describe("the reason a refusal carries", () => {
+  it("is built even when the walk collected none", async () => {
+    const { model } = await compileOneRecord(ACCEPTED);
+
+    // The walk answers with a type wider than a record, so the final guard
+    // drops anything that is not one. Three of its four conditions collect
+    // nothing on the way, and a caller that reads the first reason would
+    // then find no reason at all.
+    const reasons = refusalWithReason(model, []);
+
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0].code).toBe("tsp-avro/unsupported-type");
+    expect(reasons[0].message).toContain("OrderPlaced");
+  });
+
+  it("is the reason the walk collected, when it collected one", async () => {
+    const { program, model } = await compileOneRecord(REFUSED);
+
+    const [, collected] = buildAvroRecordWithDiagnostics(program, model);
+
+    expect(collected).toHaveLength(1);
+    expect(refusalWithReason(model, [...collected])).toEqual(collected);
   });
 });

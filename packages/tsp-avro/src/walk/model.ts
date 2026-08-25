@@ -119,10 +119,13 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
  * report the same refusal, and the author would read it twice. So the caller
  * takes the reason and says it under its own name.
  *
+ * A refusal always carries at least one reason, so a caller can say why
+ * without a fallback of its own.
+ *
  * @param program - The program the model belongs to
  * @param model - The marked model
  * @returns The schema, or undefined when the walk refused any part of it, and
- *   every diagnostic the walk built
+ *   at least one diagnostic in that case
  *
  * @internal
  */
@@ -167,9 +170,38 @@ export function buildAvroRecordWithDiagnostics(
     // The check stands because the walk answers with the wider type, and a
     // guess about which member came back is the kind of thing that stops being
     // true later.
-    return [undefined, diagnostics];
+    return [undefined, refusalWithReason(model, diagnostics)];
   }
   return [schema, diagnostics];
+}
+
+/**
+ * Makes sure a refusal carries a reason.
+ *
+ * Only one of the four conditions that drop a record collects a diagnostic on
+ * the way there. The other three read the type the walk answered with, and
+ * they say nothing. A caller reads the first reason and says it under its own
+ * name, so an empty list would leave an author with a payload missing from a
+ * document and no word about why.
+ *
+ * @param model - The model the walk was asked for
+ * @param diagnostics - What the walk collected, which this may add to
+ * @returns The reasons, never empty
+ *
+ * @internal
+ */
+export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): readonly Diagnostic[] {
+  if (diagnostics.length === 0) {
+    diagnostics.push(
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "notRecord",
+        format: { name: model.name },
+        target: model,
+      }),
+    );
+  }
+  return diagnostics;
 }
 
 /**
