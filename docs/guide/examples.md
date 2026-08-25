@@ -28,6 +28,7 @@ The output is committed, so you can read an input and its output side by side wi
 | [Enterprise brokers](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/13-enterprise-brokers)             | AMQP, JMS, IBM MQ and Anypoint MQ describing one destination four ways.                                                             |
 | [Streaming platforms](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/14-streaming-platforms)           | NATS, Pulsar, Google Cloud Pub/Sub and Solace, and the fields each one requires.                                                    |
 | [Specification extensions](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions) | The `x-` fields the specification leaves to the author, on all four objects that take one.                                          |
+| [Protobuf payloads](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)               | Two Protobuf packages over RabbitMQ, with the `.proto` files emitted next to the document.                                          |
 
 ## Running one
 

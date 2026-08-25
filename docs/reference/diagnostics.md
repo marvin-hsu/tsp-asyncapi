@@ -614,7 +614,7 @@ No document is written. Both artifacts are gone, so the model would fall back to
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Neither has a provider yet, so both names report this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Only `avro` has no provider, so only that name reports this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
 
 No file is written. A document emitted next to this error would ignore the request without saying so.
 
@@ -662,7 +662,7 @@ The third message names the scalar. This emitter maps the 15 scalars the Protobu
 
 A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
 
-The `protobuf` preview feature reports this while it collects generated payloads. That feature has no provider in this release, so nothing reports this code yet. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
+The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
 
 The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. This emitter reads the decorator state, so a renamed package is matched by the name it declares.
 

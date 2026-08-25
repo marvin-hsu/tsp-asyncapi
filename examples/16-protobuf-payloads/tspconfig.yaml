@@ -1,0 +1,25 @@
+# This example runs two emitters over one source. The AsyncAPI document and
+# the `.proto` file are both written from the same models.
+emit:
+  - "tsp-asyncapi"
+  - "@typespec/protobuf"
+
+options:
+  "tsp-asyncapi":
+    # Where the emitted file is written. The default buries it in
+    # `tsp-output/tsp-asyncapi/`. `{project-root}` puts it next to
+    # `main.tsp`, so the one file a reader came to see is in plain sight.
+    emitter-output-dir: "{project-root}"
+    # `yaml` or `json`. The default is `yaml`.
+    file-type: "yaml"
+    # The name of the emitted file. The default is `asyncapi.yaml` or
+    # `asyncapi.json`, depending on `file-type`.
+    output-file: "asyncapi.yaml"
+    # Turns the Protobuf preview feature on. Without this line the models
+    # below lower to JSON Schema, and the official decorators change nothing
+    # in the AsyncAPI document.
+    preview-features: ["protobuf"]
+  "@typespec/protobuf":
+    # The official emitter writes one file per package. This puts them in
+    # `proto/` next to `main.tsp`.
+    emitter-output-dir: "{project-root}/proto"

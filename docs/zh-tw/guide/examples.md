@@ -28,6 +28,7 @@ description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/
 | [Enterprise brokers](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/13-enterprise-brokers)           | AMQP、JMS、IBM MQ 與 Anypoint MQ 用四種方式描述同一個目的地。                   |
 | [Streaming platforms](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/14-streaming-platforms)         | NATS、Pulsar、Google Cloud Pub/Sub 與 Solace，以及各自的必填欄位。              |
 | [規格擴充](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/15-specification-extensions)               | 規格留給作者自己填的 `x-` 欄位，四種能承載它的物件各一例。                      |
+| [Protobuf payload](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)              | 兩個 Protobuf package 走 RabbitMQ，`.proto` 檔案與文件一起輸出。                |
 
 ## 執行其中一個
 

@@ -614,7 +614,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。兩者目前都還沒有實作，所以兩個名稱都會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。目前只有 `avro` 還沒有實作，所以只有這個名稱會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
 
 不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
 
@@ -657,7 +657,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 只帶 `@Protobuf.message`、沒有 `@AsyncAPI.message` 的 model 不會收到任何診斷。它沒有要求 payload，所以拿官方 decorator 描述其他型別的專案不會因此建置失敗。
 
-`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。這個版本還沒有它的 provider，所以目前不會有任何地方回報這個代碼。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
+`protobuf` 預覽功能在收集產生的 payload 時回報這條診斷。被指名的 model 拿不到產生的 payload。emitter 回報問題，不寫出空的 payload，因為空 payload 讀起來像一份什麼都沒描述的 schema。
 
 model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 namespace 決定。這個 emitter 讀 decorator state，所以改名過的 package 以它宣告的名稱比對。
 

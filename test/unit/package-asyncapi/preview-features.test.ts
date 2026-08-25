@@ -22,10 +22,9 @@ const SOURCE = `
 /**
  * The `preview-features` option, and which of the reserved names work.
  *
- * No reserved name has a provider yet. `protobuf` is the one a provider is
- * being built for, and `avro` is reserved on the same terms. Both are refused
- * today, and the refusal has to hold until the provider lands: a request the
- * emitter cannot answer must never produce a document.
+ * `protobuf` has a provider and is honored. `avro` is reserved on the same
+ * terms and has none, so it is refused: a request the emitter cannot answer
+ * must never produce a document.
  *
  * The source below carries no Protobuf decorator. The cases here are about the
  * option itself, not about what a provider generates.
@@ -44,20 +43,17 @@ describe("Unit: preview-features", () => {
   });
 
   /**
-   * `protobuf` is refused while no provider is registered for it. The name is
-   * reserved and the option schema accepts it, so the refusal is the only
-   * thing that stops a document from being written as if the request had
-   * been honored. This case flips when the provider lands.
+   * `protobuf` has a provider, so the request is honored. A source with no
+   * Protobuf decorator gives that provider nothing to answer for, and the
+   * document is the one the same source produces with the feature off.
    */
-  it("refuses protobuf while no provider is registered for it", async () => {
+  it("honors protobuf and leaves a source without its decorators alone", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["protobuf"],
     });
 
-    const reported = findDiagnostic(diagnostics, "preview-feature-unavailable");
-    expect(reported.severity).toBe("error");
-    expect(reported.message).toContain("protobuf");
-    expect(doc).toBeNull();
+    expect(diagnosticsWith(diagnostics, "preview-feature-unavailable")).toEqual([]);
+    expect(doc).toStrictEqual(await emitDocument(SOURCE));
   });
 
   /**
@@ -92,17 +88,17 @@ describe("Unit: preview-features", () => {
   });
 
   /**
-   * Every refused name is reported, and one request with two refused names
-   * writes nothing. A project reads both answers from one compile.
+   * One available name and one refused name is still a request the document
+   * cannot answer. So the whole request is refused, and only the name with no
+   * provider behind it is reported.
    */
-  it("refuses the whole request and names each refused feature", async () => {
+  it("refuses the whole request when one of two features has no provider", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["protobuf", "avro"],
     });
 
     const reported = diagnosticsWith(diagnostics, "preview-feature-unavailable");
     expect(reported.map((diagnostic) => diagnostic.message)).toEqual([
-      expect.stringContaining("protobuf"),
       expect.stringContaining("avro"),
     ]);
     expect(doc).toBeNull();
