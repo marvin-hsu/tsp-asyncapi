@@ -13,3 +13,22 @@ export { $onEmit } from "./emitter.js";
 export { $lib, PACKAGE_NAME } from "./lib.js";
 
 export type { AvroEmitterOptions } from "./lib.js";
+
+export {
+  $namespace,
+  $record,
+  getAvroNamespace,
+  isRecord,
+  listRecords,
+  resolveAvroNamespace,
+} from "./decorators/index.js";
+
+export type {
+  AvroArray,
+  AvroEnum,
+  AvroField,
+  AvroMap,
+  AvroPrimitiveName,
+  AvroRecord,
+  AvroSchema,
+} from "./types.js";

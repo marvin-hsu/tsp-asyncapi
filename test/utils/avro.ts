@@ -1,0 +1,196 @@
+/**
+ * The Avro test harness.
+ *
+ * It does two things. It compiles a source with the Avro emitter and hands
+ * back the files that emitter wrote. And it runs each file past `avsc`, the
+ * reference Avro implementation, in the two ways that implementation can
+ * actually judge a schema.
+ *
+ * The two ways are acceptance and instance round trip. Acceptance proves the
+ * schema is legal Avro: `Type.forSchema` builds a type, or it throws. Round
+ * trip proves the schema is usable: a random instance of the type survives an
+ * encode and a decode. Round trip is the layer worth having, because a schema
+ * can be legal and still describe nothing anyone can write.
+ *
+ * There is no third way. `Type.schema()` looks like a normalizer and is not
+ * one: it drops `logicalType`, and it folds the namespace into the name. A
+ * test that used it as the expected value would push this package to emit the
+ * wrong shape. `avsc` also accepts a logical type nobody has ever defined. So
+ * the namespace shape, the key order and every logical type are pinned by
+ * hand written expected values instead, in the tests that own them.
+ */
+
+import avro from "avsc";
+import { expect } from "vitest";
+import { AvroTester } from "#avro/testing.js";
+import { $onEmit } from "#avro/emitter.js";
+import type { AvroEmitterOptions } from "#avro/lib.js";
+import type { Diagnostic, EmitContext } from "@typespec/compiler";
+
+/**
+ * What one compile produced.
+ */
+export interface AvroEmitResult {
+  /** Every file the emitter wrote, by path relative to the output directory. */
+  readonly files: Record<string, unknown>;
+  /** The raw text of every file, by the same path. */
+  readonly texts: Record<string, string>;
+  /** Everything the compiler and the emitter reported. */
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+/**
+ * Where the emitter is told to write.
+ *
+ * The tester writes into a virtual host, and nothing here reaches the disk.
+ * The prefix is trimmed off every path, which leaves the path the emitter
+ * chose, and that is the part a test is about.
+ */
+const OUTPUT_DIR = "/out";
+
+function trimPrefix(path: string): string {
+  const prefix = `${OUTPUT_DIR}/`;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path;
+}
+
+/**
+ * Compiles a source and runs the emitter over it.
+ *
+ * The compiler loads the decorators from the build output, because
+ * `lib/main.tsp` says so. The emitter is called from the source instead, and
+ * on purpose: that is the copy the coverage report is about, and it is the
+ * copy a test author is editing. What the compiler resolves and runs is
+ * proved separately, by the one test that goes through `Tester.emit`.
+ *
+ * @param source - The TypeSpec source. It is compiled with the `Avro`
+ *   namespace already in scope.
+ * @returns The files, their text, and the diagnostics
+ */
+export async function emitAvro(source: string): Promise<AvroEmitResult> {
+  const runner = await AvroTester.createInstance();
+  await runner.diagnose(source);
+  const program = runner.program;
+
+  const texts: Record<string, string> = {};
+  const host = program.host;
+  const write = host.writeFile.bind(host);
+  host.writeFile = async (path: string, content: string): Promise<void> => {
+    texts[trimPrefix(path)] = content;
+    await write(path, content);
+  };
+
+  await $onEmit({
+    program,
+    emitterOutputDir: OUTPUT_DIR,
+    options: {},
+  } as EmitContext<AvroEmitterOptions>);
+
+  const files: Record<string, unknown> = {};
+  for (const [path, text] of Object.entries(texts)) {
+    files[path] = JSON.parse(text);
+  }
+
+  return { files, texts, diagnostics: program.diagnostics };
+}
+
+/**
+ * Compiles a source that has to succeed, and returns its files.
+ *
+ * A diagnostic here means the test source is wrong, not that the assertion
+ * below it failed. Failing on the spot says which of the two happened.
+ *
+ * @param source - The TypeSpec source
+ * @returns The parsed files, by path relative to the output directory
+ */
+export async function emitAvroFiles(source: string): Promise<Record<string, unknown>> {
+  const result = await emitAvro(source);
+  expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([]);
+  return result.files;
+}
+
+/**
+ * Asserts that `avsc` accepts a schema, and returns the type it built.
+ *
+ * @param schema - One parsed `.avsc` file
+ * @returns The Avro type
+ */
+export function acceptSchema(schema: unknown): avro.Type {
+  return avro.Type.forSchema(schema as avro.Schema);
+}
+
+/**
+ * Asserts that a random instance of the schema survives a buffer round trip.
+ *
+ * `random` builds a value the schema allows, so this drives whatever the
+ * schema says, not whatever a test author thought of. It runs several times
+ * because one random instance can miss a branch: an array can come back
+ * empty, and an enum lands on one symbol.
+ *
+ * @param schema - One parsed `.avsc` file
+ * @param rounds - How many random instances to try
+ */
+export function expectInstanceRoundTrip(schema: unknown, rounds = 20): void {
+  const type = acceptSchema(schema);
+  for (let round = 0; round < rounds; round++) {
+    const value: unknown = type.random();
+    expect(type.fromBuffer(type.toBuffer(value))).toEqual(value);
+  }
+}
+
+/**
+ * One field of a rendered record, as a test reads it.
+ *
+ * `type` stays unknown because it is either a string or a nested schema, and
+ * which one it is is exactly what several tests are about.
+ */
+export interface RenderedField {
+  readonly name: string;
+  readonly type: unknown;
+  readonly doc?: string;
+}
+
+/**
+ * Reads the fields of a rendered record.
+ *
+ * @param schema - One parsed `.avsc` file, or a nested record inside one
+ * @returns Its fields, in the order they were written
+ */
+export function recordFields(schema: unknown): RenderedField[] {
+  const fields = (schema as { fields?: RenderedField[] }).fields;
+  if (fields === undefined) {
+    throw new Error(`The schema has no fields: ${JSON.stringify(schema)}`);
+  }
+  return fields;
+}
+
+/**
+ * Reads one field of a rendered record by name.
+ *
+ * @param schema - One parsed `.avsc` file, or a nested record inside one
+ * @param name - The field name
+ * @returns That field
+ */
+export function fieldNamed(schema: unknown, name: string): RenderedField {
+  const field = recordFields(schema).find((one) => one.name === name);
+  if (field === undefined) {
+    throw new Error(`The schema has no field named '${name}'.`);
+  }
+  return field;
+}
+
+/**
+ * Asserts that one instance the caller wrote survives a buffer round trip.
+ *
+ * Use this where `random` cannot terminate. A record that reaches itself
+ * through a plain field has no branch that stops, so `random` recurses until
+ * the stack runs out. That is a limit of the generator, not of the schema:
+ * the value below stops because the array it holds is empty. Recursion gets a
+ * generator that terminates once a field may be null, which is a later phase.
+ *
+ * @param schema - One parsed `.avsc` file
+ * @param value - An instance the schema allows
+ */
+export function expectValueRoundTrip(schema: unknown, value: unknown): void {
+  const type = acceptSchema(schema);
+  expect(type.fromBuffer(type.toBuffer(value))).toEqual(value);
+}

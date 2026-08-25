@@ -158,6 +158,27 @@ export default tseslint.config(
       ],
     },
   },
+  // An Avro schema is a string or an object, and the walk says so.
+  //
+  // The specification defines a schema as one of three things: a JSON string
+  // naming a type, a JSON object defining one, or a JSON array for a union.
+  // So a function that produces a schema produces a string or an object, and
+  // the same is true of the one that renders it. That is the data model, not
+  // a shortcut.
+  //
+  // The alternative is to wrap every primitive and every name reference in an
+  // object of our own. That buys one rule and costs the property this package
+  // is built on: the structure the walk produces is already Avro shaped, so
+  // the renderer only orders keys.
+  //
+  // This grants the exception to the two files that hold that shape. Nothing
+  // else in the package returns more than one type.
+  {
+    files: ["packages/tsp-avro/src/walk/model.ts", "packages/tsp-avro/src/render.ts"],
+    rules: {
+      "sonarjs/function-return-type": "off",
+    },
+  },
   // The stage discipline, enforced.
   //
   // resolve answers "what did the author declare?". lower answers "how does

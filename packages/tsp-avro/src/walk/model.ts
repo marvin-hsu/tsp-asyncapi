@@ -1,0 +1,368 @@
+/**
+ * The walk: a TypeSpec type becomes an Avro schema.
+ *
+ * Two things make this different from the Protobuf walk next door.
+ *
+ * An Avro schema is one self contained JSON document. There is no import, so
+ * every named type a record reaches is written into that record's own file.
+ * Avro writes a named type in full the first time it appears, and by name
+ * afterwards, so the walk remembers the full names it has already written.
+ * Recursion falls out of that rule rather than needing one of its own: a name
+ * is remembered before its fields are walked, so a field that reaches back to
+ * the type it is inside finds the name already there.
+ *
+ * A construct with no Avro form is refused, and the whole record is dropped.
+ * Nothing is guessed and nothing is written half translated, because a half
+ * translated schema is still a valid schema, and a schema registry would take
+ * it.
+ */
+
+import {
+  getDoc,
+  isArrayModelType,
+  isRecordModelType,
+  isTemplateInstance,
+  type DiagnosticTarget,
+  type Enum,
+  type Model,
+  type ModelProperty,
+  type Program,
+  type Type,
+} from "@typespec/compiler";
+import { isAvroName } from "../decorators/names.js";
+import { resolveAvroNamespace } from "../decorators/namespace.js";
+import { reportDiagnostic } from "../lib.js";
+import type { AvroField, AvroRecord, AvroSchema } from "../types.js";
+import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
+
+/**
+ * What the walk carries from one type to the next.
+ *
+ * `defined` holds the full names already written into the file being built. It
+ * is per file, because each file stands alone. `refused` is set once and never
+ * cleared: the walk keeps going after a refusal so the author sees every
+ * problem in one compile, and the caller drops the record at the end.
+ */
+interface WalkContext {
+  readonly program: Program;
+  readonly scalars: AvroScalarTable;
+  readonly defined: Set<string>;
+  refused: boolean;
+}
+
+/**
+ * Builds the Avro schema of one model marked with `@record`.
+ *
+ * @param program - The program the model belongs to
+ * @param model - The marked model
+ * @returns The schema, or undefined when the walk refused any part of it
+ *
+ * @internal
+ */
+export function buildAvroRecord(program: Program, model: Model): AvroRecord | undefined {
+  const context: WalkContext = {
+    program,
+    scalars: createScalarTable(program),
+    defined: new Set(),
+    refused: false,
+  };
+
+  const schema = namedModelFor(context, model, model);
+
+  if (context.refused || typeof schema === "string") {
+    return undefined;
+  }
+  return schema;
+}
+
+/**
+ * Records that the walk refused something.
+ *
+ * The caller reports why, calls this, and returns undefined. The record it is
+ * building is dropped at the end.
+ */
+function markRefused(context: WalkContext): void {
+  context.refused = true;
+}
+
+/**
+ * Translates one type into a schema.
+ */
+function typeFor(
+  context: WalkContext,
+  type: Type,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  switch (type.kind) {
+    case "Scalar": {
+      const primitive = avroScalarFor(context.scalars, type);
+      if (primitive === undefined) {
+        reportDiagnostic(context.program, {
+          code: "unsupported-type",
+          messageId: "scalar",
+          format: { name: type.name },
+          target,
+        });
+        markRefused(context);
+        return undefined;
+      }
+      return primitive;
+    }
+    case "Model":
+      return modelFor(context, type, target);
+    case "Enum":
+      return enumFor(context, type, target);
+    case "Union":
+      reportDiagnostic(context.program, { code: "unsupported-type", messageId: "union", target });
+      markRefused(context);
+      return undefined;
+    default:
+      reportDiagnostic(context.program, {
+        code: "unsupported-type",
+        format: { kind: type.kind },
+        target,
+      });
+      markRefused(context);
+      return undefined;
+  }
+}
+
+/**
+ * Translates a model, which is a record, an array or a map.
+ *
+ * TypeSpec spells an array as `T[]` and a map as `Record<T>`, and both are
+ * models. Avro spells them as types of their own, and neither is named, so
+ * neither takes part in the first occurrence rule.
+ */
+function modelFor(
+  context: WalkContext,
+  model: Model,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  if (isArrayModelType(model)) {
+    const items = typeFor(context, model.indexer.value, target);
+    return items === undefined ? undefined : { type: "array", items };
+  }
+
+  // A model that spreads `Record<T>` answers yes to `isRecordModelType` as
+  // well, and it also has fields of its own. Writing it as a map would drop
+  // every one of them without a word. So only a model with nothing but the
+  // index signature is a map. The rest fall through, and the check further
+  // down refuses them.
+  if (isRecordModelType(model) && model.properties.size === 0) {
+    const values = typeFor(context, model.indexer.value, target);
+    return values === undefined ? undefined : { type: "map", values };
+  }
+
+  return namedModelFor(context, model, target);
+}
+
+/**
+ * Translates a named model into a record, or into a reference to one.
+ */
+function namedModelFor(
+  context: WalkContext,
+  model: Model,
+  target: DiagnosticTarget,
+): AvroRecord | string | undefined {
+  if (model.name === "") {
+    reportDiagnostic(context.program, { code: "unsupported-type", messageId: "anonymous", target });
+    markRefused(context);
+    return undefined;
+  }
+  if (model.baseModel) {
+    reportDiagnostic(context.program, {
+      code: "unsupported-type",
+      messageId: "inheritance",
+      format: { name: model.name },
+      target: model,
+    });
+    markRefused(context);
+    return undefined;
+  }
+
+  if (isTemplateInstance(model)) {
+    // `Box<string>` and `Box<int32>` are both named `Box`. Avro names a type
+    // once per schema, so the second one would come out as a reference to the
+    // first, and it would mean something the author did not write.
+    reportDiagnostic(context.program, {
+      code: "unsupported-type",
+      messageId: "template",
+      format: { name: model.name },
+      target: model,
+    });
+    markRefused(context);
+    return undefined;
+  }
+  if (model.indexer !== undefined) {
+    // A model that spreads `Record<T>` carries an index signature. An Avro
+    // record has fields alone, so those values have nowhere to go.
+    reportDiagnostic(context.program, {
+      code: "unsupported-type",
+      messageId: "indexer",
+      format: { name: model.name },
+      target: model,
+    });
+    markRefused(context);
+    return undefined;
+  }
+
+  const fullName = fullNameOf(context, model, model.name, target);
+  if (fullName === undefined) {
+    return undefined;
+  }
+  if (context.defined.has(fullName)) {
+    return fullName;
+  }
+
+  // The name is remembered before the fields are walked. That is what makes a
+  // type that reaches itself end in a name rather than in another copy.
+  context.defined.add(fullName);
+
+  const fields: AvroField[] = [];
+  for (const property of model.properties.values()) {
+    const field = fieldFor(context, property);
+    if (field !== undefined) {
+      fields.push(field);
+    }
+  }
+
+  return {
+    type: "record",
+    name: model.name,
+    namespace: namespaceOf(fullName),
+    doc: getDoc(context.program, model),
+    fields,
+  };
+}
+
+/**
+ * Translates one model property into a field.
+ *
+ * An optional property and a property default both change the field into a
+ * union with null, and unions are not supported yet. So both are refused here
+ * rather than written without the union they need.
+ */
+function fieldFor(context: WalkContext, property: ModelProperty): AvroField | undefined {
+  if (!isAvroName(property.name)) {
+    reportDiagnostic(context.program, {
+      code: "invalid-name",
+      format: { name: property.name },
+      target: property,
+    });
+    markRefused(context);
+    return undefined;
+  }
+  if (property.optional) {
+    reportDiagnostic(context.program, {
+      code: "unsupported-field",
+      messageId: "optional",
+      format: { name: property.name },
+      target: property,
+    });
+    markRefused(context);
+    return undefined;
+  }
+  if (property.defaultValue !== undefined) {
+    reportDiagnostic(context.program, {
+      code: "unsupported-field",
+      messageId: "default",
+      format: { name: property.name },
+      target: property,
+    });
+    markRefused(context);
+    return undefined;
+  }
+
+  const type = typeFor(context, property.type, property);
+  if (type === undefined) {
+    return undefined;
+  }
+
+  return { name: property.name, type, doc: getDoc(context.program, property) };
+}
+
+/**
+ * Translates an enum into an Avro enum, or into a reference to one.
+ *
+ * An Avro enum holds symbols and nothing else. A TypeSpec member that carries
+ * a value of its own is refused, because that value has nowhere to go.
+ */
+function enumFor(
+  context: WalkContext,
+  target: Enum,
+  source: DiagnosticTarget,
+): AvroSchema | undefined {
+  const fullName = fullNameOf(context, target, target.name, source);
+  if (fullName === undefined) {
+    return undefined;
+  }
+  if (context.defined.has(fullName)) {
+    return fullName;
+  }
+  context.defined.add(fullName);
+
+  const symbols: string[] = [];
+  for (const member of target.members.values()) {
+    if (!isAvroName(member.name)) {
+      reportDiagnostic(context.program, {
+        code: "invalid-name",
+        format: { name: member.name },
+        target: member,
+      });
+      markRefused(context);
+      continue;
+    }
+    if (member.value !== undefined && member.value !== member.name) {
+      reportDiagnostic(context.program, {
+        code: "enum-member-value",
+        format: { name: member.name },
+        target: member,
+      });
+      markRefused(context);
+      continue;
+    }
+    symbols.push(member.name);
+  }
+
+  return {
+    type: "enum",
+    name: target.name,
+    namespace: namespaceOf(fullName),
+    doc: getDoc(context.program, target),
+    symbols,
+  };
+}
+
+/**
+ * Builds the Avro full name of a named type, and refuses what Avro cannot
+ * name.
+ */
+function fullNameOf(
+  context: WalkContext,
+  type: Model | Enum,
+  name: string,
+  target: DiagnosticTarget,
+): string | undefined {
+  if (!isAvroName(name)) {
+    reportDiagnostic(context.program, { code: "invalid-name", format: { name }, target });
+    markRefused(context);
+    return undefined;
+  }
+
+  const namespace = resolveAvroNamespace(context.program, type);
+  if (namespace === undefined) {
+    reportDiagnostic(context.program, { code: "namespace-required", target: type });
+    markRefused(context);
+    return undefined;
+  }
+
+  return `${namespace}.${name}`;
+}
+
+/**
+ * Splits the namespace back off a full name.
+ */
+function namespaceOf(fullName: string): string {
+  return fullName.slice(0, fullName.lastIndexOf("."));
+}

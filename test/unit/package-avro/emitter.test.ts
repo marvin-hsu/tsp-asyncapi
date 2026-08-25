@@ -1,46 +1,57 @@
 import { describe, it, expect, vi } from "vitest";
+import type { EmitContext, Program } from "@typespec/compiler";
 import { AvroTester } from "#avro/testing.js";
 import { $onEmit } from "#avro/emitter.js";
 import { $lib, PACKAGE_NAME } from "#avro/lib.js";
+import type { AvroEmitterOptions } from "#avro/lib.js";
 
 /**
- * The skeleton of the Avro package.
+ * The package itself, and the decisions the emitter makes before any walk.
  *
- * These tests pin the three things a package has to get right before it holds
- * any behaviour. The compiler resolves the library by package name. The
- * library name is the prefix of every diagnostic code. The emitter loads and
- * runs.
+ * Two of these tests go through the compiler, which loads the library and the
+ * emitter by package name from the build output. That is the only thing that
+ * proves the package name, the entry point and the decorator bindings agree.
+ * Every other Avro test drives the emitter from the source instead, through
+ * the harness.
  */
-describe("tsp-avro skeleton", () => {
+
+/**
+ * The emit context, with the two members this emitter reads.
+ *
+ * The compiler builds a larger one, and nothing here touches the rest of it.
+ */
+function emitContextFor(program: Program): EmitContext<AvroEmitterOptions> {
+  return { program, emitterOutputDir: "/out", options: {} } as EmitContext<AvroEmitterOptions>;
+}
+
+describe("tsp-avro", () => {
   it("registers under the package name", () => {
     expect($lib.name).toBe(PACKAGE_NAME);
   });
 
-  it("compiles a source that imports the library, and writes no file", async () => {
+  it("is found by the compiler, and writes the record it is asked for", async () => {
+    // An emitter the compiler cannot resolve is reported as
+    // `emitter-not-found`, and a decorator it cannot bind is reported as an
+    // unknown decorator. So an empty diagnostic list plus one file is what
+    // proves the whole wiring holds.
+    const [result, diagnostics] = await AvroTester.emit(PACKAGE_NAME).compileAndDiagnose(`
+      @Avro.\`namespace\`("com.example.orders")
+      namespace Orders {
+        @Avro.\`record\` model OrderPlaced { id: string; }
+      }
+    `);
+
+    expect(diagnostics).toEqual([]);
+    expect(Object.keys(result.outputs)).toEqual(["com/example/orders/OrderPlaced.avsc"]);
+  });
+
+  it("writes no file for a source that marks nothing", async () => {
     const [result, diagnostics] = await AvroTester.emit(PACKAGE_NAME).compileAndDiagnose(
       `model OrderPlaced { id: string; }`,
     );
 
-    // An emitter the compiler cannot resolve is reported here as
-    // `emitter-not-found`. So an empty list is what proves the compiler found
-    // this package and ran its `$onEmit`.
-    expect(diagnostics).toHaveLength(0);
+    expect(diagnostics).toEqual([]);
     expect(Object.keys(result.outputs)).toEqual([]);
-  });
-
-  it("writes no file when it is called directly", async () => {
-    const runner = await AvroTester.createInstance();
-    await runner.compile(`model OrderPlaced { id: string; }`);
-
-    // The call above goes through the compiler, which loads the emitter from
-    // the build output. This one calls the source copy, which is the copy the
-    // coverage report is about. It is also where the walk will be driven from
-    // once it exists, without a compilation for every case.
-    const writeFile = vi.spyOn(runner.program.host, "writeFile");
-
-    $onEmit();
-
-    expect(writeFile).not.toHaveBeenCalled();
   });
 
   it("rejects an option the emitter does not declare", async () => {
@@ -49,5 +60,36 @@ describe("tsp-avro skeleton", () => {
     }).compileAndDiagnose(`model OrderPlaced { id: string; }`);
 
     expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["invalid-schema"]);
+  });
+
+  it("writes nothing on a dry run", async () => {
+    // A dry run asks the compiler to say what would happen, not to make it
+    // happen.
+    const runner = await AvroTester.createInstance();
+    await runner.compile(`
+      @Avro.\`namespace\`("com.example.a")
+      namespace A { @Avro.\`record\` model Event { id: string; } }
+    `);
+
+    const writeFile = vi.spyOn(runner.program.host, "writeFile");
+    runner.program.compilerOptions.dryRun = true;
+
+    await $onEmit(emitContextFor(runner.program));
+
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
+  it("writes the same run when it is not a dry run", async () => {
+    const runner = await AvroTester.createInstance();
+    await runner.compile(`
+      @Avro.\`namespace\`("com.example.a")
+      namespace A { @Avro.\`record\` model Event { id: string; } }
+    `);
+
+    const writeFile = vi.spyOn(runner.program.host, "writeFile");
+
+    await $onEmit(emitContextFor(runner.program));
+
+    expect(writeFile).toHaveBeenCalledWith("/out/com/example/a/Event.avsc", expect.any(String));
   });
 });

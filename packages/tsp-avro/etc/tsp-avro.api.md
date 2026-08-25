@@ -4,22 +4,110 @@
 
 ```ts
 
-import { DiagnosticMessages } from '@typespec/compiler';
+import { DecoratorContext as DecoratorContext_2 } from '@typespec/compiler';
+import { EmitContext } from '@typespec/compiler';
+import { Enum } from '@typespec/compiler';
+import { Model } from '@typespec/compiler';
+import { Namespace } from '@typespec/compiler';
+import { Program } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 
 // @public
 export const $lib: TypeSpecLibrary<    {
-[code: string]: DiagnosticMessages;
+"namespace-required": {
+readonly default: "A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.";
+};
+"invalid-name": {
+readonly default: "\"{name}\" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.";
+readonly namespace: "\"{name}\" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.";
+};
+"unsupported-type": {
+readonly default: "A property of kind \"{kind}\" has no Avro form.";
+readonly anonymous: "An anonymous model has no name, and an Avro record needs one.";
+readonly scalar: "The scalar \"{name}\" has no Avro form.";
+readonly union: "A union is not supported yet.";
+readonly inheritance: "The model \"{name}\" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.";
+readonly template: "The model \"{name}\" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.";
+readonly indexer: "The model \"{name}\" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.";
+};
+"unsupported-field": {
+readonly optional: "The property \"{name}\" is optional, which is not supported yet.";
+readonly default: "The property \"{name}\" carries a default, which is not supported yet.";
+};
+"enum-member-value": {
+readonly default: "The enum member \"{name}\" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.";
+};
 }, AvroEmitterOptions, never>;
 
 // @public
-export function $onEmit(): void;
+export function $namespace(context: DecoratorContext_2, target: Namespace, name: string): void;
+
+// @public
+export function $onEmit(context: EmitContext<AvroEmitterOptions>): Promise<void>;
+
+// @public
+export function $record(context: DecoratorContext_2, target: Model): void;
+
+// @public
+export interface AvroArray {
+    readonly items: AvroSchema;
+    readonly type: "array";
+}
 
 // @public
 export type AvroEmitterOptions = Record<string, never>;
 
 // @public
+export interface AvroEnum {
+    readonly doc?: string;
+    readonly name: string;
+    readonly namespace?: string;
+    readonly symbols: readonly string[];
+    readonly type: "enum";
+}
+
+// @public
+export interface AvroField {
+    readonly doc?: string;
+    readonly name: string;
+    readonly type: AvroSchema;
+}
+
+// @public
+export interface AvroMap {
+    readonly type: "map";
+    readonly values: AvroSchema;
+}
+
+// @public
+export type AvroPrimitiveName = "null" | "boolean" | "int" | "long" | "float" | "double" | "bytes" | "string";
+
+// @public
+export interface AvroRecord {
+    readonly doc?: string;
+    readonly fields: readonly AvroField[];
+    readonly name: string;
+    readonly namespace?: string;
+    readonly type: "record";
+}
+
+// @public
+export type AvroSchema = string | AvroRecord | AvroEnum | AvroArray | AvroMap;
+
+// @public
+export function getAvroNamespace(program: Program, target: Namespace): string | undefined;
+
+// @public
+export function isRecord(program: Program, target: Model): boolean;
+
+// @public
+export function listRecords(program: Program): Model[];
+
+// @public
 export const PACKAGE_NAME = "tsp-avro";
+
+// @public
+export function resolveAvroNamespace(program: Program, target: Model | Enum): string | undefined;
 
 // (No @packageDocumentation comment for this package)
 
