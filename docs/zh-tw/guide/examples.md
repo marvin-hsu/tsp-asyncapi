@@ -1,11 +1,11 @@
 ---
 title: "範例"
-description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄有三個檔案：TypeSpec 原始碼、編譯時用的 `tspconfig.yam..."
+description: "這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄都有 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及..."
 ---
 
 # 範例
 
-這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄有三個檔案：TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 產生的 `asyncapi.yaml`。
+這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十六個完整範例。每個目錄都有 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 產生的 `asyncapi.yaml`。Protobuf 範例另外有官方 emitter 產生的 `.proto` 檔案。
 
 輸出已經 commit，所以不必執行任何東西就能對照輸入與輸出。十六份都通過官方 AsyncAPI parser。
 
