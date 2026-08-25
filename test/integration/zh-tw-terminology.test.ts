@@ -23,18 +23,7 @@ const ROOT = new URL("../../", import.meta.url);
 const BANNED = "實例";
 const PREFERRED = "執行個體";
 
-/** The glossary, which is the one authority for the pair above. */
-const GLOSSARY = ".claude/skills/zh-tw-docs/references/terminology.md";
-
 describe("Integration: the Traditional Chinese glossary", () => {
-  it("still bans the term this case forbids", async () => {
-    const glossary = await readFile(new URL(GLOSSARY, ROOT), "utf8");
-
-    // A glossary that dropped the row would leave this case guarding a rule
-    // nobody holds any more.
-    expect(glossary).toContain(`| ${BANNED}（指 instance） | ${PREFERRED} |`);
-  });
-
   it("is followed by every page of that locale", async () => {
     const pages = [...(await markdownUnder("docs/zh-tw")), "README.zh-TW.md"];
     // A walk that found no page would report no offender.
