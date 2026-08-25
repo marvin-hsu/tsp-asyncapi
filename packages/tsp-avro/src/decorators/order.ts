@@ -11,8 +11,24 @@ const [getOrderInternal, setOrderInternal] = useStateMap<ModelProperty, AvroFiel
 
 /**
  * The three orders the Avro specification names.
+ *
+ * A set, because the only question asked of it is whether a value is in it.
  */
-const ORDERS: readonly AvroFieldOrder[] = ["ascending", "descending", "ignore"];
+const ORDERS = new Set<string>(["ascending", "descending", "ignore"]);
+
+/**
+ * Whether one string is an order this emitter writes.
+ *
+ * The narrowing is what lets the caller pass the value on without a cast. The
+ * decorator receives a plain string, and the set is what makes it one of the
+ * three.
+ *
+ * @param mode - The value the decorator received
+ * @returns Whether the specification names it
+ */
+function isOrder(mode: string): mode is AvroFieldOrder {
+  return ORDERS.has(mode);
+}
 
 /**
  * Declares how a reader sorts records by this field.
@@ -38,7 +54,7 @@ const ORDERS: readonly AvroFieldOrder[] = ["ascending", "descending", "ignore"];
  * @public
  */
 export function $order(context: DecoratorContext, target: ModelProperty, mode: string): void {
-  if (!ORDERS.includes(mode as AvroFieldOrder)) {
+  if (!isOrder(mode)) {
     reportDiagnostic(context.program, {
       code: "invalid-order",
       format: { mode },
@@ -46,7 +62,7 @@ export function $order(context: DecoratorContext, target: ModelProperty, mode: s
     });
     return;
   }
-  setOrderInternal(context.program, target, mode as AvroFieldOrder);
+  setOrderInternal(context.program, target, mode);
 }
 
 /**
