@@ -19,6 +19,13 @@ import { compileWithProtobuf, descriptorOf, renderNamed } from "../../utils/prot
  * The oracle is reachability computed here, over the graph the generator drew
  * rather than over anything the emitter produced. So the property compares
  * two independent answers to one question.
+ *
+ * The work is split in two, because a counter over random draws is only as
+ * reliable as the draw. A diamond appears in about one generated graph in
+ * twenty, so a run of forty would sometimes hold none, and a counter
+ * asserting otherwise would fail on nobody's mistake. The shapes that break a
+ * closure walk are therefore written down and checked every time. The
+ * generator explores what nobody wrote down.
  */
 
 /** How many models one generated program declares. */
@@ -121,82 +128,80 @@ function declarationsIn(text: string): Set<string> {
   return names;
 }
 
-/** Whether a graph holds a cycle reachable from one root. */
-function hasCycleFrom(graph: Graph, root: number): boolean {
-  const open = new Set<number>();
-  const done = new Set<number>();
-  const walk = (index: number): boolean => {
-    if (open.has(index)) return true;
-    if (done.has(index)) return false;
-    open.add(index);
-    for (const field of graph[index]) {
-      if (field !== "scalar" && walk(field)) return true;
-    }
-    open.delete(index);
-    done.add(index);
-    return false;
-  };
-  return walk(root);
-}
+/**
+ * The shapes a closure walk gets wrong, written down.
+ *
+ * Each is a graph in the same form the generator draws, so both tests run
+ * one assertion. `island` is here because a model nothing reaches must stay
+ * out of the payload, which is the half a walk that collects everything
+ * would pass anyway.
+ */
+const SHAPES: Record<string, Graph> = {
+  // M0 reaches M3 by two paths. A walk that forgets what it has seen writes
+  // M3 twice, and one that stops at the first meeting writes it never.
+  diamond: [[1, 2], [3], [3], ["scalar"]],
+  // A node three hops in. A walk one level deep leaves it out.
+  chain: [[1], [2], [3], ["scalar"]],
+  // A message that reaches itself. A walk with no guard never returns.
+  selfLoop: [[0, "scalar"], []],
+  // Two that reach each other, entered from outside the cycle.
+  mutual: [[1], [2], [1]],
+  // Nothing to trim, and nothing reaches M1.
+  island: [["scalar"], ["scalar"]],
+};
 
-/** Whether two distinct references reach one model, which makes a diamond. */
-function hasSharedNode(graph: Graph, root: number): boolean {
-  const reachable = reachableFrom(graph, root);
-  const referrers = new Map<number, Set<number>>();
-  for (const [index, fields] of graph.entries()) {
-    if (!reachable.has(modelName(index))) continue;
-    for (const field of fields) {
-      if (field === "scalar" || field === index) continue;
-      const owners = referrers.get(field) ?? new Set<number>();
-      owners.add(index);
-      referrers.set(field, owners);
-    }
+/**
+ * Asserts the payload of every model of one graph.
+ *
+ * @param graph - The graph to compile and render
+ */
+async function expectClosure(graph: Graph): Promise<void> {
+  const program = await compileWithProtobuf(sourceOf(graph));
+  for (const root of graph.keys()) {
+    const text = renderNamed(program, modelName(root));
+
+    // The closure, both directions at once. A missing declaration leaves a
+    // field naming a type the text never declares. An extra one describes a
+    // payload the message cannot carry.
+    expect(declarationsIn(text)).toStrictEqual(reachableFrom(graph, root));
+
+    // A text that holds the right names can still be unreadable. The
+    // reference parser is the judge of that.
+    expect(() => descriptorOf(text)).not.toThrow();
+
+    // Two renders of one program agree. The walk keeps no state that
+    // outlives it, and the emitted corpus depends on that.
+    expect(renderNamed(program, modelName(root))).toBe(text);
   }
-  return [...referrers.values()].some((owners) => owners.size > 1);
 }
 
 describe("Property: a Protobuf payload holds the closure of its message", () => {
+  // The shapes are named, so a failure says which one broke rather than
+  // printing a graph the reader has to decode.
+  it.each(Object.keys(SHAPES))("holds for the %s shape", async (name) => {
+    await expectClosure(SHAPES[name]);
+  });
+
   it("declares every model the root reaches, and no other", async () => {
-    // The counters prove the generator drew the shapes this property exists
-    // for. Without them a run of chains alone would pass and say nothing.
-    let withCycle = 0;
-    let withSharedNode = 0;
+    let roots = 0;
     let withExcludedModel = 0;
-    let deterministic = 0;
 
     await fc.assert(
       fc.asyncProperty(graphs, async (graph) => {
-        const program = await compileWithProtobuf(sourceOf(graph));
-
+        await expectClosure(graph);
         for (const root of graph.keys()) {
-          const text = renderNamed(program, modelName(root));
-          const expected = reachableFrom(graph, root);
-
-          // The closure, both directions at once. A missing declaration
-          // leaves a field naming a type the text never declares. An extra
-          // one describes a payload the message cannot carry.
-          expect(declarationsIn(text)).toStrictEqual(expected);
-
-          // A text that holds the right names can still be unreadable. The
-          // reference parser is the judge of that.
-          expect(() => descriptorOf(text)).not.toThrow();
-
-          // Two renders of one program agree. The walk keeps no state that
-          // outlives it, and the emitted corpus depends on that.
-          if (renderNamed(program, modelName(root)) === text) deterministic++;
-
-          if (hasCycleFrom(graph, root)) withCycle++;
-          if (hasSharedNode(graph, root)) withSharedNode++;
-          if (expected.size < graph.length) withExcludedModel++;
+          roots++;
+          if (reachableFrom(graph, root).size < graph.length) withExcludedModel++;
         }
       }),
       { numRuns: 40 },
     );
 
-    expect(withCycle).toBeGreaterThan(0);
-    expect(withSharedNode).toBeGreaterThan(0);
-    // Without this the property could hold by never trimming anything.
+    // Trimming happens in about nine draws in ten, so this counter is stable.
+    // Without it the property could hold by never trimming anything. The
+    // rarer shapes are covered by the cases above rather than by a counter
+    // that would fail on an unlucky seed.
+    expect(roots).toBeGreaterThan(0);
     expect(withExcludedModel).toBeGreaterThan(0);
-    expect(deterministic).toBeGreaterThan(0);
   });
 });
