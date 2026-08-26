@@ -26,7 +26,7 @@ import {
  */
 async function fieldOf(source: string): Promise<RenderedField> {
   const files = await emitAvroFiles(`
-    @Avro.\`namespace\`("com.example.unions")
+    @Avro.avroNamespace("com.example.unions")
     namespace Unions { ${source} }
   `);
   const schema = files["com/example/unions/Row.avsc"];
@@ -37,7 +37,7 @@ async function fieldOf(source: string): Promise<RenderedField> {
 describe("how the Avro walk writes a union", () => {
   it("writes a union of primitives as a flat array", async () => {
     expect(
-      (await fieldOf(`@Avro.\`record\` model Row { x: string | int32 | boolean; }`)).type,
+      (await fieldOf(`@Avro.avroRecord model Row { x: string | int32 | boolean; }`)).type,
     ).toEqual(["string", "int", "boolean"]);
   });
 
@@ -49,7 +49,7 @@ describe("how the Avro walk writes a union", () => {
       (
         await fieldOf(`
           union Inner { a: int32, b: boolean }
-          @Avro.\`record\` model Row { x: string | Inner; }
+          @Avro.avroRecord model Row { x: string | Inner; }
         `)
       ).type,
     ).toEqual(["string", "int", "boolean"]);
@@ -57,16 +57,16 @@ describe("how the Avro walk writes a union", () => {
 
   it("keeps the branches in the order the author wrote them", async () => {
     expect(
-      (await fieldOf(`@Avro.\`record\` model Row { x: boolean | int32 | string; }`)).type,
+      (await fieldOf(`@Avro.avroRecord model Row { x: boolean | int32 | string; }`)).type,
     ).toEqual(["boolean", "int", "string"]);
   });
 
   it("writes a named type in full at its first branch and by name after", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.unions")
+      @Avro.avroNamespace("com.example.unions")
       namespace Unions {
         model Address { street: string; }
-        @Avro.\`record\` model Row {
+        @Avro.avroRecord model Row {
           x: Address | string;
           y: Address | int32;
         }
@@ -90,7 +90,7 @@ describe("how the Avro walk writes a union", () => {
         await fieldOf(`
           enum Colour { Red, Green }
           model Address { street: string; }
-          @Avro.\`record\` model Row { x: Colour | Address; }
+          @Avro.avroRecord model Row { x: Colour | Address; }
         `)
       ).type,
     ).toEqual([
@@ -108,7 +108,7 @@ describe("how the Avro walk writes a union", () => {
     // Neither is a named type, and Avro allows one of each. Two arrays would
     // clash whatever they hold, which is what the refusal next door pins.
     expect(
-      (await fieldOf(`@Avro.\`record\` model Row { x: string[] | Record<int32>; }`)).type,
+      (await fieldOf(`@Avro.avroRecord model Row { x: string[] | Record<int32>; }`)).type,
     ).toEqual([
       { type: "array", items: "string" },
       { type: "map", values: "int" },
@@ -117,10 +117,10 @@ describe("how the Avro walk writes a union", () => {
 
   it("round-trips an instance of every branch through a buffer", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.unions")
+      @Avro.avroNamespace("com.example.unions")
       namespace Unions {
         model Address { street: string; }
-        @Avro.\`record\` model Row { x: Address | string | int32; }
+        @Avro.avroRecord model Row { x: Address | string | int32; }
       }
     `);
 

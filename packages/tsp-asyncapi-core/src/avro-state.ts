@@ -19,11 +19,11 @@
 
 import type { Model, Program } from "@typespec/compiler";
 
-/** The state key of `@Avro.record`, a set of the models that carry it. */
+/** The state key of `@Avro.avroRecord`, a set of the models that carry it. */
 const RECORD_STATE = Symbol.for("tsp-avro.record");
 
 /**
- * Lists every model the author marked with `@Avro.record`.
+ * Lists every model the author marked with `@Avro.avroRecord`.
  *
  * These are the models the Avro preview feature offers a generated payload
  * for. A model the Avro emitter writes for another reason, such as one another

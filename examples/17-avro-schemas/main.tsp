@@ -4,7 +4,7 @@
 // and nothing else, so this example imports it alone: there is no AsyncAPI
 // document here, and no `@service`.
 //
-// Two models carry `@Avro.record`, so the emitter writes two files. Both
+// Two models carry `@Avro.avroRecord`, so the emitter writes two files. Both
 // reach `Address` and `Timestamp`, and both hold a whole copy of each. Avro
 // has no import, so a schema file stands alone or it is unusable.
 //
@@ -13,14 +13,10 @@
 // schemas.
 import "tsp-avro";
 
-// `namespace` and `record` are reserved words in TypeSpec, so both decorator
-// names are written in backticks. The upstream Protobuf library writes
-// ``@Protobuf.`package``` for the same reason.
-//
 // The Avro namespace becomes the directory a file is written into, and it
 // qualifies every name inside. So the two files land under
 // `schemas/com/example/orders/`.
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders;
 
 // The logical type sits on the scalar, so every field of this type carries
@@ -75,7 +71,7 @@ model OrderLine {
 }
 
 /** An order left the checkout. */
-@Avro.`record`
+@Avro.avroRecord
 model OrderPlaced {
   // `uuid` is written on a string, so what is on the wire is the text of the
   // UUID.
@@ -106,7 +102,7 @@ model OrderPlaced {
 }
 
 /** The fulfilment of an order moved on. */
-@Avro.`record`
+@Avro.avroRecord
 model OrderFulfilmentChanged {
   // `@aliases` names what a field used to be called. A reader written against
   // this schema still reads data written under the old name.

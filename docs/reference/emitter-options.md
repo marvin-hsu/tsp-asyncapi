@@ -46,7 +46,7 @@ A preview feature changes the emitted document. Two names are reserved: `protobu
 
 `protobuf` gives a model that carries the official `TypeSpec.Protobuf` decorators a proto3 payload. The [Protobuf payloads guide](../guide/protobuf-payloads) shows what it writes.
 
-`avro` gives a model that carries the `tsp-avro` `@Avro.record` decorator an Avro payload. The payload is written as an object, because Avro is JSON. `tsp-avro` is an optional peer dependency of this emitter. Install it in the project that turns this feature on.
+`avro` gives a model that carries the `tsp-avro` `@Avro.avroRecord` decorator an Avro payload. The payload is written as an object, because Avro is JSON. `tsp-avro` is an optional peer dependency of this emitter. Install it in the project that turns this feature on.
 
 Both features can be on at once. One model may carry only one of the two sets of decorators. A model that carries both is reported as `conflicting-generated-schema-source`, and no file is written.
 

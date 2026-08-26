@@ -686,9 +686,9 @@ The [`protobuf-field-on-header`](./linter#protobuf-field-on-header) rule reports
 
 ### `avro-artifact-unavailable`
 
-> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+> Model '\<name\>' carries @Avro.avroRecord, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.
 
-A model carries `@Avro.record` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
+A model carries `@Avro.avroRecord` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
 
 The reason is quoted rather than forwarded. A diagnostic carries the code of the library that built it. A project that emits only this library should not read the codes of another one. A project that emits both would otherwise read every refusal twice, once from each emitter.
 
@@ -696,15 +696,15 @@ Only the first reason is quoted. The Avro walk keeps going after a refusal, so o
 
 No document is written. The payload of that model would fall back to the schema its TypeSpec type produces. That file answers a request for Avro with ordinary JSON Schema, and nothing in it says so.
 
-A model that carries `@Avro.record` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that writes Avro records for other types keeps its build green.
+A model that carries `@Avro.avroRecord` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that writes Avro records for other types keeps its build green.
 
-**Fix:** change the part of the model the reason names, or remove `@Avro.record` from the model.
+**Fix:** change the part of the model the reason names, or remove `@Avro.avroRecord` from the model.
 
 ### `avro-record-keeps-header`
 
 > Message '\<name\>' lifts \<fields\> out of its payload with @header, and the generated Avro payload leaves them out. The .avsc file 'tsp-avro' writes still declares them, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
 
-A message lifts one or more fields with `@header`, and it carries `@Avro.record`. The generated payload leaves those fields out, because a header travels beside the payload.
+A message lifts one or more fields with `@header`, and it carries `@Avro.avroRecord`. The generated payload leaves those fields out, because a header travels beside the payload.
 
 The `.avsc` file is written by `tsp-avro`, which reads no AsyncAPI decorator. Avro has no notion of a message header either, so that file declares every property of the model.
 

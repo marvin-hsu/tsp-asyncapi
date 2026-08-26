@@ -8,7 +8,7 @@
  * JSON Schema.
  *
  * Two things make the payload Avro, and either one silences this rule.
- * `@rawPayload` carries the schema the author wrote. The `@Avro.record`
+ * `@rawPayload` carries the schema the author wrote. The `@Avro.avroRecord`
  * decorator carries the declarations the preview feature renders from.
  *
  * ## Why the rule waits for the preview feature
@@ -16,7 +16,7 @@
  * The remedy differs without it. A project with the feature off cannot reach
  * a generated payload at all, so the only answer there is `@rawPayload`, and
  * a project may be waiting for the feature on purpose. With the feature on,
- * `@Avro.record` is the answer the project asked for, and its absence is an
+ * `@Avro.avroRecord` is the answer the project asked for, and its absence is an
  * oversight rather than a choice.
  */
 
@@ -46,7 +46,7 @@ export const avroContentTypeUndeclaredRule = createRule({
   description:
     "Require a message with an Avro content type to declare where its Avro schema comes from.",
   messages: {
-    default: paramMessage`Message '${"name"}' declares the content type '${"contentType"}', but nothing gives it an Avro payload. Its payload is lowered from the TypeSpec model, so the document would tell a consumer to decode Avro and then describe those bytes with a JSON Schema. Add @Avro.\`record\`, or write the schema with @rawPayload.`,
+    default: paramMessage`Message '${"name"}' declares the content type '${"contentType"}', but nothing gives it an Avro payload. Its payload is lowered from the TypeSpec model, so the document would tell a consumer to decode Avro and then describe those bytes with a JSON Schema. Add @Avro.avroRecord, or write the schema with @rawPayload.`,
   },
   create: (context) => ({
     root: () => {

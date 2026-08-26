@@ -175,10 +175,10 @@ function renderField(field: FieldDecl, index: number): string {
 function renderGraph(records: readonly RecordDecl[]): string {
   const declarations = records.map((record, index) => {
     const fields = record.fields.map(renderField).join("\n");
-    return `@Avro.\`record\`\nmodel M${String(index)} {\n${fields}\n}`;
+    return `@Avro.avroRecord\nmodel M${String(index)} {\n${fields}\n}`;
   });
   return [
-    `@Avro.\`namespace\`("${NAMESPACE}")`,
+    `@Avro.avroNamespace("${NAMESPACE}")`,
     "namespace Generated;",
     "enum Status {\n  Unknown,\n  Ready,\n}",
     ...declarations,
@@ -230,10 +230,10 @@ describe("Property: Avro — a graph of records", () => {
    */
   it("round-trips a record that reaches itself", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace Generated;
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Node {
         label: string;
         next?: Node;
@@ -250,10 +250,10 @@ describe("Property: Avro — a graph of records", () => {
   /** Two records that reach each other. */
   it("round-trips two records that reach each other", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace Generated;
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Parent {
         name: string;
         child?: Child;
@@ -280,19 +280,19 @@ describe("Property: Avro — a graph of records", () => {
    */
   it("writes a shared record into both of the files that reach it", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace Generated;
 
       model Address {
         city: string;
       }
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Sender {
         from: Address;
       }
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Receiver {
         to: Address;
       }
@@ -321,10 +321,10 @@ describe("Property: Avro — a graph of records", () => {
   /** An optional field, and an optional field that carries a default. */
   it("round-trips both shapes an optional field takes", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace Generated;
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Shipment {
         absent?: string;
         defaulted?: string = "pending";

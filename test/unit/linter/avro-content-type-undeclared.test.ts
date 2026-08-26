@@ -5,8 +5,7 @@
  * options: it builds its own compiler options. So every case here runs a
  * normal compilation and enables the rule by id through `linterRuleSet`.
  *
- * The Avro decorators are written qualified, and `record` and `namespace` are
- * TypeSpec keywords, so they carry backticks as well.
+ * The Avro decorators are written qualified.
  *
  * Every negative case asserts that its probe compiles before it asserts the
  * silence. A misspelled decorator, or a probe that stopped compiling, reports
@@ -46,7 +45,7 @@ const PROBE = `
   @service(#{ title: "Orders" })
   namespace Test;
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Orders {
     @message
     @contentType("application/vnd.apache.avro")
@@ -65,7 +64,7 @@ const PROBE = `
 /** The same message, with the decorator the rule asks for. */
 const DECLARED = PROBE.replace(
   "@message\n    @contentType",
-  "@message\n    @Avro.`record`\n    @contentType",
+  "@message\n    @Avro.avroRecord\n    @contentType",
 );
 
 /**
@@ -90,7 +89,7 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
   });
 
   /**
-   * The feature is what makes `@Avro.record` the answer. Without it the
+   * The feature is what makes `@Avro.avroRecord` the answer. Without it the
    * decorator changes nothing, so the advice would send an author to a remedy
    * that does not work yet.
    */
@@ -117,15 +116,6 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
     const diagnostics = await lint(JSON_TYPE, ["avro"]);
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
-  });
-
-  /**
-   * `record` is a reserved word, so the decorator only parses with backticks.
-   * An author who copies the advice must get a source file that compiles.
-   */
-  it("writes the remedy in the form that parses", async () => {
-    const found = (await lint(PROBE, ["avro"])).filter((d) => d.code === RULE);
-    expect(found[0]?.message).toContain("@Avro.`record`");
   });
 
   /**

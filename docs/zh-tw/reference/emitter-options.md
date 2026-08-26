@@ -46,7 +46,7 @@ tsp compile . --emit tsp-asyncapi \
 
 `protobuf` 讓帶有官方 `TypeSpec.Protobuf` decorator 的 model 拿到 proto3 payload。[Protobuf payload 指南](../guide/protobuf-payloads)說明它寫出什麼。
 
-`avro` 讓帶有 `tsp-avro` `@Avro.record` decorator 的 model 拿到 Avro payload。payload 是以物件寫出的，因為 Avro 就是 JSON。`tsp-avro` 是這個 emitter 的選用 peer dependency。開啟這個功能的專案要自行安裝它。
+`avro` 讓帶有 `tsp-avro` `@Avro.avroRecord` decorator 的 model 拿到 Avro payload。payload 是以物件寫出的，因為 Avro 就是 JSON。`tsp-avro` 是這個 emitter 的選用 peer dependency。開啟這個功能的專案要自行安裝它。
 
 兩個功能可以同時開啟。同一個 model 只能帶其中一組 decorator。兩組都帶的 model 會回報 `conflicting-generated-schema-source`，而且不寫出檔案。
 

@@ -11,13 +11,13 @@ description: "tsp-avro is a second emitter in this repository. It writes Apache 
 This package is experimental, and it is pre-1.0. Its decorators, its output and its diagnostics can change in any release. Pin an exact version if you depend on it.
 :::
 
-The `avro` preview feature of the AsyncAPI emitter calls this same library. With it on, a model that carries `` @Avro.`record` `` also gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](./avro-payloads) says how to turn that on.
+The `avro` preview feature of the AsyncAPI emitter calls this same library. With it on, a model that carries `@Avro.avroRecord` also gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](./avro-payloads) says how to turn that on.
 
 ## What it does
 
 The package is the Avro counterpart of [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/). It declares its own decorators, and it registers its own emitter.
 
-A model marked with `` @Avro.`record` `` becomes one `.avsc` file. The Avro namespace of the model becomes the directory that file is written into.
+A model marked with `@Avro.avroRecord` becomes one `.avsc` file. The Avro namespace of the model becomes the directory that file is written into.
 
 Avro needs few decorators, because a plain TypeSpec model is already a valid Avro record. Avro has no field number. So the decorators here cover what Avro has and TypeSpec cannot say.
 
@@ -46,10 +46,8 @@ The emitter has no option of its own. `emitter-output-dir` is a compiler option,
 
 The example below is [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas) in the repository. It holds the source, the `tspconfig.yaml` it was compiled with, and the schema files the emitter wrote.
 
-`namespace` and `record` are reserved words in TypeSpec. So both decorator names are written in backticks. The upstream Protobuf library writes ``@Protobuf.`package``` for the same reason.
-
 ```typespec
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders;
 
 // The logical type sits on the scalar, so every field of this type carries
@@ -68,7 +66,7 @@ One model of the example is below. The repository holds the whole file.
 
 ```typespec
 /** The fulfilment of an order moved on. */
-@Avro.`record`
+@Avro.avroRecord
 model OrderFulfilmentChanged {
   // `@aliases` names what a field used to be called. A reader written against
   // this schema still reads data written under the old name.
@@ -198,7 +196,7 @@ That model becomes `schemas/com/example/orders/OrderFulfilmentChanged.avsc`.
 
 A `/** */` comment becomes the `doc` of what it sits on. A `//` comment is not emitted.
 
-The file holds the model `Address` and the enum `FulfilmentStatus` in full. Neither declaration carries `` @Avro.`record` ``, so neither gets a file of its own.
+The file holds the model `Address` and the enum `FulfilmentStatus` in full. Neither declaration carries `@Avro.avroRecord`, so neither gets a file of its own.
 
 ## One file holds one whole schema
 
@@ -301,8 +299,8 @@ A pair outside the table is refused. A name outside the table is refused as well
 
 | Decorator                         | Target                           | What it does                                                         |
 | --------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
-| ``@Avro.`namespace`(name)``       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
-| `` @Avro.`record` ``              | `Model`                          | Marks a model to emit. One marked model becomes one file.            |
+| `@Avro.avroNamespace(name)`       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
+| `@Avro.avroRecord`                | `Model`                          | Marks a model to emit. One marked model becomes one file.            |
 | `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum` | Names what the declaration used to be called.                        |
 | `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`, `descending` or `ignore`.                               |
 | `@Avro.fixed(size)`               | `Model`, `Scalar`                | Makes an Avro fixed type of that many bytes.                         |

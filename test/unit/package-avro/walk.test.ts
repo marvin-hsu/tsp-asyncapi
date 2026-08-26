@@ -12,16 +12,12 @@ import {
 /**
  * The walk, judged by the reference Avro implementation and by shape.
  *
- * `@Avro.namespace` and `@Avro.record` are written in backticks because
- * TypeSpec reserves both words. The upstream Protobuf library writes
- * `@Protobuf.package` the same way, for the same reason.
- *
  * One source drives most of this file. It holds every construct this phase
  * supports, and a nested record used twice, which is what the self contained
  * closure rule is about.
  */
 const ORDERS = `
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Orders {
     /** What the money is counted in. */
     enum Currency {
@@ -41,7 +37,7 @@ const ORDERS = `
     }
 
     /** An order left the checkout. */
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderPlaced {
       id: string;
       shipping: Address;
@@ -90,9 +86,9 @@ describe("the Avro walk", () => {
 
   it("writes the file under the namespace as a directory path", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.deep.nested")
+      @Avro.avroNamespace("com.example.deep.nested")
       namespace Deep {
-        @Avro.\`record\` model Event { id: string; }
+        @Avro.avroRecord model Event { id: string; }
       }
     `);
 
@@ -102,13 +98,13 @@ describe("the Avro walk", () => {
 
   it("takes the namespace from the nearest ancestor that declares one", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.outer")
+      @Avro.avroNamespace("com.example.outer")
       namespace Outer {
-        @Avro.\`namespace\`("com.example.inner")
+        @Avro.avroNamespace("com.example.inner")
         namespace Inner {
-          @Avro.\`record\` model Event { id: string; }
+          @Avro.avroRecord model Event { id: string; }
         }
-        @Avro.\`record\` model Outside { id: string; }
+        @Avro.avroRecord model Outside { id: string; }
       }
     `);
 
@@ -122,10 +118,10 @@ describe("the Avro walk", () => {
 
   it("carries the doc comment of a record and of a field", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.docs")
+      @Avro.avroNamespace("com.example.docs")
       namespace Docs {
         /** An order left the checkout. */
-        @Avro.\`record\` model OrderPlaced {
+        @Avro.avroRecord model OrderPlaced {
           /** What the shop calls this order. */
           id: string;
         }
@@ -160,10 +156,10 @@ describe("the Avro walk", () => {
 
   it("refers to an enum by name after its first appearance", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Orders {
         enum Currency { USD, EUR }
-        @Avro.\`record\` model Prices {
+        @Avro.avroRecord model Prices {
           asked: Currency;
           paid: Currency;
         }
@@ -180,9 +176,9 @@ describe("the Avro walk", () => {
     // Recursion needs no rule of its own. The name is remembered before the
     // fields are walked, so the field that reaches back finds it there.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.tree")
+      @Avro.avroNamespace("com.example.tree")
       namespace Tree {
-        @Avro.\`record\` model Node {
+        @Avro.avroRecord model Node {
           value: string;
           children: Node[];
         }
@@ -204,9 +200,9 @@ describe("the Avro walk", () => {
     // The union with null is what lets an instance stop. Avro says recursion
     // by name, so the schema needs no rule for it either way.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.tree")
+      @Avro.avroNamespace("com.example.tree")
       namespace Tree {
-        @Avro.\`record\` model Node {
+        @Avro.avroRecord model Node {
           value: string;
           next?: Node;
         }
@@ -223,11 +219,11 @@ describe("the Avro walk", () => {
     // appears, Leaf inside it, and the field that reaches back to Branch
     // finds the name already claimed.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.tree")
+      @Avro.avroNamespace("com.example.tree")
       namespace Tree {
         model Branch { leaf: Leaf; }
         model Leaf { up?: Branch; }
-        @Avro.\`record\` model Plant { root: Branch; }
+        @Avro.avroRecord model Plant { root: Branch; }
       }
     `);
     const schema = files["com/example/tree/Plant.avsc"];
@@ -245,9 +241,9 @@ describe("the Avro walk", () => {
 
   it("maps each supported scalar to its Avro primitive", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.scalars")
+      @Avro.avroNamespace("com.example.scalars")
       namespace Scalars {
-        @Avro.\`record\` model Every {
+        @Avro.avroRecord model Every {
           flag: boolean;
           text: string;
           blob: bytes;
@@ -274,10 +270,10 @@ describe("the Avro walk", () => {
 
   it("maps a scalar the author declared through the scalar it extends", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.scalars")
+      @Avro.avroNamespace("com.example.scalars")
       namespace Scalars {
         scalar Age extends int32;
-        @Avro.\`record\` model Person { age: Age; }
+        @Avro.avroRecord model Person { age: Age; }
       }
     `);
 
@@ -311,9 +307,9 @@ describe("the Avro walk", () => {
 
   it("writes the file as two-space indented JSON that ends in a newline", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("com.example.plain")
+      @Avro.avroNamespace("com.example.plain")
       namespace Plain {
-        @Avro.\`record\` model Event { id: string; }
+        @Avro.avroRecord model Event { id: string; }
       }
     `);
 
@@ -338,9 +334,9 @@ describe("the Avro walk", () => {
 
   it("leaves out a doc nobody wrote", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.plain")
+      @Avro.avroNamespace("com.example.plain")
       namespace Plain {
-        @Avro.\`record\` model Event { id: string; }
+        @Avro.avroRecord model Event { id: string; }
       }
     `);
 

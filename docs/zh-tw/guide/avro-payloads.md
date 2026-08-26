@@ -48,14 +48,14 @@ options:
 
 下面這份是 repository 裡的 [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads)。它有一個 Avro namespace、兩個 record，以及一個帶 schema registry 的 Kafka 叢集。以下節錄該檔案的幾個片段，完整檔案在 repository 裡。
 
-`` @Avro.`namespace` `` 標記一個 namespace，底下每一個 Avro 名稱都由它限定。`namespace` 與 `record` 是 TypeSpec 的保留字，所以兩個 decorator 名稱都要加上反引號。
+`@Avro.avroNamespace` 標記一個 namespace，底下每一個 Avro 名稱都由它限定。
 
 ```typespec
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
 ```
 
-`` @Avro.`record` `` 標記一個 model，讓它成為一個 Avro record。`@message` 則把同一個 model 標記成文件的一個 message。兩個 decorator 回答的問題不同，所以帶 Avro payload 的 message 兩個都要有。
+`@Avro.avroRecord` 標記一個 model，讓它成為一個 Avro record。`@message` 則把同一個 model 標記成文件的一個 message。兩個 decorator 回答的問題不同，所以帶 Avro payload 的 message 兩個都要有。
 
 ```typespec
   /**
@@ -63,7 +63,7 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
-  @Avro.`record`
+  @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
@@ -166,7 +166,7 @@ components:
 
 ## 運作方式
 
-compiler 執行 `tsp-avro` 的 decorator，每一個都記下自己收到的內容。`` @Avro.`namespace` `` 記下一個 TypeSpec namespace 的 Avro namespace。`` @Avro.`record` `` 記下一個 model 是 Avro record。其餘 decorator 記下 Avro 有而 TypeSpec 說不出來的東西，例如 logical type 或別名。
+compiler 執行 `tsp-avro` 的 decorator，每一個都記下自己收到的內容。`@Avro.avroNamespace` 記下一個 TypeSpec namespace 的 Avro namespace。`@Avro.avroRecord` 記下一個 model 是 Avro record。其餘 decorator 記下 Avro 有而 TypeSpec 說不出來的東西，例如 logical type 或別名。
 
 本 emitter 不讀那些紀錄。它載入 `tsp-avro`，呼叫那個套件既有的走訪。所以 Avro emitter 與本 emitter 從同一套走訪算繪出同一份 schema，兩者不會各自漂移。
 
@@ -268,7 +268,7 @@ Avro emitter 每個 record 寫一個檔案。路徑由 Avro namespace 決定，�
 
 Avro 描述資料。它沒有描述 message 走哪一個 channel、message 的方向，也沒有描述應用的 operation。
 
-所以 `@channel`、`@send`、`@receive` 與 `@message` 仍然必要。只帶 `` @Avro.`record` `` 而沒有 `@AsyncAPI.message` 的 model 不會拿到 payload，也不會回報任何診斷。
+所以 `@channel`、`@send`、`@receive` 與 `@message` 仍然必要。只帶 `@Avro.avroRecord` 而沒有 `@AsyncAPI.message` 的 model 不會拿到 payload，也不會回報任何診斷。
 
 ## 作者手寫的 payload
 
@@ -290,4 +290,4 @@ emitter 選擇回報問題，而不是退回那個 TypeSpec model 產生的 sche
 
 這個功能在第一次需要時載入 `tsp-avro`。載入失敗會回報 [`avro-library-missing`](../reference/diagnostics#avro-library-missing)，訊息裡引述載入時回報的內容。
 
-作者寫下 `` @Avro.`record` ``，所以只要有 model 帶著它，套件就已經安裝。載入失敗代表安裝壞了。請在本 emitter 旁邊安裝 `tsp-avro`，或是從 `preview-features` 移除 `avro`。
+作者寫下 `@Avro.avroRecord`，所以只要有 model 帶著它，套件就已經安裝。載入失敗代表安裝壞了。請在本 emitter 旁邊安裝 `tsp-avro`，或是從 `preview-features` 移除 `avro`。

@@ -159,7 +159,7 @@ export const $lib = createTypeSpecLibrary({
     "avro-artifact-unavailable": {
       severity: "error",
       messages: {
-        default: paramMessage`Model '${"name"}' carries @Avro.record, and the Avro walk refused it: ${"reason"} So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.`,
+        default: paramMessage`Model '${"name"}' carries @Avro.avroRecord, and the Avro walk refused it: ${"reason"} So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.`,
       },
     },
     "avro-record-keeps-header": {

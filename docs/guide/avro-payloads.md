@@ -48,14 +48,14 @@ The reserved names of [`preview-features`](../reference/emitter-options#preview-
 
 The example below is [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads) in the repository. One Avro namespace, two records, and a Kafka cluster with a schema registry. The excerpts below are parts of that file. The repository holds the whole of it.
 
-`` @Avro.`namespace` `` marks the namespace that qualifies every Avro name under it. `namespace` and `record` are reserved words in TypeSpec, so both decorator names carry backticks.
+`@Avro.avroNamespace` marks the namespace that qualifies every Avro name under it.
 
 ```typespec
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
 ```
 
-`` @Avro.`record` `` marks a model that becomes one Avro record. `@message` marks the same model as a message of the document. The two decorators answer different questions, so a message with an Avro payload carries both.
+`@Avro.avroRecord` marks a model that becomes one Avro record. `@message` marks the same model as a message of the document. The two decorators answer different questions, so a message with an Avro payload carries both.
 
 ```typespec
   /**
@@ -63,7 +63,7 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
-  @Avro.`record`
+  @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
@@ -166,7 +166,7 @@ Each payload carries one Avro record and every named type that record reaches. A
 
 ## How it works
 
-The compiler runs the `tsp-avro` decorators and each one records what it was given. `` @Avro.`namespace` `` records the Avro namespace of a TypeSpec namespace. `` @Avro.`record` `` records that a model is an Avro record. The other decorators record what Avro has and TypeSpec cannot say, such as a logical type or an alias.
+The compiler runs the `tsp-avro` decorators and each one records what it was given. `@Avro.avroNamespace` records the Avro namespace of a TypeSpec namespace. `@Avro.avroRecord` records that a model is an Avro record. The other decorators record what Avro has and TypeSpec cannot say, such as a logical type or an alias.
 
 This emitter reads none of those records. It loads `tsp-avro` and calls the walk that library already has. The Avro emitter and this one therefore render one schema from one walk, and neither can drift from the other.
 
@@ -268,7 +268,7 @@ To keep the two the same, move the headers into their own model and point at it 
 
 Avro describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.
 
-So `@channel`, `@send`, `@receive` and `@message` are still required. A model that carries `` @Avro.`record` `` and no `@AsyncAPI.message` gets no payload and reports nothing.
+So `@channel`, `@send`, `@receive` and `@message` are still required. A model that carries `@Avro.avroRecord` and no `@AsyncAPI.message` gets no payload and reports nothing.
 
 ## A payload the author wrote by hand
 
@@ -290,4 +290,4 @@ The emitter reports the problem instead of falling back to the schema the TypeSp
 
 The feature loads `tsp-avro` on the first compile that needs it. A load that fails reports [`avro-library-missing`](../reference/diagnostics#avro-library-missing), and the message quotes what the load reported.
 
-The author writes `` @Avro.`record` ``, so the library is installed whenever a model carries it. A load that fails is a broken install. Install `tsp-avro` beside this emitter, or remove `avro` from `preview-features`.
+The author writes `@Avro.avroRecord`, so the library is installed whenever a model carries it. A load that fails is a broken install. Install `tsp-avro` beside this emitter, or remove `avro` from `preview-features`.

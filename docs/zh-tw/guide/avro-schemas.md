@@ -11,13 +11,13 @@ description: "tsp-avro 是這個 repository 的第二個 emitter。它把 TypeSp
 這是實驗性套件，尚未進入 1.0。它的 decorator、輸出與診斷都可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
 :::
 
-AsyncAPI emitter 的 `avro` 預覽功能呼叫的是同一個套件。開啟之後，帶著 `` @Avro.`record` `` 的 model 也會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](./avro-payloads)。
+AsyncAPI emitter 的 `avro` 預覽功能呼叫的是同一個套件。開啟之後，帶著 `@Avro.avroRecord` 的 model 也會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](./avro-payloads)。
 
 ## 這個套件做什麼
 
 它是 [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/) 的 Avro 同位物。它宣告自己的 decorator，也註冊自己的 emitter。
 
-標上 `` @Avro.`record` `` 的 model 會變成一個 `.avsc` 檔案。model 的 Avro namespace 決定那個檔案寫進哪個目錄。
+標上 `@Avro.avroRecord` 的 model 會變成一個 `.avsc` 檔案。model 的 Avro namespace 決定那個檔案寫進哪個目錄。
 
 Avro 需要的 decorator 很少，因為一個純 TypeSpec model 本來就是合法的 Avro record。Avro 沒有欄位編號。所以這裡的 decorator 只補 Avro 有、而 TypeSpec 表達不了的東西。
 
@@ -46,10 +46,8 @@ options:
 
 以下範例是 repository 裡的 [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)。那個目錄有原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 寫出的 schema 檔案。
 
-`namespace` 與 `record` 是 TypeSpec 的保留字。所以這兩個 decorator 名稱都要加反引號。上游的 Protobuf library 以同樣理由寫成 ``@Protobuf.`package```。
-
 ```typespec
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders;
 
 // The logical type sits on the scalar, so every field of this type carries
@@ -68,7 +66,7 @@ logical type 掛在 scalar 上。每個屬於該 scalar 的欄位都帶著它。
 
 ```typespec
 /** The fulfilment of an order moved on. */
-@Avro.`record`
+@Avro.avroRecord
 model OrderFulfilmentChanged {
   // `@aliases` names what a field used to be called. A reader written against
   // this schema still reads data written under the old name.
@@ -198,7 +196,7 @@ model OrderFulfilmentChanged {
 
 `/** */` 註解會變成它所標註之宣告的 `doc`。`//` 註解不會輸出。
 
-這個檔案完整寫下 model `Address` 與 enum `FulfilmentStatus`。兩個宣告都沒有 `` @Avro.`record` ``，所以都沒有自己的檔案。
+這個檔案完整寫下 model `Address` 與 enum `FulfilmentStatus`。兩個宣告都沒有 `@Avro.avroRecord`，所以都沒有自己的檔案。
 
 ## 一個檔案裝一份完整的 schema
 
@@ -301,8 +299,8 @@ logical type 是型別的一個屬性，不是獨立的型別。Avro 用 `int` �
 
 | Decorator                         | 目標                             | 作用                                          |
 | --------------------------------- | -------------------------------- | --------------------------------------------- |
-| ``@Avro.`namespace`(name)``       | `Namespace`                      | 宣告 Avro namespace。最近的祖先生效。         |
-| `` @Avro.`record` ``              | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。 |
+| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。最近的祖先生效。         |
+| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。 |
 | `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                  |
 | `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。       |
 | `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。          |

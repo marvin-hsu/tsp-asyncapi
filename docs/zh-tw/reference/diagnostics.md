@@ -681,9 +681,9 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 ### `avro-artifact-unavailable`
 
-> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+> Model '\<name\>' carries @Avro.avroRecord, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.
 
-某個 model 同時有 `@Avro.record` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
+某個 model 同時有 `@Avro.avroRecord` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
 
 原因是引述，不是原樣轉發。診斷會帶上建立它的那個套件的代碼。只 emit 這個套件的專案不該讀到另一個套件的代碼。同時 emit 兩者的專案，否則每一條拒絕都會讀到兩次，兩個 emitter 各一次。
 
@@ -691,15 +691,15 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 不會寫出文件。那個 model 的 payload 會退回成它的 TypeSpec 型別產生的 schema。那份檔案用一般的 JSON Schema 回應了一個要求 Avro 的請求，而且檔案裡沒有任何一處說明這件事。
 
-只有 `@Avro.record` 而沒有 `@AsyncAPI.message` 的 model 不會回報任何東西。它沒有要求任何 payload，所以替其他型別寫 Avro record 的專案不會因此變紅。
+只有 `@Avro.avroRecord` 而沒有 `@AsyncAPI.message` 的 model 不會回報任何東西。它沒有要求任何 payload，所以替其他型別寫 Avro record 的專案不會因此變紅。
 
-**修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.record`。
+**修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.avroRecord`。
 
 ### `avro-record-keeps-header`
 
 > Message '\<name\>' lifts \<fields\> out of its payload with @header, and the generated Avro payload leaves them out. The .avsc file 'tsp-avro' writes still declares them, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
 
-一個 message 用 `@header` 移出一個以上的欄位，而且帶著 `@Avro.record`。產生的 payload 略過那些欄位，因為 header 走在 payload 旁邊。
+一個 message 用 `@header` 移出一個以上的欄位，而且帶著 `@Avro.avroRecord`。產生的 payload 略過那些欄位，因為 header 走在 payload 旁邊。
 
 `.avsc` 檔案由 `tsp-avro` 寫出，那個套件不讀任何 AsyncAPI decorator。Avro 也沒有 message header 這個概念，所以那個檔案宣告 model 的每一個屬性。
 

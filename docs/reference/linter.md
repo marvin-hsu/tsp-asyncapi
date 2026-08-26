@@ -216,7 +216,7 @@ In `recommended`. It only runs when [`preview-features`](./emitter-options#previ
 
 ```typespec
 // Reports. The content type says Avro, and the payload is JSON Schema.
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   @message
   @contentType("application/vnd.apache.avro")
@@ -226,11 +226,11 @@ namespace Orders {
 }
 ```
 
-Two things give a message an Avro payload, and either one silences the rule. `` @Avro.`record` `` lets the preview feature render the schema. `@rawPayload` carries the schema the author wrote. `record` and `namespace` are reserved words in TypeSpec, so both decorator names carry backticks.
+Two things give a message an Avro payload, and either one silences the rule. `@Avro.avroRecord` lets the preview feature render the schema. `@rawPayload` carries the schema the author wrote.
 
 The rule reads the media type and ignores what follows a semicolon, so a `;version=1.9.0` parameter does not hide the mistake. `application/vnd.apache.avro`, `application/vnd.apache.avro+json` and `application/vnd.apache.avro+yaml` all count.
 
-**Fix:** add `` @Avro.`record` ``, or write the schema with `@rawPayload`.
+**Fix:** add `@Avro.avroRecord`, or write the schema with `@rawPayload`.
 
 ### `unused-security-scheme`
 

@@ -20,13 +20,13 @@ const NAMESPACE = "com.example.a";
 describe("the Avro annotations", () => {
   it("writes the aliases of a record, of a field and of an enum", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.aliases("com.example.old.Colour")
         enum Colour { RED, GREEN }
 
         @Avro.aliases("com.example.old.Event", "Legacy")
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event {
           @Avro.aliases("orderId", "order_id") id: string;
           colour: Colour;
@@ -59,10 +59,10 @@ describe("the Avro annotations", () => {
     // An empty alias list says nothing a reader can use, so it is nothing to
     // write. Every other member the author left out disappears the same way.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.aliases()
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { id: string; }
       }
     `);
@@ -79,9 +79,9 @@ describe("the Avro annotations", () => {
     // Avro reads `ascending` where a field says nothing, so declaring it
     // changes the text of the schema and nothing a reader does.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event {
           @Avro.order("ascending") a: string;
           @Avro.order("descending") b: string;
@@ -108,12 +108,12 @@ describe("the Avro annotations", () => {
     // A fixed type is a named Avro type, so it obeys the rule every named type
     // obeys: written in full the first time, written by name after that.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.fixed(16)
         scalar Md5 extends bytes;
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { first: Md5; second: Md5; }
       }
     `);
@@ -137,13 +137,13 @@ describe("the Avro annotations", () => {
 
   it("writes a model marked fixed, with the aliases it carries", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.aliases("com.example.old.Digest")
         @Avro.fixed(8)
         model Digest {}
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { digest: Digest; }
       }
     `);
@@ -171,12 +171,12 @@ describe("the Avro annotations", () => {
     // A reader that meets a symbol its own schema does not hold reads this one
     // instead. Without it, that reader fails.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.enumDefault("UNKNOWN")
         enum Channel { UNKNOWN, WEB, MOBILE }
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { channel: Channel; }
       }
     `);
@@ -207,7 +207,7 @@ describe("the Avro annotations", () => {
     // `JSON.parse` keeps the order the text was written in, so this reads the
     // bytes rather than the meaning. It is what makes two runs the same file.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.aliases("com.example.old.Channel")
         @Avro.enumDefault("UNKNOWN")
@@ -218,7 +218,7 @@ describe("the Avro annotations", () => {
 
         /** An event. */
         @Avro.aliases("com.example.old.Event")
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event {
           /** The channel. */
           @Avro.aliases("chan")

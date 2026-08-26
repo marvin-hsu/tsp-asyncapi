@@ -182,7 +182,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 
 它與 AsyncAPI emitter 互相獨立。它宣告自己的 decorator，不需要任何 AsyncAPI decorator。它寫出什麼見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
 
-本 emitter 的 `avro` 預覽功能呼叫同一個套件。帶著 `` @Avro.`record` `` 的 model 會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
+本 emitter 的 `avro` 預覽功能呼叫同一個套件。帶著 `@Avro.avroRecord` 的 model 會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
 
 ## Emitter 選項
 

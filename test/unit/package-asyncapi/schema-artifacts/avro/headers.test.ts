@@ -40,10 +40,10 @@ const LIFTED = `
   @service(#{ title: "Orders" })
   namespace Test;
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Orders {
     @message
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderPlaced {
       @header traceId: string;
       orderId: string;
@@ -122,7 +122,7 @@ describe("Unit: a header of a message with a generated Avro payload", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
         model Meta {
           traceId: string;
@@ -130,7 +130,7 @@ describe("Unit: a header of a message with a generated Avro payload", () => {
 
         @message
         @headers(Meta)
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderPlaced {
           orderId: string;
         }

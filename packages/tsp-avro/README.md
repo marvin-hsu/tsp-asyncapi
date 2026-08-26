@@ -34,7 +34,7 @@ option, and every emitter takes it.
 ```typespec
 import "tsp-avro";
 
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   /** Where an order goes. */
   model Address {
@@ -43,7 +43,7 @@ namespace Orders {
   }
 
   /** An order left the checkout. */
-  @Avro.`record`
+  @Avro.avroRecord
   model OrderPlaced {
     id: string;
     shipping: Address;
@@ -54,21 +54,12 @@ namespace Orders {
 
 That source writes one file, `com/example/orders/OrderPlaced.avsc`.
 
-## Write both reserved decorator names in backticks
-
-TypeSpec reserves the words `namespace` and `record`. Write
-`` @Avro.`namespace` `` and `` @Avro.`record` `` with backticks around the
-name. Without them the compiler reports `reserved-identifier`.
-
-The upstream Protobuf library writes `` @Protobuf.`package` `` the same way,
-for the same reason.
-
 ## Decorators
 
 | Decorator                         | Target                           | What it does                                                         |
 | --------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
-| ``@Avro.`namespace`(name)``       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
-| `` @Avro.`record` ``              | `Model`                          | Marks a model to emit. One marked model becomes one `.avsc` file.    |
+| `@Avro.avroNamespace(name)`       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
+| `@Avro.avroRecord`                | `Model`                          | Marks a model to emit. One marked model becomes one `.avsc` file.    |
 | `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum` | Names what the declaration used to be called.                        |
 | `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`, `descending` or `ignore`.                               |
 | `@Avro.fixed(size)`               | `Model`, `Scalar`                | Makes an Avro fixed type of that many bytes.                         |

@@ -37,13 +37,10 @@ using AsyncAPI;
 })
 namespace OrdersService;
 
-// `@Avro.namespace` marks the namespace that qualifies every Avro name under
+// `@Avro.avroNamespace` marks the namespace that qualifies every Avro name under
 // it. The Avro namespace is independent of the TypeSpec namespace name, and
 // it is what a registry subject and a `.avsc` path are built from.
-//
-// `namespace` and `record` are reserved words in TypeSpec, so both decorator
-// names are written in backticks.
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   // The logical type sits on the scalar, so every field of this type carries
   // it. A reader that knows `timestamp-millis` builds a timestamp. A reader
@@ -81,7 +78,7 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
-  @Avro.`record`
+  @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
@@ -105,7 +102,7 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
-  @Avro.`record`
+  @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
   model OrderCancelled {
     /** The identifier of the order. */

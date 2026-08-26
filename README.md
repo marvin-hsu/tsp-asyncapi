@@ -182,7 +182,7 @@ This repository also holds [`tsp-avro`](./packages/tsp-avro/). It is an experime
 
 It is independent of the AsyncAPI emitter. It declares its own decorators, and it needs no AsyncAPI decorator. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says what it emits.
 
-The `avro` preview feature of this emitter calls the same library. A model that carries `` @Avro.`record` `` then gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says how to turn that on.
+The `avro` preview feature of this emitter calls the same library. A model that carries `@Avro.avroRecord` then gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says how to turn that on.
 
 ## Emitter options
 

@@ -36,11 +36,11 @@ const CLAIMED_TWICE = `
   namespace Test;
 
   @Protobuf.package({ name: "com.example.orders" })
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Orders {
     @message
     @Protobuf.message
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderPlaced {
       @Protobuf.field(1)
       orderId: string;
@@ -77,7 +77,7 @@ describe("Unit: one model claimed by two preview features", () => {
       namespace Test;
 
       @Protobuf.package({ name: "com.example.orders" })
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
         @message
         @Protobuf.message
@@ -87,7 +87,7 @@ describe("Unit: one model claimed by two preview features", () => {
         }
 
         @message
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderShipped {
           carrier: string;
         }
