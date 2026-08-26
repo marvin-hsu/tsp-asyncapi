@@ -301,7 +301,7 @@ emitter 會把 TypeSpec 的 model、scalar、enum、union 轉成 AsyncAPI Schema
 來自 [`tsp-avro`](./packages/tsp-avro/)。一個普通的 TypeSpec model 本身就是合法的
 Avro record，所以這幾個 decorator 補的是「Avro 有、但 TypeSpec 講不出來」的部分。
 
-- `@Avro.avroNamespace` — 宣告一個 namespace 的 Avro namespace。最近的祖先生效，也決定 `.avsc` 檔案寫進哪個目錄。
+- `@Avro.avroNamespace` — 宣告一個 namespace 的 Avro namespace。由最靠近的上層 namespace 決定，也決定 `.avsc` 檔案寫進哪個目錄。
 - `@Avro.avroRecord` — 標記一個要輸出的 model。一個標記產生一個 `.avsc` 檔案。
 - `@Avro.aliases` — 指定這個宣告以前叫什麼名字，讓照舊名字寫的 reader 仍然解得到。
 - `@Avro.order` — 設定欄位的排序方式：`ascending`、`descending` 或 `ignore`。
@@ -341,7 +341,7 @@ linter:
 | 項目                      | 支援 | 說明                                                                                                                                              |
 | ------------------------- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@typespec/versioning`    | TBD  | 等 TypeSpec 用新的 `when` 語法重做版本控制（[#10551](https://github.com/microsoft/typespec/issues/10551)）。在那之前建議用 Git 分支或目錄分版本。 |
-| `traits`                  |  ✗   | TypeSpec 的 `extends`、`is`、spread 已經能重用，emitter 直接輸出合併後的結果。                                                                    |
+| `traits`                  |  ✗   | TypeSpec 的 `extends`、`is`、spread 已經能重用。`extends` 輸出成 `allOf` 加 `$ref`，`is` 和 spread 展開進 schema。                                |
 | 多個 `@service`           |  ✗   | 建議一個應用一份文件，實務上已足夠。多個應用各開一個專案，寫了多個時只輸出第一個。                                                                |
 | 文件切成多檔、跨檔 `$ref` |  ✗   | TypeSpec 在原始碼層就能切檔，輸出的文件不需要再切。                                                                                               |
 

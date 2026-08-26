@@ -342,7 +342,7 @@ See the [Linter reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/l
 | Item                                 | Supported | Why                                                                                                                                                  |
 | ------------------------------------ | :-------: | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@typespec/versioning`               |    TBD    | Waiting on the `when`-based redesign ([#10551](https://github.com/microsoft/typespec/issues/10551)). Suggest Git branches or directories until then. |
-| `traits`                             |     ✗     | `extends`, `is`, and spread already cover reuse in TypeSpec, and the emitter writes the merged result.                                               |
+| `traits`                             |     ✗     | `extends`, `is`, and spread already cover reuse in TypeSpec. `extends` becomes `allOf` plus a `$ref`; `is` and spread flatten into the schema.       |
 | More than one `@service`             |     ✗     | One application per document is enough in practice. Give each application its own project; only the first `@service` emits.                          |
 | Multi-file output, cross-file `$ref` |     ✗     | TypeSpec splits at the source level, so the compiled document does not need splitting too.                                                           |
 
