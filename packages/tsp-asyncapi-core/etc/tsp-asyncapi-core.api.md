@@ -83,7 +83,7 @@ readonly default: CallableMessage<["name", "reason"]>;
 readonly default: CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
-readonly default: CallableMessage<["slot", "first", "second"]>;
+readonly default: CallableMessage<["first", "second"]>;
 };
 "conflicting-message-schema-source": {
 readonly default: CallableMessage<["provider", "provider"]>;
@@ -589,7 +589,7 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["reason"]>;
     };
     "conflicting-generated-schema-source": {
-        readonly default: CallableMessage<["slot", "first", "second"]>;
+        readonly default: CallableMessage<["first", "second"]>;
     };
     "conflicting-message-schema-source": {
         readonly default: CallableMessage<["provider", "provider"]>;
@@ -930,7 +930,7 @@ readonly default: CallableMessage<["name", "reason"]>;
 readonly default: CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
-readonly default: CallableMessage<["slot", "first", "second"]>;
+readonly default: CallableMessage<["first", "second"]>;
 };
 "conflicting-message-schema-source": {
 readonly default: CallableMessage<["provider", "provider"]>;
@@ -1638,7 +1638,7 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
         readonly default: CallableMessage<["reason"]>;
     };
     "conflicting-generated-schema-source": {
-        readonly default: CallableMessage<["slot", "first", "second"]>;
+        readonly default: CallableMessage<["first", "second"]>;
     };
     "conflicting-message-schema-source": {
         readonly default: CallableMessage<["provider", "provider"]>;
@@ -1979,7 +1979,7 @@ readonly default: CallableMessage<["name", "reason"]>;
 readonly default: CallableMessage<["reason"]>;
 };
 "conflicting-generated-schema-source": {
-readonly default: CallableMessage<["slot", "first", "second"]>;
+readonly default: CallableMessage<["first", "second"]>;
 };
 "conflicting-message-schema-source": {
 readonly default: CallableMessage<["provider", "provider"]>;
@@ -2284,7 +2284,6 @@ export const SCHEMA_FORMAT: {
 
 // @public
 export interface SchemaArtifactIndex {
-    readonly headersFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
     readonly payloadFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
 }
 

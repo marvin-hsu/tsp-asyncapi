@@ -122,8 +122,9 @@ write instead.
 
 ## Releasing
 
-The two packages version independently, so a tag cannot say what to release.
-`tsp-asyncapi-core` and `tsp-asyncapi` do not share a number.
+The three packages version independently, so a tag cannot say what to
+release. `tsp-asyncapi`, `tsp-asyncapi-core` and `tsp-avro` do not share a
+number.
 
 Record what a change should release, as part of the change:
 
@@ -137,9 +138,12 @@ To cut a release, compute the versions and open a PR with the result:
 pnpm changeset version
 ```
 
-That updates each `package.json` and the dependency range between the two
-packages. Write the changelog entries by hand, in both languages: the
-changelogs are not generated, because they explain why a change was made.
+That updates each `package.json` and the dependency ranges between the
+packages, and it writes the changelog entries from the changesets. Do not
+edit a changelog by hand: `changeset version` overwrites it. The summary you
+write in the changeset is what a user reads, so write it that way.
+
+Changelogs are English only.
 
 Once that PR is merged, run the Release workflow from the Actions tab.
 `workflow_dispatch` is the only trigger, so nothing publishes on a push. The

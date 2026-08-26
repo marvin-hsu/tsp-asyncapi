@@ -23,7 +23,6 @@ const failingArtifacts: SchemaArtifactIndex = {
       throw new Error("the index failed");
     },
   } as unknown as SchemaArtifactIndex["payloadFor"],
-  headersFor: new Map(),
 };
 
 describe("Unit: The build pipeline", () => {

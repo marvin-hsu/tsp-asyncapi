@@ -26,8 +26,8 @@ English version: [SECURITY.md](./SECURITY.md)
 
 ## 屬於範圍內的問題
 
-這是一個建置期工具。它讀 TypeSpec 原始碼、寫出 AsyncAPI 文件。它在開發機或建置環境
-中執行，不對外提供服務。
+這是一個建置期工具，讀 TypeSpec 原始碼、寫出 AsyncAPI 文件，在開發機或建置環境中
+執行，不對外提供服務。
 
 以下屬於範圍內：
 

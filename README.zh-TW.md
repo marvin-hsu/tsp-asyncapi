@@ -1,9 +1,10 @@
 # tsp-asyncapi
 
-| 套件                                                                                                     | 版本                                                                                                          | 下載量                                                                                                               |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| [`tsp-asyncapi`](https://www.npmjs.com/package/tsp-asyncapi) — AsyncAPI 3.1 emitter                      | [![npm](https://img.shields.io/npm/v/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           |
-| [`tsp-asyncapi-core`](https://www.npmjs.com/package/tsp-asyncapi-core) — decorator 與語意模型,不產出文件 | [![npm](https://img.shields.io/npm/v/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) |
+| 套件                                                                                                        | 版本                                                                                                          | 下載量                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [`tsp-asyncapi`](https://www.npmjs.com/package/tsp-asyncapi) — AsyncAPI 3.1 emitter                         | [![npm](https://img.shields.io/npm/v/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)           |
+| [`tsp-asyncapi-core`](https://www.npmjs.com/package/tsp-asyncapi-core) — decorator 與語意模型，不含 emitter | [![npm](https://img.shields.io/npm/v/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) | [![downloads](https://img.shields.io/npm/dm/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core) |
+| [`tsp-avro`](https://www.npmjs.com/package/tsp-avro) — Apache Avro schema emitter，實驗性質                 | [![npm](https://img.shields.io/npm/v/tsp-avro.svg)](https://www.npmjs.com/package/tsp-avro)                   | [![downloads](https://img.shields.io/npm/dm/tsp-avro.svg)](https://www.npmjs.com/package/tsp-avro)                   |
 
 [![Node.js](https://img.shields.io/node/v/tsp-asyncapi)](https://nodejs.org/)
 [![GitHub stars](https://img.shields.io/github/stars/marvin-hsu/tsp-asyncapi.svg?style=flat)](https://github.com/marvin-hsu/tsp-asyncapi/stargazers)
@@ -22,28 +23,40 @@
 
 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。用 TypeSpec 描述事件驅動 API，並產出完整的 AsyncAPI 文件。
 
-> **狀態：已發佈到 npm。** 產生器可輸出完整的 AsyncAPI 3.1 文件。Channels、operations、messages、schemas、servers、security schemes 以及 protocol bindings（包含 Kafka）皆已實作，並可通過官方的 AsyncAPI 驗證器檢查。目前的重點是測試品質：重新評估既有測試案例，並加入更多屬性測試情境。
+> **狀態：已發佈到 npm。** emitter 會輸出一份完整的 AsyncAPI 3.1 文件。
+>
+> - **已實作：** channel、operation、message、schema、server、security scheme，以及各種通訊協定的 binding（含 Kafka）。輸出通過官方 AsyncAPI 驗證器。
+> - **預覽功能：** Protobuf payload 與 Avro payload。
+> - **尚未進入 1.0：** 三個套件都是。次版本仍可能改變輸出。
 
-> **Note：** 本專案選擇直接走訪 AST，而不採用即將被淘汰的 `@typespec/asset-emitter`。TypeSpec 官方目前正準備全面棄用這套舊版的 EFv1 架構並轉向 EFv2（見 [#5998](https://github.com/microsoft/typespec/issues/5998) 與 [#6583](https://github.com/microsoft/typespec/issues/6583)）。
+> **說明：** 本專案直接走訪 AST，沒有用 `@typespec/asset-emitter`。TypeSpec 官方正在淘汰那套舊架構（EFv1），改推 EFv2（見 [#5998](https://github.com/microsoft/typespec/issues/5998) 與 [#6583](https://github.com/microsoft/typespec/issues/6583)）。
 
-📖 **文件請看 [docs 網站](https://marvin-hsu.github.io/tsp-asyncapi/)**：快速開始、經過驗證的 schema 轉換範例、完整的 decorator / 選項 / 診斷參考。提供英文與臺灣正體中文。
+📖 **完整說明在[文件網站](https://marvin-hsu.github.io/tsp-asyncapi/)**：快速開始、驗證過的 schema 轉換範例，以及 decorator、選項、診斷的完整參考。
 
 ## 環境需求
 
 - Node.js >= 20
-- [pnpm](https://pnpm.io/)（本專案的 `devEngines` 欄位鎖定 ^11）
+- [pnpm](https://pnpm.io/)（`devEngines` 欄位鎖定 ^11）
 
 ## 安裝
 
-在你的 TypeSpec 專案中安裝這個 emitter：
+在 TypeSpec 專案中安裝 emitter：
 
 ```bash
 pnpm add tsp-asyncapi
 ```
 
+安裝 `tsp-asyncapi` 後會連帶載入 `tsp-asyncapi-core`，通常不需要自行安裝。
+
+如果需要安裝 Avro emitter：
+
+```bash
+pnpm add tsp-avro
+```
+
 ## 使用方式
 
-在 `main.tsp` 匯入這個 library，用提供的 decorator 標註你的 service：
+在 `main.tsp` 匯入 library，再用 decorator 標註 service：
 
 ```typespec
 import "tsp-asyncapi";
@@ -98,7 +111,7 @@ options:
 tsp compile . --emit tsp-asyncapi
 ```
 
-以下是上面範例的輸出。官方 AsyncAPI parser 讀這份文件不會產生任何 error：
+產出如下：
 
 ```yaml
 asyncapi: 3.1.0
@@ -168,21 +181,42 @@ components:
       type: scramSha512
 ```
 
-operation 透過自己的 channel 參照 message，不會直接指向 `components.messages`。AsyncAPI 3 規定必須是這種形式。
+> **說明：** AsyncAPI 3 規定 operation 要透過 channel 參照 message，不會直接指向 `components.messages`。
 
 ## 範例
 
-[`examples/`](./examples/) 底下有十八個完整範例，每一個都附 TypeSpec 原始碼與 emitter 產生的輸出。其中十七個產生 AsyncAPI 文件，本 library 實作的每個通訊協定都至少出現在其中一個。另一個只產生 Avro schema 檔案。
+[`examples/`](./examples/) 底下有十八個完整範例，每個都附 TypeSpec 原始碼與 emitter 實際寫出的輸出。本專案實作的每個通訊協定都至少出現在一個範例裡。
 
-各範例的內容見[範例頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/examples)。
+| 範例                                                                | 內容                                        |
+| ------------------------------------------------------------------- | ------------------------------------------- |
+| [Hello world](./examples/01-hello-world/)                           | 最小可用的完整文件                          |
+| [Payload schemas](./examples/02-payload-schemas/)                   | schema 的各種形狀與限制                     |
+| [Schema composition](./examples/03-schema-composition/)             | 組合既有 schema 的四種方式                  |
+| [Message metadata](./examples/04-message-metadata/)                 | headers、correlation id、範例、tag          |
+| [Channels and parameters](./examples/05-channels-and-parameters/)   | channel id、位址模板與參數                  |
+| [Servers and security](./examples/06-servers-and-security/)         | server、變數與安全機制                      |
+| [Request and reply](./examples/07-request-and-reply/)               | 回覆的兩種形態                              |
+| [Kafka user signup](./examples/08-kafka-user-signup/)               | 完整的 Kafka 契約，四層 binding             |
+| [MQTT bindings](./examples/09-protocol-bindings/)                   | MQTT binding 與通用 `@binding`              |
+| [Streetlights](./examples/10-streetlights-kafka/)                   | AsyncAPI 官方經典範例的 TypeSpec 版         |
+| [Multiple protocols](./examples/11-multi-protocol/)                 | 同一個 payload 同時走 Kafka、WebSocket、SQS |
+| [HTTP callbacks](./examples/12-http-callbacks/)                     | webhook 的 HTTP binding                     |
+| [Enterprise brokers](./examples/13-enterprise-brokers/)             | AMQP、JMS、IBM MQ、Anypoint MQ              |
+| [Streaming platforms](./examples/14-streaming-platforms/)           | NATS、Pulsar、Pub/Sub、Solace               |
+| [Specification extensions](./examples/15-specification-extensions/) | `x-` 擴充欄位                               |
+| [Protobuf payloads](./examples/16-protobuf-payloads/)               | 兩個 Protobuf package，同時輸出 `.proto`    |
+| [Avro schemas](./examples/17-avro-schemas/)                         | 只產出 `.avsc`，沒有 AsyncAPI 文件          |
+| [Avro payloads](./examples/18-avro-payloads/)                       | 兩個 Avro record，同時輸出 `.avsc`          |
 
-## Avro schema
+更詳細的說明見[範例頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/examples)。
 
-這個 repository 另外收了 [`tsp-avro`](./packages/tsp-avro/)。它是一個實驗性的 library 與 emitter，寫出 Apache Avro schema 檔案。它尚未進入 1.0，介面可能在任何一次發佈中改變。
+## Avro emitter
 
-它與 AsyncAPI emitter 互相獨立。它宣告自己的 decorator，不需要任何 AsyncAPI decorator。它寫出什麼見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
+[`tsp-avro`](./packages/tsp-avro/) 是實驗性套件，還沒到 1.0，介面隨時可能變動。
 
-本 emitter 的 `avro` 預覽功能呼叫同一個套件。帶著 `@Avro.avroRecord` 的 model 會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
+主要用來支援 AsyncAPI emitter 的 `avro` 預覽功能：model 標上 `@Avro.avroRecord`，payload 就會輸出 Avro schema。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
+
+也可以單獨使用：有自己的一套 decorator，不必相依 AsyncAPI decorator 就能輸出 `.avsc` 檔案。用法見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
 
 ## Emitter 選項
 
@@ -196,9 +230,26 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 | `default-content-type` | `string`   | -               | 訊息 payload 的預設 content type，對應 `defaultContentType`。 |
 | `preview-features`     | `string[]` | `[]`            | 開啟預覽功能。保留的名稱是 `protobuf` 與 `avro`。             |
 
+## 預覽功能
+
+> **注意：** 預覽功能的規格都可能在未來改變。
+
+在 `tspconfig.yaml` 的 `preview-features` 開啟。
+
+| 功能       | payload 格式 | 相依套件             | 指南                                                                                        |
+| ---------- | ------------ | -------------------- | ------------------------------------------------------------------------------------------- |
+| `protobuf` | proto3 文字  | `@typespec/protobuf` | [Protobuf payload](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/protobuf-payloads) |
+| `avro`     | Avro schema  | `tsp-avro`           | [Avro payload](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)         |
+
+兩個相依套件都是選用的 peer dependency，鎖在單一次版本區間。沒開對應功能的專案不必安裝。
+
+有些 TypeSpec 寫法在 proto3 裡沒有對應形式，例如匿名 model、template 具現化、union、`@Protobuf.externRef`。model 用到這些就不會產生 payload，emitter 會報錯並指出是哪一個。
+
+> **注意：** 會產生 payload 的 model 不可以用欄位層級 `@header`，改用 `@headers`。headers 一律是 JSON Schema。
+
 ## Schema 轉換
 
-這個 emitter 會自動把 TypeSpec 的 model、scalar、enum、union 轉換成 AsyncAPI Schema Object。目前支援：
+emitter 會把 TypeSpec 的 model、scalar、enum、union 轉成 AsyncAPI Schema Object。目前涵蓋：
 
 - Model，包含巢狀 model、array、`Record<T>`。
 - Scalar，包含 TypeSpec 內建的數值/字串/日期 scalar，以及使用者自訂的衍生 scalar。
@@ -209,9 +260,13 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@encodedName`，用來改寫屬性的線上格式（wire-format）key。
 - Template 具現化的穩定命名（依參數推導），例如 `Page<string>` 會在 `components.schemas` 裡變成 `PageString`。
 
-兩個宣告的名稱撞在一起時，會回報一個 diagnostic 錯誤，不會自動幫任一方改名。
+兩個宣告撞名時會編譯失敗，並要求使用者修改名稱。
 
 ## 可用的 Decorator
+
+這裡有兩套 decorator：AsyncAPI 描述文件，Avro 描述 schema 檔案。
+
+### AsyncAPI decorator
 
 - `@AsyncAPI.info` — 設定完整的 AsyncAPI `info` 區塊：version、description、contact、license。
 - `@AsyncAPI.externalDocs` — 附加外部文件連結。
@@ -220,7 +275,7 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@AsyncAPI.jsonSchemaExtension` — 加入一個沒有專屬 decorator 對照的 JSON Schema 關鍵字，例如 `@jsonSchemaExtension("unevaluatedProperties", false)`。可重複套用，每次加一組 key/value。
 - `@AsyncAPI.channel` / `@AsyncAPI.dynamicChannel` — 在 interface 或 namespace 上宣告一個 channel。
 - `@AsyncAPI.send` / `@AsyncAPI.receive` — 把一個 operation 標記成本應用送出或接收的 message。
-- `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — 描述 operation 的回覆。見文件站台的 Request 與 Reply 一章。
+- `@AsyncAPI.replyChannel` / `@AsyncAPI.replyAddress` — 描述 operation 的回覆。見文件網站的 Request 與 Reply 一章。
 - `@AsyncAPI.message` — 把 model 標記為一個 message。
 - `@AsyncAPI.server` / `@AsyncAPI.useServer` — 宣告並參照 server。server 變數是 `@server` 設定裡的 `variables` 欄位，不是獨立的 decorator。
 - `@AsyncAPI.securityScheme` / `@AsyncAPI.useSecurity` — 宣告並套用安全機制 (security schemes)。
@@ -241,9 +296,26 @@ operation 透過自己的 channel 參照 message，不會直接指向 `component
 - `@tag` — 內建。為文件加上標準 tag。
 - `@service` — 內建。自動取出 API 標題。
 
+### Avro decorator
+
+來自 [`tsp-avro`](./packages/tsp-avro/)。一個普通的 TypeSpec model 本身就是合法的
+Avro record，所以這幾個 decorator 補的是「Avro 有、但 TypeSpec 講不出來」的部分。
+
+- `@Avro.avroNamespace` — 宣告一個 namespace 的 Avro namespace。最近的祖先生效，也決定 `.avsc` 檔案寫進哪個目錄。
+- `@Avro.avroRecord` — 標記一個要輸出的 model。一個標記產生一個 `.avsc` 檔案。
+- `@Avro.aliases` — 指定這個宣告以前叫什麼名字，讓照舊名字寫的 reader 仍然解得到。
+- `@Avro.order` — 設定欄位的排序方式：`ascending`、`descending` 或 `ignore`。
+- `@Avro.fixed` — 做成指定位元組數的 Avro `fixed` 型別。
+- `@Avro.logicalType` — 寫出規格定義的其中一個 logical type，例如 `uuid` 或 `timestamp-millis`。
+- `@Avro.decimal` — 設定 `decimal` 的精度與小數位數。
+- `@Avro.enumDefault` — 指定 reader 遇到 enum 沒宣告的符號時要採用哪一個成員。
+
+同時帶著 `@Avro.avroRecord` 與 `@AsyncAPI.message` 的 model，在 `avro` 預覽功能
+開啟時，文件裡的 payload 也會是 Avro schema。
+
 ## Linter 規則
 
-七條選用規則，抓 emitter 會接受的錯誤。它們都產出合法的文件，但文件說的不是你的意思，而且沒有任何診斷涵蓋它們。規則在語意分析階段執行，不需要執行 emitter 就會顯示。
+規則在語意分析階段執行，不必執行 emitter，編輯器就會直接標示。
 
 ```yaml
 # tspconfig.yaml
@@ -252,83 +324,69 @@ linter:
     - "tsp-asyncapi/recommended"
 ```
 
-`recommended` 會啟用 `missing-service`、`channel-without-operation`、`operation-without-message`、`server-protocol-mismatch`、`protobuf-content-type-undeclared` 與 `avro-content-type-undeclared`。`unused-security-scheme` 要指名開啟。每條規則抓什麼、怎麼修，見文件站的 Linter 規則頁。
+| 規則                               | recommended | 檢查什麼                                                            |
+| ---------------------------------- | :---------: | ------------------------------------------------------------------- |
+| `missing-service`                  |      ✓      | 有 AsyncAPI 內容卻沒宣告 `@service`。                               |
+| `channel-without-operation`        |      ✓      | channel 底下沒有任何 `@send` 或 `@receive`。                        |
+| `operation-without-message`        |      ✓      | operation 沒有指名任何 `@message` model。                           |
+| `server-protocol-mismatch`         |      ✓      | server binding 的通訊協定跟 server 本身不合。                       |
+| `protobuf-content-type-undeclared` |      ✓      | message 宣告 Protobuf content type，卻沒有對應的 Protobuf payload。 |
+| `avro-content-type-undeclared`     |      ✓      | message 宣告 Avro content type，卻沒有對應的 Avro payload。         |
+| `unused-security-scheme`           |             | 宣告的 security scheme 沒有被任何 `@useSecurity` 用到。             |
 
-## 功能支援狀態與設計決策
+每條規則的訊息與修法，見文件網站的 [Linter 規則頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/linter)。
 
-以 AsyncAPI 3.0 的 JSON schema 於 2026-08-17 實測。`channel`、`server` 與
-`info` 三個物件的規格欄位已全數實作。剩下的每個缺口都是決定，不是遺漏。
-缺口分成三類：計劃做、等使用情境、不做。
+## 設計取捨
 
-`components` 的十九個區段已填了十一個。作者取過名字的片段第一次使用就寫進去。
-沒有自己名字的片段，等第二個地方帶著同一個時才寫進去。兩條規則與元件的命名方式，
-見文件站的可重用元件頁。
+| 項目                      | 支援 | 說明                                                                                                                                              |
+| ------------------------- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@typespec/versioning`    | TBD  | 等 TypeSpec 用新的 `when` 語法重做版本控制（[#10551](https://github.com/microsoft/typespec/issues/10551)）。在那之前建議用 Git 分支或目錄分版本。 |
+| `traits`                  |  ✗   | TypeSpec 的 `extends`、`is`、spread 已經能重用，emitter 直接輸出合併後的結果。                                                                    |
+| 多個 `@service`           |  ✗   | 建議一個應用一份文件，實務上已足夠。多個應用各開一個專案，寫了多個時只輸出第一個。                                                                |
+| 文件切成多檔、跨檔 `$ref` |  ✗   | TypeSpec 在原始碼層就能切檔，輸出的文件不需要再切。                                                                                               |
 
-### 計劃做
+完整代碼見[診斷訊息參考](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/diagnostics)。轉換不了的內容一律回報。
 
-| 計劃項目                               | 目前的狀態                                                                                                                                                                  | 說明                                                                                                                                                                                                                         |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 對官方 `@typespec/protobuf` 的一級支援 | 預覽功能，預設關閉。用 `preview-features: ["protobuf"]` 開啟。開啟後，帶官方 decorator 的 model 會拿到 proto3 payload。這個 emitter 自己讀 decorator state 並產生那段文字。 | 預覽表示選項、payload 與診斷都可能在次版本更動。外部參照、template 執行個體與 union 一律拒絕，不做勉強的翻譯。它寫出什麼見[Protobuf payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/protobuf-payloads)。 |
-| 對 Avro 的一級支援                     | 預覽功能，預設關閉。用 `preview-features: ["avro"]` 開啟。開啟後，帶 `tsp-avro` decorator 的 model 會拿到 Avro schema 當作 payload。這個 emitter 呼叫該套件既有的走訪。     | 預覽表示選項、payload 與診斷都可能在次版本更動。`tsp-avro` 尚未進入 1.0，而且是選用的 peer dependency。它寫出什麼見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。               |
+## 上游 bug
 
-### 等使用情境
+> **注意：** 不要用 `__proto__` 當成員名稱。
 
-| 項目                   | 為何能暫緩                                                                                                                                                                                                                                                                                                                                                                                               | 什麼情況會改變決定                                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `@typespec/versioning` | 使用裝飾器做行內版本控制容易降低可讀性，且現有設計存在不少 Bug（如 [#3649](https://github.com/microsoft/typespec/issues/3649), [#7035](https://github.com/microsoft/typespec/issues/7035)）。TypeSpec 核心團隊也已計畫改用新的 `when` 語法來重構，並將棄用現有裝飾器（見 [#10551](https://github.com/microsoft/typespec/issues/10551)）。在官方生態穩定前，建議透過 Git 分支或資料夾來管理版本更為穩妥。 | 待官方釋出並穩定新的條件語法，且社群出現強烈的多版本輸出需求時。 |
-
-### 不做
-
-| 項目                                          | 為什麼不做                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| message 與 operation 的 `traits`              | trait 去重的是輸出文件，不是原始碼。TypeSpec 在原始碼層已提供重用：`extends`、`is` 與 spread。emitter 輸出合併後的結果，讀文件的人不必解析 trait 鏈。                                                                                                                                                                                                       |
-| 多個 `@service`                               | 一份 AsyncAPI 文件描述一個應用。要描述多個應用，請為每個應用開一個入口專案並共用 TypeSpec 原始碼。在單一專案中生成多個頂層服務目前是官方 Emitter 框架的已知痛點（見 [#7120](https://github.com/microsoft/typespec/issues/7120), [#9032](https://github.com/microsoft/typespec/issues/9032)）。目前只會輸出第一個 service，其餘由 `multiple-services` 回報。 |
-| 把一份 AsyncAPI 文件切成多檔，以及跨檔 `$ref` | TypeSpec 在原始碼層級就已經提供了很好的檔案切割與模組管理能力，因此最終產物通常沒有切檔的需求。不過，等未來官方的 EFv2 架構發展成熟後，會考慮實作多檔輸出功能。這條是關於「一份文件變成多個檔案」。它沒有限制「本質上就產出多個檔案的 emitter」，例如產生程式原始碼的那種：那是另一個套件，不受這條約束。                                                   |
-
-[診斷訊息參考](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/diagnostics)列出 emitter 會回報的每一個代碼 —— 表達不了的東西都會被回報，不會靜默丟棄。
-
-### 唯一的例外，在 compiler
-
-名稱是 `__proto__` 的成員到不了這個 emitter。compiler 把 object value 交給
-decorator 之前會逐個成員賦值。在 JavaScript 裡，對 `__proto__` 賦值是設定該物件
-的原型，不是新增一個成員。所以這個成員在任何 decorator 執行前就消失了，而且不會
-有任何回報。
+compiler 組 object value 時逐個成員賦值。在 JavaScript 裡，賦值給 `__proto__`
+是設定物件的原型，不是新增成員，所以這個成員在任何 decorator 執行前就消失了，
+沒有任何錯誤或警告。
 
 ```typespec
 // emitter 只收到 `ok` 一個成員，另一個不見了。
 @extension("x-thing", #{ `__proto__`: "written", ok: 1 })
 ```
 
-消失的成員如果裝著 object 或 array，那個值還會變成該物件的原型。此後去讀作者從未
-宣告的名稱，可能拿到作者塞進去的資料。
+消失的成員如果是 object 或 array，那個值還會變成物件的原型，之後讀取一個
+作者從未宣告的名稱，可能拿到這份塞進去的資料。
 
-所有接受 object value 的 decorator 都受影響，`@extension` 與 `@binding` 都在內。
-這個 emitter 救不回那個成員，因為值送到時就已經被改過了。
+所有吃 object value 的 decorator 都受影響，`@extension` 與 `@binding` 都在內。
+emitter 拿到值時已經被改過，救不回來。
 
-不要用 `__proto__` 當成員名稱。這個問題已回報給上游：
-[microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743)。
-`test/unit/extensions.test.ts` 用 `it.fails` 記錄了這個案例，等 compiler 不再弄丟
-這個名稱，那條測試就會轉綠。
+上游追蹤於 [microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743)。
 
 ## 開發
 
 ```bash
-pnpm install        # 安裝依賴。
+pnpm install        # 安裝相依套件。
 pnpm build          # 編譯 TypeScript 到 dist/。
 pnpm watch          # watch 模式編譯。
 pnpm test           # 執行測試（vitest）。
 pnpm lint           # 執行 eslint。
 pnpm format         # 執行 prettier。
-pnpm docs:dev       # 在本機啟動文件站台（VitePress）。
-pnpm docs:build     # 建置文件站台。
+pnpm docs:dev       # 在本機啟動文件網站（VitePress）。
+pnpm docs:build     # 建置文件網站。
 ```
 
-文件站台放在 `docs/`，以 [VitePress](https://vitepress.dev/) 建置。提供英文與臺灣正體中文。push 到 `main` 會部署到 GitHub Pages。
+文件網站的原始碼放在 `docs/`，用 [VitePress](https://vitepress.dev/) 建置，英文與臺灣正體中文各一份。推上 `main` 就會部署到 GitHub Pages。
 
 其他工具：
 
 - **api-extractor** — 追蹤公開 API 介面（`pnpm api-extractor:local`）。
-- **knip** — 找出未使用的程式碼與依賴（`pnpm knip`）。
+- **knip** — 找出沒用到的程式碼與相依套件（`pnpm knip`）。
 - **husky + lint-staged** — 每次 commit 前執行 lint 與 format 檢查。
 
 ## 授權

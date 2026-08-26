@@ -600,9 +600,9 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 ### `conflicting-generated-schema-source`
 
-> Two preview features generate the \<slot\> schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
+> Two preview features generate the payload schema of this model: '\<first\>' and '\<second\>'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in `preview-features` in `tspconfig.yaml`.
 
-有兩個[預覽功能](./emitter-options#預覽功能)為同一個 model 產生 schema，而且落在 message 的同一個 slot。slot 是 `payload` 或 `headers`。
+有兩個[預覽功能](./emitter-options#預覽功能)為同一個 model 產生 payload schema。
 
 emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider 的順序，而那個順序不是專案講出來的。
 

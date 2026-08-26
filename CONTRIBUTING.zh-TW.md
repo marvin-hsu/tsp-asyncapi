@@ -102,8 +102,8 @@ decorator 放進 `src/decorators/` 底下對應文件區塊的資料夾。
 
 ## 發佈
 
-兩個套件獨立發版，所以 tag 說不出要發什麼。`tsp-asyncapi-core` 與 `tsp-asyncapi`
-不共用版號。
+三個套件獨立發版，所以 tag 說不出要發什麼。`tsp-asyncapi`、`tsp-asyncapi-core`
+與 `tsp-avro` 不共用版號。
 
 改動的同時，記下它該發什麼：
 
@@ -117,8 +117,11 @@ pnpm changeset
 pnpm changeset version
 ```
 
-這會更新每個 `package.json`，以及兩個套件之間的相依範圍。CHANGELOG 要手寫，
-中英兩份都要：它不是產生的，因為它寫的是「為什麼這樣改」。
+這會更新每個 `package.json` 與套件之間的相依範圍，並依 changeset 產生 CHANGELOG
+條目。**不要手動編輯 CHANGELOG**，`changeset version` 會蓋掉。使用者讀到的就是
+changeset 裡寫的摘要，照那個標準寫。
+
+CHANGELOG 只有英文版。
 
 那個 PR 合併之後，到 Actions 頁面手動執行 Release workflow。唯一的觸發方式是
 `workflow_dispatch`，所以推 commit 不會發佈。workflow 會對要發佈的那個 commit

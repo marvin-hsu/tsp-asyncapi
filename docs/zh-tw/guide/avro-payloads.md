@@ -296,6 +296,10 @@ Avro 沒有辦法描述一個 payload 不帶的屬性。record 的每個屬性�
 
 改用 [`@headers`](../reference/decorators/messages#headers)。一個獨立的 model 裝 headers，message model 裝 payload，這樣 record 與 `.avsc` 檔案描述同一組欄位。
 
+headers 由它的 TypeSpec model 降級而來，所以在 payload 是 Avro 的時候，headers 是 JSON Schema。Multi Format Schema Object 允許兩個 slot 用不同格式，這就是它合法的原因。
+
+headers 永遠不會是 Avro，而這不是預覽功能的限制。header 以自己的 key 與 value 傳送，沒有任何傳輸層把整個 headers 物件當成一塊編碼過的資料。Avro 也叫不出大部分的名字：合法的 Avro 名稱要符合 `[A-Za-z_][A-Za-z0-9_]*`，而 header 通常寫成 `x-correlation-id`。
+
 ## Avro 沒有描述的部分
 
 Avro 描述資料。它沒有描述 message 走哪一個 channel、message 的方向，也沒有描述應用的 operation。

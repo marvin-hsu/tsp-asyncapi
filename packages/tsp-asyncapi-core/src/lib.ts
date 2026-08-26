@@ -171,7 +171,7 @@ export const $lib = createTypeSpecLibrary({
     "conflicting-generated-schema-source": {
       severity: "error",
       messages: {
-        default: paramMessage`Two preview features generate the ${"slot"} schema of this model: '${"first"}' and '${"second"}'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in \`preview-features\` in \`tspconfig.yaml\`.`,
+        default: paramMessage`Two preview features generate the payload schema of this model: '${"first"}' and '${"second"}'. There is no order between them, so the emitter cannot choose one. Turn one of the two off in \`preview-features\` in \`tspconfig.yaml\`.`,
       },
     },
     "conflicting-message-schema-source": {

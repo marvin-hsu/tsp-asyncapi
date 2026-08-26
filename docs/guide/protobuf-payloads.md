@@ -260,6 +260,10 @@ So a model that carries `@Protobuf.message` must not mark one of its own fields 
 
 Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the proto message and the `.proto` file describe the same fields.
 
+The headers are lowered from their TypeSpec model, so they are JSON Schema while the payload is proto3. A Multi Format Schema Object takes a different format in each slot, which is what makes that legal.
+
+Headers are never Protobuf, and this is not a limitation of the preview feature. A header travels as its own key and value, so no transport carries the headers object as one encoded block.
+
 ## What Protobuf does not describe
 
 Protobuf describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.
