@@ -26,11 +26,16 @@
  * ordinary JSON Schema and says so nowhere in the file.
  */
 
-import type { Model, Program } from "@typespec/compiler";
-import { listMessages, type ExternalSchemaArtifact } from "tsp-asyncapi-core";
+import type { Model, ModelProperty, Program } from "@typespec/compiler";
+import {
+  isHeader,
+  listMessages,
+  reportDiagnostic,
+  type ExternalSchemaArtifact,
+} from "tsp-asyncapi-core";
 import { buildPayloadModel } from "./protobuf/model.js";
 import { renderProtoFile } from "./protobuf/render.js";
-import { listProtobufMessageModels } from "tsp-asyncapi-core/unstable";
+import { listProtobufMessageModels, protobufFieldIndexOf } from "tsp-asyncapi-core/unstable";
 import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provider.js";
 
 /**
@@ -80,6 +85,14 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
     // such a model would name a message that does not exist.
     if (!asked.has(model)) continue;
 
+    // A field number on a header names a field the payload has no room for.
+    // Reporting does not stop the emit, so the model is skipped here and the
+    // refusal stops it.
+    if (reportFieldNumbersOnHeaders(program, model)) {
+      refused = true;
+      continue;
+    }
+
     const payload = buildPayloadModel(program, model);
     if (payload === undefined) {
       refused = true;
@@ -109,4 +122,44 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
  */
 function qualifiedName(packageName: string | undefined, rootName: string): string {
   return packageName === undefined ? rootName : `${packageName}.${rootName}`;
+}
+
+/**
+ * Reports every property of one message that is both a header and a field.
+ *
+ * `@header` takes the property out of the payload, and `@Protobuf.field`
+ * gives it a place inside the proto message. The two cannot both hold of the
+ * generated payload, so the author is asked to choose rather than served a
+ * payload that answers neither.
+ *
+ * Every offending property is named, because fixing one and recompiling to
+ * find the next is work this can do at once.
+ *
+ * @param program - The compiled program
+ * @param model - A message model that carries `@Protobuf.message`
+ * @returns Whether any property carried both
+ */
+function reportFieldNumbersOnHeaders(program: Program, model: Model): boolean {
+  let found = false;
+  for (const property of model.properties.values()) {
+    if (!isBothHeaderAndField(program, property)) continue;
+    found = true;
+    reportDiagnostic(program, {
+      code: "header-with-protobuf-field",
+      target: property,
+      format: { name: property.name, message: model.name },
+    });
+  }
+  return found;
+}
+
+/**
+ * Whether one property carries both decorators.
+ *
+ * @param program - The compiled program
+ * @param property - The property to read
+ * @returns Whether `@header` and `@Protobuf.field` are both on it
+ */
+function isBothHeaderAndField(program: Program, property: ModelProperty): boolean {
+  return isHeader(program, property) && protobufFieldIndexOf(program, property) !== undefined;
 }

@@ -663,6 +663,22 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 **修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`。另外兩種訊息則改寫訊息指名的型別，或從該 model 移除 `@Protobuf.message`。
 
+### `header-with-protobuf-field`
+
+> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.
+
+`@header` 把屬性移出 payload。`@Protobuf.field` 給它一個 proto message 裡的位置。產生的 payload 沒辦法同時做到兩件事。
+
+每個帶著兩者的屬性都會被指名。修好一個再編譯一次找下一個，這種工作 emitter 一次做完。
+
+不會寫出文件。否則 payload 描述的形狀會與同一個 message 的 `.proto` 檔案矛盾。
+
+官方 emitter 寫出的 `.proto` 檔案仍然宣告那個欄位，因為那個 emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號。這就是為什麼不能改成把屬性從 proto message 裡拿掉。
+
+[`protobuf-field-on-header`](./linter#protobuf-field-on-header) 規則把同一種組合報成警告，而且不論預覽功能開沒開都會執行。
+
+**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+
 ### `avro-artifact-unavailable`
 
 > Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
