@@ -46,6 +46,19 @@ options:
 
 下面這份是 repository 裡的 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。下面節錄 orders package 與一個 channel。完整檔案在 repository 裡。
 
+header 走在 payload 旁邊，所以它不是 proto message 的一部分。Protobuf 沒有任何欄位編號的意思是「這一個在別的地方」，所以 `@Protobuf.message` 的 model 帶 `@header` 是錯誤。headers 改用自己的 model，兩個 package 指向同一個。
+
+```typespec
+/** What every message of this application carries beside its payload. */
+model EventHeaders {
+  /** Ties every message of one request together. */
+  `x-correlation-id`: string;
+
+  /** The application that published the message. */
+  `x-source`: string;
+}
+```
+
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
 namespace Orders {
@@ -72,9 +85,16 @@ namespace Orders {
   // model as a message of the document. The Protobuf one marks it as a
   // message of the `.proto` file. The Protobuf one is written qualified.
   @message
+  @headers(EventHeaders)
   @Protobuf.message
+  // An example carries the headers as well as the payload. The headers are
+  // JSON Schema and the payload is proto3, so an example shows a reader what
+  // each half looks like on its own terms.
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } },
+    },
     #{ name: "typical-order", summary: "One order, paid in TWD." }
   )
   model OrderPlaced {
@@ -83,23 +103,6 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
-  }
-
-  /**
-   * One order that left the warehouse.
-   */
-  @message
-  @Protobuf.message
-  @messageExample(
-    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
-    #{ name: "shipped-order" }
-  )
-  model OrderShipped {
-    @Protobuf.field(1)
-    orderId: string;
-
-    @Protobuf.field(2)
-    carrier: string;
   }
 }
 
@@ -130,10 +133,26 @@ payload 是 [Multi Format Schema Object](https://www.asyncapi.com/docs/reference
 
 ```yaml
 components:
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -155,6 +174,9 @@ components:
       examples:
         - name: typical-order
           summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
           payload:
             orderId: ord-1001
             total:

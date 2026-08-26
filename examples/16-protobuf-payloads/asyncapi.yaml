@@ -73,10 +73,26 @@ operations:
     messages:
       - $ref: "#/channels/invoice.issued/messages/InvoiceIssued"
 components:
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -98,6 +114,9 @@ components:
       examples:
         - name: typical-order
           summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
           payload:
             orderId: ord-1001
             total:
@@ -106,6 +125,8 @@ components:
     OrderShipped:
       name: OrderShipped
       description: One order that left the warehouse.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -120,12 +141,17 @@ components:
           }
       examples:
         - name: shipped-order
+          headers:
+            x-correlation-id: req-8f21
+            x-source: warehouse
           payload:
             orderId: ord-1001
             carrier: black-cat
     InvoiceIssued:
       name: InvoiceIssued
       description: One invoice issued for an order.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -141,6 +167,9 @@ components:
           }
       examples:
         - name: issued-invoice
+          headers:
+            x-correlation-id: req-8f21
+            x-source: billing
           payload:
             invoiceId: inv-31
             orderId: ord-1001

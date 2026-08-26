@@ -63,8 +63,26 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
+  @headers(EventHeaders)
   @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
+  // An example carries the headers as well as the payload. The two halves are
+  // written in different schema languages, so an example shows a reader what
+  // each of them looks like on its own terms. A logical type is written as
+  // what is on the wire: a `uuid` is the text of the UUID, and a
+  // `timestamp-millis` is the millisecond count.
+  @messageExample(
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{
+        id: "6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10",
+        placedAt: 1755993600000,
+        shipping: #{ line1: "12 Zhongxiao E Rd", city: "Taipei", country: "TW" },
+        totalMinorUnits: 249000,
+      },
+    },
+    #{ name: "typical-order", summary: "One order, paid in TWD." }
+  )
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
     // the UUID.
@@ -114,11 +132,27 @@ schema 是物件，不是字串。Avro 本身就是 JSON，而 AsyncAPI 對 JSON
 
 ```yaml
 components:
+  schemas:
+    Orders.EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
       contentType: application/vnd.apache.avro
+      headers:
+        $ref: "#/components/schemas/Orders.EventHeaders"
       payload:
         schemaFormat: application/vnd.apache.avro;version=1.9.0
         schema:

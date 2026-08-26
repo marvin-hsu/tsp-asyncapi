@@ -73,13 +73,49 @@ namespace Orders {
     PaymentFailed,
   }
 
+  // Headers travel beside the payload, so they are not part of the record.
+  // Avro has no way to say "this field is somewhere else": every property of
+  // a record is a field of it. So a `@header` on a record model is an error,
+  // and the headers get a model of their own instead.
+  //
+  // This model carries no `@Avro.avroRecord`. It is not a record, so it gets
+  // no `.avsc` file, and the document describes it as JSON Schema. A
+  // Multi Format Schema Object takes a different format in each slot, which
+  // is what lets one message carry an Avro payload and JSON Schema headers.
+  /** What every message of this application carries beside its payload. */
+  model EventHeaders {
+    /** Ties every message of one request together. */
+    `x-correlation-id`: string;
+
+    /** The application that published the message. */
+    `x-source`: string;
+  }
+
   /**
    * One order a customer placed.
    */
   @message
   @contentType("application/vnd.apache.avro")
+  @headers(EventHeaders)
   @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
+  // An example carries the headers as well as the payload. The two halves are
+  // written in different schema languages, so an example shows a reader what
+  // each of them looks like on its own terms. A logical type is written as
+  // what is on the wire: a `uuid` is the text of the UUID, and a
+  // `timestamp-millis` is the millisecond count.
+  @messageExample(
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{
+        id: "6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10",
+        placedAt: 1755993600000,
+        shipping: #{ line1: "12 Zhongxiao E Rd", city: "Taipei", country: "TW" },
+        totalMinorUnits: 249000,
+      },
+    },
+    #{ name: "typical-order", summary: "One order, paid in TWD." }
+  )
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
     // the UUID.
@@ -102,8 +138,22 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
+  @headers(EventHeaders)
   @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
+  // `returnTo` is optional, so the example leaves it out. An Avro reader
+  // takes the default of that field, which is null.
+  @messageExample(
+    #{
+      headers: #{ `x-correlation-id`: "req-4d09", `x-source`: "warehouse" },
+      payload: #{
+        id: "6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10",
+        cancelledAt: 1756080000000,
+        reason: "OutOfStock",
+      },
+    },
+    #{ name: "cancelled-order" }
+  )
   model OrderCancelled {
     /** The identifier of the order. */
     @Avro.logicalType("uuid")

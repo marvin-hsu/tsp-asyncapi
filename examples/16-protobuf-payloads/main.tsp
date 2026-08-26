@@ -30,6 +30,26 @@ using AsyncAPI;
 )
 namespace OrdersService;
 
+// Headers travel beside the payload, so they are not part of a proto
+// message. Protobuf has no way to say "this field is somewhere else": every
+// property of a message takes a field number. So a `@header` on a
+// `@Protobuf.message` model is an error, and the headers get a model of
+// their own instead.
+//
+// This model sits outside both packages and carries no `@Protobuf.message`.
+// It reaches no `.proto` file, and the document describes it as JSON Schema.
+// A Multi Format Schema Object takes a different format in each slot, which
+// is what lets one message carry a proto3 payload and JSON Schema headers.
+// Both packages point at this one model.
+/** What every message of this application carries beside its payload. */
+model EventHeaders {
+  /** Ties every message of one request together. */
+  `x-correlation-id`: string;
+
+  /** The application that published the message. */
+  `x-source`: string;
+}
+
 // `@Protobuf.package` marks a namespace that becomes one `.proto` file. The
 // name in it is the `package` declaration of that file, and it is
 // independent of the TypeSpec namespace name. Two packages here become two
@@ -59,9 +79,16 @@ namespace Orders {
   // model as a message of the document. The Protobuf one marks it as a
   // message of the `.proto` file. The Protobuf one is written qualified.
   @message
+  @headers(EventHeaders)
   @Protobuf.message
+  // An example carries the headers as well as the payload. The headers are
+  // JSON Schema and the payload is proto3, so an example shows a reader what
+  // each half looks like on its own terms.
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } },
+    },
     #{ name: "typical-order", summary: "One order, paid in TWD." }
   )
   model OrderPlaced {
@@ -76,9 +103,13 @@ namespace Orders {
    * One order that left the warehouse.
    */
   @message
+  @headers(EventHeaders)
   @Protobuf.message
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "warehouse" },
+      payload: #{ orderId: "ord-1001", carrier: "black-cat" },
+    },
     #{ name: "shipped-order" }
   )
   model OrderShipped {
@@ -98,9 +129,13 @@ namespace Billing {
    * One invoice issued for an order.
    */
   @message
+  @headers(EventHeaders)
   @Protobuf.message
   @messageExample(
-    #{ payload: #{ invoiceId: "inv-31", orderId: "ord-1001", amountCents: 249000 } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "billing" },
+      payload: #{ invoiceId: "inv-31", orderId: "ord-1001", amountCents: 249000 },
+    },
     #{ name: "issued-invoice" }
   )
   model InvoiceIssued {

@@ -46,6 +46,19 @@ The reserved names of [`preview-features`](../reference/emitter-options#preview-
 
 The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel. The repository holds the whole file.
 
+A header travels beside the payload, so it is not part of the proto message. Protobuf has no field number that means "this one is elsewhere", so a `@header` on a `@Protobuf.message` model is an error. The headers get a model of their own instead, and both packages point at the same one.
+
+```typespec
+/** What every message of this application carries beside its payload. */
+model EventHeaders {
+  /** Ties every message of one request together. */
+  `x-correlation-id`: string;
+
+  /** The application that published the message. */
+  `x-source`: string;
+}
+```
+
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
 namespace Orders {
@@ -72,9 +85,16 @@ namespace Orders {
   // model as a message of the document. The Protobuf one marks it as a
   // message of the `.proto` file. The Protobuf one is written qualified.
   @message
+  @headers(EventHeaders)
   @Protobuf.message
+  // An example carries the headers as well as the payload. The headers are
+  // JSON Schema and the payload is proto3, so an example shows a reader what
+  // each half looks like on its own terms.
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } },
+    },
     #{ name: "typical-order", summary: "One order, paid in TWD." }
   )
   model OrderPlaced {
@@ -83,23 +103,6 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
-  }
-
-  /**
-   * One order that left the warehouse.
-   */
-  @message
-  @Protobuf.message
-  @messageExample(
-    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
-    #{ name: "shipped-order" }
-  )
-  model OrderShipped {
-    @Protobuf.field(1)
-    orderId: string;
-
-    @Protobuf.field(2)
-    carrier: string;
   }
 }
 
@@ -128,10 +131,26 @@ The payload is a [Multi Format Schema Object](https://www.asyncapi.com/docs/refe
 
 ```yaml
 components:
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -153,6 +172,9 @@ components:
       examples:
         - name: typical-order
           summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
           payload:
             orderId: ord-1001
             total:
