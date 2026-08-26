@@ -155,7 +155,7 @@ export default defineConfig({
                   { text: "Enum", link: "/zh-tw/guide/schema-conversion/enums" },
                   { text: "Union", link: "/zh-tw/guide/schema-conversion/unions" },
                   { text: "繼承與多型", link: "/zh-tw/guide/schema-conversion/inheritance" },
-                  { text: "驗證", link: "/zh-tw/guide/schema-conversion/validation" },
+                  { text: "驗證器", link: "/zh-tw/guide/schema-conversion/validation" },
                   { text: "標註與修改", link: "/zh-tw/guide/schema-conversion/modifiers" },
                   { text: "進階處理", link: "/zh-tw/guide/schema-conversion/advanced" },
                 ],

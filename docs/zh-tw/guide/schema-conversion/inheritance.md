@@ -144,5 +144,5 @@ components:
 - 定義在該 model 或它的父層上
 - 是必填
 
-違反任一條時，`discriminator` 會以警告省略，不會輸出壞掉的結果。各自對應的代碼見
+違反任一條時，`discriminator` 會以警告省略，不會輸出壞掉的結果。各自對應的診斷代碼見
 [診斷訊息](../../reference/diagnostics)。
