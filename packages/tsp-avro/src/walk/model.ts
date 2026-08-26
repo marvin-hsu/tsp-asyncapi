@@ -49,6 +49,7 @@ import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { getAvroOrder } from "../decorators/order.js";
 import { createDiagnostic } from "../lib.js";
+import { isAsyncAPIHeader } from "../asyncapi-state.js";
 import {
   isAvroLogical,
   isAvroUnion,
@@ -87,16 +88,14 @@ interface WalkContext {
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
   readonly diagnostics: Diagnostic[];
-  /** The model the walk was asked for, which is the only one `lifted` covers. */
-  readonly root: Model;
   /**
-   * Properties the caller takes out of the record.
+   * The model the walk was asked for.
    *
-   * Avro has no notion of a message header, so nothing in this library puts a
-   * property in this set. A caller that writes a record into a document whose
-   * headers travel beside it does, and it names properties of the root only.
+   * `@AsyncAPI.header` marks a field of a message, and this is the model that
+   * message names. A mark deeper in the closure is on a model that is not a
+   * message, so it means nothing and the property stays.
    */
-  readonly lifted: ReadonlySet<ModelProperty>;
+  readonly root: Model;
   refused: boolean;
 }
 
@@ -134,9 +133,6 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
  *
  * @param program - The program the model belongs to
  * @param model - The marked model
- * @param lifted - Properties of the model the caller takes out of the record.
- *   A caller that passes none gets every property, which is what the emitter
- *   of this library asks for.
  * @returns The schema, or undefined when the walk refused any part of it, and
  *   at least one diagnostic in that case
  *
@@ -145,7 +141,6 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
 export function buildAvroRecordWithDiagnostics(
   program: Program,
   model: Model,
-  lifted: ReadonlySet<ModelProperty> = new Set(),
 ): [AvroRecord | undefined, readonly Diagnostic[]] {
   const diagnostics: Diagnostic[] = [];
 
@@ -170,7 +165,6 @@ export function buildAvroRecordWithDiagnostics(
     defined: new Map(),
     diagnostics,
     root: model,
-    lifted,
     refused: false,
   };
 
@@ -207,7 +201,10 @@ export function buildAvroRecordWithDiagnostics(
  * @internal
  */
 export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): readonly Diagnostic[] {
-  if (diagnostics.length === 0) {
+  // A warning is something the walk did, not a reason it refused. A record
+  // that dropped a header and then refused for another cause must not name
+  // the header as the cause.
+  if (!diagnostics.some((one) => one.severity === "error")) {
     diagnostics.push(
       createDiagnostic({
         code: "unsupported-type",
@@ -423,9 +420,13 @@ function modelFor(
 /**
  * Translates the properties of one model into record fields.
  *
- * A property the caller lifted is skipped. Only the root is checked against
- * that set: the caller names properties of the model it asked for, and a
- * nested model reached from it is a different model.
+ * A property marked `@AsyncAPI.header` is left out, and the walk says so. It
+ * travels beside the message rather than inside it, so a record that declared
+ * it would describe a field the message does not carry there.
+ *
+ * Only the root is checked. That mark means something on a field of a message,
+ * and the root is the model a message names. A mark on a nested model is on
+ * something that is not a message, so the property stays.
  *
  * @param context - The walk in progress
  * @param model - The model whose properties are read
@@ -434,7 +435,16 @@ function modelFor(
 function fieldsOf(context: WalkContext, model: Model): AvroField[] {
   const fields: AvroField[] = [];
   for (const property of model.properties.values()) {
-    if (model === context.root && context.lifted.has(property)) continue;
+    if (model === context.root && isAsyncAPIHeader(context.program, property)) {
+      context.diagnostics.push(
+        createDiagnostic({
+          code: "header-property-dropped",
+          format: { name: property.name, record: model.name },
+          target: property,
+        }),
+      );
+      continue;
+    }
 
     const field = fieldFor(context, property);
     if (field !== undefined) {

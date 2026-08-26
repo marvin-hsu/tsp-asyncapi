@@ -86,6 +86,9 @@ readonly default: CallableMessage<["enum", "name"]>;
 "duplicate-record": {
 readonly default: CallableMessage<["name", "other", "path"]>;
 };
+"header-property-dropped": {
+readonly default: CallableMessage<["name", "record"]>;
+};
 "enum-member-value": {
 readonly default: CallableMessage<["name"]>;
 };

@@ -312,26 +312,27 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 
 ## 診斷
 
-這個套件的每個診斷都是錯誤。錯誤會擋掉所有寫檔。所以一次編譯要嘛寫出你要的 schema，要嘛一個都不寫。
+除了 `header-property-dropped` 之外，這個套件的每個診斷都是錯誤。錯誤會擋掉所有寫檔。所以一次編譯要嘛寫出你要的 schema，要嘛一個都不寫。那條警告指出 record 略過的屬性，檔案照樣會寫出。
 
 半份 schema 仍然是合法的 schema。registry 會照收，而 reader 會把資料解成作者從來沒寫過的形狀。
 
-| 代碼                              | 何時發生                                           |
-| --------------------------------- | -------------------------------------------------- |
-| `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                   |
-| `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則。                       |
-| `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                               |
-| `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。        |
-| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或不屬於 union 的任何分支。  |
-| `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。     |
-| `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數。                 |
-| `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。 |
-| `tsp-avro/unknown-logical-type`   | logical type 不是規格定義的那幾個。                |
-| `tsp-avro/logical-type-mismatch`  | logical type 寫在規格不允許的型別上。              |
-| `tsp-avro/duplicate-logical-type` | 一個宣告帶了兩個 logical type。                    |
-| `tsp-avro/enum-default`           | `@Avro.enumDefault` 指定的成員不在該 enum 裡。     |
-| `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                       |
-| `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                            |
+| 代碼                               | 何時發生                                           |
+| ---------------------------------- | -------------------------------------------------- |
+| `tsp-avro/namespace-required`      | record 上方沒有 Avro namespace。                   |
+| `tsp-avro/invalid-name`            | 名稱不符合 Avro 的名稱規則。                       |
+| `tsp-avro/unsupported-type`        | 型別沒有 Avro 形式。                               |
+| `tsp-avro/duplicate-union-branch`  | 一個 union 裡有兩個分支是同一個 Avro 型別。        |
+| `tsp-avro/invalid-default`         | 預設值沒有 JSON 形式，或不屬於 union 的任何分支。  |
+| `tsp-avro/invalid-order`           | `@Avro.order` 收到的不是 Avro 的欄位排序方式。     |
+| `tsp-avro/invalid-fixed`           | `@Avro.fixed` 收到的寬度不是正數。                 |
+| `tsp-avro/invalid-decimal`         | precision 或 scale 不合，或 `decimal` 兩者都沒有。 |
+| `tsp-avro/unknown-logical-type`    | logical type 不是規格定義的那幾個。                |
+| `tsp-avro/logical-type-mismatch`   | logical type 寫在規格不允許的型別上。              |
+| `tsp-avro/duplicate-logical-type`  | 一個宣告帶了兩個 logical type。                    |
+| `tsp-avro/enum-default`            | `@Avro.enumDefault` 指定的成員不在該 enum 裡。     |
+| `tsp-avro/duplicate-record`        | 兩個 record 寫到同一個路徑。                       |
+| `tsp-avro/enum-member-value`       | enum 成員帶著自己的值。                            |
+| `tsp-avro/header-property-dropped` | 屬性帶著 `@AsyncAPI.header`，record 略過它。       |
 
 ## 它拒絕什麼
 

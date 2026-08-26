@@ -13,11 +13,9 @@ A header whose type has no Protobuf form no longer refuses the whole payload.
 A header is not a proto field, so its type has nothing to say about a payload
 it is not in.
 
-Two new diagnostics come with this. `header-with-protobuf-field` is an error
-on a property that carries both `@header` and `@Protobuf.field`, because the
-field number then names a place the payload has no room for.
-`avro-record-keeps-header` is a warning that names the fields the `.avsc` file
-still declares, because Avro has no notion of a message header.
+`header-with-protobuf-field` is a new error on a property that carries both
+`@header` and `@Protobuf.field`, because the field number then names a place
+the payload has no room for.
 
 The new `protobuf-field-on-header` lint rule reports the same combination as a
 warning, and it is in `recommended`. It runs whether or not the preview

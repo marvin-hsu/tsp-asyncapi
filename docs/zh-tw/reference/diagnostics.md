@@ -695,22 +695,6 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 **修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.avroRecord`。
 
-### `avro-record-keeps-header`
-
-> Message '\<name\>' lifts \<fields\> out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
-
-一個 message 用 `@header` 移出一個以上的欄位，而且帶著 `@Avro.avroRecord`。產生的 payload 略過那些欄位，因為 header 走在 payload 旁邊。
-
-`.avsc` 檔案由 `tsp-avro` 寫出，那個套件不讀任何 AsyncAPI decorator。Avro 也沒有 message header 這個概念，所以那個檔案宣告 model 的每一個屬性。
-
-兩份描述各自都沒有錯。emitter 把差異講出來，避免它稍後才被發現——例如被一個拿兩者互相驗證的消費端發現。
-
-文件仍然會寫出。它帶的 payload 對一個 header 走在旁邊的 message 而言是正確的。
-
-一次回報指名這個 message 的所有被移出欄位。每個欄位報一次，等於對同一個檔案講同一件事好幾遍。
-
-**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣沒有東西離開 payload，record 與檔案就會描述同一組欄位。
-
 ### `avro-library-missing`
 
 > The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: \<reason\> That library holds the Avro walk, and this emitter carries no copy of it. Install 'tsp-avro' beside this emitter, or remove 'avro' from `preview-features` in `tspconfig.yaml`.

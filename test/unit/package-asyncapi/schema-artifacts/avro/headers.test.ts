@@ -6,9 +6,9 @@
  * generated one has to answer the same way. A payload that described the
  * field would describe it twice, once beside the message and once inside it.
  *
- * The `.avsc` file `tsp-avro` writes still declares the field. That library
- * reads no AsyncAPI decorator, and Avro has no notion of a message header. So
- * the emitter names the difference rather than leaving it to be found.
+ * The `.avsc` file leaves it out too. `tsp-avro` reads the mark itself, so one
+ * walk answers for both, and the file and the payload cannot disagree. That
+ * half is tested beside the walk; here the document is what matters.
  *
  * Everything below runs the whole emitter and reads the file it wrote.
  */
@@ -25,8 +25,6 @@ const PACKAGE_ROOT = fileURLToPath(
 );
 
 const OUTPUT_FILE = "asyncapi.yaml";
-
-const DRIFT = "tsp-asyncapi/avro-record-keeps-header";
 
 const AvroEmitTester = createTester(PACKAGE_ROOT, {
   libraries: [PACKAGE_NAME, "tsp-avro"],
@@ -60,14 +58,13 @@ const LIFTED = `
 /** What one compilation produced. */
 interface Emitted {
   readonly doc: AsyncAPIDocument;
-  readonly codes: readonly string[];
 }
 
 /**
  * Compiles one source with the feature on and parses the document.
  *
  * @param code - The TypeSpec source of the case
- * @returns The document, and the code of every diagnostic
+ * @returns The document the emitter wrote
  */
 async function emit(code: string): Promise<Emitted> {
   const [result, diagnostics] = await AvroEmitTester.compileAndDiagnose(code);
@@ -76,10 +73,7 @@ async function emit(code: string): Promise<Emitted> {
   const outputs: Record<string, string | undefined> = result.outputs;
   const content = outputs[OUTPUT_FILE];
   if (content === undefined) throw new Error("The emitter wrote no document.");
-  return {
-    doc: yaml.parse(content) as AsyncAPIDocument,
-    codes: diagnostics.map((one) => one.code),
-  };
+  return { doc: yaml.parse(content) as AsyncAPIDocument };
 }
 
 /** The field names of the Avro record one message carries as its payload. */
@@ -105,12 +99,6 @@ describe("Unit: a header of a message with a generated Avro payload", () => {
     };
 
     expect(Object.keys(headers.properties ?? {})).toStrictEqual(["traceId"]);
-  });
-
-  it("names the field the .avsc file still declares", async () => {
-    const { codes } = await emit(LIFTED);
-
-    expect(codes.filter((one) => one === DRIFT)).toHaveLength(1);
   });
 
   /**
@@ -142,9 +130,8 @@ describe("Unit: a header of a message with a generated Avro payload", () => {
         op place(event: Test.Orders.OrderPlaced): void;
       }
     `;
-    const { doc, codes } = await emit(withModel);
+    const { doc } = await emit(withModel);
 
     expect(fieldNamesOf(doc, "OrderPlaced")).toStrictEqual(["orderId"]);
-    expect(codes.filter((one) => one === DRIFT)).toHaveLength(0);
   });
 });

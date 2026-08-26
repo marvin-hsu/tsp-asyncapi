@@ -258,11 +258,9 @@ The file and the payload carry one schema. The file is that schema as JSON text.
 
 So a message that marks `traceId` with `@header` gets an Avro record without a `traceId` field. That property is described in the `headers` of the message instead.
 
-::: warning
-The `.avsc` file `tsp-avro` writes still declares `traceId`. That library reads no AsyncAPI decorator, and Avro has no notion of a message header. So the file and the payload describe different fields, and the emitter reports [`avro-record-keeps-header`](../reference/diagnostics#avro-record-keeps-header).
-:::
+The `.avsc` file leaves it out as well. `tsp-avro` reads the `@header` mark itself and reports `tsp-avro/header-property-dropped`, which names the property and says the record does not carry it. So the file and the payload describe the same fields.
 
-To keep the two the same, move the headers into their own model and point at it with [`@headers`](../reference/decorators/messages#headers). Nothing leaves the payload then, so the record and the file agree.
+The property is described in exactly one place, the `headers` of the message. [`@headers`](../reference/decorators/messages#headers) points at a model of its own and does the same thing, with the headers named as a schema a reader can reuse.
 
 ## What Avro does not describe
 

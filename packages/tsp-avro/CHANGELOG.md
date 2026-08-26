@@ -1,12 +1,5 @@
 # Changelog
 
-This package is experimental. It is pre-1.0, and its decorators, its output and
-its diagnostics may change in any release.
-
-Entries from 0.1.1 onward are generated from changesets. This first one is
-written by hand, because the release it describes is the one that created the
-package.
-
 ## 0.1.0
 
 The first release. `tsp-avro` is a TypeSpec library and emitter for Apache
@@ -32,3 +25,9 @@ written for that record. Refusing covers a scalar outside the table, a union
 that repeats a branch, a template instantiation, an anonymous model, a name
 that is not a legal Avro name, and a logical type on an underlying type the
 specification does not allow.
+
+This package is experimental. It is pre-1.0, and its decorators, its output and
+its diagnostics may change in any release.
+
+This entry is written by hand, because the release it describes is the one that
+created the package. Every entry above it is generated from a changeset.
