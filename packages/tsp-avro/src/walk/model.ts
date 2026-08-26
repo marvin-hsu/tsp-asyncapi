@@ -87,6 +87,16 @@ interface WalkContext {
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
   readonly diagnostics: Diagnostic[];
+  /** The model the walk was asked for, which is the only one `lifted` covers. */
+  readonly root: Model;
+  /**
+   * Properties the caller takes out of the record.
+   *
+   * Avro has no notion of a message header, so nothing in this library puts a
+   * property in this set. A caller that writes a record into a document whose
+   * headers travel beside it does, and it names properties of the root only.
+   */
+  readonly lifted: ReadonlySet<ModelProperty>;
   refused: boolean;
 }
 
@@ -124,6 +134,9 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
  *
  * @param program - The program the model belongs to
  * @param model - The marked model
+ * @param lifted - Properties of the model the caller takes out of the record.
+ *   A caller that passes none gets every property, which is what the emitter
+ *   of this library asks for.
  * @returns The schema, or undefined when the walk refused any part of it, and
  *   at least one diagnostic in that case
  *
@@ -132,6 +145,7 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
 export function buildAvroRecordWithDiagnostics(
   program: Program,
   model: Model,
+  lifted: ReadonlySet<ModelProperty> = new Set(),
 ): [AvroRecord | undefined, readonly Diagnostic[]] {
   const diagnostics: Diagnostic[] = [];
 
@@ -155,6 +169,8 @@ export function buildAvroRecordWithDiagnostics(
     scalars: createScalarTable(program),
     defined: new Map(),
     diagnostics,
+    root: model,
+    lifted,
     refused: false,
   };
 
@@ -405,6 +421,30 @@ function modelFor(
 }
 
 /**
+ * Translates the properties of one model into record fields.
+ *
+ * A property the caller lifted is skipped. Only the root is checked against
+ * that set: the caller names properties of the model it asked for, and a
+ * nested model reached from it is a different model.
+ *
+ * @param context - The walk in progress
+ * @param model - The model whose properties are read
+ * @returns The fields, in the order the properties are declared
+ */
+function fieldsOf(context: WalkContext, model: Model): AvroField[] {
+  const fields: AvroField[] = [];
+  for (const property of model.properties.values()) {
+    if (model === context.root && context.lifted.has(property)) continue;
+
+    const field = fieldFor(context, property);
+    if (field !== undefined) {
+      fields.push(field);
+    }
+  }
+  return fields;
+}
+
+/**
  * Translates a named model into a record, or into a reference to one.
  */
 function namedModelFor(
@@ -488,21 +528,13 @@ function namedModelFor(
     return fullName;
   }
 
-  const fields: AvroField[] = [];
-  for (const property of model.properties.values()) {
-    const field = fieldFor(context, property);
-    if (field !== undefined) {
-      fields.push(field);
-    }
-  }
-
   return {
     type: "record",
     name: model.name,
     namespace: namespaceOf(fullName),
     doc: getDoc(context.program, model),
     aliases: getAvroAliases(context.program, model),
-    fields,
+    fields: fieldsOf(context, model),
   };
 }
 

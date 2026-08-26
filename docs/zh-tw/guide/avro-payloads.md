@@ -252,6 +252,18 @@ Avro emitter 每個 record 寫一個檔案。路徑由 Avro namespace 決定，�
 
 檔案與 payload 帶的是同一份 schema。檔案是那份 schema 的 JSON 文字，payload 是同一份 schema 的物件。所以不論檔案有沒有寫出，payload 都一樣。
 
+## headers 不會進 payload
+
+`@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Avro payload 略過它，理由與 JSON Schema payload 相同。
+
+所以一個把 `traceId` 標上 `@header` 的 message，產生的 Avro record 裡沒有 `traceId` 欄位。那個屬性改為描述在 message 的 `headers` 裡。
+
+::: warning
+`tsp-avro` 寫出的 `.avsc` 檔案仍然宣告 `traceId`。那個套件不讀任何 AsyncAPI decorator，而 Avro 沒有 message header 這個概念。所以檔案與 payload 描述的欄位不同，emitter 會回報 [`avro-record-keeps-header`](../reference/diagnostics#avro-record-keeps-header)。
+:::
+
+要讓兩者一致，把 headers 移進自己的 model，用 [`@headers`](../reference/decorators/messages#headers) 指向它。這樣沒有東西離開 payload，record 與檔案就會一致。
+
 ## Avro 沒有描述的部分
 
 Avro 描述資料。它沒有描述 message 走哪一個 channel、message 的方向，也沒有描述應用的 operation。

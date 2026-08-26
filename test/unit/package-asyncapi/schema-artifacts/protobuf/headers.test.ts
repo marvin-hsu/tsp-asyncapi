@@ -14,6 +14,8 @@
 
 import { describe, expect, it } from "vitest";
 import { createProtobufProvider } from "#emitter/schema-artifacts/protobuf.js";
+import type { Model } from "@typespec/compiler";
+import type { ExternalSchemaArtifact } from "tsp-asyncapi-core";
 import { compileWithProtobuf } from "../../../../utils/protobuf-parity.js";
 
 const CONFLICT = `
@@ -59,5 +61,56 @@ describe("Unit: a header that carries a Protobuf field number", () => {
       (one) => one.code === "tsp-asyncapi/header-with-protobuf-field",
     );
     expect(found).toHaveLength(2);
+  });
+});
+
+/** The same message, with no field number on the header. */
+const LIFTED = `
+  @Protobuf.package({ name: "com.example.orders" })
+  namespace Orders {
+    @message
+    @Protobuf.message
+    model OrderPlaced {
+      @header traceId: string;
+      @Protobuf.field(1) orderId: string;
+    }
+  }
+`;
+
+/**
+ * Renders the payload of one message of a source.
+ *
+ * @param source - The TypeSpec source of the case
+ * @returns The proto3 text, and every diagnostic code the compile reported
+ */
+async function renderOne(source: string): Promise<{ text: string; codes: string[] }> {
+  const program = await compileWithProtobuf(source);
+  const collected = await createProtobufProvider().collect(program);
+
+  expect(collected.refused).toBe(false);
+  const payloads: ReadonlyMap<Model, ExternalSchemaArtifact> = collected.artifacts.payloadFor;
+  const [artifact] = [...payloads.values()];
+  return { text: String(artifact.schema), codes: program.diagnostics.map((one) => one.code) };
+}
+
+describe("Unit: a header of a message with a generated Protobuf payload", () => {
+  it("leaves the lifted field out of the message", async () => {
+    const { text } = await renderOne(LIFTED);
+
+    expect(text).toContain("string orderId = 1;");
+    expect(text).not.toContain("traceId");
+  });
+
+  /**
+   * The type of a header decided whether the payload could be built at all,
+   * because the walk demanded a field number for it. A header is not a proto
+   * field, so its type has nothing to say about the payload.
+   */
+  it("builds a payload a header of an unwritable type once refused", async () => {
+    const anonymous = LIFTED.replace("@header traceId: string;", "@header trace: { id: string };");
+    const { text, codes } = await renderOne(anonymous);
+
+    expect(text).toContain("string orderId = 1;");
+    expect(codes.filter((one) => one.startsWith("tsp-asyncapi/"))).toStrictEqual([]);
   });
 });

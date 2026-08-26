@@ -252,6 +252,18 @@ The Avro emitter writes one file per record. The Avro namespace decides the path
 
 The file and the payload carry one schema. The file is that schema as JSON text. The payload is the same schema as an object. So the payload is the same whether the files are written or not.
 
+## Headers stay out of the payload
+
+`@header` lifts a property out of the payload and describes it beside the message. A generated Avro payload leaves it out for the same reason a JSON Schema payload does.
+
+So a message that marks `traceId` with `@header` gets an Avro record without a `traceId` field. That property is described in the `headers` of the message instead.
+
+::: warning
+The `.avsc` file `tsp-avro` writes still declares `traceId`. That library reads no AsyncAPI decorator, and Avro has no notion of a message header. So the file and the payload describe different fields, and the emitter reports [`avro-record-keeps-header`](../reference/diagnostics#avro-record-keeps-header).
+:::
+
+To keep the two the same, move the headers into their own model and point at it with [`@headers`](../reference/decorators/messages#headers). Nothing leaves the payload then, so the record and the file agree.
+
 ## What Avro does not describe
 
 Avro describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.

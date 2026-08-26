@@ -232,6 +232,16 @@ message OrderShipped {
 
 兩份文字的排版不同。上面的檔案帶著該 package 的每一個 message，順序是來源宣告的順序。payload 只帶一個 message 與它的閉包，而且該 message 排在最前面。兩者描述同一種傳輸格式。
 
+## headers 不會進 payload
+
+`@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Protobuf payload 略過它，理由與 JSON Schema payload 相同。
+
+同時帶著 `@header` 與 `@Protobuf.field` 的屬性會回報 [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field)，而且不會寫出文件。欄位編號指定 proto message 裡的一個位置，payload 沒有那個位置。
+
+只帶 `@header` 的屬性，在 payload 裡沒有自己的欄位編號。官方 Protobuf emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號，所以那個 emitter 執行時會報自己的 `field-index` 錯誤。
+
+兩條路的修法相同。把 headers 移進自己的 model，用 [`@headers`](../reference/decorators/messages#headers) 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+
 ## Protobuf 沒有描述的部分
 
 Protobuf 描述資料。它沒有描述 message 走哪一個 channel、message 的方向，也沒有描述應用的 operation。

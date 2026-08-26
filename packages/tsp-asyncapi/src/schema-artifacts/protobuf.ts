@@ -35,7 +35,11 @@ import {
 } from "tsp-asyncapi-core";
 import { buildPayloadModel } from "./protobuf/model.js";
 import { renderProtoFile } from "./protobuf/render.js";
-import { listProtobufMessageModels, protobufFieldIndexOf } from "tsp-asyncapi-core/unstable";
+import {
+  liftedFieldsOf,
+  listProtobufMessageModels,
+  protobufFieldIndexOf,
+} from "tsp-asyncapi-core/unstable";
 import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provider.js";
 
 /**
@@ -76,6 +80,7 @@ export function createProtobufProvider(): SchemaArtifactProvider {
  */
 function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
   const asked = listMessages(program);
+  const lifted = liftedFieldsOf(program, asked.keys());
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();
 
   let refused = false;
@@ -93,7 +98,7 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
       continue;
     }
 
-    const payload = buildPayloadModel(program, model);
+    const payload = buildPayloadModel(program, model, lifted);
     if (payload === undefined) {
       refused = true;
       continue;
