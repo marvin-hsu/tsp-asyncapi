@@ -157,14 +157,12 @@ describe("Integration: the Avro example", () => {
 /**
  * The pages that carry a table of every diagnostic this package reports.
  *
- * Both READMEs are here as well as both guides. A README is the only page a
- * reader sees on npm, so it carries the whole table rather than a link.
+ * The guides alone. A README is what a reader sees on npm, and it answers
+ * whether to install the package rather than what a code means. A diagnostic
+ * arrives with its own message text, so a reader who meets one is reading the
+ * terminal, not this table.
  */
-const DIAGNOSTIC_PAGES = [
-  "packages/tsp-avro/README.md",
-  "packages/tsp-avro/README.zh-TW.md",
-  ...GUIDES,
-] as const;
+const DIAGNOSTIC_PAGES = [...GUIDES] as const;
 
 /** Every diagnostic code the library declares, as a reader writes it. */
 const CODES = Object.keys($lib.diagnostics).map((code) => `tsp-avro/${code}`);

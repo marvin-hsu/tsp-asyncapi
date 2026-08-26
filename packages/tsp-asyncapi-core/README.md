@@ -1,59 +1,41 @@
 # tsp-asyncapi-core
 
-The decorators and the semantic model behind [`tsp-asyncapi`][emitter].
+[![npm](https://img.shields.io/npm/v/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core)
+[![downloads](https://img.shields.io/npm/dm/tsp-asyncapi-core.svg)](https://www.npmjs.com/package/tsp-asyncapi-core)
+[![Node.js](https://img.shields.io/node/v/tsp-asyncapi-core)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This package declares the input language. It emits nothing: it registers no
-`$onEmit`, and it writes no file. That is the same shape `@typespec/http` uses.
+The decorators and the semantic model behind
+[`tsp-asyncapi`](https://www.npmjs.com/package/tsp-asyncapi). It emits nothing
+itself.
 
-## You probably do not need this package
+> **Note:** To emit an AsyncAPI document, use
+> [`tsp-asyncapi`](https://www.npmjs.com/package/tsp-asyncapi) instead. It brings
+> every decorator here with it, and a `.tsp` file only needs
+> `import "tsp-asyncapi";`.
+>
+> Still `0.x`, so a minor release may change the exported names. The document
+> `tsp-asyncapi` produces is unaffected.
 
-To emit an AsyncAPI document, install [`tsp-asyncapi`][emitter] instead. It
-depends on this package and forwards every decorator, so a `.tsp` file writes
-`import "tsp-asyncapi";` and gets all of them.
+## When you want this package directly
+
+- You are building a tool that reads what an author declared and emits nothing.
+  Every decorator state reader is exported from here.
+- You are writing a second emitter for the same input language. The resolve
+  stage turns the program and the decorator state into a semantic model you can
+  pick up from.
 
 ```bash
-npm install tsp-asyncapi
+npm install tsp-asyncapi-core
 ```
 
-Install this package directly for one of two reasons:
+## More
 
-- You are writing a tool that reads what an author declared, without emitting a
-  document. Every reader for decorator state is exported here.
-- You are writing another emitter for the same input language.
-
-## What it holds
-
-| Part              | What it is                                                  |
-| ----------------- | ----------------------------------------------------------- |
-| `lib/main.tsp`    | All 56 `extern dec` declarations and the models they accept |
-| Decorators        | The implementations, which record state on the program      |
-| The resolve stage | Turns the program plus that state into one semantic model   |
-| Diagnostics       | All 108 codes, including the ones an emitter reports        |
-
-## The library name is not the package name
-
-This library registers with the TypeSpec compiler as `tsp-asyncapi`, not as
-`tsp-asyncapi-core`. The name is the prefix of every diagnostic code, and those
-codes are documented and depended on. Splitting the emitter into two packages
-was not a reason to rename them.
-
-Use `LIBRARY_NAME` for that registered name. Use `PACKAGE_NAME` where a package
-has to be named, such as when asking the compiler to load this library.
-
-## Stability
-
-The exported names include the semantic model and the utilities an emitter
-needs. They are a public promise, and this package is `0.x`, so a minor release
-may change them. The document you get from `tsp-asyncapi` is unaffected.
-
-## Documentation
-
-The guide and the reference cover both packages: <https://marvin-hsu.github.io/tsp-asyncapi/>
+- [Documentation](https://marvin-hsu.github.io/tsp-asyncapi/)
+- [GitHub repository](https://github.com/marvin-hsu/tsp-asyncapi)
 
 Traditional Chinese: [README.zh-TW.md](./README.zh-TW.md)
 
 ## License
 
 MIT
-
-[emitter]: https://www.npmjs.com/package/tsp-asyncapi
