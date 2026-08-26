@@ -27,6 +27,26 @@ extern dec ibmMqServer(target: Namespace, config: valueof AsyncAPIIbmMqServerBin
 
 AsyncAPI 規定 `cipherSpec` 只在 server 使用 TLS 時適用。emitter 不檢查這一點，因為這條規則跨兩個物件。
 
+```typespec
+@service(#{ title: "Orders" })
+@server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+@ibmMqServer(#{ groupId: "PRODGRP", cipherSpec: "ANY_TLS12", heartBeatInterval: 300 })
+namespace Orders;
+```
+
+```yaml
+servers:
+  prod:
+    host: mq.example.com:1414
+    protocol: ibmmq
+    bindings:
+      ibmmq:
+        groupId: PRODGRP
+        cipherSpec: ANY_TLS12
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+```
+
 ## `@ibmMqChannel`
 
 ```typespec
@@ -47,6 +67,29 @@ extern dec ibmMqChannel(
 
 AsyncAPI 規定 `queue` 只在型別為 `queue` 時適用，`topic` 只在型別為 `topic` 時適用。emitter 不檢查這個配對。
 
+```typespec
+@ibmMqChannel(#{
+  destinationType: "queue",
+  queue: #{ objectName: "ORDERS.IN" },
+  maxMsgLength: 4194304
+})
+@channel("orders.in")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  orders.in:
+    address: orders.in
+    bindings:
+      ibmmq:
+        destinationType: queue
+        queue:
+          objectName: ORDERS.IN
+        maxMsgLength: 4194304
+        bindingVersion: 0.1.0
+```
+
 ## `@ibmMqMessage`
 
 ```typespec
@@ -62,4 +105,33 @@ extern dec ibmMqMessage(target: Model, config: valueof AsyncAPIIbmMqMessageBindi
 
 `type` 是 `string`、`jms` 或 `binary`。`expiry` 是毫秒數，不會是負數。零表示訊息永不過期。
 
-`headers` 是以逗號分隔的標頭名稱清單，不是 Schema Object。IBM MQ 是本 library 裡唯一這樣定義該欄位的 binding。
+`headers` 是以逗號分隔的標頭名稱清單，不是 Schema Object。IBM MQ 是這個 library 裡唯一這樣定義該欄位的 binding。
+
+IBM MQ 只允許 binary payload 帶 `headers`。搭配其他 `type` 寫下去時，會透過 `invalid-binding-field` 回報，該欄位被丟棄，binding 的其餘欄位保留。
+
+```typespec
+@message
+@ibmMqMessage(#{
+  type: "binary",
+  headers: "JMSCorrelationID,JMSType",
+  expiry: 60000
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        ibmmq:
+          type: binary
+          headers: JMSCorrelationID,JMSType
+          expiry: 60000
+          bindingVersion: 0.1.0
+```

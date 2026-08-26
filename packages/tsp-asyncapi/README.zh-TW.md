@@ -1,50 +1,110 @@
 # tsp-asyncapi
 
-把 TypeSpec 編譯成 AsyncAPI 3.1 文件。
+[![npm](https://img.shields.io/npm/v/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)
+[![downloads](https://img.shields.io/npm/dm/tsp-asyncapi.svg)](https://www.npmjs.com/package/tsp-asyncapi)
+[![Node.js](https://img.shields.io/node/v/tsp-asyncapi)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+TypeSpec 的 [AsyncAPI](https://www.asyncapi.com/) emitter，可產出符合 AsyncAPI 3.1
+規格的文件。支援 channel、operation、message、schema、server、security scheme，
+以及各通訊協定的 binding。
+
+> **注意：** 目前在 `0.x`，次版本可能帶破壞性變更，CHANGELOG 會在該筆條目開頭標明。
+
+## 快速開始
+
+安裝：
 
 ```bash
 npm install tsp-asyncapi
 ```
 
+`tspconfig.yaml`：
+
 ```yaml
-# tspconfig.yaml
 emit:
   - "tsp-asyncapi"
 ```
+
+`main.tsp`：
 
 ```typespec
 import "tsp-asyncapi";
 
 using AsyncAPI;
+
+@service(#{ title: "Orders" })
+namespace Orders;
+
+@message
+model OrderPlaced {
+  orderId: string;
+}
+
+@channel("orders")
+interface Events {
+  @send op placed(event: OrderPlaced): void;
+}
 ```
 
-Decorator 來自 [`tsp-asyncapi-core`][core]，這個套件相依它。只裝這一個就夠，
-而且一行 import 就帶進所有 decorator。
+編譯：
 
-## 內容
+```bash
+tsp compile .
+```
 
-| 部分       | 是什麼                         |
-| ---------- | ------------------------------ |
-| lower 階段 | 把語意模型轉成 AsyncAPI 物件樹 |
-| 文件型別   | 每個輸出物件的 TypeScript 形狀 |
-| `$onEmit`  | 把文件寫成 YAML 或 JSON        |
+產出 `tsp-output/tsp-asyncapi/asyncapi.yaml`：
+
+```yaml
+asyncapi: 3.1.0
+info:
+  title: Orders
+  version: 0.0.0
+channels:
+  orders:
+    address: orders
+    messages:
+      OrderPlaced:
+        $ref: "#/components/messages/OrderPlaced"
+operations:
+  placed:
+    action: send
+    channel:
+      $ref: "#/channels/orders"
+    messages:
+      - $ref: "#/channels/orders/messages/OrderPlaced"
+components:
+  schemas:
+    OrderPlaced:
+      type: object
+      properties:
+        orderId:
+          type: string
+      required:
+        - orderId
+  messages:
+    OrderPlaced:
+      name: OrderPlaced
+      payload:
+        $ref: "#/components/schemas/OrderPlaced"
+```
 
 ## Emitter 選項
 
-五個，全部選填：`output-file`、`file-type`、`asyncapi-id`、
-`default-content-type` 與 `preview-features`。[參考文件][options]逐項說明。
+逐項說明見[參考文件][options]。
 
-## 穩定性
+| 選項                   | 型別       | 預設值          | 作用                             |
+| ---------------------- | ---------- | --------------- | -------------------------------- |
+| `output-file`          | `string`   | `asyncapi.yaml` | 輸出檔名                         |
+| `file-type`            | `string`   | `yaml`          | `yaml` 或 `json`                 |
+| `asyncapi-id`          | `string`   | 無              | 文件的 `id` 欄位                 |
+| `default-content-type` | `string`   | 無              | 對應 `defaultContentType`        |
+| `preview-features`     | `string[]` | `[]`            | 開啟預覽功能：`protobuf`、`avro` |
 
-這個套件遵循[語意化版本](https://semver.org/)。它還在 `0.x`，所以次版本更新可能
-帶有破壞性變更。有這種變更時，changelog 會寫在該筆條目的最前面。
+## 其他
 
-## 文件
-
-指南、decorator 參考、binding 參考，以及每一個 diagnostic 代碼：
-<https://marvin-hsu.github.io/tsp-asyncapi/>
-
-repo 的 README 有完整的功能對照表與缺口清單，包含這個 emitter 不做的項目。
+- [文件](https://marvin-hsu.github.io/tsp-asyncapi/)
+- [GitHub repo](https://github.com/marvin-hsu/tsp-asyncapi)
 
 English: [README.md](./README.md)
 
@@ -52,5 +112,4 @@ English: [README.md](./README.md)
 
 MIT
 
-[core]: https://www.npmjs.com/package/tsp-asyncapi-core
 [options]: https://marvin-hsu.github.io/tsp-asyncapi/reference/emitter-options

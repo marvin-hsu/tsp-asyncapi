@@ -26,7 +26,7 @@ Avro 需要的 decorator 很少，因為一個純 TypeSpec model 本來就是合
 先在 compiler 旁邊安裝這個套件。
 
 ```bash
-npm install tsp-avro
+pnpm add tsp-avro
 ```
 
 接著在 `tspconfig.yaml` 裡指定這個 emitter。
@@ -297,16 +297,16 @@ logical type 是型別的一個屬性，不是獨立的型別。Avro 用 `int` �
 
 ## Decorator
 
-| Decorator                         | 目標                             | 作用                                          |
-| --------------------------------- | -------------------------------- | --------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。最近的祖先生效。         |
-| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。 |
-| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                  |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。       |
-| `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。          |
-| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`        | 寫出上表中的一個 logical type。               |
-| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`        | 寫出 `decimal` logical type 與它的參數。      |
-| `@Avro.enumDefault(member)`       | `Enum`                           | 指定 reader 退回的符號。                      |
+| Decorator                         | 目標                             | 作用                                                 |
+| --------------------------------- | -------------------------------- | ---------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。由最靠近的上層 namespace 決定。 |
+| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。        |
+| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                         |
+| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。              |
+| `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。                 |
+| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`        | 寫出上表中的一個 logical type。                      |
+| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`        | 寫出 `decimal` logical type 與它的參數。             |
+| `@Avro.enumDefault(member)`       | `Enum`                           | 指定 reader 退回的符號。                             |
 
 doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`。這兩件事都沒有 decorator。
 

@@ -993,7 +993,7 @@ server 與 security scheme 就是這種 target。兩者都以具名參數宣告�
 
 > @discriminator("\<property\>") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so `discriminator` was omitted from the emitted schema.
 
-**修法：** 在該 model（或祖先）上宣告這個屬性，或修正 `@discriminator` 裡的屬性名稱。指名用的是 **TypeSpec** 屬性名稱，不是 `@encodedName` 的 wire name。
+**修法：** 在該 model 或父層上宣告這個屬性，或修正 `@discriminator` 裡的屬性名稱。指名用的是 **TypeSpec** 屬性名稱，不是 `@encodedName` 的 wire name。
 
 ### `optional-discriminator-property`
 
@@ -1003,9 +1003,9 @@ server 與 security scheme 就是這種 target。兩者都以具名參數宣告�
 
 ### `encoded-name-override-conflict`
 
-覆寫屬性的 `@encodedName` 與祖先同名屬性的 wire name 不同。一般的 `allOf: [$ref Base, own]` 形狀會同時要求**兩個** wire name，導致任何合法 payload 都被拒絕。emitter 改為攤平該 model 的 schema（繼承屬性內聯，不再 `$ref` 基底）。
+覆寫屬性的 `@encodedName` 與父層同名屬性的 wire name 不同。一般的 `allOf: [$ref Base, own]` 形狀會同時要求**兩個** wire name，導致任何合法 payload 都被拒絕。emitter 改為攤平該 model 的 schema（繼承屬性內聯，不再 `$ref` 基底）。
 
-**修法：** 讓覆寫屬性用與祖先相同的 `@encodedName`，或只在其中一層改名。
+**修法：** 讓覆寫屬性用與父層相同的 `@encodedName`，或只在其中一層改名。
 
 ### `never-typed-property-override`
 

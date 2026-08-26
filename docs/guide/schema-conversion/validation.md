@@ -1,13 +1,20 @@
 ---
 title: "Validation"
-description: "Each maps to the draft-07 keyword of the same meaning. They may target a property, a model, or a scalar declaration:"
+description: "TypeSpec's validation decorators become the matching JSON Schema draft-07 keywords, carrying the range of a value into the emitted schema."
 ---
 
 # Validation
 
-## Validation decorators
+A schema describes the shape of a value, and it can describe the range too.
+How long a name may be, that an amount is never negative, how few items an
+array may hold — mark these on the TypeSpec declaration and they reach the
+AsyncAPI document with everything else.
 
-Each maps to the draft-07 keyword of the same meaning. They may target a property, a model, or a scalar declaration:
+## What maps to what
+
+Each decorator becomes the draft-07 keyword of the same meaning. They target
+a property, a model, or a scalar declaration. On a scalar, every field that
+uses it carries the constraint — see [Scalar](./scalars).
 
 | TypeSpec decorator                          | Schema keyword                          |
 | ------------------------------------------- | --------------------------------------- |
@@ -17,6 +24,8 @@ Each maps to the draft-07 keyword of the same meaning. They may target a propert
 | `@minValue` / `@maxValue`                   | `minimum` / `maximum`                   |
 | `@minValueExclusive` / `@maxValueExclusive` | `exclusiveMinimum` / `exclusiveMaximum` |
 | `@minItems` / `@maxItems`                   | `minItems` / `maxItems`                 |
+
+## Example
 
 ```typespec
 model Product {
@@ -61,6 +70,17 @@ Product:
     - id
 ```
 
-There is no `uniqueItems` output — `@typespec/compiler` has no decorator for it.
+## The keyword with no decorator
 
-A bound whose value cannot be represented as a JSON number (e.g. `@maxValue(9223372036854775807)` on an `int64`), or that targets a date/time/duration value, is **omitted with a warning** instead of being emitted wrong — see [`unrepresentable-numeric-constraint`](../../reference/diagnostics#unrepresentable-numeric-constraint) and [`unsupported-temporal-range-constraint`](../../reference/diagnostics#unsupported-temporal-range-constraint).
+Nothing emits `uniqueItems`. `@typespec/compiler` has no decorator for it.
+
+## When a bound cannot be written
+
+Two cases drop the keyword **with a warning** rather than emit a wrong value:
+
+- the bound is not representable as a JSON number, such as
+  `@maxValue(9223372036854775807)` on an `int64`
+- it targets a date, time, or duration value
+
+The codes are [`unrepresentable-numeric-constraint`](../../reference/diagnostics#unrepresentable-numeric-constraint)
+and [`unsupported-temporal-range-constraint`](../../reference/diagnostics#unsupported-temporal-range-constraint).

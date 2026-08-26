@@ -41,6 +41,20 @@ extern dec amqpChannel(
 interface EventChannel {}
 ```
 
+```yaml
+channels:
+  events.created:
+    address: events.created
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: events
+          type: topic
+          durable: true
+        bindingVersion: 0.3.0
+```
+
 ## `@amqpOperation`
 
 ```typespec
@@ -65,6 +79,26 @@ extern dec amqpOperation(target: Operation, config: valueof AsyncAPIAmqpOperatio
 
 輸出的欄位順序依照規格，不是作者書寫的順序。
 
+```typespec
+@send
+@amqpOperation(#{ deliveryMode: 2, expiration: 60000, mandatory: true })
+op publish(event: EventCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/events.created"
+    bindings:
+      amqp:
+        expiration: 60000
+        deliveryMode: 2
+        mandatory: true
+        bindingVersion: 0.3.0
+```
+
 ## `@amqpMessage`
 
 ```typespec
@@ -77,3 +111,25 @@ extern dec amqpMessage(target: Model, config: valueof AsyncAPIAmqpMessageBinding
 | `messageType`     | `string` | 否   |
 
 套用在同時帶有 `@message` 的 model 上。AMQP 對這兩個欄位都沒有規定值的集合。
+
+```typespec
+@message
+@amqpMessage(#{ contentEncoding: "gzip", messageType: "event.created" })
+model EventCreated {
+  eventId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    EventCreated:
+      name: EventCreated
+      payload:
+        $ref: "#/components/schemas/EventCreated"
+      bindings:
+        amqp:
+          contentEncoding: gzip
+          messageType: event.created
+          bindingVersion: 0.3.0
+```

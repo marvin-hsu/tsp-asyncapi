@@ -41,6 +41,20 @@ The member covers AMQP 0-9-1. AsyncAPI defines a separate `amqp1` binding for AM
 interface EventChannel {}
 ```
 
+```yaml
+channels:
+  events.created:
+    address: events.created
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: events
+          type: topic
+          durable: true
+        bindingVersion: 0.3.0
+```
+
 ## `@amqpOperation`
 
 ```typespec
@@ -65,6 +79,26 @@ Apply it to an operation that carries `@send` or `@receive`.
 
 The emitted field order follows the specification, not the order the fields were written.
 
+```typespec
+@send
+@amqpOperation(#{ deliveryMode: 2, expiration: 60000, mandatory: true })
+op publish(event: EventCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/events.created"
+    bindings:
+      amqp:
+        expiration: 60000
+        deliveryMode: 2
+        mandatory: true
+        bindingVersion: 0.3.0
+```
+
 ## `@amqpMessage`
 
 ```typespec
@@ -77,3 +111,25 @@ extern dec amqpMessage(target: Model, config: valueof AsyncAPIAmqpMessageBinding
 | `messageType`     | `string` | no       |
 
 Apply it to a model that also carries `@message`. AMQP states no set of values for either field.
+
+```typespec
+@message
+@amqpMessage(#{ contentEncoding: "gzip", messageType: "event.created" })
+model EventCreated {
+  eventId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    EventCreated:
+      name: EventCreated
+      payload:
+        $ref: "#/components/schemas/EventCreated"
+      bindings:
+        amqp:
+          contentEncoding: gzip
+          messageType: event.created
+          bindingVersion: 0.3.0
+```

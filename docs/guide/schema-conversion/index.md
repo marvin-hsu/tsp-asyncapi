@@ -1,6 +1,6 @@
 ---
 title: "Schema Conversion"
-description: "This page is the reference for how the emitter converts each TypeSpec construct to an [AsyncAPI Schema Object](https://www.asyncapi.com/docs/refere..."
+description: "How the emitter turns each TypeSpec construct into an AsyncAPI Schema Object, one page per construct."
 ---
 
 # Schema Conversion

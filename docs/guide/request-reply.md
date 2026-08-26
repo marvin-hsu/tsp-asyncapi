@@ -40,7 +40,7 @@ operations:
       - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
-The parameter types of a `@send` operation name the messages it sends. Its return type names the messages of the reply. A `@receive` operation reads the two sides the other way round.
+A `@send` operation names the messages it sends in its parameters and the reply it gets back in its return type. A `@receive` operation is the mirror: the return type is the message it receives, the parameters are the reply it sends.
 
 ## The `reply` object
 
@@ -156,7 +156,7 @@ interface ResponseChannel {
 }
 ```
 
-The official `rpc-client` and `rpc-server` examples use this style. Both styles are valid AsyncAPI 3.
+AsyncAPI's own `rpc-client` and `rpc-server` examples use this style. Both are valid AsyncAPI 3.
 
 ## Which style to use
 

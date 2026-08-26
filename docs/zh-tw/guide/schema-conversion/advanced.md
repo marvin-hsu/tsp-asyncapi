@@ -1,13 +1,19 @@
 ---
-title: "Advanced (進階處理)"
-description: "具現化的 template 取得依參數推導的穩定名稱："
+title: "Template 與名稱衝突"
+description: "model 寫成 template 時，每個具現化都是獨立的一份 schema。本頁說明這些 schema 的名稱怎麼決定，以及兩個宣告算到同一個名稱時會怎麼樣。"
 ---
 
-# Advanced (進階處理)
+# Template 與名稱衝突
 
-## Template
+model 寫成 template 時，每個具現化都是 `components.schemas` 裡獨立的一份 schema。
+本頁說明這些名稱怎麼決定，以及兩個宣告算到同一個名稱時會怎麼樣。
 
-具現化的 template 取得依參數推導的穩定名稱：
+## 具現化的名稱
+
+名稱是 template 名稱接上參數名稱。`Page<string>` 是 `PageString`，`Page<Order>` 是
+`PageOrder`。同一份 template 用不同參數，就是兩個不同的項目。
+
+### 範例
 
 ```typespec
 model Page<T> {
@@ -15,9 +21,9 @@ model Page<T> {
   total: int32;
 }
 
-model Uses {
-  a: Page<string>;
-  b: Page<Order>;
+model Env {
+  p: Page<string>;
+  q: Page<Order>;
 }
 ```
 
@@ -38,10 +44,23 @@ components:
         - items
         - total
     PageOrder:
-      # ... 同樣形狀，items 為 $ref Order
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+          format: int32
+      required:
+        - items
+        - total
 ```
 
-若要自訂名稱，用 compiler 內建的 `@friendlyName`：
+## 自己指定名稱
+
+推導出來的名字不好讀時，用 compiler 內建的 `@friendlyName` 換掉：
 
 ```typespec
 @friendlyName("{name}Envelope", T)
@@ -49,15 +68,24 @@ model Envelope<T> {
   data: T;
 }
 
-model Uses2 {
-  e: Envelope<Order>; // 註冊為 "OrderEnvelope"
+model Env2 {
+  e: Envelope<Order>; // 名稱是 OrderEnvelope
 }
 ```
 
-若具現化的參數沒有可用的身分（匿名 model、tuple 等），該型別在使用處內聯，不合成名稱。這與 TypeSpec 官方 emitter 的行為一致。
+## 參數沒有名字的時候
+
+參數本身沒有名字時（匿名 model、tuple 這些），emitter 不會硬湊一個名稱，而是把型別
+直接內聯在用到它的地方。TypeSpec 官方的 emitter 也是這樣做。
 
 ## Schema key 與名稱衝突
 
-一般宣告的 `components.schemas` key 是宣告名稱加 namespace 鏈前綴。不同 namespace 的同名 model 因此不會相撞。（schema 層尚未接上輸出，前綴的確切格式仍在檢討中，先不要依賴它。）template 具現化的 key 由 template 名稱與參數組成，如上所示。
+一般宣告的 key 是宣告名稱，前面接上 namespace 鏈。`namespace Alpha` 裡的 `Thing`
+是 `Alpha.Thing`，`namespace Beta` 裡的同名 model 是 `Beta.Thing`，兩者不會互相蓋掉。
+`@service` 所在的那層 namespace 不算在內，寫法與官方 emitter 的型別全名一致。
 
-若兩個宣告解析到同一個 key（例如 `@friendlyName` 撞名，或 model 名稱撞到 template 具現化的推導名稱），回報 [`duplicate-schema-key`](../../reference/diagnostics#duplicate-schema-key) **錯誤**。emitter 絕不靜默改名。
+兩個宣告算到同一個 key 時，回報 [`duplicate-schema-key`](../../reference/diagnostics#duplicate-schema-key)
+**錯誤**。常見的兩種是 `@friendlyName` 指定到已經有人用的名字，以及某個 model 的名稱
+剛好等於某個具現化推導出來的名稱。
+
+emitter 不會自動改名，必須自己改掉其中一個。

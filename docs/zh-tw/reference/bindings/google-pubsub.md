@@ -29,6 +29,31 @@ extern dec googlePubSubChannel(
 
 `labels` 是開放的 map。Pub/Sub 對它的鍵與值都沒有規定，所以原樣輸出。
 
+```typespec
+@googlePubSubChannel(#{
+  schemaSettings: #{ encoding: "json", name: "projects/p/schemas/order" },
+  messageRetentionDuration: "604800s",
+  labels: #{ team: "orders" }
+})
+@channel("projects/p/topics/orders")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  projects/p/topics/orders:
+    address: projects/p/topics/orders
+    bindings:
+      googlepubsub:
+        schemaSettings:
+          encoding: json
+          name: projects/p/schemas/order
+        labels:
+          team: orders
+        messageRetentionDuration: 604800s
+        bindingVersion: 0.2.0
+```
+
 ## `@googlePubSubMessage`
 
 ```typespec
@@ -47,3 +72,32 @@ extern dec googlePubSubMessage(
 套用在同時帶有 `@message` 的 model 上。沒有必填欄位。
 
 `schema` 是選填，但寫了 `schema` 卻沒寫 `name` 等於沒指名任何 schema，所以會被回報並丟棄。
+
+```typespec
+@message
+@googlePubSubMessage(#{
+  orderingKey: "tenantId",
+  attributes: #{ region: "asia-east1" },
+  schema: #{ name: "projects/p/schemas/order" }
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        googlepubsub:
+          attributes:
+            region: asia-east1
+          orderingKey: tenantId
+          schema:
+            name: projects/p/schemas/order
+          bindingVersion: 0.2.0
+```

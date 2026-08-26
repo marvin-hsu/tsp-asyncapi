@@ -1,13 +1,21 @@
 ---
-title: "Advanced"
-description: "An instantiated template gets a stable name derived from its arguments:"
+title: "Templates and name collisions"
+description: "Each instantiation of a templated model is a schema of its own. This page covers where those names come from, and what happens when two declarations arrive at the same one."
 ---
 
-# Advanced
+# Templates and name collisions
 
-## Templates
+Each instantiation of a templated model is its own entry under
+`components.schemas`. This page covers where those names come from, and what
+happens when two declarations arrive at the same one.
 
-An instantiated template gets a stable name derived from its arguments:
+## The name of an instantiation
+
+The name is the template's name followed by its arguments. `Page<string>` is
+`PageString`, `Page<Order>` is `PageOrder`. One template with two arguments is
+two entries.
+
+### Example
 
 ```typespec
 model Page<T> {
@@ -15,9 +23,9 @@ model Page<T> {
   total: int32;
 }
 
-model Uses {
-  a: Page<string>;
-  b: Page<Order>;
+model Env {
+  p: Page<string>;
+  q: Page<Order>;
 }
 ```
 
@@ -38,10 +46,24 @@ components:
         - items
         - total
     PageOrder:
-      # ... same shape with items: $ref Order
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+          format: int32
+      required:
+        - items
+        - total
 ```
 
-To control the name yourself, use the compiler's built-in `@friendlyName`:
+## Choosing the name yourself
+
+When the derived name reads badly, replace it with the compiler's built-in
+`@friendlyName`:
 
 ```typespec
 @friendlyName("{name}Envelope", T)
@@ -49,15 +71,28 @@ model Envelope<T> {
   data: T;
 }
 
-model Uses2 {
-  e: Envelope<Order>; // registered as "OrderEnvelope"
+model Env2 {
+  e: Envelope<Order>; // named OrderEnvelope
 }
 ```
 
-An instantiation whose argument has no usable identity (an anonymous model, a tuple, ...) is inlined at the use site instead of getting a synthesized name — matching the official TypeSpec emitters' behavior.
+## Arguments with no name
+
+When an argument has no name of its own (an anonymous model, a tuple), the
+emitter does not invent one. The type is inlined where it is used, which is
+what the official TypeSpec emitters do.
 
 ## Schema keys and name collisions
 
-The `components.schemas` key for a plain declaration is its declaration name, prefixed by its namespace chain so two same-named models in different namespaces do not collide. (The exact prefix format is still under review while the schema layer is unwired — do not depend on it yet.) A template instantiation's key is composed from the template name and its arguments, as shown above.
+A plain declaration's key is its name prefixed by its namespace chain.
+`Thing` in `namespace Alpha` is `Alpha.Thing` and `Thing` in `namespace Beta`
+is `Beta.Thing`, so neither shadows the other. The namespace holding
+`@service` is left out, which makes the key read like the official emitters'
+full type name.
 
-Two declarations resolving to the same key (for example via `@friendlyName`, or a model shadowing a template instantiation's derived name) report the [`duplicate-schema-key`](../../reference/diagnostics#duplicate-schema-key) **error**. The emitter never renames either declaration silently.
+Two declarations arriving at one key report the
+[`duplicate-schema-key`](../../reference/diagnostics#duplicate-schema-key)
+**error**. The two common ways in are a `@friendlyName` pointing at a name
+already taken, and a model named exactly what some instantiation derives.
+
+The emitter renames neither of them. Which one gives way is yours to decide.

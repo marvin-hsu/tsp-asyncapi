@@ -29,6 +29,31 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `labels` is an open map. Pub/Sub puts no rule on its keys or values, so it is emitted as written.
 
+```typespec
+@googlePubSubChannel(#{
+  schemaSettings: #{ encoding: "json", name: "projects/p/schemas/order" },
+  messageRetentionDuration: "604800s",
+  labels: #{ team: "orders" }
+})
+@channel("projects/p/topics/orders")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  projects/p/topics/orders:
+    address: projects/p/topics/orders
+    bindings:
+      googlepubsub:
+        schemaSettings:
+          encoding: json
+          name: projects/p/schemas/order
+        labels:
+          team: orders
+        messageRetentionDuration: 604800s
+        bindingVersion: 0.2.0
+```
+
 ## `@googlePubSubMessage`
 
 ```typespec
@@ -47,3 +72,32 @@ extern dec googlePubSubMessage(
 Apply it to a model that also carries `@message`. No field is required.
 
 `schema` is optional, but a `schema` written without a `name` names no schema, so it is reported and dropped.
+
+```typespec
+@message
+@googlePubSubMessage(#{
+  orderingKey: "tenantId",
+  attributes: #{ region: "asia-east1" },
+  schema: #{ name: "projects/p/schemas/order" }
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        googlepubsub:
+          attributes:
+            region: asia-east1
+          orderingKey: tenantId
+          schema:
+            name: projects/p/schemas/order
+          bindingVersion: 0.2.0
+```

@@ -1,6 +1,6 @@
 ---
 title: "Protocol bindings"
-description: "AsyncAPI describes protocol-specific settings in a Bindings Object. The specification puts one on four objects: a server, a channel, an operation, ..."
+description: "How protocol bindings work in this emitter: the thirteen protocols, the @binding escape hatch, the rules that span two objects, and how a binding version is chosen."
 ---
 
 # Protocol bindings

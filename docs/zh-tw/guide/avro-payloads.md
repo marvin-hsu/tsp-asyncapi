@@ -26,7 +26,7 @@ description: "帶有 tsp-avro decorator 的 model，可以用 Avro schema 當作
 先在本 emitter 旁邊安裝 Avro 套件。
 
 ```bash
-npm install "tsp-avro@0.2.x"
+pnpm add "tsp-avro@0.2.x"
 ```
 
 本版支援該套件的 `0.2.x` 範圍。`tsp-avro` 是本 emitter 的選用 peer dependency。沒開這個功能的專案不必安裝它，也不會載入它。

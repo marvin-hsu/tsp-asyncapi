@@ -1,9 +1,19 @@
 ---
 title: "Scalars"
-description: "| TypeSpec                                 | `type`    | `format`                                 |"
+description: "This page lists the type and format every built-in scalar maps to, and how a user-defined one carries its documentation and validation to each use site."
 ---
 
 # Scalars
+
+A scalar is a single value: a string, a number, a boolean, a moment in time.
+A model has properties; a scalar does not.
+
+Every TypeSpec scalar maps to a JSON Schema `type`. Where JSON Schema also has
+a `format` for the finer kind, such as `int32` or `date-time`, that is written
+too.
+
+A named scalar behaves like a named model: it becomes an entry in
+`components.schemas`, and every use site points at it with `$ref`.
 
 ## Built-in scalars
 
@@ -27,11 +37,17 @@ description: "| TypeSpec                                 | `type`    | `format` 
 | `duration`                               | `string`  | `duration`                               |
 | `url`                                    | `string`  | `uri`                                    |
 
-Intrinsic types: `null` → `{ type: "null" }`; `never` and `void` → `{ not: {} }` (no value is valid); `unknown` → `{}` (any value is valid).
+Intrinsic types:
+
+| TypeSpec        | Output             | Meaning            |
+| --------------- | ------------------ | ------------------ |
+| `null`          | `{ type: "null" }` |                    |
+| `never`, `void` | `{ not: {} }`      | No value is valid  |
+| `unknown`       | `{}`               | Any value is valid |
 
 ## User-declared scalars
 
-A scalar declared with `extends` inherits the base's shape and layers its own documentation and validation keywords on top. The scalar's constraints follow it to every use site:
+`extends` derives a new scalar from an existing one. The shape comes from the base, and the new scalar adds its own documentation and validation keywords. The rules live on the scalar, so every field that uses it carries them:
 
 ```typespec
 @doc("An RFC 5321 mailbox address.")
@@ -46,15 +62,21 @@ model Account {
 ```yaml
 components:
   schemas:
+    Email:
+      type: string
+      description: An RFC 5321 mailbox address.
+      maxLength: 254
     Account:
       type: object
       properties:
         email:
-          type: string
-          description: An RFC 5321 mailbox address.
-          maxLength: 254
+          $ref: "#/components/schemas/Email"
       required:
         - email
 ```
 
-If a property re-declares a keyword its scalar already carries (say, `@minLength(2)` on a property whose scalar has `@minLength(5)`), the two constraints are combined with `allOf` so **both** hold — a use site can never silently weaken a scalar's constraint.
+If a property re-declares a keyword its scalar already carries (say, `@minLength(2)` on a property whose scalar has `@minLength(5)`), the property does not override the scalar. The two constraints are combined with `allOf`, so **both** hold.
+
+::: tip
+This is where a scalar earns its keep for a business concept. Something like `Email`, `OrderId` or `Percentage` turns up all over a system. Write the rule on the scalar once and every field that uses it carries the same constraint, with nothing to annotate field by field and nothing for anyone to forget. Changing the rule is one edit.
+:::

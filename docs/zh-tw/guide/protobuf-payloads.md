@@ -24,7 +24,7 @@ description: "帶有官方 TypeSpec.Protobuf decorator 的 model，可以用 pro
 先在本 emitter 旁邊安裝官方套件。
 
 ```bash
-npm install "@typespec/protobuf@0.85.x"
+pnpm add "@typespec/protobuf@0.85.x"
 ```
 
 本版支援該套件的 `0.85.x` 範圍。本 emitter 讀取這個範圍寫下的 decorator state。其他範圍可能寫出本 emitter 不讀的 state，那時就取不到 payload。

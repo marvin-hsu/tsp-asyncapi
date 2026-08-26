@@ -29,6 +29,30 @@ extern dec sqsChannel(
 
 `deduplicationScope` 是 `queue` 或 `messageGroup`。`fifoThroughputLimit` 是 `perQueue` 或 `perMessageGroupId`。四個時間欄位都是秒數，不會是負數。
 
+```typespec
+@sqsChannel(#{
+  queue: #{ name: "orders", fifoQueue: false },
+  deadLetterQueue: #{ name: "orders-dlq", fifoQueue: false }
+})
+@channel("orders-queue")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  orders-queue:
+    address: orders-queue
+    bindings:
+      sqs:
+        queue:
+          name: orders
+          fifoQueue: false
+        deadLetterQueue:
+          name: orders-dlq
+          fifoQueue: false
+        bindingVersion: 0.2.0
+```
+
 ## `@sqsOperation`
 
 ```typespec
@@ -44,3 +68,22 @@ extern dec sqsOperation(target: Operation, config: valueof AsyncAPISqsOperationB
 `queues` 是必填，每一筆都要求 `name`。缺 `name` 的那一筆會被回報並丟棄。整份清單一筆不剩時，會回報成缺少 `queues`，因為空清單沒有指名任何 queue。
 
 這一層的 queue 只要求 `name`。channel binding 還要求 `fifoQueue`，這是 AsyncAPI 對兩層所訂的差異。
+
+```typespec
+@send
+@sqsOperation(#{ queues: #[#{ name: "orders" }] })
+op publish(event: OrderCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders-queue"
+    bindings:
+      sqs:
+        queues:
+          - name: orders
+        bindingVersion: 0.2.0
+```

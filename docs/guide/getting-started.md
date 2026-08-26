@@ -1,20 +1,19 @@
 ---
 title: "Getting Started"
-description: "`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in Ty..."
+description: "tsp-asyncapi is an AsyncAPI 3.1 emitter for TypeSpec. This page installs it, writes a first document, and accounts for every field in the output."
 ---
 
 # Getting Started
 
-`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). You describe an event-driven API in TypeSpec. The emitter produces an AsyncAPI document.
+`tsp-asyncapi` is an [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://typespec.io/). This page installs it, writes a first document, and accounts for every field in the output.
 
 ## Requirements
 
-- Node.js >= 20
-- [pnpm](https://pnpm.io/) (this repo's `devEngines` field pins ^11)
+Node.js 20 or later. The examples use pnpm; npm and yarn work too.
 
 ## Installation
 
-Install the package in your TypeSpec project:
+Install it in your TypeSpec project:
 
 ```bash
 pnpm add tsp-asyncapi
@@ -59,7 +58,7 @@ Compile:
 tsp compile .
 ```
 
-The output lands in `tsp-output/tsp-asyncapi/asyncapi.yaml`. This is the **actual, complete output** of the example above:
+That writes `tsp-output/tsp-asyncapi/asyncapi.yaml`:
 
 ```yaml
 asyncapi: 3.1.0
@@ -75,30 +74,37 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   tags:
-    - name: payment
-    - name: orders
+    - $ref: "#/components/tags/payment"
+    - $ref: "#/components/tags/orders"
   externalDocs:
     url: https://example.com/docs
     description: Service Documentation
 defaultContentType: application/json
 channels: {}
 operations: {}
-components: {}
+components:
+  tags:
+    payment:
+      name: payment
+    orders:
+      name: orders
 ```
 
 ## How each line got there
 
 | Output field                                                          | Source                                                                                            |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `id`                                                                  | `asyncapi-id` emitter option                                                                      |
+| `id`                                                                  | The `asyncapi-id` option in `tspconfig.yaml`                                                      |
 | `info.title`                                                          | `@service(#{ title: ... })`                                                                       |
 | `info.version`, `description`, `contact`, `license`, `termsOfService` | `@info(#{ ... })`                                                                                 |
 | `info.description` (fallback)                                         | `@doc` or a `/** ... */` doc comment on the namespace, used only when `@info` sets no description |
 | `info.tags`                                                           | one entry per `@tag`                                                                              |
 | `info.externalDocs`                                                   | `@externalDocs(url, description?)`                                                                |
-| `defaultContentType`                                                  | `default-content-type` emitter option                                                             |
+| `defaultContentType`                                                  | The `default-content-type` option in `tspconfig.yaml`                                             |
 
-Without `@service`, the document still emits, with the fallback `info: { title: "AsyncAPI Document", version: "0.0.0" }`. With more than one `@service` in the program, the emitter warns (`multiple-services`) and uses the first one.
+With more than one `@service`, the first is used and `multiple-services`
+warns. To get a document per service, split them into separate projects that
+share the same TypeSpec sources.
 
 ## Next steps
 

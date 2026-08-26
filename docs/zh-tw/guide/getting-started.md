@@ -1,20 +1,19 @@
 ---
 title: "快速開始"
-description: "`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 會為你產出 AsyncAPI..."
+description: "tsp-asyncapi 是 TypeSpec 的 AsyncAPI 3.1 emitter。本頁從安裝開始，產出第一份文件，並說明輸出的每個欄位從哪裡來。"
 ---
 
 # 快速開始
 
-`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。你用 TypeSpec 描述事件驅動 API。emitter 會為你產出 AsyncAPI 文件。
+`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。本頁從安裝開始，產出第一份文件，並說明輸出的每個欄位從哪裡來。
 
 ## 環境需求
 
-- Node.js >= 20
-- [pnpm](https://pnpm.io/)（本專案的 `devEngines` 欄位鎖定 ^11）
+Node.js 20 以上。以下範例用 pnpm，npm 與 yarn 也可以。
 
 ## 安裝
 
-在你的 TypeSpec 專案中安裝這個套件：
+在 TypeSpec 專案中安裝：
 
 ```bash
 pnpm add tsp-asyncapi
@@ -59,7 +58,7 @@ options:
 tsp compile .
 ```
 
-輸出檔在 `tsp-output/tsp-asyncapi/asyncapi.yaml`。以下是上面範例**實際的完整輸出**：
+產出 `tsp-output/tsp-asyncapi/asyncapi.yaml`，內容如下：
 
 ```yaml
 asyncapi: 3.1.0
@@ -75,34 +74,40 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
   tags:
-    - name: payment
-    - name: orders
+    - $ref: "#/components/tags/payment"
+    - $ref: "#/components/tags/orders"
   externalDocs:
     url: https://example.com/docs
     description: Service Documentation
 defaultContentType: application/json
 channels: {}
 operations: {}
-components: {}
+components:
+  tags:
+    payment:
+      name: payment
+    orders:
+      name: orders
 ```
 
 ## 每一行從哪來
 
 | 輸出欄位                                                              | 來源                                                                                   |
 | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `id`                                                                  | emitter 選項 `asyncapi-id`                                                             |
+| `id`                                                                  | `tspconfig.yaml` 的 `asyncapi-id` 選項                                                 |
 | `info.title`                                                          | `@service(#{ title: ... })`                                                            |
 | `info.version`、`description`、`contact`、`license`、`termsOfService` | `@info(#{ ... })`                                                                      |
-| `info.description`（後備）                                            | namespace 上的 `@doc` 或 `/** ... */` 文件註解。只在 `@info` 沒給 description 時使用。 |
+| `info.description`（備用）                                            | namespace 上的 `@doc` 或 `/** ... */` 文件註解。只在 `@info` 沒給 description 時採用。 |
 | `info.tags`                                                           | 每個 `@tag` 產生一筆                                                                   |
 | `info.externalDocs`                                                   | `@externalDocs(url, description?)`                                                     |
-| `defaultContentType`                                                  | emitter 選項 `default-content-type`                                                    |
+| `defaultContentType`                                                  | `tspconfig.yaml` 的 `default-content-type` 選項                                        |
 
-若沒有 `@service`，文件仍會輸出。`info` 後備為 `{ title: "AsyncAPI Document", version: "0.0.0" }`。若程式裡有多個 `@service`，emitter 發出 `multiple-services` 警告並採用第一個。
+寫了多個 `@service` 時以第一個為準，並回報 `multiple-services` 警告。要為多個
+service 各產一份文件，建議拆成多個專案、共用同一份 TypeSpec 原始碼。
 
 ## 下一步
 
-- 依 [Schema 轉換](./schema-conversion/) 的規則設計事件 payload model。每個構件都有驗證過的輸入輸出對照。
+- 依 [Schema 轉換](./schema-conversion/) 的規則設計事件 payload model。每個寫法都附輸入與實際輸出的對照。
 - 到 [Emitter 選項](../reference/emitter-options) 查看所有設定。
 - 到 [Decorator](../reference/decorators/) 查看精確的簽章。
 - 遇到警告或錯誤時，查 [診斷訊息](../reference/diagnostics)。
