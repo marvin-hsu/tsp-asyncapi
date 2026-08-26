@@ -179,11 +179,6 @@ Every diagnostic is an error. An error stops every write, so one compile
 writes the schemas you asked for or writes none. A part of a schema is still a
 valid schema, and a schema registry would accept it.
 
-## Stability
-
-This package is experimental. It is pre-1.0, and its decorators, its output and
-its diagnostics may change in any release.
-
 ## Licence
 
 MIT

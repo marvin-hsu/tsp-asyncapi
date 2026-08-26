@@ -1,20 +1,11 @@
 # Changelog
 
-## 0.2.0
+This package is experimental. It is pre-1.0, and its decorators, its output and
+its diagnostics may change in any release.
 
-### Minor Changes
-
-- a7c6211: Rename the two decorators whose names TypeSpec reserves.
-
-  `` @Avro.`namespace` `` becomes `@Avro.avroNamespace`, and `` @Avro.`record` ``
-  becomes `@Avro.avroRecord`. Neither name needs backticks any more.
-
-  This is a breaking change. Replace both names in every source file. The other
-  six decorators are unchanged, because none of their names is a reserved word.
-
-  `buildAvroRecordWithDiagnostics` takes an optional third argument, a set of
-  properties to leave out of the record. A caller that passes none gets every
-  property, as before.
+Entries from 0.1.1 onward are generated from changesets. This first one is
+written by hand, because the release it describes is the one that created the
+package.
 
 ## 0.1.0
 
@@ -41,9 +32,3 @@ written for that record. Refusing covers a scalar outside the table, a union
 that repeats a branch, a template instantiation, an anonymous model, a name
 that is not a legal Avro name, and a logical type on an underlying type the
 specification does not allow.
-
-This package is experimental. It is pre-1.0, and its decorators, its output and
-its diagnostics may change in any release.
-
-This entry is written by hand, because the release it describes is the one that
-created the package. Every entry above it is generated from a changeset.
