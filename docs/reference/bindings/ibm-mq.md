@@ -27,6 +27,26 @@ Apply it to the service namespace.
 
 AsyncAPI states that `cipherSpec` applies only when the server uses TLS. The emitter does not check that, because the rule spans two objects.
 
+```typespec
+@service(#{ title: "Orders" })
+@server("prod", #{ host: "mq.example.com:1414", protocol: "ibmmq" })
+@ibmMqServer(#{ groupId: "PRODGRP", cipherSpec: "ANY_TLS12", heartBeatInterval: 300 })
+namespace Orders;
+```
+
+```yaml
+servers:
+  prod:
+    host: mq.example.com:1414
+    protocol: ibmmq
+    bindings:
+      ibmmq:
+        groupId: PRODGRP
+        cipherSpec: ANY_TLS12
+        heartBeatInterval: 300
+        bindingVersion: 0.1.0
+```
+
 ## `@ibmMqChannel`
 
 ```typespec
@@ -47,6 +67,29 @@ extern dec ibmMqChannel(
 
 AsyncAPI states that `queue` applies only when the type is `queue`, and `topic` only when it is `topic`. The emitter does not check that pairing.
 
+```typespec
+@ibmMqChannel(#{
+  destinationType: "queue",
+  queue: #{ objectName: "ORDERS.IN" },
+  maxMsgLength: 4194304
+})
+@channel("orders.in")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  orders.in:
+    address: orders.in
+    bindings:
+      ibmmq:
+        destinationType: queue
+        queue:
+          objectName: ORDERS.IN
+        maxMsgLength: 4194304
+        bindingVersion: 0.1.0
+```
+
 ## `@ibmMqMessage`
 
 ```typespec
@@ -63,3 +106,32 @@ extern dec ibmMqMessage(target: Model, config: valueof AsyncAPIIbmMqMessageBindi
 `type` is `string`, `jms` or `binary`. `expiry` is a number of milliseconds and is never negative. Zero means the message never expires.
 
 `headers` is a comma-separated list of header names, not a Schema Object. IBM MQ is the one binding in this library that states the field that way.
+
+IBM MQ allows `headers` on a binary payload only. Written alongside any other `type`, it is reported through `invalid-binding-field`, and the field is dropped while the rest of the binding is kept.
+
+```typespec
+@message
+@ibmMqMessage(#{
+  type: "binary",
+  headers: "JMSCorrelationID,JMSType",
+  expiry: 60000
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        ibmmq:
+          type: binary
+          headers: JMSCorrelationID,JMSType
+          expiry: 60000
+          bindingVersion: 0.1.0
+```

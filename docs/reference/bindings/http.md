@@ -24,6 +24,32 @@ Apply it to an operation that carries `@send` or `@receive`.
 
 `query` is a Schema Object of type `object` with a `properties` key. AsyncAPI states both requirements.
 
+```typespec
+@send
+@httpOperation(#{
+  method: "POST",
+  query: #{ type: "object", properties: #{ tenant: #{ type: "string" } } }
+})
+op notify(event: OrderCreated): void;
+```
+
+```yaml
+operations:
+  notify:
+    action: send
+    channel:
+      $ref: "#/channels/webhooks.orders"
+    bindings:
+      http:
+        method: POST
+        query:
+          type: object
+          properties:
+            tenant:
+              type: string
+        bindingVersion: 0.3.0
+```
+
 ## `@httpMessage`
 
 ```typespec
@@ -40,3 +66,32 @@ Apply it to a model that also carries `@message`.
 `headers` is a Schema Object of type `object` with a `properties` key.
 
 `statusCode` is a status code from RFC 9110, so it is between 100 and 599. AsyncAPI states that it applies only to a message named by an Operation Reply Object. The emitter does not check that rule, because it spans two objects.
+
+```typespec
+@message
+@httpMessage(#{
+  headers: #{ type: "object", properties: #{ `X-Correlation-Id`: #{ type: "string" } } },
+  statusCode: 202
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        http:
+          headers:
+            type: object
+            properties:
+              X-Correlation-Id:
+                type: string
+          statusCode: 202
+          bindingVersion: 0.3.0
+```

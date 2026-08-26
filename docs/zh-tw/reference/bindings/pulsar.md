@@ -19,6 +19,24 @@ extern dec pulsarServer(target: Namespace, config: valueof AsyncAPIPulsarServerB
 
 套用在服務 namespace 上。topic 的位址是 `<tenant>/<namespace>/<topic>`，所以這個欄位和 channel 的 `namespace` 是同一個位址的兩個部分。
 
+```typespec
+@service(#{ title: "Orders" })
+@server("pulsar", #{ host: "pulsar.example.com:6650", protocol: "pulsar" })
+@pulsarServer(#{ tenant: "acme" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  pulsar:
+    host: pulsar.example.com:6650
+    protocol: pulsar
+    bindings:
+      pulsar:
+        tenant: acme
+        bindingVersion: 0.1.0
+```
+
 ## `@pulsarChannel`
 
 ```typespec
@@ -49,3 +67,37 @@ extern dec pulsarChannel(
 `geoReplication` 用這個名稱，是因為 TypeSpec 的欄位名稱不能帶連字號。輸出的欄位是 `geo-replication`。
 
 `retention.time` 與 `retention.size` 是零或以上。零表示關閉該項保留。
+
+```typespec
+@pulsarChannel(#{
+  `namespace`: "orders",
+  persistence: "persistent",
+  compaction: 1000,
+  retention: #{ time: 168, size: 1024 },
+  ttl: 3600,
+  deduplication: true,
+  geoReplication: #["us-east", "eu-west"]
+})
+@channel("persistent://acme/orders/created")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  persistent://acme/orders/created:
+    address: persistent://acme/orders/created
+    bindings:
+      pulsar:
+        namespace: orders
+        persistence: persistent
+        compaction: 1000
+        geo-replication:
+          - us-east
+          - eu-west
+        retention:
+          time: 168
+          size: 1024
+        ttl: 3600
+        deduplication: true
+        bindingVersion: 0.1.0
+```

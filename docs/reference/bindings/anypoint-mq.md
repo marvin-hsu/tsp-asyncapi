@@ -23,6 +23,23 @@ extern dec anypointMqChannel(
 
 `destinationType` is `exchange`, `queue` or `fifo-queue`.
 
+```typespec
+@anypointMqChannel(#{ destination: "orders", destinationType: "queue" })
+@channel("orders")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  orders:
+    address: orders
+    bindings:
+      anypointmq:
+        destination: orders
+        destinationType: queue
+        bindingVersion: 0.0.1
+```
+
 ## `@anypointMqMessage`
 
 ```typespec
@@ -37,3 +54,30 @@ extern dec anypointMqMessage(
 | `headers` | `unknown` | no       |
 
 `headers` is a Schema Object. Anypoint MQ states no rule about its shape, unlike the HTTP and WebSocket bindings.
+
+```typespec
+@message
+@anypointMqMessage(#{
+  headers: #{ type: "object", properties: #{ tenantId: #{ type: "string" } } }
+})
+model OrderCreated {
+  orderId: string;
+}
+```
+
+```yaml
+components:
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      payload:
+        $ref: "#/components/schemas/OrderCreated"
+      bindings:
+        anypointmq:
+          headers:
+            type: object
+            properties:
+              tenantId:
+                type: string
+          bindingVersion: 0.0.1
+```

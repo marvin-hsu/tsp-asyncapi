@@ -28,6 +28,36 @@ Apply it to the service namespace. Every server that namespace declares gets its
 
 `sessionExpiryInterval` and `maximumPacketSize` are MQTT 5 fields. Write each one as a number, or as a Schema Object describing the number.
 
+```typespec
+@service(#{ title: "Sensors" })
+@server("prod", #{ host: "mqtt.example.com:8883", protocol: "mqtt" })
+@mqttServer(#{
+  clientId: "sensor-gateway",
+  cleanSession: true,
+  keepAlive: 60,
+  lastWill: #{ topic: "sensors/status", qos: 1, message: "offline", retain: true }
+})
+namespace Sensors;
+```
+
+```yaml
+servers:
+  prod:
+    host: mqtt.example.com:8883
+    protocol: mqtt
+    bindings:
+      mqtt:
+        clientId: sensor-gateway
+        cleanSession: true
+        lastWill:
+          topic: sensors/status
+          qos: 1
+          message: offline
+          retain: true
+        keepAlive: 60
+        bindingVersion: 0.2.0
+```
+
 ## `@mqttOperation`
 
 ```typespec
@@ -43,6 +73,26 @@ extern dec mqttOperation(target: Operation, config: valueof AsyncAPIMqttOperatio
 Apply it to an operation that carries `@send` or `@receive`.
 
 `qos` is `0`, `1` or `2`. Any other value is reported and dropped.
+
+```typespec
+@send
+@mqttOperation(#{ qos: 1, retain: false, messageExpiryInterval: 3600 })
+op publish(event: Reading): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/sensors~1reading"
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+        messageExpiryInterval: 3600
+        bindingVersion: 0.2.0
+```
 
 ## `@mqttMessage`
 
@@ -60,3 +110,30 @@ extern dec mqttMessage(target: Model, config: valueof AsyncAPIMqttMessageBinding
 Apply it to a model that also carries `@message`. All four fields are MQTT 5 fields.
 
 `payloadFormatIndicator` is `0` for unspecified bytes and `1` for UTF-8. `correlationData` is a Schema Object. `responseTopic` is a topic name, or a Schema Object describing the name.
+
+```typespec
+@message
+@mqttMessage(#{
+  payloadFormatIndicator: 1,
+  contentType: "application/json",
+  responseTopic: "sensors/reply"
+})
+model Reading {
+  value: float64;
+}
+```
+
+```yaml
+components:
+  messages:
+    Reading:
+      name: Reading
+      payload:
+        $ref: "#/components/schemas/Reading"
+      bindings:
+        mqtt:
+          payloadFormatIndicator: 1
+          contentType: application/json
+          responseTopic: sensors/reply
+          bindingVersion: 0.2.0
+```

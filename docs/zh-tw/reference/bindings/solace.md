@@ -22,6 +22,25 @@ extern dec solaceServer(target: Namespace, config: valueof AsyncAPISolaceServerB
 
 輸出的欄位是 `msgVpn`。Solace binding 的 0.2.0 版把它拼成 `msvVpn`，本 library 輸出 0.4.0 版。
 
+```typespec
+@service(#{ title: "Orders" })
+@server("prod", #{ host: "solace.example.com:55555", protocol: "solace" })
+@solaceServer(#{ msgVpn: "orders-vpn", clientName: "orders-service" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  prod:
+    host: solace.example.com:55555
+    protocol: solace
+    bindings:
+      solace:
+        msgVpn: orders-vpn
+        clientName: orders-service
+        bindingVersion: 0.4.0
+```
+
 ## `@solaceOperation`
 
 ```typespec
@@ -40,3 +59,31 @@ extern dec solaceOperation(target: Operation, config: valueof AsyncAPISolaceOper
 `destinations` 的每一筆可以帶 `deliveryMode`，值為 `direct` 或 `persistent`。其他值會被回報並從該筆丟棄，該筆的其餘欄位保留。一筆的其餘欄位原樣輸出。
 
 `priority` 是零或以上。
+
+```typespec
+@send
+@solaceOperation(#{
+  destinations: #[#{ destinationType: "queue", deliveryMode: "persistent" }],
+  timeToLive: 60000,
+  priority: 5,
+  dmqEligible: true
+})
+op publish(event: OrderCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders-queue"
+    bindings:
+      solace:
+        destinations:
+          - deliveryMode: persistent
+            destinationType: queue
+        timeToLive: 60000
+        priority: 5
+        dmqEligible: true
+        bindingVersion: 0.4.0
+```

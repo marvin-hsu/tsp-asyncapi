@@ -29,6 +29,30 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `deduplicationScope` is `queue` or `messageGroup`. `fifoThroughputLimit` is `perQueue` or `perMessageGroupId`. The four time fields are numbers of seconds and are never negative.
 
+```typespec
+@sqsChannel(#{
+  queue: #{ name: "orders", fifoQueue: false },
+  deadLetterQueue: #{ name: "orders-dlq", fifoQueue: false }
+})
+@channel("orders-queue")
+interface OrderChannel {}
+```
+
+```yaml
+channels:
+  orders-queue:
+    address: orders-queue
+    bindings:
+      sqs:
+        queue:
+          name: orders
+          fifoQueue: false
+        deadLetterQueue:
+          name: orders-dlq
+          fifoQueue: false
+        bindingVersion: 0.2.0
+```
+
 ## `@sqsOperation`
 
 ```typespec
@@ -44,3 +68,22 @@ Apply it to an operation that carries `@send` or `@receive`.
 `queues` is required, and every entry requires a `name`. An entry without one is reported and dropped. A list left with no entry is reported as a missing `queues`, because an empty list names no queue.
 
 A queue here requires only a name. The channel binding requires a `fifoQueue` as well, which is the difference AsyncAPI states between the two levels.
+
+```typespec
+@send
+@sqsOperation(#{ queues: #[#{ name: "orders" }] })
+op publish(event: OrderCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders-queue"
+    bindings:
+      sqs:
+        queues:
+          - name: orders
+        bindingVersion: 0.2.0
+```

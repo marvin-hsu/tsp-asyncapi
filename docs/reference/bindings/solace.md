@@ -22,6 +22,25 @@ Apply it to the service namespace. `clientName` is at most 160 characters.
 
 The emitted field is `msgVpn`. Version 0.2.0 of the Solace binding spells it `msvVpn`, and this library emits 0.4.0.
 
+```typespec
+@service(#{ title: "Orders" })
+@server("prod", #{ host: "solace.example.com:55555", protocol: "solace" })
+@solaceServer(#{ msgVpn: "orders-vpn", clientName: "orders-service" })
+namespace Orders;
+```
+
+```yaml
+servers:
+  prod:
+    host: solace.example.com:55555
+    protocol: solace
+    bindings:
+      solace:
+        msgVpn: orders-vpn
+        clientName: orders-service
+        bindingVersion: 0.4.0
+```
+
 ## `@solaceOperation`
 
 ```typespec
@@ -40,3 +59,31 @@ Apply it to an operation that carries `@send` or `@receive`.
 Each entry of `destinations` may carry a `deliveryMode` of `direct` or `persistent`. Any other value is reported and dropped from that entry, and the rest of the entry is kept. The rest of an entry is emitted as written.
 
 `priority` is zero or more.
+
+```typespec
+@send
+@solaceOperation(#{
+  destinations: #[#{ destinationType: "queue", deliveryMode: "persistent" }],
+  timeToLive: 60000,
+  priority: 5,
+  dmqEligible: true
+})
+op publish(event: OrderCreated): void;
+```
+
+```yaml
+operations:
+  publish:
+    action: send
+    channel:
+      $ref: "#/channels/orders-queue"
+    bindings:
+      solace:
+        destinations:
+          - deliveryMode: persistent
+            destinationType: queue
+        timeToLive: 60000
+        priority: 5
+        dmqEligible: true
+        bindingVersion: 0.4.0
+```
