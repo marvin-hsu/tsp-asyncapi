@@ -1,9 +1,9 @@
 ---
-title: "Modifiers (標註與修改)"
+title: "標註與修改"
 description: "`@summary` → `title`。`@doc`（或 `/** ... */` 文件註解）→ `description`。`@example` → `examples` 的一個項目，序列化為純 JSON："
 ---
 
-# Modifiers (標註與修改)
+# 標註與修改
 
 ## 文件：`@summary`、`@doc`、`@example`
 

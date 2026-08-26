@@ -1,9 +1,9 @@
 ---
-title: "Inheritance (繼承與多型)"
+title: "繼承與多型"
 description: "`model B extends A` 轉成 `allOf: [指向 A 的 $ref, B 自己的屬性]`。`@discriminator` 加上 AsyncAPI 3.x 字串形式的 `discriminator`，值是該屬性的 **wire name**："
 ---
 
-# Inheritance (繼承與多型)
+# 繼承與多型
 
 ## 繼承與 discriminator
 

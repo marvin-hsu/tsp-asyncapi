@@ -1,9 +1,9 @@
 ---
-title: "Validation (驗證)"
+title: "驗證"
 description: "每個 decorator 對應同義的 draft-07 關鍵字。可以標在屬性、model 或 scalar 宣告上："
 ---
 
-# Validation (驗證)
+# 驗證
 
 ## 驗證 decorator
 

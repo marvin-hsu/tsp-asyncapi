@@ -1,9 +1,9 @@
 ---
-title: "Advanced (進階處理)"
+title: "進階處理"
 description: "具現化的 template 取得依參數推導的穩定名稱："
 ---
 
-# Advanced (進階處理)
+# 進階處理
 
 ## Template
 
