@@ -35,7 +35,6 @@ import { channelWithoutOperationRule } from "./linter/channel-without-operation.
 import { missingServiceRule } from "./linter/missing-service.rule.js";
 import { operationWithoutMessageRule } from "./linter/operation-without-message.rule.js";
 import { protobufContentTypeUndeclaredRule } from "./linter/protobuf-content-type-undeclared.rule.js";
-import { protobufFieldOnHeaderRule } from "./linter/protobuf-field-on-header.rule.js";
 import { serverProtocolMismatchRule } from "./linter/server-protocol-mismatch.rule.js";
 import { unusedSecuritySchemeRule } from "./linter/unused-security-scheme.rule.js";
 
@@ -46,7 +45,6 @@ const rules = [
   operationWithoutMessageRule,
   serverProtocolMismatchRule,
   protobufContentTypeUndeclaredRule,
-  protobufFieldOnHeaderRule,
   avroContentTypeUndeclaredRule,
   // Not in `recommended`. See the rule's own file for why.
   unusedSecuritySchemeRule,
@@ -79,7 +77,6 @@ export const asyncAPILinter = defineLinter({
         [ref(channelWithoutOperationRule.name)]: true,
         [ref(operationWithoutMessageRule.name)]: true,
         [ref(protobufContentTypeUndeclaredRule.name)]: true,
-        [ref(protobufFieldOnHeaderRule.name)]: true,
         [ref(avroContentTypeUndeclaredRule.name)]: true,
         [ref(serverProtocolMismatchRule.name)]: true,
       },

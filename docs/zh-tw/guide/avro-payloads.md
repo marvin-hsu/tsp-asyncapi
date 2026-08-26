@@ -63,8 +63,26 @@ namespace Orders {
    */
   @message
   @contentType("application/vnd.apache.avro")
+  @headers(EventHeaders)
   @Avro.avroRecord
   @kafkaMessage(#{ schemaIdLocation: "payload", schemaLookupStrategy: "TopicIdStrategy" })
+  // An example carries the headers as well as the payload. The two halves are
+  // written in different schema languages, so an example shows a reader what
+  // each of them looks like on its own terms. A logical type is written as
+  // what is on the wire: a `uuid` is the text of the UUID, and a
+  // `timestamp-millis` is the millisecond count.
+  @messageExample(
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{
+        id: "6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10",
+        placedAt: 1755993600000,
+        shipping: #{ line1: "12 Zhongxiao E Rd", city: "Taipei", country: "TW" },
+        totalMinorUnits: 249000,
+      },
+    },
+    #{ name: "typical-order", summary: "One order, paid in TWD." }
+  )
   model OrderPlaced {
     // `uuid` is written on a string, so what is on the wire is the text of
     // the UUID.
@@ -114,11 +132,27 @@ schema 是物件，不是字串。Avro 本身就是 JSON，而 AsyncAPI 對 JSON
 
 ```yaml
 components:
+  schemas:
+    Orders.EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
       contentType: application/vnd.apache.avro
+      headers:
+        $ref: "#/components/schemas/Orders.EventHeaders"
       payload:
         schemaFormat: application/vnd.apache.avro;version=1.9.0
         schema:
@@ -256,13 +290,11 @@ Avro emitter 每個 record 寫一個檔案。路徑由 Avro namespace 決定，�
 
 `@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Avro payload 略過它，理由與 JSON Schema payload 相同。
 
-所以一個把 `traceId` 標上 `@header` 的 message，產生的 Avro record 裡沒有 `traceId` 欄位。那個屬性改為描述在 message 的 `headers` 裡。
+Avro 沒有辦法描述一個 payload 不帶的屬性。record 的每個屬性都是那個 record 的一個 field，沒有任何標記可以表示「它走在別的地方」。
 
-::: warning
-`tsp-avro` 寫出的 `.avsc` 檔案仍然宣告 `traceId`。那個套件不讀任何 AsyncAPI decorator，而 Avro 沒有 message header 這個概念。所以檔案與 payload 描述的欄位不同，emitter 會回報 [`avro-record-keeps-header`](../reference/diagnostics#avro-record-keeps-header)。
-:::
+所以帶著 `@Avro.avroRecord` 的 model，不可以在自己的欄位上標 `@header`。標了會回報 [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload)，而且不會寫出任何檔案。
 
-要讓兩者一致，把 headers 移進自己的 model，用 [`@headers`](../reference/decorators/messages#headers) 指向它。這樣沒有東西離開 payload，record 與檔案就會一致。
+改用 [`@headers`](../reference/decorators/messages#headers)。一個獨立的 model 裝 headers，message model 裝 payload，這樣 record 與 `.avsc` 檔案描述同一組欄位。
 
 ## Avro 沒有描述的部分
 

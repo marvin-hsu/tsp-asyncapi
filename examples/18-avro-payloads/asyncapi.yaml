@@ -68,11 +68,27 @@ operations:
     messages:
       - $ref: "#/channels/orders.cancelled/messages/OrderCancelled"
 components:
+  schemas:
+    Orders.EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
       contentType: application/vnd.apache.avro
+      headers:
+        $ref: "#/components/schemas/Orders.EventHeaders"
       payload:
         schemaFormat: application/vnd.apache.avro;version=1.9.0
         schema:
@@ -112,10 +128,26 @@ components:
               doc: What the order came to, in the smallest unit of its currency.
       bindings:
         $ref: "#/components/messageBindings/OrderPlaced"
+      examples:
+        - name: typical-order
+          summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
+          payload:
+            id: 6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10
+            placedAt: 1755993600000
+            shipping:
+              line1: 12 Zhongxiao E Rd
+              city: Taipei
+              country: TW
+            totalMinorUnits: 249000
     OrderCancelled:
       name: OrderCancelled
       description: One order the customer or the warehouse called off.
       contentType: application/vnd.apache.avro
+      headers:
+        $ref: "#/components/schemas/Orders.EventHeaders"
       payload:
         schemaFormat: application/vnd.apache.avro;version=1.9.0
         schema:
@@ -167,6 +199,15 @@ components:
               default: null
       bindings:
         $ref: "#/components/messageBindings/OrderPlaced"
+      examples:
+        - name: cancelled-order
+          headers:
+            x-correlation-id: req-4d09
+            x-source: warehouse
+          payload:
+            id: 6b1f7c2e-6f3a-4f52-9c1c-0f0b6a1d3f10
+            cancelledAt: 1756080000000
+            reason: OutOfStock
   messageBindings:
     OrderPlaced:
       kafka:

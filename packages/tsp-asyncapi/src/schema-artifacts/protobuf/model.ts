@@ -218,15 +218,6 @@ interface Walk {
   readonly declared: Map<Model | Enum, ProtoDeclaration | undefined>;
   /** Which declaration took each rendered name, so a clash is seen. */
   readonly claimed: Map<string, Model | Enum>;
-  /**
-   * The properties a `@header` takes out of the payload.
-   *
-   * The set covers the whole document, and only the root is checked against
-   * it. A `@header` deeper in the closure marks a property of a model that is
-   * not a message, and the emitter reports that mark and leaves the property
-   * where it is.
-   */
-  readonly lifted: ReadonlySet<ModelProperty>;
 }
 
 /**
@@ -234,17 +225,10 @@ interface Walk {
  *
  * @param program - The compiled program
  * @param root - A model that carries `@Protobuf.message`
- * @param lifted - The properties a `@header` takes out of the payload. A
- *   caller that passes none gets the whole model, which is what a test of the
- *   walk itself asks for.
  * @returns The payload, or `undefined` when the walk refused something
  * @internal
  */
-export function buildPayloadModel(
-  program: Program,
-  root: Model,
-  lifted: ReadonlySet<ModelProperty> = new Set(),
-): ProtoPayloadModel | undefined {
+export function buildPayloadModel(program: Program, root: Model): ProtoPayloadModel | undefined {
   const found = resolveProtobufPackage(program, root);
   if (found === undefined) {
     reportDiagnostic(program, {
@@ -278,7 +262,6 @@ export function buildPayloadModel(
     packageLabel: found.name ?? getTypeName(found.namespace),
     declared: new Map(),
     claimed: new Map(),
-    lifted,
   };
   const rootName = visitModel(walk, root);
   if (rootName === undefined) return undefined;
@@ -343,11 +326,6 @@ function visitModel(walk: Walk, model: Model): string | undefined {
 
   const fields: ProtoField[] = [];
   for (const property of model.properties.values()) {
-    // A header travels beside the payload, so the payload does not carry it.
-    // Only the root is checked: the lifted set holds properties of message
-    // models, and a nested model is not one.
-    if (model === walk.root && walk.lifted.has(property)) continue;
-
     const field = fieldOf(walk, property);
     if (field === undefined) return undefined;
     fields.push(field);

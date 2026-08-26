@@ -6,7 +6,6 @@
 
 import { Diagnostic } from '@typespec/compiler';
 import { Model } from '@typespec/compiler';
-import { ModelProperty } from '@typespec/compiler';
 import { Program } from '@typespec/compiler';
 
 // Warning: (ae-forgotten-export) The symbol "AvroBranch" needs to be exported by the entry point unstable.d.ts
@@ -19,7 +18,7 @@ export type AvroSchema = AvroBranch | AvroUnion;
 // Warning: (ae-internal-missing-underscore) The name "buildAvroRecordWithDiagnostics" should be prefixed with an underscore because the declaration is marked as @internal
 //
 // @internal
-export function buildAvroRecordWithDiagnostics(program: Program, model: Model, lifted?: ReadonlySet<ModelProperty>): [AvroRecord | undefined, readonly Diagnostic[]];
+export function buildAvroRecordWithDiagnostics(program: Program, model: Model): [AvroRecord | undefined, readonly Diagnostic[]];
 
 // Warning: (ae-internal-missing-underscore) The name "renderAvroSchema" should be prefixed with an underscore because the declaration is marked as @internal
 //

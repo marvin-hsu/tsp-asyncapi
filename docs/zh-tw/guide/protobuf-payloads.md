@@ -46,6 +46,19 @@ options:
 
 下面這份是 repository 裡的 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。下面節錄 orders package 與一個 channel。完整檔案在 repository 裡。
 
+header 走在 payload 旁邊，所以它不是 proto message 的一部分。Protobuf 沒有任何欄位編號的意思是「這一個在別的地方」，所以 `@Protobuf.message` 的 model 帶 `@header` 是錯誤。headers 改用自己的 model，兩個 package 指向同一個。
+
+```typespec
+/** What every message of this application carries beside its payload. */
+model EventHeaders {
+  /** Ties every message of one request together. */
+  `x-correlation-id`: string;
+
+  /** The application that published the message. */
+  `x-source`: string;
+}
+```
+
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
 namespace Orders {
@@ -72,9 +85,16 @@ namespace Orders {
   // model as a message of the document. The Protobuf one marks it as a
   // message of the `.proto` file. The Protobuf one is written qualified.
   @message
+  @headers(EventHeaders)
   @Protobuf.message
+  // An example carries the headers as well as the payload. The headers are
+  // JSON Schema and the payload is proto3, so an example shows a reader what
+  // each half looks like on its own terms.
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } },
+    },
     #{ name: "typical-order", summary: "One order, paid in TWD." }
   )
   model OrderPlaced {
@@ -83,23 +103,6 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
-  }
-
-  /**
-   * One order that left the warehouse.
-   */
-  @message
-  @Protobuf.message
-  @messageExample(
-    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
-    #{ name: "shipped-order" }
-  )
-  model OrderShipped {
-    @Protobuf.field(1)
-    orderId: string;
-
-    @Protobuf.field(2)
-    carrier: string;
   }
 }
 
@@ -130,10 +133,26 @@ payload 是 [Multi Format Schema Object](https://www.asyncapi.com/docs/reference
 
 ```yaml
 components:
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -155,6 +174,9 @@ components:
       examples:
         - name: typical-order
           summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
           payload:
             orderId: ord-1001
             total:
@@ -234,13 +256,11 @@ message OrderShipped {
 
 ## headers 不會進 payload
 
-`@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Protobuf payload 略過它，理由與 JSON Schema payload 相同。
+Protobuf 沒有辦法描述一個 payload 不帶的屬性。proto message 的每個屬性都要有欄位編號，而沒有任何編號的意思是「這一個走在別的地方」。
 
-同時帶著 `@header` 與 `@Protobuf.field` 的屬性會回報 [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field)，而且不會寫出文件。欄位編號指定 proto message 裡的一個位置，payload 沒有那個位置。
+所以帶著 `@Protobuf.message` 的 model，不可以在自己的欄位上標 `@header`。標了會回報 [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload)，而且不會寫出任何檔案。不論那個屬性有沒有 `@Protobuf.field`，也不論預覽功能有沒有開啟，都是如此。
 
-只帶 `@header` 的屬性，在 payload 裡沒有自己的欄位編號。官方 Protobuf emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號，所以那個 emitter 執行時會報自己的 `field-index` 錯誤。
-
-兩條路的修法相同。把 headers 移進自己的 model，用 [`@headers`](../reference/decorators/messages#headers) 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+改用 [`@headers`](../reference/decorators/messages#headers)。一個獨立的 model 裝 headers，message model 裝 payload，這樣 proto message 與 `.proto` 檔案描述同一組欄位。
 
 ## Protobuf 沒有描述的部分
 

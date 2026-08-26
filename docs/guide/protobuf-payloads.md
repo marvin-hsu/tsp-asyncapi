@@ -46,6 +46,19 @@ The reserved names of [`preview-features`](../reference/emitter-options#preview-
 
 The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel. The repository holds the whole file.
 
+A header travels beside the payload, so it is not part of the proto message. Protobuf has no field number that means "this one is elsewhere", so a `@header` on a `@Protobuf.message` model is an error. The headers get a model of their own instead, and both packages point at the same one.
+
+```typespec
+/** What every message of this application carries beside its payload. */
+model EventHeaders {
+  /** Ties every message of one request together. */
+  `x-correlation-id`: string;
+
+  /** The application that published the message. */
+  `x-source`: string;
+}
+```
+
 ```typespec
 @Protobuf.package({ name: "com.example.orders" })
 namespace Orders {
@@ -72,9 +85,16 @@ namespace Orders {
   // model as a message of the document. The Protobuf one marks it as a
   // message of the `.proto` file. The Protobuf one is written qualified.
   @message
+  @headers(EventHeaders)
   @Protobuf.message
+  // An example carries the headers as well as the payload. The headers are
+  // JSON Schema and the payload is proto3, so an example shows a reader what
+  // each half looks like on its own terms.
   @messageExample(
-    #{ payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } } },
+    #{
+      headers: #{ `x-correlation-id`: "req-8f21", `x-source`: "checkout" },
+      payload: #{ orderId: "ord-1001", total: #{ currency: "TWD", amount: 249000 } },
+    },
     #{ name: "typical-order", summary: "One order, paid in TWD." }
   )
   model OrderPlaced {
@@ -83,23 +103,6 @@ namespace Orders {
 
     @Protobuf.field(2)
     total: Money;
-  }
-
-  /**
-   * One order that left the warehouse.
-   */
-  @message
-  @Protobuf.message
-  @messageExample(
-    #{ payload: #{ orderId: "ord-1001", carrier: "black-cat" } },
-    #{ name: "shipped-order" }
-  )
-  model OrderShipped {
-    @Protobuf.field(1)
-    orderId: string;
-
-    @Protobuf.field(2)
-    carrier: string;
   }
 }
 
@@ -128,10 +131,26 @@ The payload is a [Multi Format Schema Object](https://www.asyncapi.com/docs/refe
 
 ```yaml
 components:
+  schemas:
+    EventHeaders:
+      type: object
+      properties:
+        x-correlation-id:
+          type: string
+          description: Ties every message of one request together.
+        x-source:
+          type: string
+          description: The application that published the message.
+      required:
+        - x-correlation-id
+        - x-source
+      description: What every message of this application carries beside its payload.
   messages:
     OrderPlaced:
       name: OrderPlaced
       description: One order a customer placed.
+      headers:
+        $ref: "#/components/schemas/EventHeaders"
       payload:
         schemaFormat: application/vnd.google.protobuf;version=3
         schema: |
@@ -153,6 +172,9 @@ components:
       examples:
         - name: typical-order
           summary: One order, paid in TWD.
+          headers:
+            x-correlation-id: req-8f21
+            x-source: checkout
           payload:
             orderId: ord-1001
             total:
@@ -232,13 +254,11 @@ The two texts differ in layout. The file above holds every message of the packag
 
 ## Headers stay out of the payload
 
-`@header` lifts a property out of the payload and describes it beside the message. A generated Protobuf payload leaves it out for the same reason a JSON Schema payload does.
+Protobuf has no way to describe a property the payload does not carry. Every property of a proto message takes a field number, and there is no number that means "this one travels elsewhere".
 
-A property that carries `@header` and `@Protobuf.field` reports [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field), and no document is written. The field number names a place in the proto message, and the payload has no room for it.
+So a model that carries `@Protobuf.message` must not mark one of its own fields with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written. That holds whether or not the property carries `@Protobuf.field`, and whether or not the preview feature is on.
 
-A property that carries `@header` alone leaves the payload without a field number of its own. The official Protobuf emitter requires a field number on every property of a `@Protobuf.message`, so that emitter reports its own `field-index` error if it runs.
-
-Both paths lead to the same remedy. Move the headers into their own model and point at it with [`@headers`](../reference/decorators/messages#headers). The proto message and the payload then describe the same fields.
+Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the proto message and the `.proto` file describe the same fields.
 
 ## What Protobuf does not describe
 

@@ -31,10 +31,6 @@ export { resolveService } from "./resolve/service.js";
 export { emptySchemaArtifacts } from "./schema-artifacts.js";
 export type { ExternalSchemaArtifact, SchemaArtifactIndex } from "./schema-artifacts.js";
 export { BindingPlacements } from "./resolve/bindings.js";
-// A schema provider runs before the header plan does, and it has to leave the
-// lifted fields out of the payload it generates. It reads the answer from the
-// same place the plan does, so the two cannot disagree.
-export { liftedFieldsOf } from "./resolve/messages/headers.js";
 // The official Protobuf decorator state. The emitter renders payloads from
 // it, and a linter rule in this package asks whether a message carries those
 // decorators, so the readers live here rather than beside either caller.
