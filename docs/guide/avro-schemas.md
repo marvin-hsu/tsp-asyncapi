@@ -312,27 +312,26 @@ Documentation comes from the native `/** */` comment. A field default comes from
 
 ## Diagnostics
 
-Every diagnostic of this package is an error, apart from `header-property-dropped`. An error stops every write. So one compile writes the schemas you asked for, or it writes none. The warning names a property the record left out, and the file is still written.
+Every diagnostic of this package is an error. An error stops every write. So one compile writes the schemas you asked for, or it writes none.
 
 A part of a schema is still a valid schema. A registry would accept one, and a reader would then decode data into a shape the author never wrote.
 
-| Code                               | When                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| `tsp-avro/namespace-required`      | A record has no Avro namespace above it.                              |
-| `tsp-avro/invalid-name`            | A name breaks the Avro name rules.                                    |
-| `tsp-avro/unsupported-type`        | A type has no Avro form.                                              |
-| `tsp-avro/duplicate-union-branch`  | Two branches of one union are the same Avro type.                     |
-| `tsp-avro/invalid-default`         | A default has no JSON form, or it belongs to no branch of its union.  |
-| `tsp-avro/invalid-order`           | `@Avro.order` was given something that is not an Avro field order.    |
-| `tsp-avro/invalid-fixed`           | `@Avro.fixed` was given a width that is not positive.                 |
-| `tsp-avro/invalid-decimal`         | A precision or a scale does not fit, or a `decimal` carries neither.  |
-| `tsp-avro/unknown-logical-type`    | A logical type is not one the specification defines.                  |
-| `tsp-avro/logical-type-mismatch`   | A logical type is written on a type the specification does not allow. |
-| `tsp-avro/duplicate-logical-type`  | One declaration carries two logical types.                            |
-| `tsp-avro/enum-default`            | `@Avro.enumDefault` names a member the enum does not declare.         |
-| `tsp-avro/duplicate-record`        | Two records write to one path.                                        |
-| `tsp-avro/enum-member-value`       | An enum member carries a value of its own.                            |
-| `tsp-avro/header-property-dropped` | A property carries `@AsyncAPI.header`, so the record leaves it out.   |
+| Code                              | When                                                                  |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                              |
+| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                    |
+| `tsp-avro/unsupported-type`       | A type has no Avro form.                                              |
+| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                     |
+| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.  |
+| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.    |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive.                 |
+| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.  |
+| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                  |
+| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow. |
+| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                            |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.         |
+| `tsp-avro/duplicate-record`       | Two records write to one path.                                        |
+| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                            |
 
 ## What it refuses
 

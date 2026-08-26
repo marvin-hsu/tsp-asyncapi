@@ -158,28 +158,25 @@ Each of these reports a diagnostic rather than a translation.
 
 ## Diagnostics
 
-| Code                               | When                                                                  |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| `tsp-avro/namespace-required`      | A record has no Avro namespace above it.                              |
-| `tsp-avro/invalid-name`            | A name breaks the Avro name rules.                                    |
-| `tsp-avro/unsupported-type`        | A type has no Avro form.                                              |
-| `tsp-avro/duplicate-union-branch`  | Two branches of one union are the same Avro type.                     |
-| `tsp-avro/invalid-default`         | A default has no JSON form, or it belongs to no branch of its union.  |
-| `tsp-avro/invalid-order`           | `@Avro.order` was given something that is not an Avro field order.    |
-| `tsp-avro/invalid-fixed`           | `@Avro.fixed` was given a width that is not positive.                 |
-| `tsp-avro/invalid-decimal`         | A precision or a scale does not fit, or a `decimal` carries neither.  |
-| `tsp-avro/unknown-logical-type`    | A logical type is not one the specification defines.                  |
-| `tsp-avro/logical-type-mismatch`   | A logical type is written on a type the specification does not allow. |
-| `tsp-avro/duplicate-logical-type`  | One declaration carries two logical types.                            |
-| `tsp-avro/enum-default`            | `@Avro.enumDefault` names a member the enum does not declare.         |
-| `tsp-avro/duplicate-record`        | Two records write to one path.                                        |
-| `tsp-avro/enum-member-value`       | An enum member carries a value of its own.                            |
-| `tsp-avro/header-property-dropped` | A property carries `@AsyncAPI.header`, so the record leaves it out.   |
+| Code                              | When                                                                  |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                              |
+| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                    |
+| `tsp-avro/unsupported-type`       | A type has no Avro form.                                              |
+| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                     |
+| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.  |
+| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.    |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive.                 |
+| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.  |
+| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                  |
+| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow. |
+| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                            |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.         |
+| `tsp-avro/duplicate-record`       | Two records write to one path.                                        |
+| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                            |
 
-Every diagnostic is an error, apart from `header-property-dropped`. An error
-stops every write, so one compile writes the schemas you asked for or writes
-none. The warning names a property the record left out, and the file is still
-written. A part of a schema is still a
+Every diagnostic is an error. An error stops every write, so one compile
+writes the schemas you asked for or writes none. A part of a schema is still a
 valid schema, and a schema registry would accept it.
 
 ## Stability

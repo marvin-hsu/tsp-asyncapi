@@ -145,12 +145,6 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`"${"name"}" and "${"other"}" both write to "${"path"}". One file holds one schema, so the second would replace the first.`,
       },
     },
-    "header-property-dropped": {
-      severity: "warning",
-      messages: {
-        default: paramMessage`The property "${"name"}" of "${"record"}" carries @AsyncAPI.header, so it travels beside the message rather than inside it. Avro has no notion of a message header, and this record leaves the property out.`,
-      },
-    },
     "enum-member-value": {
       severity: "error",
       messages: {

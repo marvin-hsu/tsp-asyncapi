@@ -201,10 +201,7 @@ export function buildAvroRecordWithDiagnostics(
  * @internal
  */
 export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): readonly Diagnostic[] {
-  // A warning is something the walk did, not a reason it refused. A record
-  // that dropped a header and then refused for another cause must not name
-  // the header as the cause.
-  if (!diagnostics.some((one) => one.severity === "error")) {
+  if (diagnostics.length === 0) {
     diagnostics.push(
       createDiagnostic({
         code: "unsupported-type",
@@ -420,9 +417,14 @@ function modelFor(
 /**
  * Translates the properties of one model into record fields.
  *
- * A property marked `@AsyncAPI.header` is left out, and the walk says so. It
- * travels beside the message rather than inside it, so a record that declared
- * it would describe a field the message does not carry there.
+ * A property marked `@AsyncAPI.header` is left out. It travels beside the
+ * message rather than inside it, so a record that declared it would describe a
+ * field the message does not carry there.
+ *
+ * Nothing is reported. The record without the header is the record the author
+ * asked for, and an AsyncAPI author already reads `@header` as "not in the
+ * payload". A project that wants to hear about it turns on the
+ * `avro-record-drops-header` rule of the AsyncAPI linter.
  *
  * Only the root is checked. That mark means something on a field of a message,
  * and the root is the model a message names. A mark on a nested model is on
@@ -435,16 +437,7 @@ function modelFor(
 function fieldsOf(context: WalkContext, model: Model): AvroField[] {
   const fields: AvroField[] = [];
   for (const property of model.properties.values()) {
-    if (model === context.root && isAsyncAPIHeader(context.program, property)) {
-      context.diagnostics.push(
-        createDiagnostic({
-          code: "header-property-dropped",
-          format: { name: property.name, record: model.name },
-          target: property,
-        }),
-      );
-      continue;
-    }
+    if (model === context.root && isAsyncAPIHeader(context.program, property)) continue;
 
     const field = fieldFor(context, property);
     if (field !== undefined) {

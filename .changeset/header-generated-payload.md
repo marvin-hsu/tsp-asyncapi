@@ -17,7 +17,9 @@ it is not in.
 `@header` and `@Protobuf.field`, because the field number then names a place
 the payload has no room for.
 
-The new `protobuf-field-on-header` lint rule reports the same combination as a
-warning, and it is in `recommended`. It runs whether or not the preview
-feature is on, because the `.proto` file and the lifted header do not depend
-on it.
+The new `protobuf-header-on-message` lint rule is in `recommended`. It reports
+a `@header` property of a `@Protobuf.message` model, which fails whether or
+not the property carries a field number: with one, the number names a place
+the payload leaves empty, and without one the official emitter refuses the
+`.proto` file. The rule runs whether or not the preview feature is on, and it
+stays quiet where the error above already reports.

@@ -18,7 +18,7 @@ describe("Unit: the linter definition", () => {
     "operation-without-message",
     "server-protocol-mismatch",
     "protobuf-content-type-undeclared",
-    "protobuf-field-on-header",
+    "protobuf-header-on-message",
     "avro-content-type-undeclared",
   ];
 

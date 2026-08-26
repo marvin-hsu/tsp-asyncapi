@@ -258,7 +258,7 @@ The file and the payload carry one schema. The file is that schema as JSON text.
 
 So a message that marks `traceId` with `@header` gets an Avro record without a `traceId` field. That property is described in the `headers` of the message instead.
 
-The `.avsc` file leaves it out as well. `tsp-avro` reads the `@header` mark itself and reports `tsp-avro/header-property-dropped`, which names the property and says the record does not carry it. So the file and the payload describe the same fields.
+The `.avsc` file leaves it out as well. `tsp-avro` reads the `@header` mark itself, so one walk answers for the file and for the payload and the two describe the same fields. Nothing is reported, because nothing is wrong. The [`avro-record-drops-header`](../reference/linter#avro-record-drops-header) rule lists the dropped properties for a project that wants the list.
 
 The property is described in exactly one place, the `headers` of the message. [`@headers`](../reference/decorators/messages#headers) points at a model of its own and does the same thing, with the headers named as a schema a reader can reuse.
 

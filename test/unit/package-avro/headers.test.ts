@@ -10,6 +10,10 @@
  * dependency on the AsyncAPI package. So these cases load both libraries, and
  * they run from the emitter package, which is where both resolve from.
  *
+ * Nothing is reported. The record without the header is the record the author
+ * asked for. A project that wants the list turns on the AsyncAPI linter rule
+ * `avro-record-drops-header`, which is tested beside the other rules.
+ *
  * One walk answers for the `.avsc` file and for a generated AsyncAPI payload,
  * which is why the two cannot describe different fields.
  */
@@ -22,8 +26,6 @@ import { buildAvroRecordWithDiagnostics } from "#avro/unstable.js";
 import { listRecords } from "#avro/index.js";
 
 const PACKAGE_ROOT = fileURLToPath(new URL("../../../packages/tsp-asyncapi", import.meta.url));
-
-const DROPPED = "tsp-avro/header-property-dropped";
 
 /** Both libraries, and no emitter. The decorators write their state and stop. */
 const BothTester = createTester(PACKAGE_ROOT, {
@@ -85,11 +87,11 @@ describe("Unit: a header property of an Avro record", () => {
     expect(fields).toStrictEqual(["orderId"]);
   });
 
-  /** A field that vanished without a word is a field the author cannot find. */
-  it("names the property it dropped", async () => {
+  /** Dropping the property is the right answer, so there is nothing to say. */
+  it("reports nothing", async () => {
     const { codes } = await walk(LIFTED, "OrderPlaced");
 
-    expect(codes.filter((one) => one === DROPPED)).toHaveLength(1);
+    expect(codes).toStrictEqual([]);
   });
 
   /**
@@ -130,7 +132,7 @@ describe("Unit: a header property of an Avro record", () => {
     const detail = built.fields.find((field) => field.name === "detail");
 
     expect(detail?.type.fields.map((field) => field.name)).toStrictEqual(["note", "amount"]);
-    expect(codes.filter((one) => one === DROPPED)).toHaveLength(0);
+    expect(codes).toStrictEqual([]);
   });
 
   /** A project with no AsyncAPI decorator at all reads nothing and drops nothing. */

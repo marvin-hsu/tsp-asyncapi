@@ -680,7 +680,7 @@ No document is written. The payload would otherwise describe a shape the `.proto
 
 The `.proto` file the official emitter writes still declares the field, because that emitter requires a field number on every property of a `@Protobuf.message`. That is why the property cannot simply be left out of the proto message instead.
 
-The [`protobuf-field-on-header`](./linter#protobuf-field-on-header) rule reports the same combination as a warning, and it runs whether or not the preview feature is on.
+The [`protobuf-header-on-message`](./linter#protobuf-header-on-message) rule covers the wider case: a `@header` on a `@Protobuf.message` model fails whether or not it carries a field number. That rule stays quiet where this code reports, so one mistake is reported once.
 
 **Fix:** move the headers into their own model and point at it with `@headers`. The proto message and the payload then describe the same fields.
 

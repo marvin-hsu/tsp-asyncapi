@@ -179,32 +179,34 @@ The rule reads the media type and ignores what follows a semicolon, so a `;versi
 
 **Fix:** add `@Protobuf.message` and a `@Protobuf.field` on every property, or write the schema with `@rawPayload`.
 
-### `protobuf-field-on-header`
+### `protobuf-header-on-message`
 
 In `recommended`. It runs whether or not [`preview-features`](./emitter-options#preview-features) names `protobuf`.
 
-> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field.
+> Property '\<name\>' of message '\<message\>' carries @header, and the model carries @Protobuf.message.
 
-`@header` takes the property out of the payload. `@Protobuf.field` gives it a place inside the proto message. Each statement is true of a different file. The `.proto` file the official emitter writes declares the field. The AsyncAPI payload does not carry it. So the two files describe different shapes for one message.
+`@header` says a property travels beside the payload. A proto message has no room for that idea, and the official Protobuf emitter requires a field number on every property of a `@Protobuf.message`. So both ways of writing it fail, in different places.
+
+With `@Protobuf.field`, the field number names a place the generated payload leaves empty. Without it, the official emitter refuses the whole `.proto` file, and its advice is to add the field number. That advice leads back to the first case.
 
 ```typespec
-// Reports. traceId is field 1 of the proto message, and not in the payload.
+// Reports either way. traceId cannot be both a header and a proto field.
 @Protobuf.package({ name: "com.example.orders" })
 namespace Orders {
   @message
   @Protobuf.message
   model OrderPlaced {
-    @header @Protobuf.field(1) traceId: string;
+    @header traceId: string;
     @Protobuf.field(2) orderId: string;
   }
 }
 ```
 
-The rule does not wait for the preview feature. The official emitter writes the `.proto` file either way, and `@header` leaves the payload either way.
+One rule covers both, so the real remedy comes first rather than after a round trip.
 
-With the feature on, the same combination is also an error. The generated payload omits the property, so the field number names a field that payload has no room for.
+The rule steps aside for one case. With the preview feature on, a header that carries `@Protobuf.field` is already an error, [`header-with-protobuf-field`](./diagnostics#header-with-protobuf-field). Reporting it here as well would make one mistake read as two.
 
-**Fix:** move the headers into their own model and point at it with `@headers`. The proto message and the payload then describe the same fields again.
+**Fix:** move the headers into their own model and point at it with `@headers`. The proto message then describes the payload alone.
 
 ### `avro-content-type-undeclared`
 
@@ -231,6 +233,20 @@ Two things give a message an Avro payload, and either one silences the rule. `@A
 The rule reads the media type and ignores what follows a semicolon, so a `;version=1.9.0` parameter does not hide the mistake. `application/vnd.apache.avro`, `application/vnd.apache.avro+json` and `application/vnd.apache.avro+yaml` all count.
 
 **Fix:** add `@Avro.avroRecord`, or write the schema with `@rawPayload`.
+
+### `avro-record-drops-header`
+
+Not in `recommended`. Enable it by name.
+
+> Property '\<name\>' of message '\<message\>' carries @header, so the Avro record of that message leaves it out.
+
+`tsp-avro` leaves a property marked `@header` out of the record it builds. That is the right answer for the AsyncAPI document, where the property is described beside the message rather than inside the payload. It is also the right answer for the `.avsc` file, because the file and the payload then describe the same fields.
+
+So nothing is wrong, and no diagnostic is reported. A project that also hands those `.avsc` files to a schema registry may still want the list, because the file has fewer fields than the model that produced it. This rule is that list.
+
+It is not in `recommended` for the same reason it is not a diagnostic. An AsyncAPI author who writes `@header` means exactly this: not in the payload. Reporting it by default would name correct work as a mistake, on every compile.
+
+**Fix:** nothing, unless the `.avsc` file is meant to carry the field. In that case remove `@header` from the property, or describe the headers with `@headers` and a model of their own.
 
 ### `unused-security-scheme`
 

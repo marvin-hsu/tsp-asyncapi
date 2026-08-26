@@ -31,11 +31,12 @@
 import { defineLinter } from "@typespec/compiler";
 import { LIBRARY_NAME } from "./lib.js";
 import { avroContentTypeUndeclaredRule } from "./linter/avro-content-type-undeclared.rule.js";
+import { avroRecordDropsHeaderRule } from "./linter/avro-record-drops-header.rule.js";
 import { channelWithoutOperationRule } from "./linter/channel-without-operation.rule.js";
 import { missingServiceRule } from "./linter/missing-service.rule.js";
 import { operationWithoutMessageRule } from "./linter/operation-without-message.rule.js";
 import { protobufContentTypeUndeclaredRule } from "./linter/protobuf-content-type-undeclared.rule.js";
-import { protobufFieldOnHeaderRule } from "./linter/protobuf-field-on-header.rule.js";
+import { protobufHeaderOnMessageRule } from "./linter/protobuf-header-on-message.rule.js";
 import { serverProtocolMismatchRule } from "./linter/server-protocol-mismatch.rule.js";
 import { unusedSecuritySchemeRule } from "./linter/unused-security-scheme.rule.js";
 
@@ -46,9 +47,10 @@ const rules = [
   operationWithoutMessageRule,
   serverProtocolMismatchRule,
   protobufContentTypeUndeclaredRule,
-  protobufFieldOnHeaderRule,
+  protobufHeaderOnMessageRule,
   avroContentTypeUndeclaredRule,
-  // Not in `recommended`. See the rule's own file for why.
+  // Not in `recommended`. Each rule's own file says why.
+  avroRecordDropsHeaderRule,
   unusedSecuritySchemeRule,
 ];
 
@@ -79,7 +81,7 @@ export const asyncAPILinter = defineLinter({
         [ref(channelWithoutOperationRule.name)]: true,
         [ref(operationWithoutMessageRule.name)]: true,
         [ref(protobufContentTypeUndeclaredRule.name)]: true,
-        [ref(protobufFieldOnHeaderRule.name)]: true,
+        [ref(protobufHeaderOnMessageRule.name)]: true,
         [ref(avroContentTypeUndeclaredRule.name)]: true,
         [ref(serverProtocolMismatchRule.name)]: true,
       },

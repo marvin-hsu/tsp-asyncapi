@@ -675,7 +675,7 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 官方 emitter 寫出的 `.proto` 檔案仍然宣告那個欄位，因為那個 emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號。這就是為什麼不能改成把屬性從 proto message 裡拿掉。
 
-[`protobuf-field-on-header`](./linter#protobuf-field-on-header) 規則把同一種組合報成警告，而且不論預覽功能開沒開都會執行。
+[`protobuf-header-on-message`](./linter#protobuf-header-on-message) 規則涵蓋更廣的情況：`@Protobuf.message` 的 model 帶 `@header`，不論有沒有欄位編號都行不通。那條規則在這個代碼會回報的地方保持安靜，所以一個錯誤只報一次。
 
 **修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
 
