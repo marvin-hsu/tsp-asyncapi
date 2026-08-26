@@ -156,7 +156,7 @@ export default defineConfig({
                   { text: "Union", link: "/zh-tw/guide/schema-conversion/unions" },
                   { text: "繼承與多型", link: "/zh-tw/guide/schema-conversion/inheritance" },
                   { text: "驗證器", link: "/zh-tw/guide/schema-conversion/validation" },
-                  { text: "標註與修改", link: "/zh-tw/guide/schema-conversion/modifiers" },
+                  { text: "說明、命名與其他", link: "/zh-tw/guide/schema-conversion/modifiers" },
                   { text: "進階處理", link: "/zh-tw/guide/schema-conversion/advanced" },
                 ],
               },
