@@ -49,7 +49,6 @@ import { isAvroName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { getAvroOrder } from "../decorators/order.js";
 import { createDiagnostic } from "../lib.js";
-import { isAsyncAPIHeader } from "../asyncapi-state.js";
 import {
   isAvroLogical,
   isAvroUnion,
@@ -88,14 +87,6 @@ interface WalkContext {
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
   readonly diagnostics: Diagnostic[];
-  /**
-   * The model the walk was asked for.
-   *
-   * `@AsyncAPI.header` marks a field of a message, and this is the model that
-   * message names. A mark deeper in the closure is on a model that is not a
-   * message, so it means nothing and the property stays.
-   */
-  readonly root: Model;
   refused: boolean;
 }
 
@@ -164,7 +155,6 @@ export function buildAvroRecordWithDiagnostics(
     scalars: createScalarTable(program),
     defined: new Map(),
     diagnostics,
-    root: model,
     refused: false,
   };
 
@@ -415,39 +405,6 @@ function modelFor(
 }
 
 /**
- * Translates the properties of one model into record fields.
- *
- * A property marked `@AsyncAPI.header` is left out. It travels beside the
- * message rather than inside it, so a record that declared it would describe a
- * field the message does not carry there.
- *
- * Nothing is reported. The record without the header is the record the author
- * asked for, and an AsyncAPI author already reads `@header` as "not in the
- * payload". A project that wants to hear about it turns on the
- * `avro-record-drops-header` rule of the AsyncAPI linter.
- *
- * Only the root is checked. That mark means something on a field of a message,
- * and the root is the model a message names. A mark on a nested model is on
- * something that is not a message, so the property stays.
- *
- * @param context - The walk in progress
- * @param model - The model whose properties are read
- * @returns The fields, in the order the properties are declared
- */
-function fieldsOf(context: WalkContext, model: Model): AvroField[] {
-  const fields: AvroField[] = [];
-  for (const property of model.properties.values()) {
-    if (model === context.root && isAsyncAPIHeader(context.program, property)) continue;
-
-    const field = fieldFor(context, property);
-    if (field !== undefined) {
-      fields.push(field);
-    }
-  }
-  return fields;
-}
-
-/**
  * Translates a named model into a record, or into a reference to one.
  */
 function namedModelFor(
@@ -531,13 +488,21 @@ function namedModelFor(
     return fullName;
   }
 
+  const fields: AvroField[] = [];
+  for (const property of model.properties.values()) {
+    const field = fieldFor(context, property);
+    if (field !== undefined) {
+      fields.push(field);
+    }
+  }
+
   return {
     type: "record",
     name: model.name,
     namespace: namespaceOf(fullName),
     doc: getDoc(context.program, model),
     aliases: getAvroAliases(context.program, model),
-    fields: fieldsOf(context, model),
+    fields,
   };
 }
 

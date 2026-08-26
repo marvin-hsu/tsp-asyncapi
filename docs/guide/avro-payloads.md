@@ -256,11 +256,11 @@ The file and the payload carry one schema. The file is that schema as JSON text.
 
 `@header` lifts a property out of the payload and describes it beside the message. A generated Avro payload leaves it out for the same reason a JSON Schema payload does.
 
-So a message that marks `traceId` with `@header` gets an Avro record without a `traceId` field. That property is described in the `headers` of the message instead.
+Avro has no way to describe a property the payload does not carry. Every property of a record is a field of that record, and there is no mark for one that travels elsewhere.
 
-The `.avsc` file leaves it out as well. `tsp-avro` reads the `@header` mark itself, so one walk answers for the file and for the payload and the two describe the same fields. Nothing is reported, because nothing is wrong. The [`avro-record-drops-header`](../reference/linter#avro-record-drops-header) rule lists the dropped properties for a project that wants the list.
+So a model that carries `@Avro.avroRecord` must not mark one of its own fields with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written.
 
-The property is described in exactly one place, the `headers` of the message. [`@headers`](../reference/decorators/messages#headers) points at a model of its own and does the same thing, with the headers named as a schema a reader can reuse.
+Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the record and the `.avsc` file describe the same fields.
 
 ## What Avro does not describe
 

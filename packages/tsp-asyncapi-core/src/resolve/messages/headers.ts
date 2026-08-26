@@ -104,89 +104,6 @@ export interface MessageHeaderPlan {
 }
 
 /**
- * The route one message takes to its headers, before anything is reported.
- *
- * `lift` is the only route that takes a field out of the payload. The other
- * four leave every property where the author wrote it: `conflict` cancels the
- * lifting, `raw` and `model` describe the whole headers object elsewhere, and
- * `none` declares no headers at all.
- */
-type HeaderRoute =
-  | { readonly kind: "conflict" }
-  | { readonly kind: "raw"; readonly raw: RawSchemaState }
-  | { readonly kind: "model"; readonly model: Model }
-  | { readonly kind: "lift"; readonly fields: readonly ModelProperty[] }
-  | { readonly kind: "none" };
-
-/** What one message declares about its headers. */
-interface HeaderClassification {
-  /**
-   * Every top-level property of the message that `@header` marks, whatever
-   * the route. A cancelled lift still leaves the mark where the author wrote
-   * it, and one caller needs to tell that from a mark in a place the emitter
-   * does not support.
-   */
-  readonly marked: readonly ModelProperty[];
-  /** The route the message takes. */
-  readonly route: HeaderRoute;
-}
-
-/**
- * Decides the header route of one message and reports nothing.
- *
- * Two callers ask this question. The plan below reports as it goes, and a
- * schema provider asks only which fields leave the payload. Reporting from
- * both would say every conflict twice, so the decision sits here alone and
- * each caller does its own half.
- *
- * @param program - The compiled program
- * @param message - The message model to read
- * @returns The marked properties, and the route the message takes
- */
-function classifyHeaders(program: Program, message: Model): HeaderClassification {
-  const marked = [...message.properties.values()].filter((property) => isHeader(program, property));
-  const declared = wholeHeaderDecorators(program, message);
-
-  if (countHeaderSources(marked, declared) > 1) return { marked, route: { kind: "conflict" } };
-  if (declared.raw !== undefined) return { marked, route: { kind: "raw", raw: declared.raw } };
-  if (declared.model !== undefined) {
-    return { marked, route: { kind: "model", model: declared.model } };
-  }
-  if (marked.length === 0) return { marked, route: { kind: "none" } };
-  return { marked, route: { kind: "lift", fields: marked } };
-}
-
-/**
- * Every property that a `@header` takes out of its message's payload.
- *
- * A schema provider runs before the plan below does, and it has to leave
- * these properties out of the payload it generates. It asks here rather than
- * repeating the rules, so a provider and the plan cannot disagree about which
- * fields a payload carries.
- *
- * Only a message's own properties are read. An inherited lift moves a
- * property of the base model, and a generated payload carries the properties
- * of the model it was built for, so no walk can reach one.
- *
- * @param program - The compiled program
- * @param messages - The message models of the document
- * @returns Every property lifted out of a payload
- * @internal
- */
-export function liftedFieldsOf(
-  program: Program,
-  messages: Iterable<Model>,
-): ReadonlySet<ModelProperty> {
-  const lifted = new Set<ModelProperty>();
-  for (const message of messages) {
-    const { route } = classifyHeaders(program, message);
-    if (route.kind !== "lift") continue;
-    for (const field of route.fields) lifted.add(field);
-  }
-  return lifted;
-}
-
-/**
  * Resolves where each message takes its headers from, and reports every
  * conflict between the two mechanisms.
  *
@@ -215,24 +132,27 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
   const contentTypeReported = new Set<ModelProperty>();
 
   for (const message of messageList) {
-    const { marked, route } = classifyHeaders(program, message);
-    for (const field of marked) {
+    const fields = [...message.properties.values()].filter((property) =>
+      isHeader(program, property),
+    );
+    const declared = wholeHeaderDecorators(program, message);
+    const { model, raw } = declared;
+    for (const field of fields) {
       topLevel.add(field);
     }
 
-    if (route.kind === "conflict") {
+    if (countHeaderSources(fields, declared) > 1) {
       reportDiagnostic(program, { code: "duplicate-message-headers", target: message });
       continue;
     }
-    if (route.kind === "raw") {
+    if (raw !== undefined) {
       // The schema is opaque, so no field of it can be checked against
       // `@contentType`. The content type check below runs on the two routes
       // whose fields the emitter can read.
-      sources.set(message, { fields: [], raw: route.raw });
+      sources.set(message, { fields: [], raw });
       continue;
     }
-    if (route.kind === "model") {
-      const { model } = route;
+    if (model !== undefined) {
       if (isObjectBacked(model)) {
         // The content type conflict is checked on this route too. A
         // `@headers` model that declares a `content-type` property next to a
@@ -256,12 +176,12 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
       }
       continue;
     }
-    if (route.kind === "none") {
+    if (fields.length === 0) {
       continue;
     }
-    reportContentTypeHeaders(program, message, route.fields, contentTypeReported);
-    sources.set(message, { fields: route.fields });
-    lifted.push(...route.fields);
+    reportContentTypeHeaders(program, message, fields, contentTypeReported);
+    sources.set(message, { fields });
+    lifted.push(...fields);
   }
 
   adoptInheritedLiftedFields(program, messageList, sources, new Set(lifted), contentTypeReported);

@@ -179,35 +179,6 @@ namespace Orders {
 
 **修法：** 加上 `@Protobuf.message` 與每個屬性的 `@Protobuf.field`，或用 `@rawPayload` 寫下 schema。
 
-### `protobuf-header-on-message`
-
-在 `recommended` 裡。不論 [`preview-features`](./emitter-options#預覽功能) 有沒有指名 `protobuf` 都會執行。
-
-> Property '\<name\>' of message '\<message\>' carries @header, and the model carries @Protobuf.message.
-
-`@header` 說明一個屬性走在 payload 旁邊。proto message 沒有這個概念的容身之處，而官方 Protobuf emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號。所以兩種寫法都會失敗，只是失敗的地方不同。
-
-寫了 `@Protobuf.field`，那個欄位編號會指向產生的 payload 留空的位置。沒寫，官方 emitter 會拒絕整個 `.proto` 檔案，而它的建議是加上欄位編號——那個建議又把人帶回第一種情況。
-
-```typespec
-// 兩種寫法都會回報。traceId 不可能同時是 header 與 proto 欄位。
-@Protobuf.package({ name: "com.example.orders" })
-namespace Orders {
-  @message
-  @Protobuf.message
-  model OrderPlaced {
-    @header traceId: string;
-    @Protobuf.field(2) orderId: string;
-  }
-}
-```
-
-一條規則涵蓋兩種寫法，所以真正的修法會先出現，不必先繞一圈。
-
-規則有一個情況會退讓。預覽功能開著時，帶 `@Protobuf.field` 的 header 已經是一個錯誤 [`header-with-protobuf-field`](./diagnostics#header-with-protobuf-field)。這裡再報一次，會讓一個錯誤讀起來像兩個。
-
-**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣 proto message 只描述 payload。
-
 ### `avro-content-type-undeclared`
 
 在 `recommended` 裡。只在 [`preview-features`](./emitter-options#預覽功能) 指名 `avro` 時執行。
@@ -233,20 +204,6 @@ namespace Orders {
 規則讀媒體型別本身，忽略分號後面的內容，所以 `;version=1.9.0` 這種參數不會遮住問題。`application/vnd.apache.avro`、`application/vnd.apache.avro+json` 與 `application/vnd.apache.avro+yaml` 都算。
 
 **修法：** 加上 `@Avro.avroRecord`，或用 `@rawPayload` 寫下 schema。
-
-### `avro-record-drops-header`
-
-不在 `recommended` 裡。要用就自己按名稱開啟。
-
-> Property '\<name\>' of message '\<message\>' carries @header, so the Avro record of that message leaves it out.
-
-`tsp-avro` 建立 record 時，會略過帶 `@header` 的屬性。對 AsyncAPI 文件而言這是對的：那個屬性描述在 message 旁邊，不在 payload 裡。對 `.avsc` 檔案而言也是對的，因為這樣檔案與 payload 描述同一組欄位。
-
-所以沒有任何問題，也不會回報任何診斷。但如果一個專案還會把那些 `.avsc` 檔案送進 schema registry，它可能仍然想要那份清單，因為檔案的欄位比產生它的 model 少。這條規則就是那份清單。
-
-它不在 `recommended` 裡，理由和它不是診斷一樣。寫下 `@header` 的 AsyncAPI 作者，意思正是「不要放進 payload」。預設回報等於每次編譯都把正確的工作說成錯誤。
-
-**修法：** 不用改，除非那個欄位本來就該進 `.avsc` 檔案。是的話就把屬性上的 `@header` 拿掉，或改用 `@headers` 搭配自己的 model 來描述 headers。
 
 ### `unused-security-scheme`
 

@@ -256,11 +256,11 @@ Avro emitter 每個 record 寫一個檔案。路徑由 Avro namespace 決定，�
 
 `@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Avro payload 略過它，理由與 JSON Schema payload 相同。
 
-所以一個把 `traceId` 標上 `@header` 的 message，產生的 Avro record 裡沒有 `traceId` 欄位。那個屬性改為描述在 message 的 `headers` 裡。
+Avro 沒有辦法描述一個 payload 不帶的屬性。record 的每個屬性都是那個 record 的一個 field，沒有任何標記可以表示「它走在別的地方」。
 
-`.avsc` 檔案也會略過它。`tsp-avro` 自己讀 `@header` 這個標記，所以同一個 walk 同時服務檔案與 payload，兩者描述同一組欄位。不會回報任何東西，因為沒有任何問題。想要那份清單的專案可以開啟 [`avro-record-drops-header`](../reference/linter#avro-record-drops-header) 規則。
+所以帶著 `@Avro.avroRecord` 的 model，不可以在自己的欄位上標 `@header`。標了會回報 [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload)，而且不會寫出任何檔案。
 
-那個屬性只描述在一個地方，也就是 message 的 `headers`。[`@headers`](../reference/decorators/messages#headers) 指向自己的 model，效果相同，而且 headers 會是一份 reader 可以重用的 schema。
+改用 [`@headers`](../reference/decorators/messages#headers)。一個獨立的 model 裝 headers，message model 裝 payload，這樣 record 與 `.avsc` 檔案描述同一組欄位。
 
 ## Avro 沒有描述的部分
 

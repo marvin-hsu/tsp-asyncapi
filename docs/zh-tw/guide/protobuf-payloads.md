@@ -234,13 +234,11 @@ message OrderShipped {
 
 ## headers 不會進 payload
 
-`@header` 把屬性移出 payload，改成描述在 message 旁邊。產生的 Protobuf payload 略過它，理由與 JSON Schema payload 相同。
+Protobuf 沒有辦法描述一個 payload 不帶的屬性。proto message 的每個屬性都要有欄位編號，而沒有任何編號的意思是「這一個走在別的地方」。
 
-同時帶著 `@header` 與 `@Protobuf.field` 的屬性會回報 [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field)，而且不會寫出文件。欄位編號指定 proto message 裡的一個位置，payload 沒有那個位置。
+所以帶著 `@Protobuf.message` 的 model，不可以在自己的欄位上標 `@header`。標了會回報 [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload)，而且不會寫出任何檔案。不論那個屬性有沒有 `@Protobuf.field`，也不論預覽功能有沒有開啟，都是如此。
 
-只帶 `@header` 的屬性，在 payload 裡沒有自己的欄位編號。官方 Protobuf emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號，所以那個 emitter 執行時會報自己的 `field-index` 錯誤。
-
-兩條路的修法相同。把 headers 移進自己的 model，用 [`@headers`](../reference/decorators/messages#headers) 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+改用 [`@headers`](../reference/decorators/messages#headers)。一個獨立的 model 裝 headers，message model 裝 payload，這樣 proto message 與 `.proto` 檔案描述同一組欄位。
 
 ## Protobuf 沒有描述的部分
 

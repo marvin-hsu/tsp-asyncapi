@@ -58,6 +58,9 @@ import {
 } from "./decorators/index.js";
 
 export { $lib } from "./lib.js";
+// The compiler binds this from here, and it runs on every compilation that
+// loads the library rather than only on one that asks for a document.
+export { $onValidate } from "./validate.js";
 
 /**
  * The decorator implementations, for the compiler rather than for a

@@ -150,10 +150,10 @@ export const $lib = createTypeSpecLibrary({
         "unknown-scalar": paramMessage`Scalar '${"scalar"}' has no proto3 type, and no scalar it extends has one either. So model '${"name"}' of package '${"package"}' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.`,
       },
     },
-    "header-with-protobuf-field": {
+    "header-on-generated-payload": {
       severity: "error",
       messages: {
-        default: paramMessage`Property '${"name"}' of message '${"message"}' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.`,
+        default: paramMessage`Property '${"name"}' of message '${"message"}' carries @header, and the model carries ${"decorator"}. A header travels beside the payload, and neither Protobuf nor Avro has a way to describe a property the payload does not carry. Move the headers into their own model and point at it with @headers.`,
       },
     },
     "avro-artifact-unavailable": {

@@ -3,23 +3,29 @@
 "tsp-asyncapi": minor
 ---
 
-Keep a lifted `@header` out of a generated Protobuf or Avro payload.
+Refuse a `@header` on a model that declares a Protobuf message or an Avro
+record.
 
-A property marked with `@header` travels beside the payload, and the document
-already leaves it out of a JSON Schema payload. A generated payload described
-it as well, so one field was described twice and nothing said so.
+`@header` says a property travels beside the payload. Neither target language
+has that idea: Protobuf gives every property of a message a field number, and
+Avro gives every property of a record a field. So a property the payload does
+not carry has nowhere to go and no way to be marked as absent.
 
-A header whose type has no Protobuf form no longer refuses the whole payload.
-A header is not a proto field, so its type has nothing to say about a payload
-it is not in.
+Leaving it out of the generated schema is the other option, and it is worse.
+`@typespec/protobuf` and the Avro emitter both write the whole model, and
+neither reads an AsyncAPI decorator, so the document and the standalone file
+would describe different shapes for one message without saying so.
 
-`header-with-protobuf-field` is a new error on a property that carries both
-`@header` and `@Protobuf.field`, because the field number then names a place
-the payload has no room for.
+The new `header-on-generated-payload` error names every marked property. It is
+reported before any emitter runs, so it holds for a project that emits a
+document, one that emits only schema files, and one that emits nothing.
 
-The new `protobuf-header-on-message` lint rule is in `recommended`. It reports
-a `@header` property of a `@Protobuf.message` model, which fails whether or
-not the property carries a field number: with one, the number names a place
-the payload leaves empty, and without one the official emitter refuses the
-`.proto` file. The rule runs whether or not the preview feature is on, and it
-stays quiet where the error above already reports.
+Use `@headers` instead. A separate model holds the headers, the message model
+holds the payload, and every writer of every file agrees about which fields
+belong where.
+
+This rejects a combination that compiled before. A `@Protobuf.message` model
+with a `@header` field and no preview feature produced a JSON Schema payload
+with the header lifted, which was correct on its own terms. It is an error
+now, because the same source is wrong the moment either binary schema is
+asked for.

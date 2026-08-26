@@ -19,7 +19,7 @@
  *
  * A payload is built only for a model the document asks one for, which is a
  * model that carries `@AsyncAPI.message` as well. A project that writes
- * `@Avro.avroRecord` for types outside the document keeps its build green, and no
+ * `@Avro.record` for types outside the document keeps its build green, and no
  * diagnostic names a model no message describes.
  *
  * A model the document asks about and this cannot answer for is a refusal.
@@ -123,7 +123,7 @@ async function loadAvro(): Promise<AvroLibrary> {
 }
 
 /**
- * Renders a payload for every message model `@Avro.avroRecord` marks.
+ * Renders a payload for every message model `@Avro.record` marks.
  *
  * @param program - The compiled program
  * @param load - How to reach the Avro library
@@ -138,7 +138,7 @@ async function collectAvroArtifacts(
   try {
     avro = await load();
   } catch (error) {
-    // The author writes `@Avro.avroRecord`, so the library is installed whenever a
+    // The author writes `@Avro.record`, so the library is installed whenever a
     // model carries it. A load that fails is a broken install, and the
     // diagnostic says so rather than leaving the emit silent.
     reportDiagnostic(program, {

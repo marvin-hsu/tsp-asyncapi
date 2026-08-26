@@ -668,21 +668,23 @@ The package of a model is decided by the nearest namespace above it that carries
 
 **Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
 
-### `header-with-protobuf-field`
+### `header-on-generated-payload`
 
-> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.
+> Property '\<name\>' of message '\<message\>' carries @header, and the model carries \<decorator\>. A header travels beside the payload, and neither Protobuf nor Avro has a way to describe a property the payload does not carry. Move the headers into their own model and point at it with @headers.
 
-`@header` takes a property out of the payload. `@Protobuf.field` gives it a place inside the proto message. The generated payload cannot do both.
+A message model carries `@header` on one of its own fields, and it also carries `@Protobuf.message` or `@Avro.avroRecord`.
 
-Every property that carries both is named. Fixing one and compiling again to find the next is work the emitter does at once.
+`@header` says the property travels beside the payload. Neither target language has that idea. Protobuf gives every property of a message a field number, and Avro gives every property of a record a field, so a property the payload does not carry has nowhere to go and no way to be marked as absent.
 
-No document is written. The payload would otherwise describe a shape the `.proto` file of the same message contradicts.
+Leaving the property out of the generated schema is the other option, and it is worse. `@typespec/protobuf` and the Avro emitter both write the whole model, and neither reads an AsyncAPI decorator. So the schema in the document and the standalone file would describe different shapes for one message, and nothing in either file would say so.
 
-The `.proto` file the official emitter writes still declares the field, because that emitter requires a field number on every property of a `@Protobuf.message`. That is why the property cannot simply be left out of the proto message instead.
+Every marked property is named. Fixing one and compiling again to find the next is a round trip this can spare.
 
-The [`protobuf-header-on-message`](./linter#protobuf-header-on-message) rule covers the wider case: a `@header` on a `@Protobuf.message` model fails whether or not it carries a field number. That rule stays quiet where this code reports, so one mistake is reported once.
+This is reported before any emitter runs, so it holds for a project that emits a document, for one that emits only schema files, and for one that emits nothing. No file is written.
 
-**Fix:** move the headers into their own model and point at it with `@headers`. The proto message and the payload then describe the same fields.
+A mark on a model reached from the message is a different case. That model is not a message, so the mark means nothing there, and [`nested-header-ignored`](#nested-header-ignored) reports it instead.
+
+**Fix:** move the headers into their own model and point at it with `@headers`. The message model then holds the payload alone, and every writer of every file agrees about which fields belong where.
 
 ### `avro-artifact-unavailable`
 

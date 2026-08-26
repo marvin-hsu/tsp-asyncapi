@@ -232,13 +232,11 @@ The two texts differ in layout. The file above holds every message of the packag
 
 ## Headers stay out of the payload
 
-`@header` lifts a property out of the payload and describes it beside the message. A generated Protobuf payload leaves it out for the same reason a JSON Schema payload does.
+Protobuf has no way to describe a property the payload does not carry. Every property of a proto message takes a field number, and there is no number that means "this one travels elsewhere".
 
-A property that carries `@header` and `@Protobuf.field` reports [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field), and no document is written. The field number names a place in the proto message, and the payload has no room for it.
+So a model that carries `@Protobuf.message` must not mark one of its own fields with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written. That holds whether or not the property carries `@Protobuf.field`, and whether or not the preview feature is on.
 
-A property that carries `@header` alone leaves the payload without a field number of its own. The official Protobuf emitter requires a field number on every property of a `@Protobuf.message`, so that emitter reports its own `field-index` error if it runs.
-
-Both paths lead to the same remedy. Move the headers into their own model and point at it with [`@headers`](../reference/decorators/messages#headers). The proto message and the payload then describe the same fields.
+Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the proto message and the `.proto` file describe the same fields.
 
 ## What Protobuf does not describe
 
