@@ -26,7 +26,7 @@ Avro needs few decorators, because a plain TypeSpec model is already a valid Avr
 Install the package next to the compiler.
 
 ```bash
-npm install tsp-avro
+pnpm add tsp-avro
 ```
 
 Then name the emitter in `tspconfig.yaml`.

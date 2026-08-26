@@ -26,7 +26,7 @@ Avro 需要的 decorator 很少，因為一個純 TypeSpec model 本來就是合
 先在 compiler 旁邊安裝這個套件。
 
 ```bash
-npm install tsp-avro
+pnpm add tsp-avro
 ```
 
 接著在 `tspconfig.yaml` 裡指定這個 emitter。

@@ -24,7 +24,7 @@ Without the feature the official decorators change nothing here. The models lowe
 Install the official library next to this emitter.
 
 ```bash
-npm install "@typespec/protobuf@0.85.x"
+pnpm add "@typespec/protobuf@0.85.x"
 ```
 
 This release supports the `0.85.x` range of that library. The emitter reads the decorator state that range writes. Another range can write state it does not read, and the payload is then unavailable.
