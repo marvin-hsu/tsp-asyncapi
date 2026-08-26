@@ -37,7 +37,13 @@ A named scalar behaves like a named model: it becomes an entry in
 | `duration`                               | `string`  | `duration`                               |
 | `url`                                    | `string`  | `uri`                                    |
 
-Intrinsic types: `null` → `{ type: "null" }`; `never` and `void` → `{ not: {} }` (no value is valid); `unknown` → `{}` (any value is valid).
+Intrinsic types:
+
+| TypeSpec        | Output             | Meaning            |
+| --------------- | ------------------ | ------------------ |
+| `null`          | `{ type: "null" }` |                    |
+| `never`, `void` | `{ not: {} }`      | No value is valid  |
+| `unknown`       | `{}`               | Any value is valid |
 
 ## User-declared scalars
 

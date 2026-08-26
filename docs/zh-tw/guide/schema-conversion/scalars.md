@@ -35,7 +35,13 @@ scalar 是單一個值：字串、數字、布林值、時間。model 有屬性�
 | `duration`                               | `string`  | `duration`                               |
 | `url`                                    | `string`  | `uri`                                    |
 
-Intrinsic 型別：`null` → `{ type: "null" }`；`never` 與 `void` → `{ not: {} }`（任何值都不合法）；`unknown` → `{}`（任何值都合法）。
+Intrinsic 型別：
+
+| TypeSpec        | 輸出               | 意思           |
+| --------------- | ------------------ | -------------- |
+| `null`          | `{ type: "null" }` |                |
+| `never`、`void` | `{ not: {} }`      | 任何值都不合法 |
+| `unknown`       | `{}`               | 任何值都合法   |
 
 ## 使用者自訂 scalar
 
