@@ -179,6 +179,33 @@ The rule reads the media type and ignores what follows a semicolon, so a `;versi
 
 **Fix:** add `@Protobuf.message` and a `@Protobuf.field` on every property, or write the schema with `@rawPayload`.
 
+### `protobuf-field-on-header`
+
+In `recommended`. It runs whether or not [`preview-features`](./emitter-options#preview-features) names `protobuf`.
+
+> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field.
+
+`@header` takes the property out of the payload. `@Protobuf.field` gives it a place inside the proto message. Each statement is true of a different file. The `.proto` file the official emitter writes declares the field. The AsyncAPI payload does not carry it. So the two files describe different shapes for one message.
+
+```typespec
+// Reports. traceId is field 1 of the proto message, and not in the payload.
+@Protobuf.package({ name: "com.example.orders" })
+namespace Orders {
+  @message
+  @Protobuf.message
+  model OrderPlaced {
+    @header @Protobuf.field(1) traceId: string;
+    @Protobuf.field(2) orderId: string;
+  }
+}
+```
+
+The rule does not wait for the preview feature. The official emitter writes the `.proto` file either way, and `@header` leaves the payload either way.
+
+With the feature on, the same combination is also an error. The generated payload omits the property, so the field number names a field that payload has no room for.
+
+**Fix:** move the headers into their own model and point at it with `@headers`. The proto message and the payload then describe the same fields again.
+
 ### `avro-content-type-undeclared`
 
 In `recommended`. It only runs when [`preview-features`](./emitter-options#preview-features) names `avro`.
@@ -189,7 +216,7 @@ In `recommended`. It only runs when [`preview-features`](./emitter-options#previ
 
 ```typespec
 // Reports. The content type says Avro, and the payload is JSON Schema.
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   @message
   @contentType("application/vnd.apache.avro")
@@ -199,11 +226,11 @@ namespace Orders {
 }
 ```
 
-Two things give a message an Avro payload, and either one silences the rule. `` @Avro.`record` `` lets the preview feature render the schema. `@rawPayload` carries the schema the author wrote. `record` and `namespace` are reserved words in TypeSpec, so both decorator names carry backticks.
+Two things give a message an Avro payload, and either one silences the rule. `@Avro.avroRecord` lets the preview feature render the schema. `@rawPayload` carries the schema the author wrote.
 
 The rule reads the media type and ignores what follows a semicolon, so a `;version=1.9.0` parameter does not hide the mistake. `application/vnd.apache.avro`, `application/vnd.apache.avro+json` and `application/vnd.apache.avro+yaml` all count.
 
-**Fix:** add `` @Avro.`record` ``, or write the schema with `@rawPayload`.
+**Fix:** add `@Avro.avroRecord`, or write the schema with `@rawPayload`.
 
 ### `unused-security-scheme`
 

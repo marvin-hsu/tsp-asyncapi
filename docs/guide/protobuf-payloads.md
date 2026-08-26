@@ -230,6 +230,16 @@ This emitter never reads that file, and it never runs the official emitter. The 
 
 The two texts differ in layout. The file above holds every message of the package, in the order the source declares them. A payload holds one message and its closure, and the message comes first. Both describe the same wire format.
 
+## Headers stay out of the payload
+
+`@header` lifts a property out of the payload and describes it beside the message. A generated Protobuf payload leaves it out for the same reason a JSON Schema payload does.
+
+A property that carries `@header` and `@Protobuf.field` reports [`header-with-protobuf-field`](../reference/diagnostics#header-with-protobuf-field), and no document is written. The field number names a place in the proto message, and the payload has no room for it.
+
+A property that carries `@header` alone leaves the payload without a field number of its own. The official Protobuf emitter requires a field number on every property of a `@Protobuf.message`, so that emitter reports its own `field-index` error if it runs.
+
+Both paths lead to the same remedy. Move the headers into their own model and point at it with [`@headers`](../reference/decorators/messages#headers). The proto message and the payload then describe the same fields.
+
 ## What Protobuf does not describe
 
 Protobuf describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.

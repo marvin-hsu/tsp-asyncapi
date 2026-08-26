@@ -21,7 +21,7 @@ import {
 const PROTO_PACKAGE = '@Protobuf.package({ name: "com.example.conformance" })';
 
 /** The namespace every Avro case here declares. */
-const AVRO_NAMESPACE = '@Avro.`namespace`("com.example.conformance")';
+const AVRO_NAMESPACE = '@Avro.avroNamespace("com.example.conformance")';
 
 describeWalkConformance({
   name: "Protobuf",
@@ -132,7 +132,7 @@ describeWalkConformance({
         ${AVRO_NAMESPACE}
         namespace Conformance;
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Node {
           value: string;
           children: Node[];
@@ -145,7 +145,7 @@ describeWalkConformance({
         ${AVRO_NAMESPACE}
         namespace Conformance;
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Parent {
           child: Child;
         }
@@ -172,7 +172,7 @@ describeWalkConformance({
             }
           }
 
-          @Avro.\`record\`
+          @Avro.avroRecord
           model Event {
             first: One.Detail;
             second: Two.Detail;
@@ -197,7 +197,7 @@ describeWalkConformance({
             }
           }
 
-          @Avro.\`record\`
+          @Avro.avroRecord
           model Event {
             first: One.Detail;
             second: Two.Detail;

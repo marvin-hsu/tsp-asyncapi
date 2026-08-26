@@ -37,7 +37,7 @@ async function expectRefusal(source: string, ...refusals: string[]): Promise<voi
 describe("what the Avro walk refuses", () => {
   it("refuses a record with no Avro namespace above it", async () => {
     await expectRefusal(
-      `@Avro.\`record\` model Event { id: string; }`,
+      `@Avro.avroRecord model Event { id: string; }`,
       `namespace-required: A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.`,
     );
   });
@@ -47,10 +47,10 @@ describe("what the Avro walk refuses", () => {
     // a branch by its type, so the second string is unreachable.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         union Inner { a: string, b: int32 }
-        @Avro.\`record\` model Event { id: string | Inner; }
+        @Avro.avroRecord model Event { id: string | Inner; }
       }
       `,
       `duplicate-union-branch: Two branches of this union are both the Avro type "string". An Avro union holds each type once.`,
@@ -62,10 +62,10 @@ describe("what the Avro walk refuses", () => {
     // knows it by.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         model Address { street: string; }
-        @Avro.\`record\` model Event { at: Address | Address; }
+        @Avro.avroRecord model Event { at: Address | Address; }
       }
       `,
       `duplicate-union-branch: Two branches of this union are both the Avro type "com.example.a.Address". An Avro union holds each type once.`,
@@ -77,8 +77,8 @@ describe("what the Avro walk refuses", () => {
     // apart by. The rule is the type, not the item type.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: string[] | int32[]; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { id: string[] | int32[]; } }
       `,
       `duplicate-union-branch: Two branches of this union are both the Avro type "array". An Avro union holds each type once.`,
     );
@@ -87,8 +87,8 @@ describe("what the Avro walk refuses", () => {
   it("refuses a type the language names but Avro cannot hold", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: unknown; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { id: unknown; } }
       `,
       `unsupported-type: The type "unknown" has no Avro form.`,
     );
@@ -99,8 +99,8 @@ describe("what the Avro walk refuses", () => {
     // change what the author wrote.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { count: uint32; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { count: uint32; } }
       `,
       `unsupported-type: The scalar "uint32" has no Avro form.`,
     );
@@ -109,8 +109,8 @@ describe("what the Avro walk refuses", () => {
   it("refuses an anonymous model, because an Avro record needs a name", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { at: { city: string; }; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { at: { city: string; }; } }
       `,
       `unsupported-type: An anonymous model has no name, and an Avro record needs one.`,
     );
@@ -119,10 +119,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a model that extends another, because the inherited fields would be lost", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         model Base { id: string; }
-        @Avro.\`record\` model Event extends Base { at: string; }
+        @Avro.avroRecord model Event extends Base { at: string; }
       }
       `,
       `unsupported-type: The model "Event" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
@@ -133,10 +133,10 @@ describe("what the Avro walk refuses", () => {
     // An Avro enum holds symbols alone. The value has nowhere to go.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         enum Currency { USD: "usd", EUR: "eur" }
-        @Avro.\`record\` model Event { currency: Currency; }
+        @Avro.avroRecord model Event { currency: Currency; }
       }
       `,
       `enum-member-value: The enum member "USD" carries a value of its own. An Avro enum holds symbols alone, so the value would be lost.`,
@@ -147,8 +147,8 @@ describe("what the Avro walk refuses", () => {
   it("refuses a namespace name that breaks the Avro rules", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example-orders")
-      namespace A { @Avro.\`record\` model Event { id: string; } }
+      @Avro.avroNamespace("com.example-orders")
+      namespace A { @Avro.avroRecord model Event { id: string; } }
       `,
       `invalid-name: "com.example-orders" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
       `namespace-required: A record needs an Avro namespace. Apply @namespace to this model's namespace, or to one above it.`,
@@ -158,8 +158,8 @@ describe("what the Avro walk refuses", () => {
   it("refuses a field name that breaks the Avro rules", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { \`order-id\`: string; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { \`order-id\`: string; } }
       `,
       `invalid-name: "order-id" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
     );
@@ -168,10 +168,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses an enum symbol that breaks the Avro rules", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         enum Colour { \`off-white\` }
-        @Avro.\`record\` model Event { colour: Colour; }
+        @Avro.avroRecord model Event { colour: Colour; }
       }
       `,
       `invalid-name: "off-white" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
@@ -184,8 +184,8 @@ describe("what the Avro walk refuses", () => {
     // underscores.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model \`Order-Placed\` { id: string; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model \`Order-Placed\` { id: string; } }
       `,
       `invalid-name: "Order-Placed" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
     );
@@ -194,10 +194,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a template instance, because two instances share one name", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         model Box<T> { value: T; }
-        @Avro.\`record\` model Event { text: Box<string>; count: Box<int32>; }
+        @Avro.avroRecord model Event { text: Box<string>; count: Box<int32>; }
       }
       `,
       `unsupported-type: The model "Box" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
@@ -208,10 +208,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a model that holds an index signature", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         model Bag { ...Record<string>; id: string; }
-        @Avro.\`record\` model Event { bag: Bag; }
+        @Avro.avroRecord model Event { bag: Bag; }
       }
       `,
       `unsupported-type: The model "Bag" holds an index signature. An Avro record has fields alone, so the indexed values would be lost.`,
@@ -224,13 +224,13 @@ describe("what the Avro walk refuses", () => {
     // the second as a reference would give it the fields of the first.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.x")
+      @Avro.avroNamespace("com.example.x")
       namespace A { model Address { street: string; } }
-      @Avro.\`namespace\`("com.example.x")
+      @Avro.avroNamespace("com.example.x")
       namespace B { model Address { zip: int32; } }
-      @Avro.\`namespace\`("com.example.x")
+      @Avro.avroNamespace("com.example.x")
       namespace C {
-        @Avro.\`record\` model Event { a: A.Address; b: B.Address; }
+        @Avro.avroRecord model Event { a: A.Address; b: B.Address; }
       }
       `,
       `unsupported-type: "B.Address" and "A.Address" both take the Avro name "com.example.x.Address". An Avro schema names each type once, so the second would read as the first.`,
@@ -240,10 +240,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses two records that write to one file", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.y")
-      namespace A { @Avro.\`record\` model Event { street: string; } }
-      @Avro.\`namespace\`("com.example.y")
-      namespace B { @Avro.\`record\` model Event { zip: int32; } }
+      @Avro.avroNamespace("com.example.y")
+      namespace A { @Avro.avroRecord model Event { street: string; } }
+      @Avro.avroNamespace("com.example.y")
+      namespace B { @Avro.avroRecord model Event { zip: int32; } }
       `,
       `duplicate-record: "B.Event" and "A.Event" both write to "/out/com/example/y/Event.avsc". One file holds one schema, so the second would replace the first.`,
     );
@@ -251,10 +251,10 @@ describe("what the Avro walk refuses", () => {
 
   it("writes nothing at all when one record of two is refused", async () => {
     const result = await emitAvro(`
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
-        @Avro.\`record\` model Good { id: string; }
-        @Avro.\`record\` model Bad { id: uint32; }
+        @Avro.avroRecord model Good { id: string; }
+        @Avro.avroRecord model Bad { id: uint32; }
       }
     `);
 
@@ -263,10 +263,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a fixed type of no width", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.fixed(0) scalar Empty extends bytes;
-        @Avro.\`record\` model Event { value: Empty; }
+        @Avro.avroRecord model Event { value: Empty; }
       }
       `,
       `invalid-fixed: "0" is not a width an Avro fixed type can have. A fixed type holds a positive number of bytes.`,
@@ -276,10 +276,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a fixed model that declares fields", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.fixed(4) model Word { byte: int32; }
-        @Avro.\`record\` model Event { word: Word; }
+        @Avro.avroRecord model Event { word: Word; }
       }
       `,
       `unsupported-type: The model "Word" carries @fixed and declares fields. An Avro fixed type holds a number of bytes and nothing else, so the fields would be lost.`,
@@ -289,9 +289,9 @@ describe("what the Avro walk refuses", () => {
   it("refuses a model that is both a record and a fixed type", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
-        @Avro.fixed(4) @Avro.\`record\` model Word {}
+        @Avro.fixed(4) @Avro.avroRecord model Word {}
       }
       `,
       `unsupported-type: The model "Word" carries both @record and @fixed. A file holds one schema, and a fixed type is a width rather than a record, so there is nothing to write.`,
@@ -304,10 +304,10 @@ describe("what the Avro walk refuses", () => {
     // an author and a schema no reader understands.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.logicalType("totally-made-up") scalar Odd extends int32;
-        @Avro.\`record\` model Event { value: Odd; }
+        @Avro.avroRecord model Event { value: Odd; }
       }
       `,
       `unknown-logical-type: "totally-made-up" is not a logical type the Avro specification defines. The specification defines decimal, uuid, date, time-millis, time-micros, timestamp-millis, timestamp-micros, local-timestamp-millis, local-timestamp-micros, duration.`,
@@ -317,10 +317,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a logical type written on an underlying type it does not go with", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.logicalType("uuid") scalar Id extends int32;
-        @Avro.\`record\` model Event { id: Id; }
+        @Avro.avroRecord model Event { id: Id; }
       }
       `,
       `logical-type-mismatch: The logical type "uuid" is written on int. The Avro specification writes it on string.`,
@@ -331,9 +331,9 @@ describe("what the Avro walk refuses", () => {
     // Avro annotates a type, and a union is not one.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
-        @Avro.\`record\` model Event {
+        @Avro.avroRecord model Event {
           @Avro.logicalType("uuid") id: string | int32;
         }
       }
@@ -345,10 +345,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a logical type written on a record", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         model Address { street: string; }
-        @Avro.\`record\` model Event {
+        @Avro.avroRecord model Event {
           @Avro.logicalType("uuid") at: Address;
         }
       }
@@ -362,10 +362,10 @@ describe("what the Avro walk refuses", () => {
     // describes nothing.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.logicalType("decimal") scalar Money extends bytes;
-        @Avro.\`record\` model Event { paid: Money; }
+        @Avro.avroRecord model Event { paid: Money; }
       }
       `,
       `invalid-decimal: An Avro decimal is written with a precision and a scale. A reader cannot place the point without them, so use @decimal rather than @logicalType("decimal").`,
@@ -375,10 +375,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a decimal precision that is not positive", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.decimal(0, 2) scalar Money extends bytes;
-        @Avro.\`record\` model Event { paid: Money; }
+        @Avro.avroRecord model Event { paid: Money; }
       }
       `,
       `invalid-decimal: "0" is not a precision an Avro decimal can have. A decimal holds a positive number of digits.`,
@@ -388,10 +388,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a decimal scale wider than its precision", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.decimal(2, 5) scalar Money extends bytes;
-        @Avro.\`record\` model Event { paid: Money; }
+        @Avro.avroRecord model Event { paid: Money; }
       }
       `,
       `invalid-decimal: A scale of "5" does not fit a precision of "2". The scale counts the digits after the point, so it is neither negative nor larger than the precision.`,
@@ -401,10 +401,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a duration on a fixed type of the wrong width", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.logicalType("duration") @Avro.fixed(8) scalar Span extends bytes;
-        @Avro.\`record\` model Event { span: Span; }
+        @Avro.avroRecord model Event { span: Span; }
       }
       `,
       `logical-type-mismatch: The logical type "duration" is written on a fixed type of twelve bytes, which hold the months, the days and the milliseconds.`,
@@ -417,10 +417,10 @@ describe("what the Avro walk refuses", () => {
     // number nobody can write.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.decimal(20, 2) @Avro.fixed(2) scalar Odd extends bytes;
-        @Avro.\`record\` model Event { odd: Odd; }
+        @Avro.avroRecord model Event { odd: Odd; }
       }
       `,
       `invalid-decimal: A precision of "20" does not fit a fixed type of 2 bytes, which hold at most 4 digits.`,
@@ -433,10 +433,10 @@ describe("what the Avro walk refuses", () => {
     // two orderings have to agree, and they agree by refusing.
     const refusal = `logical-type-mismatch: The logical type "duration" is written on a field that holds the named type "com.example.a.Span". A named type carries one definition wherever it occurs, so the logical type belongs on that declaration.`;
     const event = (fields: string): string => `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.fixed(12) scalar Span extends bytes;
-        @Avro.\`record\` model Event { ${fields} }
+        @Avro.avroRecord model Event { ${fields} }
       }
       `;
 
@@ -462,9 +462,9 @@ describe("what the Avro walk refuses", () => {
   it("refuses a field order Avro does not name", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
-        @Avro.\`record\` model Event {
+        @Avro.avroRecord model Event {
           @Avro.order("sideways") id: string;
         }
       }
@@ -476,10 +476,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses an alias of a named type that is not a full name", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.aliases("com.example.old-events.Event")
-        @Avro.\`record\` model Event { id: string; }
+        @Avro.avroRecord model Event { id: string; }
       }
       `,
       `invalid-name: "com.example.old-events.Event" is not a legal Avro alias. An alias of a named type is a full name: one or more legal Avro names, joined by dots.`,
@@ -490,9 +490,9 @@ describe("what the Avro walk refuses", () => {
     // A field carries no namespace, so its alias is one plain name.
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
-        @Avro.\`record\` model Event {
+        @Avro.avroRecord model Event {
           @Avro.aliases("order.id") id: string;
         }
       }
@@ -504,10 +504,10 @@ describe("what the Avro walk refuses", () => {
   it("refuses a fallback symbol the enum does not declare", async () => {
     await expectRefusal(
       `
-      @Avro.\`namespace\`("com.example.a")
+      @Avro.avroNamespace("com.example.a")
       namespace A {
         @Avro.enumDefault("NOPE") enum Channel { WEB, MOBILE }
-        @Avro.\`record\` model Event { channel: Channel; }
+        @Avro.avroRecord model Event { channel: Channel; }
       }
       `,
       `enum-default: The enum "Channel" declares no member named "NOPE". An Avro enum falls back to one of its own symbols.`,

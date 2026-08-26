@@ -27,11 +27,11 @@ const NAMESPACE = "com.example.a";
  */
 async function fieldType(declaration: string, type: string): Promise<unknown> {
   const files = await emitAvroFiles(`
-    @Avro.\`namespace\`("${NAMESPACE}")
+    @Avro.avroNamespace("${NAMESPACE}")
     namespace A {
       ${declaration}
 
-      @Avro.\`record\`
+      @Avro.avroRecord
       model Event { value: ${type}; }
     }
   `);
@@ -153,13 +153,13 @@ describe("the Avro logical types", () => {
     // name and nothing else. Writing the annotation again would be a second
     // definition of one name, which Avro forbids.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.decimal(9, 2)
         @Avro.fixed(4)
         scalar Money extends bytes;
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { paid: Money; refunded: Money; }
       }
     `);
@@ -183,9 +183,9 @@ describe("the Avro logical types", () => {
     // The annotation belongs to the field here, so the scalar stays a plain
     // long and only this one field carries the meaning.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event {
           @Avro.logicalType("timestamp-millis") at: int64;
           plain: int64;
@@ -208,11 +208,11 @@ describe("the Avro logical types", () => {
     // Avro annotates a type, and a union is not one. So the null branch sits
     // beside the annotated long, and the whole field is not annotated.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("${NAMESPACE}")
+      @Avro.avroNamespace("${NAMESPACE}")
       namespace A {
         @Avro.logicalType("timestamp-millis") scalar At extends int64;
 
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Event { at?: At; }
       }
     `);

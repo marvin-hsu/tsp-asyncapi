@@ -50,10 +50,10 @@ async function compileOneRecord(source: string): Promise<{ program: Program; mod
  * would be lost, and the walk refuses rather than lose it.
  */
 const REFUSED = `
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Orders {
     model Base { at: utcDateTime; }
-    @Avro.\`record\` model OrderPlaced extends Base { id: string; }
+    @Avro.avroRecord model OrderPlaced extends Base { id: string; }
   }
 `;
 
@@ -61,9 +61,9 @@ const REFUSED = `
  * A record the walk accepts, and one with no documentation on it.
  */
 const ACCEPTED = `
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Orders {
-    @Avro.\`record\` model OrderPlaced { id: string; note?: string; }
+    @Avro.avroRecord model OrderPlaced { id: string; note?: string; }
   }
 `;
 

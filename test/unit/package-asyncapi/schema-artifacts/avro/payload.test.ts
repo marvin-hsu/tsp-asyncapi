@@ -10,8 +10,7 @@
  * asks for a schema of a JSON based format to be inlined rather than carried
  * as a string. That is the first thing every case here reads.
  *
- * The Avro decorators are written qualified. `record` and `namespace` are
- * TypeSpec keywords, so they carry backticks as well.
+ * The Avro decorators are written qualified.
  */
 
 import { describe, expect, it } from "vitest";
@@ -97,7 +96,7 @@ const TWO_MESSAGES = `
   @service(#{ title: "Orders" })
   namespace Test;
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Orders {
     model Money {
       currency: string;
@@ -105,14 +104,14 @@ const TWO_MESSAGES = `
     }
 
     @message
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderPlaced {
       orderId: string;
       total: Money;
     }
 
     @message
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderShipped {
       orderId: string;
       carrier: string;
@@ -137,19 +136,19 @@ const SHARED_RECORD = `
   @service(#{ title: "Orders" })
   namespace Test;
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Placed {
     @message("OrderPlaced")
-    @Avro.\`record\`
+    @Avro.avroRecord
     model Ping {
       id: string;
     }
   }
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Archived {
     @message("OrderArchived")
-    @Avro.\`record\`
+    @Avro.avroRecord
     model Ping {
       id: string;
     }
@@ -218,10 +217,10 @@ describe("Unit: Avro generated payloads", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
         @message
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderEvent {
           orderId: string;
         }
@@ -299,7 +298,7 @@ describe("Unit: Avro generated payloads", () => {
   /**
    * A record the document asks nothing about is skipped, silently.
    *
-   * The model below carries `@Avro.record` and no `@AsyncAPI.message`, and the
+   * The model below carries `@Avro.avroRecord` and no `@AsyncAPI.message`, and the
    * Avro walk refuses it. A provider that walked it anyway would report a
    * problem about a message that does not exist, and would stop the emit of a
    * document that has nothing to do with it.
@@ -309,15 +308,15 @@ describe("Unit: Avro generated payloads", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
-        @Avro.\`record\`
+        @Avro.avroRecord
         model Internal {
           anything: unknown;
         }
 
         @message
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderPlaced {
           orderId: string;
         }
@@ -346,10 +345,10 @@ describe("Unit: Avro generated payloads", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
         @message
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderPlaced {
           anything: unknown;
         }
@@ -379,10 +378,10 @@ describe("Unit: Avro generated payloads", () => {
   it("reports the extra service as well as the refused record", async () => {
     const { doc, diagnostics } = await emit(`
       @service(#{ title: "Orders" })
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace First {
         @message
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderPlaced {
           anything: unknown;
         }
@@ -414,11 +413,11 @@ describe("Unit: Avro generated payloads", () => {
       @service(#{ title: "Orders" })
       namespace Test;
 
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Test.Orders {
         @message
         @rawPayload("${AVRO}", #{ type: "record", name: "Authored", fields: #[] })
-        @Avro.\`record\`
+        @Avro.avroRecord
         model OrderPlaced {
           orderId: string;
         }

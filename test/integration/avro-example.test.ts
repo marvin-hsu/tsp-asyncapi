@@ -241,29 +241,6 @@ describe("Integration: the Avro experimental notice", () => {
 });
 
 /**
- * The two decorator names TypeSpec reserves.
- *
- * `namespace` and `record` are reserved words, so a reader has to write
- * `` @Avro.`record` `` with backticks around the name. A page that writes
- * `@Avro.record` hands that reader a line the compiler answers with
- * `reserved-identifier`. Every page carries the backticked form, and this is
- * what keeps a plain one out.
- */
-const RESERVED_NAMES = ["namespace", "record"] as const;
-
-describe("Integration: the Avro reserved decorator names", () => {
-  it.each([...DIAGNOSTIC_PAGES, "README.md", "README.zh-TW.md"])(
-    "%s writes every reserved decorator name in backticks",
-    (page) => {
-      const text = readFileSync(new URL(page, ROOT), "utf8");
-      const plain = RESERVED_NAMES.filter((name) => text.includes(`@Avro.${name}`));
-
-      expect(plain, `${page} writes a name the compiler rejects`).toEqual([]);
-    },
-  );
-});
-
-/**
  * The Chinese pages of this package, in Taiwanese usage.
  *
  * The repository writes one term for one concept, and it writes the Taiwanese

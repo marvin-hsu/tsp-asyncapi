@@ -150,10 +150,22 @@ export const $lib = createTypeSpecLibrary({
         "unknown-scalar": paramMessage`Scalar '${"scalar"}' has no proto3 type, and no scalar it extends has one either. So model '${"name"}' of package '${"package"}' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.`,
       },
     },
+    "header-with-protobuf-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Property '${"name"}' of message '${"message"}' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.`,
+      },
+    },
     "avro-artifact-unavailable": {
       severity: "error",
       messages: {
-        default: paramMessage`Model '${"name"}' carries @Avro.record, and the Avro walk refused it: ${"reason"} So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.`,
+        default: paramMessage`Model '${"name"}' carries @Avro.avroRecord, and the Avro walk refused it: ${"reason"} So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.`,
+      },
+    },
+    "avro-record-keeps-header": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Message '${"name"}' lifts ${"fields"} out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.`,
       },
     },
     "avro-library-missing": {

@@ -19,7 +19,7 @@
  *
  * A payload is built only for a model the document asks one for, which is a
  * model that carries `@AsyncAPI.message` as well. A project that writes
- * `@Avro.record` for types outside the document keeps its build green, and no
+ * `@Avro.avroRecord` for types outside the document keeps its build green, and no
  * diagnostic names a model no message describes.
  *
  * A model the document asks about and this cannot answer for is a refusal.
@@ -36,13 +36,14 @@
  * and one compile speaks with one voice.
  */
 
-import type { Diagnostic, Model, Program } from "@typespec/compiler";
+import type { Diagnostic, Model, ModelProperty, Program } from "@typespec/compiler";
 import {
   emptySchemaArtifacts,
   listMessages,
   reportDiagnostic,
   type ExternalSchemaArtifact,
 } from "tsp-asyncapi-core";
+import { liftedFieldsOf } from "tsp-asyncapi-core/unstable";
 import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provider.js";
 
 /**
@@ -123,7 +124,7 @@ async function loadAvro(): Promise<AvroLibrary> {
 }
 
 /**
- * Renders a payload for every message model `@Avro.record` marks.
+ * Renders a payload for every message model `@Avro.avroRecord` marks.
  *
  * @param program - The compiled program
  * @param load - How to reach the Avro library
@@ -138,7 +139,7 @@ async function collectAvroArtifacts(
   try {
     avro = await load();
   } catch (error) {
-    // The author writes `@Avro.record`, so the library is installed whenever a
+    // The author writes `@Avro.avroRecord`, so the library is installed whenever a
     // model carries it. A load that fails is a broken install, and the
     // diagnostic says so rather than leaving the emit silent.
     reportDiagnostic(program, {
@@ -150,6 +151,7 @@ async function collectAvroArtifacts(
   }
 
   const asked = listMessages(program);
+  const lifted = liftedFieldsOf(program, asked.keys());
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();
 
   let refused = false;
@@ -159,7 +161,13 @@ async function collectAvroArtifacts(
     // that does not exist.
     if (!asked.has(model)) continue;
 
-    const [record, diagnostics] = avro.unstable.buildAvroRecordWithDiagnostics(program, model);
+    reportHeadersLeftInFile(program, model, lifted);
+
+    const [record, diagnostics] = avro.unstable.buildAvroRecordWithDiagnostics(
+      program,
+      model,
+      lifted,
+    );
     if (record === undefined) {
       reportDiagnostic(program, {
         code: "avro-artifact-unavailable",
@@ -226,4 +234,35 @@ function fullNameOf(record: AvroFullName): string {
  */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Reports the fields this payload leaves out and the `.avsc` file keeps.
+ *
+ * `tsp-avro` writes the whole model, because Avro has no notion of a message
+ * header and that library reads no AsyncAPI decorator. So the two describe
+ * different fields, and neither one is wrong on its own terms.
+ *
+ * One report names every lifted field of the message. A report per field
+ * would say the same thing about the same file several times.
+ *
+ * @param program - The compiled program
+ * @param model - A message model that carries `@Avro.avroRecord`
+ * @param lifted - Every property a `@header` takes out of a payload
+ */
+function reportHeadersLeftInFile(
+  program: Program,
+  model: Model,
+  lifted: ReadonlySet<ModelProperty>,
+): void {
+  const names = [...model.properties.values()]
+    .filter((property) => lifted.has(property))
+    .map((property) => `'${property.name}'`);
+  if (names.length === 0) return;
+
+  reportDiagnostic(program, {
+    code: "avro-record-keeps-header",
+    target: model,
+    format: { name: model.name, fields: names.join(", ") },
+  });
 }

@@ -40,10 +40,10 @@ const SOURCE = `
   @service(#{ title: "Orders" })
   namespace Test;
 
-  @Avro.\`namespace\`("com.example.orders")
+  @Avro.avroNamespace("com.example.orders")
   namespace Test.Orders {
     @message
-    @Avro.\`record\`
+    @Avro.avroRecord
     model OrderPlaced {
       orderId: string;
     }

@@ -32,7 +32,7 @@ options:
 ```typespec
 import "tsp-avro";
 
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   /** Where an order goes. */
   model Address {
@@ -41,7 +41,7 @@ namespace Orders {
   }
 
   /** An order left the checkout. */
-  @Avro.`record`
+  @Avro.avroRecord
   model OrderPlaced {
     id: string;
     shipping: Address;
@@ -52,20 +52,12 @@ namespace Orders {
 
 這份原始碼寫出一個檔案：`com/example/orders/OrderPlaced.avsc`。
 
-## 兩個保留字 decorator 名稱都要加反引號
-
-TypeSpec 把 `namespace` 與 `record` 列為保留字。請寫成
-`` @Avro.`namespace` `` 與 `` @Avro.`record` ``，名稱兩側加反引號。
-少了反引號，compiler 會回報 `reserved-identifier`。
-
-上游的 Protobuf library 也以同樣理由寫成 `` @Protobuf.`package` ``。
-
 ## Decorator
 
 | Decorator                         | 目標                             | 作用                                          |
 | --------------------------------- | -------------------------------- | --------------------------------------------- |
-| ``@Avro.`namespace`(name)``       | `Namespace`                      | 宣告 Avro namespace。最近的祖先生效。         |
-| `` @Avro.`record` ``              | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。 |
+| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。最近的祖先生效。         |
+| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。 |
 | `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                  |
 | `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。       |
 | `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。          |

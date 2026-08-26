@@ -4,8 +4,8 @@ using TypeSpec.Reflection;
 
 namespace Avro;
 
-extern dec `namespace`(target: Namespace, name: valueof string);
-extern dec `record`(target: Model);
+extern dec avroNamespace(target: Namespace, name: valueof string);
+extern dec avroRecord(target: Model);
 extern dec aliases(target: Model | ModelProperty | Enum, ...names: valueof string[]);
 extern dec order(target: ModelProperty, mode: valueof string);
 extern dec fixed(target: Model | Scalar, size: valueof int32);

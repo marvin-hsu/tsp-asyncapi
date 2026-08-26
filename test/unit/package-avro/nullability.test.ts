@@ -34,9 +34,9 @@ import {
  */
 async function fieldOf(property: string): Promise<RenderedField> {
   const files = await emitAvroFiles(`
-    @Avro.\`namespace\`("com.example.rows")
+    @Avro.avroNamespace("com.example.rows")
     namespace Rows {
-      @Avro.\`record\` model Row { ${property} }
+      @Avro.avroRecord model Row { ${property} }
     }
   `);
   const schema = files["com/example/rows/Row.avsc"];
@@ -110,10 +110,10 @@ describe("how a field carries null and a default", () => {
 
   it("carries a default of every kind a supported type can hold", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.defaults")
+      @Avro.avroNamespace("com.example.defaults")
       namespace Defaults {
         enum Colour { Red, Green }
-        @Avro.\`record\` model Row {
+        @Avro.avroRecord model Row {
           flag: boolean = false;
           count: int32 = 3;
           ratio: float64 = 1.5;
@@ -139,9 +139,9 @@ describe("how a field carries null and a default", () => {
     // bytes. `default` is last, which is the order the Avro specification
     // lists the members of a field in.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.rows")
+      @Avro.avroNamespace("com.example.rows")
       namespace Rows {
-        @Avro.\`record\` model Row {
+        @Avro.avroRecord model Row {
           /** Why it is here. */
           x?: string;
         }
@@ -157,9 +157,9 @@ describe("how a field carries null and a default", () => {
     // implementation what the schema means: a record written with no `x` at
     // all comes back holding the default.
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.rows")
+      @Avro.avroNamespace("com.example.rows")
       namespace Rows {
-        @Avro.\`record\` model Row { x?: string = "a"; }
+        @Avro.avroRecord model Row { x?: string = "a"; }
       }
     `);
     const type = acceptSchema(files["com/example/rows/Row.avsc"]);
@@ -189,10 +189,10 @@ describe("how a field carries null and a default", () => {
 
   it("puts an enum branch first when the default is one of its symbols", async () => {
     const files = await emitAvroFiles(`
-      @Avro.\`namespace\`("com.example.rows")
+      @Avro.avroNamespace("com.example.rows")
       namespace Rows {
         enum Colour { Red, Green }
-        @Avro.\`record\` model Row { x?: string | Colour = Colour.Red; }
+        @Avro.avroRecord model Row { x?: string | Colour = Colour.Red; }
       }
     `);
     const field = fieldNamed(files["com/example/rows/Row.avsc"], "x");
@@ -206,10 +206,10 @@ describe("how a field carries null and a default", () => {
     // the branch that has to lead cannot be named. Writing the field anyway
     // would put the default against whichever branch came first.
     const result = await emitAvro(`
-      @Avro.\`namespace\`("com.example.rows")
+      @Avro.avroNamespace("com.example.rows")
       namespace Rows {
         model Inner { a: string; }
-        @Avro.\`record\` model Row { x?: Inner | int32 = #{ a: "z" }; }
+        @Avro.avroRecord model Row { x?: Inner | int32 = #{ a: "z" }; }
       }
     `);
 
@@ -224,9 +224,9 @@ describe("how a field carries null and a default", () => {
     // null for it, and null is a legal Avro default, so an emitter that took
     // the answer would quietly write a field the author never asked for.
     const result = await emitAvro(`
-      @Avro.\`namespace\`("com.example.rows")
+      @Avro.avroNamespace("com.example.rows")
       namespace Rows {
-        @Avro.\`record\` model Row { x?: int64 = 9007199254740993; }
+        @Avro.avroRecord model Row { x?: int64 = 9007199254740993; }
       }
     `);
 

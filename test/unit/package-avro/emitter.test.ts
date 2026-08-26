@@ -35,9 +35,9 @@ describe("tsp-avro", () => {
     // unknown decorator. So an empty diagnostic list plus one file is what
     // proves the whole wiring holds.
     const [result, diagnostics] = await AvroTester.emit(PACKAGE_NAME).compileAndDiagnose(`
-      @Avro.\`namespace\`("com.example.orders")
+      @Avro.avroNamespace("com.example.orders")
       namespace Orders {
-        @Avro.\`record\` model OrderPlaced { id: string; }
+        @Avro.avroRecord model OrderPlaced { id: string; }
       }
     `);
 
@@ -67,8 +67,8 @@ describe("tsp-avro", () => {
     // happen.
     const runner = await AvroTester.createInstance();
     await runner.compile(`
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: string; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { id: string; } }
     `);
 
     const writeFile = vi.spyOn(runner.program.host, "writeFile");
@@ -82,8 +82,8 @@ describe("tsp-avro", () => {
   it("writes the same run when it is not a dry run", async () => {
     const runner = await AvroTester.createInstance();
     await runner.compile(`
-      @Avro.\`namespace\`("com.example.a")
-      namespace A { @Avro.\`record\` model Event { id: string; } }
+      @Avro.avroNamespace("com.example.a")
+      namespace A { @Avro.avroRecord model Event { id: string; } }
     `);
 
     const writeFile = vi.spyOn(runner.program.host, "writeFile");

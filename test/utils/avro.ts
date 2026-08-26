@@ -237,7 +237,7 @@ export async function compileAvro(source: string): Promise<Program> {
 }
 
 /**
- * Finds one `@Avro.record` model by name.
+ * Finds one `@Avro.avroRecord` model by name.
  *
  * @param program - The compiled program
  * @param modelName - The name the source gives the model
@@ -246,7 +246,7 @@ export async function compileAvro(source: string): Promise<Program> {
 export function avroModelNamed(program: Program, modelName: string): Model {
   const model = listRecords(program).find((one) => one.name === modelName);
   if (model === undefined) {
-    throw new Error(`The source declares no @Avro.record model named '${modelName}'.`);
+    throw new Error(`The source declares no @Avro.avroRecord model named '${modelName}'.`);
   }
   return model;
 }

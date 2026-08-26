@@ -663,11 +663,27 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 **修法：** 在 model 所在的 namespace 加上 `@Protobuf.package`。另外兩種訊息則改寫訊息指名的型別，或從該 model 移除 `@Protobuf.message`。
 
+### `header-with-protobuf-field`
+
+> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.
+
+`@header` 把屬性移出 payload。`@Protobuf.field` 給它一個 proto message 裡的位置。產生的 payload 沒辦法同時做到兩件事。
+
+每個帶著兩者的屬性都會被指名。修好一個再編譯一次找下一個，這種工作 emitter 一次做完。
+
+不會寫出文件。否則 payload 描述的形狀會與同一個 message 的 `.proto` 檔案矛盾。
+
+官方 emitter 寫出的 `.proto` 檔案仍然宣告那個欄位，因為那個 emitter 要求 `@Protobuf.message` 的每個屬性都有欄位編號。這就是為什麼不能改成把屬性從 proto message 裡拿掉。
+
+[`protobuf-field-on-header`](./linter#protobuf-field-on-header) 規則把同一種組合報成警告，而且不論預覽功能開沒開都會執行。
+
+**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+
 ### `avro-artifact-unavailable`
 
-> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+> Model '\<name\>' carries @Avro.avroRecord, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.
 
-某個 model 同時有 `@Avro.record` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
+某個 model 同時有 `@Avro.avroRecord` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
 
 原因是引述，不是原樣轉發。診斷會帶上建立它的那個套件的代碼。只 emit 這個套件的專案不該讀到另一個套件的代碼。同時 emit 兩者的專案，否則每一條拒絕都會讀到兩次，兩個 emitter 各一次。
 
@@ -675,9 +691,25 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 不會寫出文件。那個 model 的 payload 會退回成它的 TypeSpec 型別產生的 schema。那份檔案用一般的 JSON Schema 回應了一個要求 Avro 的請求，而且檔案裡沒有任何一處說明這件事。
 
-只有 `@Avro.record` 而沒有 `@AsyncAPI.message` 的 model 不會回報任何東西。它沒有要求任何 payload，所以替其他型別寫 Avro record 的專案不會因此變紅。
+只有 `@Avro.avroRecord` 而沒有 `@AsyncAPI.message` 的 model 不會回報任何東西。它沒有要求任何 payload，所以替其他型別寫 Avro record 的專案不會因此變紅。
 
-**修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.record`。
+**修法：** 修改原因指出的那個部分，或是從 model 移除 `@Avro.avroRecord`。
+
+### `avro-record-keeps-header`
+
+> Message '\<name\>' lifts \<fields\> out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
+
+一個 message 用 `@header` 移出一個以上的欄位，而且帶著 `@Avro.avroRecord`。產生的 payload 略過那些欄位，因為 header 走在 payload 旁邊。
+
+`.avsc` 檔案由 `tsp-avro` 寫出，那個套件不讀任何 AsyncAPI decorator。Avro 也沒有 message header 這個概念，所以那個檔案宣告 model 的每一個屬性。
+
+兩份描述各自都沒有錯。emitter 把差異講出來，避免它稍後才被發現——例如被一個拿兩者互相驗證的消費端發現。
+
+文件仍然會寫出。它帶的 payload 對一個 header 走在旁邊的 message 而言是正確的。
+
+一次回報指名這個 message 的所有被移出欄位。每個欄位報一次，等於對同一個檔案講同一件事好幾遍。
+
+**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣沒有東西離開 payload，record 與檔案就會描述同一組欄位。
 
 ### `avro-library-missing`
 

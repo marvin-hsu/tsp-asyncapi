@@ -179,6 +179,33 @@ namespace Orders {
 
 **修法：** 加上 `@Protobuf.message` 與每個屬性的 `@Protobuf.field`，或用 `@rawPayload` 寫下 schema。
 
+### `protobuf-field-on-header`
+
+在 `recommended` 裡。不論 [`preview-features`](./emitter-options#預覽功能) 有沒有指名 `protobuf` 都會執行。
+
+> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field.
+
+`@header` 把屬性移出 payload。`@Protobuf.field` 給它一個 proto message 裡的位置。兩句話各自對一個檔案成立。官方 emitter 寫出的 `.proto` 檔案宣告了那個欄位，AsyncAPI 的 payload 則不帶它。所以同一個 message 在兩個檔案裡形狀不同。
+
+```typespec
+// 會回報。traceId 是 proto message 的第 1 欄，卻不在 payload 裡。
+@Protobuf.package({ name: "com.example.orders" })
+namespace Orders {
+  @message
+  @Protobuf.message
+  model OrderPlaced {
+    @header @Protobuf.field(1) traceId: string;
+    @Protobuf.field(2) orderId: string;
+  }
+}
+```
+
+這條規則不等預覽功能。官方 emitter 兩種情況都會寫出 `.proto` 檔案，`@header` 兩種情況也都會把屬性移出 payload。
+
+預覽功能開著時，同一種組合另外會報一個錯誤。產生的 payload 略過那個屬性，所以那個欄位編號指向一個 payload 裡沒有位置的欄位。
+
+**修法：** 把 headers 移進自己的 model，用 `@headers` 指向它。這樣 proto message 與 payload 就會描述同一組欄位。
+
 ### `avro-content-type-undeclared`
 
 在 `recommended` 裡。只在 [`preview-features`](./emitter-options#預覽功能) 指名 `avro` 時執行。
@@ -189,7 +216,7 @@ namespace Orders {
 
 ```typespec
 // 會回報。content type 說是 Avro，payload 卻是 JSON Schema。
-@Avro.`namespace`("com.example.orders")
+@Avro.avroNamespace("com.example.orders")
 namespace Orders {
   @message
   @contentType("application/vnd.apache.avro")
@@ -199,11 +226,11 @@ namespace Orders {
 }
 ```
 
-兩種寫法會給 message 一份 Avro payload，任一種都會讓這條規則安靜。`` @Avro.`record` `` 讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的 schema。`record` 與 `namespace` 是 TypeSpec 的保留字，所以兩個 decorator 名稱都要加上反引號。
+兩種寫法會給 message 一份 Avro payload，任一種都會讓這條規則安靜。`@Avro.avroRecord` 讓預覽功能算繪出 schema。`@rawPayload` 則帶著作者自己寫的 schema。
 
 規則讀媒體型別本身，忽略分號後面的內容，所以 `;version=1.9.0` 這種參數不會遮住問題。`application/vnd.apache.avro`、`application/vnd.apache.avro+json` 與 `application/vnd.apache.avro+yaml` 都算。
 
-**修法：** 加上 `` @Avro.`record` ``，或用 `@rawPayload` 寫下 schema。
+**修法：** 加上 `@Avro.avroRecord`，或用 `@rawPayload` 寫下 schema。
 
 ### `unused-security-scheme`
 

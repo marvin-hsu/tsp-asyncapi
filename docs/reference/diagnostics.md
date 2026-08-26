@@ -668,11 +668,27 @@ The package of a model is decided by the nearest namespace above it that carries
 
 **Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
 
+### `header-with-protobuf-field`
+
+> Property '\<name\>' of message '\<message\>' carries both @header and @Protobuf.field. A header travels beside the payload, so the generated payload leaves it out, and the field number then names a field that payload has no room for. Move the headers into their own model and point at it with @headers.
+
+`@header` takes a property out of the payload. `@Protobuf.field` gives it a place inside the proto message. The generated payload cannot do both.
+
+Every property that carries both is named. Fixing one and compiling again to find the next is work the emitter does at once.
+
+No document is written. The payload would otherwise describe a shape the `.proto` file of the same message contradicts.
+
+The `.proto` file the official emitter writes still declares the field, because that emitter requires a field number on every property of a `@Protobuf.message`. That is why the property cannot simply be left out of the proto message instead.
+
+The [`protobuf-field-on-header`](./linter#protobuf-field-on-header) rule reports the same combination as a warning, and it runs whether or not the preview feature is on.
+
+**Fix:** move the headers into their own model and point at it with `@headers`. The proto message and the payload then describe the same fields.
+
 ### `avro-artifact-unavailable`
 
-> Model '\<name\>' carries @Avro.record, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.record from the model. Emitting the Avro files themselves reports every reason rather than the first.
+> Model '\<name\>' carries @Avro.avroRecord, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.
 
-A model carries `@Avro.record` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
+A model carries `@Avro.avroRecord` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
 
 The reason is quoted rather than forwarded. A diagnostic carries the code of the library that built it. A project that emits only this library should not read the codes of another one. A project that emits both would otherwise read every refusal twice, once from each emitter.
 
@@ -680,9 +696,25 @@ Only the first reason is quoted. The Avro walk keeps going after a refusal, so o
 
 No document is written. The payload of that model would fall back to the schema its TypeSpec type produces. That file answers a request for Avro with ordinary JSON Schema, and nothing in it says so.
 
-A model that carries `@Avro.record` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that writes Avro records for other types keeps its build green.
+A model that carries `@Avro.avroRecord` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that writes Avro records for other types keeps its build green.
 
-**Fix:** change the part of the model the reason names, or remove `@Avro.record` from the model.
+**Fix:** change the part of the model the reason names, or remove `@Avro.avroRecord` from the model.
+
+### `avro-record-keeps-header`
+
+> Message '\<name\>' lifts \<fields\> out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
+
+A message lifts one or more fields with `@header`, and it carries `@Avro.avroRecord`. The generated payload leaves those fields out, because a header travels beside the payload.
+
+The `.avsc` file is written by `tsp-avro`, which reads no AsyncAPI decorator. Avro has no notion of a message header either, so that file declares every property of the model.
+
+Neither description is wrong on its own terms. The emitter names the difference so it is not found later, by a consumer that validated one against the other.
+
+The document is still written. The payload it carries is the correct one for a message whose headers travel beside it.
+
+One report names every lifted field of the message. A report per field would say the same thing about the same file several times.
+
+**Fix:** move the headers into their own model and point at it with `@headers`. Nothing leaves the payload then, so the record and the file describe the same fields.
 
 ### `avro-library-missing`
 

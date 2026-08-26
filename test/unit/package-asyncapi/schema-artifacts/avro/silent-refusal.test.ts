@@ -38,7 +38,7 @@ const SOURCE = `
   namespace Test;
 
   @message
-  @Avro.\`record\`
+  @Avro.avroRecord
   model OrderPlaced {
     orderId: string;
   }
