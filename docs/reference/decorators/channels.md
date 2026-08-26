@@ -1,6 +1,6 @@
 ---
 title: "Channels"
-description: "Declares one channel. The channel owns the operations declared directly inside the interface or namespace. A nested interface, and a namespace nest..."
+description: "Exact signatures for @channel, @dynamicChannel, and @parameterLocation."
 ---
 
 # Channels

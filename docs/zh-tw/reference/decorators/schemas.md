@@ -1,6 +1,6 @@
 ---
 title: "結構與內建 (Schemas)"
-description: "標註在 union 上，輸出 `oneOf`（恰好一個 variant 成立）取代預設的 `anyOf`（至少一個成立）。在 [schema 轉換層](../../guide/schema-conversion/unions)生效："
+description: "@oneOf 與 @jsonSchemaExtension 的精確簽章、schema key 怎麼組成，以及 schema 層會讀取的 compiler 內建 decorator。"
 ---
 
 # 結構與內建 (Schemas)

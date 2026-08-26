@@ -1,6 +1,6 @@
 ---
 title: "Operations"
-description: 'Marks one operation as a message this application sends. The emitted operation carries `action: "send"`. AsyncAPI 3 reads the action from the poi...'
+description: "Exact signatures for @send, @receive, @replyChannel, and @replyAddress."
 ---
 
 # Operations

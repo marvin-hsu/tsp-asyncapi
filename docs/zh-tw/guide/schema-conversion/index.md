@@ -1,6 +1,6 @@
 ---
 title: "Schema 轉換"
-description: "本頁是參考文件：說明 emitter 如何把每種 TypeSpec 構件轉換成 [AsyncAPI Schema Object](https://www.asyncapi.com/docs/reference/specification/v3.0.0#schemaObject)（JSON Sc..."
+description: "emitter 怎麼把每種 TypeSpec 構件轉成 AsyncAPI Schema Object，一種構件一頁。"
 ---
 
 # Schema 轉換

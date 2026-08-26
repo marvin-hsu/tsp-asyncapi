@@ -1,6 +1,6 @@
 ---
 title: "Servers"
-description: "Declares one server the application connects to. The `name` argument becomes the key of that server in the root `servers` map. `host` and `protocol..."
+description: "Exact signatures for @server and @useServer."
 ---
 
 # Servers

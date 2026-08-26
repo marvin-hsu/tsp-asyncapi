@@ -1,6 +1,6 @@
 ---
 title: "Examples"
-description: "Eighteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory..."
+description: "Eighteen worked examples in the repository, each a compilable project with its TypeSpec source, its tspconfig.yaml, and the document it emits."
 ---
 
 # Examples
