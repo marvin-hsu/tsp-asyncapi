@@ -81,9 +81,6 @@ export function availableFeatures(
   return new Set(providers.map((provider) => provider.id));
 }
 
-/** The two slots of a message that take a generated schema. */
-type ArtifactSlot = "payload" | "headers";
-
 /**
  * What one collection produced, and whether it refused anything.
  *
@@ -123,27 +120,20 @@ export async function collectSchemaArtifacts(
 
   const collected = await Promise.all(enabled.map((provider) => provider.collect(program)));
   const indexes = collected.map((one) => one.artifacts);
-  const payload = mergeSlot(
+  const payload = mergePayloads(
     program,
-    "payload",
     indexes.map((index) => index.payloadFor),
   );
-  const headers = mergeSlot(
-    program,
-    "headers",
-    indexes.map((index) => index.headersFor),
-  );
   return {
-    artifacts: { payloadFor: payload.artifacts, headersFor: headers.artifacts },
-    refused: payload.refused || headers.refused || collected.some((one) => one.refused),
+    artifacts: { payloadFor: payload.artifacts },
+    refused: payload.refused || collected.some((one) => one.refused),
   };
 }
 
 /**
- * Merges one slot of every index into one map.
+ * Merges the payload map of every index into one.
  *
- * Two providers that claim one model and one slot are a conflict, and there
- * is no winner. Keeping the first would make the answer depend on the order
+ * Two providers that claim one model are a conflict, and there is no winner. Keeping the first would make the answer depend on the order
  * the registry lists them, which is not something a project states. So both
  * are dropped.
  *
@@ -154,14 +144,12 @@ export async function collectSchemaArtifacts(
  * too, and the caller writes nothing.
  *
  * @param program - The program, to report against
- * @param slot - Which schema of the message the conflict is about
- * @param maps - What each enabled provider produced for that slot
+ * @param maps - What each enabled provider produced
  * @returns The artifacts no other provider also claimed, and whether any
  * conflict was found
  */
-function mergeSlot(
+function mergePayloads(
   program: Program,
-  slot: ArtifactSlot,
   maps: readonly ReadonlyMap<Model, ExternalSchemaArtifact>[],
 ): { artifacts: ReadonlyMap<Model, ExternalSchemaArtifact>; refused: boolean } {
   const merged = new Map<Model, ExternalSchemaArtifact>();
@@ -179,7 +167,7 @@ function mergeSlot(
       reportDiagnostic(program, {
         code: "conflicting-generated-schema-source",
         target: model,
-        format: { slot, first: owner.provider, second: artifact.provider },
+        format: { first: owner.provider, second: artifact.provider },
       });
     }
   }

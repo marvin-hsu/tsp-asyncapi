@@ -93,7 +93,7 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
     });
   }
 
-  return { artifacts: { payloadFor, headersFor: new Map() }, refused };
+  return { artifacts: { payloadFor }, refused };
 }
 
 /**

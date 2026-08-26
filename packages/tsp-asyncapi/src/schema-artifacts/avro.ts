@@ -180,7 +180,7 @@ async function collectAvroArtifacts(
     });
   }
 
-  return { artifacts: { payloadFor, headersFor: new Map() }, refused };
+  return { artifacts: { payloadFor }, refused };
 }
 
 /**

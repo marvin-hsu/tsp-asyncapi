@@ -140,7 +140,6 @@ async function documentOf(drawn: readonly Assignment[]): Promise<AsyncAPIDocumen
     {},
     {
       payloadFor,
-      headersFor: new Map(),
     },
   );
 }

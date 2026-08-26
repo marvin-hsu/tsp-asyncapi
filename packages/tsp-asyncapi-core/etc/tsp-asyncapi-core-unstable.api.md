@@ -257,7 +257,6 @@ export function resolveService(program: Program, service: Service | undefined, p
 
 // @public
 export interface SchemaArtifactIndex {
-    readonly headersFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
     readonly payloadFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
 }
 

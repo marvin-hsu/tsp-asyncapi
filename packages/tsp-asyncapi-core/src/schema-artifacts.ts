@@ -43,19 +43,19 @@ export interface ExternalSchemaArtifact {
 }
 
 /**
- * Every artifact one collection produced, by model and by slot.
+ * Every artifact one collection produced, by model.
  *
- * A message has two schema slots, and each one takes its own artifact. Both
- * slots are named here from the start, so a provider that fills the headers
- * later needs no change to this type.
+ * A message has two schema slots, and only the payload takes an artifact. A
+ * header travels beside the message as its own key and value, so no transport
+ * carries the headers object as one encoded block, and neither Protobuf nor
+ * Avro can name a field `x-correlation-id` in the first place. Headers are
+ * lowered from their TypeSpec model, whatever the payload is written in.
  *
  * @public
  */
 export interface SchemaArtifactIndex {
   /** The artifact that describes the payload of each model. */
   readonly payloadFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
-  /** The artifact that describes the headers of each model. */
-  readonly headersFor: ReadonlyMap<Model, ExternalSchemaArtifact>;
 }
 
 /**
@@ -69,5 +69,4 @@ export interface SchemaArtifactIndex {
  */
 export const emptySchemaArtifacts: SchemaArtifactIndex = {
   payloadFor: new Map<Model, ExternalSchemaArtifact>(),
-  headersFor: new Map<Model, ExternalSchemaArtifact>(),
 };
