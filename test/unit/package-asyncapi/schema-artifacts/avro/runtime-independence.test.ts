@@ -97,7 +97,7 @@ describe("Unit: Avro run time independence", () => {
     expect(manifest.dependencies["tsp-avro"]).toBeUndefined();
     expect(manifest.devDependencies["tsp-avro"]).toBe("workspace:~");
     // The range is the experimental line. It moves when that package does.
-    expect(manifest.peerDependencies["tsp-avro"]).toBe("0.1.x");
+    expect(manifest.peerDependencies["tsp-avro"]).toBe("0.2.x");
     expect(manifest.peerDependenciesMeta["tsp-avro"]?.optional).toBe(true);
   });
 

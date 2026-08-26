@@ -697,7 +697,7 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 ### `avro-record-keeps-header`
 
-> Message '\<name\>' lifts \<fields\> out of its payload with @header, and the generated Avro payload leaves them out. The .avsc file 'tsp-avro' writes still declares them, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
+> Message '\<name\>' lifts \<fields\> out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.
 
 一個 message 用 `@header` 移出一個以上的欄位，而且帶著 `@Avro.avroRecord`。產生的 payload 略過那些欄位，因為 header 走在 payload 旁邊。
 

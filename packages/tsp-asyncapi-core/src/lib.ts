@@ -165,7 +165,7 @@ export const $lib = createTypeSpecLibrary({
     "avro-record-keeps-header": {
       severity: "warning",
       messages: {
-        default: paramMessage`Message '${"name"}' lifts ${"fields"} out of its payload with @header, and the generated Avro payload leaves them out. The .avsc file 'tsp-avro' writes still declares them, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.`,
+        default: paramMessage`Message '${"name"}' lifts ${"fields"} out of its payload with @header. A header travels beside the payload, so the generated Avro payload leaves out every field a @header marks. The .avsc file 'tsp-avro' writes declares every property of the model, because Avro has no notion of a message header. So the file and the payload describe different fields. Move the headers into their own model and point at it with @headers to keep the two the same.`,
       },
     },
     "avro-library-missing": {

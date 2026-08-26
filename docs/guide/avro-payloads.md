@@ -26,10 +26,10 @@ Without the feature the `tsp-avro` decorators change nothing here. The models lo
 Install the Avro library next to this emitter.
 
 ```bash
-npm install "tsp-avro@0.1.x"
+npm install "tsp-avro@0.2.x"
 ```
 
-This release supports the `0.1.x` range of that library. `tsp-avro` is an optional peer dependency of this emitter. A project that never turns the feature on never installs it, and never loads it.
+This release supports the `0.2.x` range of that library. `tsp-avro` is an optional peer dependency of this emitter. A project that never turns the feature on never installs it, and never loads it.
 
 Then name the feature in `tspconfig.yaml`.
 
