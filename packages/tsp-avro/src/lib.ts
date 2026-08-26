@@ -148,7 +148,7 @@ export const $lib = createTypeSpecLibrary({
     "header-property-dropped": {
       severity: "warning",
       messages: {
-        default: paramMessage`The property "${"name"}" of "${"record"}" carries @AsyncAPI.header, so it travels beside the message rather than inside it. Avro has no notion of a message header, and this record leaves the property out. The AsyncAPI document describes it in the headers of the message.`,
+        default: paramMessage`The property "${"name"}" of "${"record"}" carries @AsyncAPI.header, so it travels beside the message rather than inside it. Avro has no notion of a message header, and this record leaves the property out.`,
       },
     },
     "enum-member-value": {
