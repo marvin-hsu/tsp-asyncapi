@@ -7,9 +7,9 @@ description: "AsyncAPI 3 有兩種方式描述 request/reply。本頁介紹兩�
 
 AsyncAPI 3 有兩種方式描述 request/reply。本頁介紹兩種寫法，並說明各自的適用時機。
 
-## 先從 operation 說起
+## operation
 
-operation 是這個應用在某個 channel 上做的事。[`@send`](../reference/decorators/operations#send) 標記自己送出去的 message，[`@receive`](../reference/decorators/operations#receive) 標記自己收進來的 message。視角一律是自己這個應用，不是 broker。
+operation 是這個應用程式在某個 channel 上做的事。[`@send`](../reference/decorators/operations#send) 表示應用程式發出去的 message，[`@receive`](../reference/decorators/operations#receive) 表示應用程式預期會接收到的 message。
 
 ```typespec
 @message
@@ -40,11 +40,11 @@ operations:
       - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
-`@send` 的參數型別是送出去的 message，回傳型別是收回來的回覆。`@receive` 反過來，回傳型別是收進來的 message，參數型別是送出去的回覆。
+上面兩個 operation 用的是同一個 `OrderCreated`。方向屬於 operation，不屬於 message，所以同一個 message 可以在一個 operation 是 send，在另一個是 receive。
 
 ## `reply` 物件
 
-簽章兩邊都指到同一個 channel 的 message 時，emitter 就輸出 `reply` 物件。同一個 channel 上的 request/reply 不用另外標記。
+`reply` 由一個同時定義輸入與輸出的 operation 產生。
 
 ```typespec
 @message
@@ -78,19 +78,57 @@ operations:
         - $ref: "#/channels/orders.create/messages/OrderAccepted"
 ```
 
-### 回覆走另一個 channel
+### 不使用同一個 channel 回覆
 
-回覆走不同 channel 時，用 [`@replyChannel`](../reference/decorators/operations#replychannel)。引數是那個 channel 所在的 interface 或 namespace，不是 channel 的 id。
+回覆走不同 channel 時，用 [`@replyChannel`](../reference/decorators/operations#replychannel)。
 
-回覆 message 不會列在請求 channel 的 `messages` 底下，而是列在回覆 channel 底下。AsyncAPI 把這個欄位讀成「走這個 channel 的 message」，而回覆走的是回覆 channel。
+```typespec
+@channel("orders.replies")
+interface OrderReplies {}
 
-回覆 channel 因此不需要自己的 operation。純粹為了接回應而存在的 channel 可以是空的，emitter 一樣會把回覆 message 放進去。
+@channel("orders.create")
+interface OrderCommands {
+  @send
+  @replyChannel(OrderReplies)
+  op createOrder(command: CreateOrder): OrderAccepted;
+}
+```
 
-### 回覆位址在執行期才決定
+```yaml
+channels:
+  orders.replies:
+    address: orders.replies
+    messages:
+      OrderAccepted:
+        $ref: "#/components/messages/OrderAccepted"
+  orders.create:
+    address: orders.create
+    messages:
+      CreateOrder:
+        $ref: "#/components/messages/CreateOrder"
+operations:
+  createOrder:
+    action: send
+    channel:
+      $ref: "#/channels/orders.create"
+    messages:
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
+    reply:
+      channel:
+        $ref: "#/channels/orders.replies"
+      messages:
+        - $ref: "#/channels/orders.replies/messages/OrderAccepted"
+```
 
-回覆位址要到執行期才知道時，用 [`@replyAddress`](../reference/decorators/operations#replyaddress)。送出端把位址寫進 message，回應端從那裡讀。
+`OrderAccepted` 列在 `orders.replies` 底下，不在 `orders.create` 底下。channel 的 `messages` 是「走這個 channel 的 message」，而回覆走的是 reply channel。
 
-AsyncAPI 規定這種回覆 channel 的 `address` 必須是 `null`，那個 channel 因此要用 [`@dynamicChannel`](../reference/decorators/channels#dynamicchannel) 宣告。
+`OrderReplies` 是空的 interface，沒有自己的 operation。reply channel 不需要 operation，emitter 一樣會把回覆 message 放進去。
+
+### 動態決定回覆位址
+
+無法預先知道回覆位址時，用 [`@replyAddress`](../reference/decorators/operations#replyaddress)。送出端把位址寫進 message，回應端從那裡讀。
+
+AsyncAPI 規定這種 reply channel 的 `address` 必須是 `null`，那個 channel 因此要用 [`@dynamicChannel`](../reference/decorators/channels#dynamicchannel) 宣告。
 
 ```typespec
 @dynamicChannel
@@ -125,7 +163,7 @@ operations:
 
 ## 另一種寫法：兩個 operation 加 correlation id
 
-`reply` 不是唯一的寫法。用一對 operation 也能描述同一次交換，耦合更鬆：一邊送請求、收回應，另一邊做相反的事。message 上的 [`@correlationId`](../reference/decorators/messages#correlationid) 讓消費端知道某個回應對應到哪一個請求。
+`reply` 不是唯一的寫法。用一對 operation 也能描述同一次交換來達成鬆耦合：一邊送請求、收回應，另一邊做相反的事。message 上的 [`@correlationId`](../reference/decorators/messages#correlationid) 讓消費端知道某個回應對應到哪一個請求。
 
 ```typespec
 @message
@@ -163,7 +201,7 @@ AsyncAPI 官方的 `rpc-client` 與 `rpc-server` 範例就是這種寫法。兩�
 | 情境                               | 寫法                             |
 | ---------------------------------- | -------------------------------- |
 | 請求與回應屬於同一個交換           | `reply`                          |
-| 回覆 channel 在設計期已知          | `reply` 搭配 `@replyChannel`     |
+| reply channel 在設計期已知         | `reply` 搭配 `@replyChannel`     |
 | 回覆位址在執行期才決定             | `reply` 搭配 `@replyAddress`     |
 | 兩邊是各自獨立、各有一份規格的應用 | 兩個 operation 加 correlation id |
 

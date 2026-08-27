@@ -7,9 +7,9 @@ description: "AsyncAPI 3 describes a request and reply exchange in two ways. Thi
 
 AsyncAPI 3 describes a request and reply exchange in two ways. This page shows both, and says when to use each.
 
-## Operations come first
+## Operations
 
-An operation is what an application does over a channel. [`@send`](../reference/decorators/operations#send) marks a message this application sends. [`@receive`](../reference/decorators/operations#receive) marks a message it receives. Both actions are written from the point of view of this application, not from the point of view of the broker.
+An operation is what an application does over a channel. [`@send`](../reference/decorators/operations#send) marks a message the application sends. [`@receive`](../reference/decorators/operations#receive) marks a message the application expects to receive.
 
 ```typespec
 @message
@@ -40,11 +40,11 @@ operations:
       - $ref: "#/channels/orders.created/messages/OrderCreated"
 ```
 
-A `@send` operation names the messages it sends in its parameters and the reply it gets back in its return type. A `@receive` operation is the mirror: the return type is the message it receives, the parameters are the reply it sends.
+Both operations above name the same `OrderCreated`. The direction belongs to the operation, not to the message. So one message can be sent by one operation and received by another.
 
 ## The `reply` object
 
-The emitter writes a `reply` object when both sides of the signature name a message of the channel. Nothing else is needed for a request and reply over one channel.
+A `reply` comes from one operation that declares both an input and an output.
 
 ```typespec
 @message
@@ -78,17 +78,55 @@ operations:
         - $ref: "#/channels/orders.create/messages/OrderAccepted"
 ```
 
-### A reply over another channel
+### When the reply is not on the same channel
 
-Use [`@replyChannel`](../reference/decorators/operations#replychannel) when the reply travels over a different channel. The argument is the interface or namespace that carries that channel, not the id of the channel.
+Use [`@replyChannel`](../reference/decorators/operations#replychannel) when the reply travels over a different channel.
 
-The reply message leaves the `messages` map of the request channel and joins the `messages` map of the reply channel. AsyncAPI reads that map as the messages that travel over that channel, and this reply travels over the reply channel.
+```typespec
+@channel("orders.replies")
+interface OrderReplies {}
 
-So the reply channel needs no operation of its own. A channel that exists only to answer one operation stays empty, and the emitter still gives it the reply message.
+@channel("orders.create")
+interface OrderCommands {
+  @send
+  @replyChannel(OrderReplies)
+  op createOrder(command: CreateOrder): OrderAccepted;
+}
+```
 
-### A reply address decided at runtime
+```yaml
+channels:
+  orders.replies:
+    address: orders.replies
+    messages:
+      OrderAccepted:
+        $ref: "#/components/messages/OrderAccepted"
+  orders.create:
+    address: orders.create
+    messages:
+      CreateOrder:
+        $ref: "#/components/messages/CreateOrder"
+operations:
+  createOrder:
+    action: send
+    channel:
+      $ref: "#/channels/orders.create"
+    messages:
+      - $ref: "#/channels/orders.create/messages/CreateOrder"
+    reply:
+      channel:
+        $ref: "#/channels/orders.replies"
+      messages:
+        - $ref: "#/channels/orders.replies/messages/OrderAccepted"
+```
 
-Use [`@replyAddress`](../reference/decorators/operations#replyaddress) when the address of the reply is only known at runtime. The sender puts the address in the message, and the responder reads it from there.
+`OrderAccepted` sits under `orders.replies`, not under `orders.create`. A channel's `messages` map holds the messages that travel over that channel. This reply travels over the reply channel.
+
+`OrderReplies` is an empty interface with no operation of its own. A reply channel needs no operation. The emitter gives it the reply message anyway.
+
+### A reply address decided dynamically
+
+Use [`@replyAddress`](../reference/decorators/operations#replyaddress) when the address of the reply cannot be known in advance. The sender puts the address in the message, and the responder reads it from there.
 
 AsyncAPI requires the address of the reply channel to be `null` in that case. So declare that channel with [`@dynamicChannel`](../reference/decorators/channels#dynamicchannel).
 
@@ -125,7 +163,7 @@ operations:
 
 ## The other style: two operations and a correlation id
 
-`reply` is not the only way to model request and reply. Two paired operations express the same exchange in a loosely coupled way. One application sends the request and receives the response. The other application does the inverse. A [`@correlationId`](../reference/decorators/messages#correlationid) on each message tells a consumer which request a response answers.
+`reply` is not the only way to model request and reply. Two paired operations express the same exchange. They keep the two sides loosely coupled. One application sends the request and receives the response. The other application does the inverse. A [`@correlationId`](../reference/decorators/messages#correlationid) on each message tells a consumer which request a response answers.
 
 ```typespec
 @message
@@ -164,7 +202,7 @@ AsyncAPI's own `rpc-client` and `rpc-server` examples use this style. Both are v
 | ----------------------------------------------------------- | ----------------------------------- |
 | The request and the response belong to one exchange         | `reply`                             |
 | The reply channel is known at design time                   | `reply` with `@replyChannel`        |
-| The reply address is decided at runtime                     | `reply` with `@replyAddress`        |
+| The reply address is decided dynamically                    | `reply` with `@replyAddress`        |
 | The two sides are separate applications with separate specs | Two operations and a correlation id |
 
 ## Next steps
