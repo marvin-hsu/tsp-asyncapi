@@ -254,18 +254,37 @@ describe("Unit: Schemas — @encode", () => {
       });
     });
 
-    it("encodes every variant the encoding describes", async () => {
+    it("leaves a variant the encoding says nothing about alone", async () => {
       const props = await holderProperties(`
         model Holder {
           @encode("unixTimestamp", int32)
+          ts: utcDateTime | string;
+        }
+      `);
+
+      // The compiler accepts this encoding because one variant is a
+      // `utcDateTime`. A `unixTimestamp` describes a moment in time, and the
+      // `string` variant is not one. Encoding it as well would describe a
+      // plain string as an integer, and every string payload would then fail
+      // its own schema.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "string" }],
+      });
+    });
+
+    it("encodes every variant the encoding describes", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("rfc7231")
           ts: utcDateTime | offsetDateTime;
         }
       `);
 
+      // RFC 7231 spells both kinds of date, so it describes both variants.
       expect(props.ts).toEqual({
         anyOf: [
-          { type: "integer", format: "unixtime" },
-          { type: "integer", format: "unixtime" },
+          { type: "string", format: "http-date" },
+          { type: "string", format: "http-date" },
         ],
       });
     });

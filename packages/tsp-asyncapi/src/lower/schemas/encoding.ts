@@ -128,6 +128,69 @@ function encodeShape(
   return encoded;
 }
 
+/**
+ * The declared scalars each named encoding describes.
+ *
+ * These rows repeat the rules `validateEncodeData` in `@typespec/compiler`
+ * applies. The compiler accepts an encoding on a union when any one variant
+ * is a legal target. It does not record which variant that was. So the rule
+ * is repeated here to ask each variant the same question.
+ *
+ * An encoding this table does not name is a custom one. The compiler
+ * constrains neither its target nor its encode type, so there is no rule
+ * here to select a variant by.
+ */
+const ENCODING_TARGETS: Record<string, readonly string[]> = {
+  rfc3339: ["utcDateTime", "offsetDateTime"],
+  rfc7231: ["utcDateTime", "offsetDateTime"],
+  unixTimestamp: ["utcDateTime"],
+  seconds: ["duration"],
+  milliseconds: ["duration"],
+  base64: ["bytes"],
+  base64url: ["bytes"],
+};
+
+/** The schema types `@encode(string)` accepts, being numeric and boolean. */
+const PLAIN_ENCODE_TYPES: readonly string[] = ["integer", "number", "boolean"];
+
+/**
+ * Returns the name of the built-in `scalar` is declared as.
+ *
+ * A built-in answers with its own name. A user scalar walks its `baseScalar`
+ * chain to the first built-in. A chain that reaches no built-in answers
+ * `undefined`, so no encoding rule can select it.
+ */
+function builtinBaseName(scalar: Scalar): string | undefined {
+  if (isBuiltinScalar(scalar)) {
+    return scalar.name;
+  }
+  return scalar.baseScalar ? builtinBaseName(scalar.baseScalar) : undefined;
+}
+
+/**
+ * Returns true when `encodeData` describes a value declared as `variant`.
+ *
+ * `@encode(string)` carries no encoding name. It converts a numeric or a
+ * boolean to text, so those are the shapes it describes.
+ *
+ * A custom encoding has no rule to select a variant by, so every scalar
+ * variant is treated as one it describes. That is what this function did for
+ * every encoding before, and it keeps a custom encoding reaching the
+ * document.
+ */
+function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
+  const { encoding } = encodeData;
+  if (encoding === undefined) {
+    const type = naturalScalarShape(variant).type;
+    return type !== undefined && PLAIN_ENCODE_TYPES.includes(type);
+  }
+  if (!Object.hasOwn(ENCODING_TARGETS, encoding)) {
+    return true;
+  }
+  const builtin = builtinBaseName(variant);
+  return builtin !== undefined && ENCODING_TARGETS[encoding].includes(builtin);
+}
+
 /** The keywords a union's variant schemas are written under. */
 const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
 
@@ -143,6 +206,13 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  * So each branch is encoded on its own, and only a branch whose variant is a
  * scalar is touched. A `null` variant, or a model variant, carries no encoded
  * value and is left as it was.
+ *
+ * A scalar variant the encoding says nothing about is left as it was too.
+ * The compiler accepts `@encode("unixTimestamp", int32)` on
+ * `utcDateTime | string` because one variant is a moment in time. The
+ * `string` variant is not one. Describing it as an integer as well would
+ * make every legal string payload fail its own schema. See
+ * `encodingDescribes` for the rule that selects a variant.
  *
  * A branch that is a reference is replaced rather than wrapped. The component
  * it points at describes the un-encoded scalar, and `allOf` would then ask
@@ -165,7 +235,7 @@ function encodeUnion(union: Union, schema: SchemaObject, encodeData: EncodeData)
     }
     const encoded = branches.map((branch: SchemaObject | ReferenceObject, index: number) => {
       const variant = variants[index].type;
-      if (variant.kind !== "Scalar") {
+      if (variant.kind !== "Scalar" || !encodingDescribes(encodeData, variant)) {
         return branch;
       }
       return encodeShape("$ref" in branch ? {} : branch, encodeData, variant);
