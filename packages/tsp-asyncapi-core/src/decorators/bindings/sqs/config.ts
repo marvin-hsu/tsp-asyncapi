@@ -14,7 +14,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   SqsChannelBindingObject,
   SqsOperationBindingObject,
@@ -23,6 +22,7 @@ import type {
 import {
   enumeratedField,
   NestedRead,
+  nonEmptyObject,
   nonNegativeField,
   objectField,
   requiredFields,
@@ -63,7 +63,8 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * on it.
  *
  * `redrivePolicy`, `policy` and `tags` pass through as written. SQS states no
- * shape this emitter can check for them.
+ * shape this emitter can check for them. An empty one is dropped, and one
+ * that is no object at all is reported.
  *
  * @param context - The decorator context
  * @param field - The path of this queue, for the diagnostics
@@ -123,9 +124,12 @@ export function readQueue(
       "messageRetentionPeriod",
       seconds(context, field, "messageRetentionPeriod", plain, target),
     ),
-    ...present("redrivePolicy", objectOrUndefined(context, plain.redrivePolicy)),
-    ...present("policy", objectOrUndefined(context, plain.policy)),
-    ...present("tags", objectOrUndefined(context, plain.tags)),
+    ...present(
+      "redrivePolicy",
+      openObject(context, field, "redrivePolicy", plain.redrivePolicy, target),
+    ),
+    ...present("policy", openObject(context, field, "policy", plain.policy, target)),
+    ...present("tags", openObject(context, field, "tags", plain.tags, target)),
   };
   return { outcome: "read", value: queue };
 }
@@ -153,12 +157,22 @@ function seconds(
   );
 }
 
-/** Passes an object through, and drops anything else without a report. */
-function objectOrUndefined(
+/**
+ * Passes one open object of a queue through.
+ *
+ * SQS states no shape this emitter can check for `redrivePolicy`, `policy`
+ * and `tags`, so the object is emitted as written. Two rules still apply. A
+ * value that is no object is reported rather than dropped in silence. An
+ * object with no field in it is dropped, because it states nothing.
+ */
+function openObject(
   context: DecoratorContext,
+  queueField: string,
+  field: string,
   value: unknown,
+  target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  return isPlainObject(plain) ? plain : undefined;
+  return nonEmptyObject(
+    objectField(context, SQS_BINDING_PROTOCOL, `${queueField}.${field}`, value, target),
+  );
 }

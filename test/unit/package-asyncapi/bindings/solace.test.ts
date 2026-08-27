@@ -116,6 +116,27 @@ describe("Unit: the Solace binding decorators", () => {
     expect(reported.message).toContain("zero or more");
   });
 
+  it("drops a destination entry left with no field", async () => {
+    const doc = await emitDocument(`
+      ${brokerService("smf")}
+
+      @channel("orders")
+      interface OrderChannel {
+        @solaceOperation(#{ destinations: #[#{}], timeToLive: 60000 })
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    // An empty entry names no queue and no topic. Every other binding drops
+    // an empty nested object, and Solace answers the same source the same
+    // way. The list is then left with no entry, so it goes too.
+    expect(bindingsOf(operationsOf(doc).publish.bindings).solace).toEqual({
+      timeToLive: 60000,
+      bindingVersion: "0.4.0",
+    });
+  });
+
   it("drops a destination list left with no entry", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${brokerService("smf")}

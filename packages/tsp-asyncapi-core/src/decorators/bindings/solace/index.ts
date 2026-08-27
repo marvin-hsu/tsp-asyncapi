@@ -22,6 +22,7 @@ import {
   boundedName,
   enumeratedField,
   listField,
+  nonEmptyObject,
   nonNegativeField,
   objectField,
 } from "../fields.js";
@@ -232,7 +233,10 @@ function destinations(
     const kept = Object.fromEntries(
       Object.entries(entry).filter(([key]) => key !== "deliveryMode"),
     );
-    entries.push({ ...present("deliveryMode", mode), ...kept });
+    // An entry with nothing left in it names no queue and no topic. Every
+    // binding here drops an empty nested object, and this one is no different.
+    const destination = nonEmptyObject({ ...present("deliveryMode", mode), ...kept });
+    if (destination !== undefined) entries.push(destination);
   }
   return entries.length > 0 ? entries : undefined;
 }

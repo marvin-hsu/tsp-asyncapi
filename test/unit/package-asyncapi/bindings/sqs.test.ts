@@ -186,6 +186,57 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(reported.message).toContain("zero or more seconds");
     });
 
+    it("reports a queue with a member the serializer cannot represent", async () => {
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
+        ${SERVICE}
+
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+
+        @sqsChannel(#{
+          queue: #{
+            name: "orders",
+            fifoQueue: false,
+            tags: #{ host: Test.ipv4.fromBytes(1, 2, 3, 4) },
+          },
+        })
+        @channel("orders")
+        interface OrderChannel {
+          ${PUBLISH_ORDER_CREATED}
+        }
+      `);
+
+      // One member the serializer cannot represent fails the whole queue, not
+      // the one field that holds it. So the report names the queue, and the
+      // binding cannot be written without it.
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
+      expect(reported.message).toContain("'queue'");
+      expect(reported.message).toContain("an object");
+      expect(channelsOf(doc).orders.bindings).toBeUndefined();
+    });
+
+    it("drops an empty pass-through object rather than emitting one", async () => {
+      const doc = await emitDocument(`
+        ${SERVICE}
+
+        @sqsChannel(#{
+          queue: #{ name: "orders", fifoQueue: false, tags: #{} },
+        })
+        @channel("orders")
+        interface OrderChannel {
+          ${PUBLISH_ORDER_CREATED}
+        }
+      `);
+
+      // An empty tag map states nothing, and every other binding drops an
+      // empty nested object. SQS answers the same source the same way.
+      expect(bindingsOf(channelsOf(doc).orders.bindings).sqs.queue).toEqual({
+        name: "orders",
+        fifoQueue: false,
+      });
+    });
+
     it("keeps a delivery delay of zero", async () => {
       const doc = await emitDocument(`
         ${SERVICE}
