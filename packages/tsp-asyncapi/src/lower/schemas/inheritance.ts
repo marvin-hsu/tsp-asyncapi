@@ -1,4 +1,10 @@
-import { Model, ModelProperty, Program, resolveEncodedName } from "@typespec/compiler";
+import {
+  Model,
+  ModelProperty,
+  Program,
+  getDiscriminator,
+  resolveEncodedName,
+} from "@typespec/compiler";
 import { isNeverTypedProperty } from "./scalars.js";
 import { SCHEMA_ENCODING_MIME_TYPE } from "tsp-asyncapi-core";
 
@@ -197,4 +203,53 @@ export function findNeverOverrideOfInheritedProperty(model: Model): ModelPropert
     }
   }
   return undefined;
+}
+
+/**
+ * What `@discriminator` resolves to on one model.
+ *
+ * `absent` means the model carries no `@discriminator`. `applies` names the
+ * property the keyword points at. The other two are the cases AsyncAPI's
+ * Schema Object cannot express, and each is named after the diagnostic that
+ * reports it.
+ */
+export type DiscriminatorResolution =
+  | { readonly kind: "absent" }
+  | { readonly kind: "applies"; readonly property: ModelProperty }
+  | { readonly kind: "missing-discriminator-property"; readonly propertyName: string }
+  | { readonly kind: "optional-discriminator-property"; readonly propertyName: string };
+
+/**
+ * Resolves `@discriminator` on `model` without changing anything.
+ *
+ * Two callers ask this question. One writes the keyword onto a schema and
+ * queues the model's subtypes. The other only needs the answer: a payload
+ * that lifts `@header` fields cannot carry the keyword, and it has to tell a
+ * dropped keyword apart from one that never applied. Answering through a
+ * function that builds and queues nothing is what lets the second caller ask
+ * without moving the walk along behind its back.
+ *
+ * `@discriminator("x")` names the property by its TypeSpec declaration name,
+ * before any `@encodedName` remap, so the lookup goes by that name. The walk
+ * covers the whole `baseModel` chain, because the assembled schema of a
+ * derived model refers to its base and the property may be declared there.
+ *
+ * @param program - The program the model belongs to
+ * @param model - The model whose decorator is read
+ * @returns Which of the four cases holds
+ */
+export function resolveDiscriminator(program: Program, model: Model): DiscriminatorResolution {
+  const discriminator = getDiscriminator(program, model);
+  if (discriminator === undefined) {
+    return { kind: "absent" };
+  }
+  const propertyName = discriminator.propertyName;
+  const property = findDiscriminatingProperty(model, propertyName);
+  if (property === undefined) {
+    return { kind: "missing-discriminator-property", propertyName };
+  }
+  if (property.optional) {
+    return { kind: "optional-discriminator-property", propertyName };
+  }
+  return { kind: "applies", property };
 }

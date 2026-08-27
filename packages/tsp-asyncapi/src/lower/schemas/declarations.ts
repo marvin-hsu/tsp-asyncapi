@@ -82,8 +82,13 @@ export class DeclarationRegistry {
    * `getSchemas` drains the queue. Draining it there, rather than during the
    * base model's own build, keeps the base's entry ahead of its subtypes' in
    * `declaredSchemas`, and keeps the queue out of the recursive build.
+   *
+   * A `Set`, so a subtype queued twice is built once. A three-level
+   * hierarchy where two levels carry `@discriminator` queues the bottom
+   * level from each of them. Insertion order is kept, so the subtypes are
+   * still declared in the order they were reached.
    */
-  private readonly pendingSubtypes: Model[] = [];
+  private readonly pendingSubtypes = new Set<Model>();
 
   /**
    * Queues every subtype of `model`, direct and indirect.
@@ -94,7 +99,7 @@ export class DeclarationRegistry {
    */
   private enqueueSubtypes(model: Model): void {
     for (const derived of model.derivedModels) {
-      this.pendingSubtypes.push(derived);
+      this.pendingSubtypes.add(derived);
       this.enqueueSubtypes(derived);
     }
   }
@@ -369,7 +374,11 @@ export class DeclarationRegistry {
    * type graph itself.
    */
   public nextPendingSubtype(): Model | undefined {
-    return this.pendingSubtypes.shift();
+    for (const subtype of this.pendingSubtypes) {
+      this.pendingSubtypes.delete(subtype);
+      return subtype;
+    }
+    return undefined;
   }
 
   /** Queues every subtype of one model, direct and indirect. */

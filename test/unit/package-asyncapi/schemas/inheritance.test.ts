@@ -3,7 +3,10 @@ import { AsyncAPITester } from "#emitter/testing.js";
 import { compileSchemas } from "../../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "#emitter/lower/schemas.js";
-import { findNeverOverrideOfInheritedProperty } from "#emitter/lower/schemas/inheritance.js";
+import {
+  findNeverOverrideOfInheritedProperty,
+  resolveDiscriminator,
+} from "#emitter/lower/schemas/inheritance.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
@@ -595,5 +598,66 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
       },
     });
     expect(Object.keys(components)).toEqual(["Bag", "Derived", "M"]);
+  });
+  /**
+   * `resolveDiscriminator` answers whether `@discriminator` applies without
+   * building a schema, reporting anything, or queueing a subtype. A caller
+   * that only needs the answer, the payload of a message that lifts
+   * `@header` fields, used to get it by building a throwaway schema, which
+   * queued the model's subtypes a second time as a side effect.
+   */
+  describe("resolveDiscriminator", () => {
+    it("names the property the decorator points at", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { kind: string; }
+      `);
+
+      const resolution = resolveDiscriminator(program, Pet);
+      expect(resolution.kind).toBe("applies");
+      expect(resolution.kind === "applies" && resolution.property.name).toBe("kind");
+    });
+
+    it("finds the property on an ancestor", async () => {
+      const { program, Dog } = await compileSchemas(t.code`
+        model Pet { kind: string; }
+        @discriminator("kind")
+        model ${t.model("Dog")} extends Pet {}
+      `);
+
+      expect(resolveDiscriminator(program, Dog).kind).toBe("applies");
+    });
+
+    it("reports a model with no decorator as absent", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        model ${t.model("Pet")} { kind: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({ kind: "absent" });
+    });
+
+    it("names the property that is not there", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { name: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({
+        kind: "missing-discriminator-property",
+        propertyName: "kind",
+      });
+    });
+
+    it("names the property that is optional", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { kind?: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({
+        kind: "optional-discriminator-property",
+        propertyName: "kind",
+      });
+    });
   });
 });

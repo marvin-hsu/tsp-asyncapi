@@ -32,9 +32,9 @@ import { refFor } from "./json-pointer.js";
 import { SchemaDiagnostics } from "./schemas/diagnostics.js";
 import { DeclarationRegistry } from "./schemas/declarations.js";
 import {
-  findDiscriminatingProperty,
   findEncodedNameOverrideConflict,
   findNeverOverrideOfInheritedProperty,
+  resolveDiscriminator,
 } from "./schemas/inheritance.js";
 import { withDocs, withPropertyDocs, buildValidationKeywords } from "./schemas/annotations.js";
 import {
@@ -216,11 +216,14 @@ export class SchemaBuilder {
         this.buildDeclarationRef(ancestor);
       }
     }
-    // `applyDiscriminator` decides whether the keyword applies at all. It
-    // reports a missing or optional discriminating property and drops the
-    // keyword, and that is not this conflict. So its answer is what tells
-    // the two apart, and the result it built is discarded.
-    if (this.applyDiscriminator(model, {}).discriminator === undefined) {
+    // A missing or optional discriminating property drops the keyword too,
+    // and that is not this conflict. So whether the keyword applies at all
+    // is what tells the two apart. It is asked through
+    // `discriminatingProperty`, which builds nothing and queues nothing:
+    // asking `applyDiscriminator` would queue this model's subtypes here as
+    // well as at the model's own component, on the strength of a schema
+    // built only to be thrown away.
+    if (this.discriminatingProperty(model) === undefined) {
       return;
     }
     reportDiagnostic(this.program, {
@@ -756,37 +759,52 @@ export class SchemaBuilder {
   }
 
   /**
+   * The property `@discriminator` names on `model`, or `undefined` when the
+   * keyword does not apply.
+   *
+   * `resolveDiscriminator` decides; this adds the report. AsyncAPI 3.x, via
+   * draft-07, requires the discriminating property to be defined on the
+   * schema and to be required. A `discriminator` naming a property no reader
+   * could find is worse than no `discriminator` at all, so the keyword is
+   * dropped and the reason is reported rather than silently swallowed. The
+   * compiler itself never validates this.
+   *
+   * The report is deduped per model, so both callers can ask without the
+   * author seeing one mistake twice.
+   */
+  private discriminatingProperty(model: Model): ModelProperty | undefined {
+    const resolution = resolveDiscriminator(this.program, model);
+    switch (resolution.kind) {
+      case "applies":
+        return resolution.property;
+      case "absent":
+        return undefined;
+      default:
+        this.reportModelDiagnosticOnce(model, resolution.kind, {
+          property: resolution.propertyName,
+        });
+        return undefined;
+    }
+  }
+
+  /**
    * Applies `@discriminator` to the fully-assembled `schema` for `model`.
    * This is the older, `extends`-chain-based discriminator decorator.
    * AsyncAPI 3.x's Schema Object represents it as a bare string naming the
    * discriminating property. This differs from OpenAPI 3.0's
    * `{ propertyName, mapping }` object.
    *
-   * AsyncAPI 3.x, via draft-07, requires the discriminating property to
-   * meet two conditions. It must actually be defined on this schema, and it
-   * must be in `required`. Emitting `discriminator` for a property that
-   * fails either check would produce a schema naming a property no reader
-   * could find. That is worse than omitting the keyword. Both checks are
-   * reported as a diagnostic, rather than silently dropped, since
-   * `@typespec/compiler` itself never validates this.
+   * Whether the keyword applies is decided by `discriminatingProperty`,
+   * which also reports the two cases that drop it.
    *
    * `@discriminator("x")` names the property by its **TypeSpec** declaration
-   * name, not its wire name. `getDiscriminator`'s `propertyName` is exactly
-   * what appears in the TypeSpec source, before any `@encodedName` remap.
-   * The property is looked up by `p.name` accordingly. Only once it is
-   * found is its wire name computed, via `resolveEncodedName`, and written
-   * into `schema.discriminator`. That is the key that actually appears
-   * under `properties`/`required` (see `buildObjectSchema`).
+   * name, not its wire name. Only once the property is found is its wire
+   * name computed, via `resolveEncodedName`, and written into
+   * `schema.discriminator`. That is the key that actually appears under
+   * `properties`/`required` (see `buildObjectSchema`).
    * Matching wire name against `discriminator.propertyName`, as an earlier
    * version of this method did, silently breaks the moment the
    * discriminating property has its own `@encodedName`.
-   *
-   * The lookup walks `model`'s inherited chain, via
-   * `findDiscriminatingProperty`, rather than only `model.properties`. For
-   * a derived model, the assembled `schema` is
-   * `{ allOf: [{ $ref: Base }, own] }`. The discriminating property may
-   * live on `Base` rather than on `model` itself. The presence check must
-   * agree with the schema it is actually checking.
    *
    * This method uses a deliberate lenient interpretation. When the
    * discriminating property is found only on an ancestor (`Base` above),
@@ -812,21 +830,8 @@ export class SchemaBuilder {
    * discussed and rejected alternative, not an oversight.
    */
   private applyDiscriminator(model: Model, schema: SchemaObject): SchemaObject {
-    const discriminator = getDiscriminator(this.program, model);
-    if (discriminator === undefined) {
-      return schema;
-    }
-    const prop = findDiscriminatingProperty(model, discriminator.propertyName);
+    const prop = this.discriminatingProperty(model);
     if (prop === undefined) {
-      this.reportModelDiagnosticOnce(model, "missing-discriminator-property", {
-        property: discriminator.propertyName,
-      });
-      return schema;
-    }
-    if (prop.optional) {
-      this.reportModelDiagnosticOnce(model, "optional-discriminator-property", {
-        property: discriminator.propertyName,
-      });
       return schema;
     }
     // The emitted schema now advertises a polymorphic payload. Its variants
