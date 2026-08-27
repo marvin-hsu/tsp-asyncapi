@@ -60,7 +60,7 @@
   },
   "scripts": {
     "clean": "rimraf ./dist ./temp",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -b tsconfig.json",
     "api-extractor:local": "api-extractor run --local",
     "api-extractor:ci": "api-extractor run",
     "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-[0-9]*.tgz"
