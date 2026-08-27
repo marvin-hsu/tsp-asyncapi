@@ -30,7 +30,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `is` is `queue` or `routingKey`. `exchange.type` is one of `topic`, `direct`, `fanout`, `default` and `headers`. A name of an exchange or a queue is at most 255 characters.
 
-The member covers AMQP 0-9-1. AsyncAPI defines a separate `amqp1` binding for AMQP 1.0, and this library does not emit it.
+The member covers AMQP 0-9-1. AsyncAPI defines a separate `amqp1` binding for AMQP 1.0, and the emitter does not write it.
 
 ```typespec
 @amqpChannel(#{
@@ -75,7 +75,7 @@ extern dec amqpOperation(target: Operation, config: valueof AsyncAPIAmqpOperatio
 
 Apply it to an operation that carries `@send` or `@receive`.
 
-`deliveryMode` is `1` for transient and `2` for persistent. `expiration` is a number of milliseconds, so it is never negative.
+`deliveryMode` is `1` for transient and `2` for persistent. `expiration` is a number of milliseconds and is zero or more.
 
 The emitted field order follows the specification, not the order the fields were written.
 

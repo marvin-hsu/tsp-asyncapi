@@ -1,9 +1,9 @@
 ---
-title: "訊息 (Messages)"
-description: "把一個 model 標記為 AsyncAPI message。每個被標記的 model 會成為 `components.messages` 的一筆，其 `payload` 指向該 model 的 schema。"
+title: "Message"
+description: "@message、@headers、@rawHeaders、@rawPayload、@contentType、@correlationId、@messageExample 等 message decorator 的完整簽章。"
 ---
 
-# 訊息 (Messages)
+# Message
 
 ## `@message`
 
@@ -43,7 +43,7 @@ components:
         - amount
 ```
 
-選填參數可覆寫 key：
+選填引數可覆寫 key：
 
 ```typespec
 @message("order.created.v1")
@@ -52,7 +52,7 @@ model OrderCreated {
 }
 ```
 
-兩點要注意：
+要注意：
 
 - **只有被觸及的 model 會輸出**。`components.schemas` 只收 message 能觸及的 model（直接引用或透過屬性間接引用）。沒有任何 message 引用到的 model 不會出現。
 - **message key 不帶 namespace 前綴，schema key 會帶**。`namespace Sales` 裡的 `@message model Ev` 會產出 message key `Ev` 與 schema key `Sales.Ev`。當某個 message key 剛好等於另一個型別的 schema key 時，emitter 會回報 [`message-key-shadows-schema-key`](../diagnostics#message-key-shadows-schema-key)。
@@ -137,9 +137,9 @@ components:
         - orderId
 ```
 
-五點要注意：
+要注意：
 
-- **這個 decorator 不收名稱參數**。`@typespec/http` 的 `@header` 有名稱參數，是因為 HTTP 會把欄位名改寫成 kebab-case。AsyncAPI 的 application headers 沒有這個慣例。若 header 的 key 不是合法的 TypeSpec 識別字，用 [`@encodedName`](#emitter-會讀的內建-decorator) 指定，寫法與改 payload 欄位名相同。
+- **這個 decorator 不收名稱引數**。若 header 的 key 不是合法的 TypeSpec 識別字，用 [`@encodedName`](#emitter-會讀的內建-decorator) 指定，寫法與改 payload 欄位名相同。
 - **只有 `@message` model 的頂層欄位會被抽出**。payload 更深層的標記會回報 [`nested-header-ignored`](../diagnostics#nested-header-ignored)，該欄位留在 payload。headers 本身要有巢狀結構時，改用 `@headers`。
 - **`extends` 與 `...` 在這裡行為不同**。展開語法 `...Base` 把屬性複製進 message model，被標記的屬性成為 message 自己的欄位，會被抽出。`extends Base` 則讓屬性留在 base model 上，payload 用 `allOf` 引用它。抽走它會影響所有繼承同一個 base 的 model，所以 emitter 保留該欄位並回報 [`inherited-header-ignored`](../diagnostics#inherited-header-ignored)。
 - **payload 會拿到自己的一份 component**。抽出只影響宣告 header 的那個 message。model 自己的 `components.schemas` 項目保留全部欄位，所以 subtype、其他 message 的欄位型別，以及任何其他讀取者，看到的都是完整結構。message 指向第二份 component，key 是 `<Model>Payload`，裡面只有留下來的欄位。若你自己已經宣告了名為 `<Model>Payload` 的 model，emitter 回報 [`duplicate-schema-key`](../diagnostics#duplicate-schema-key)，該 message 退回指向 model 自己的 component。
@@ -180,7 +180,7 @@ components:
         $ref: "#/components/schemas/OrderShipped"
 ```
 
-這個 model 必須是 object 型態。AsyncAPI 要求 headers schema 描述一組 key/value map，所以 array 為底的 model 會回報 [`headers-not-object`](../diagnostics#headers-not-object)。
+這個 model 必須是 object 型態。AsyncAPI 規定 headers schema 描述一組 key/value map，所以 array 為底的 model 會回報 [`headers-not-object`](../diagnostics#headers-not-object)。
 
 同一個 message 不要同時用欄位層級的 `@header` 或 `@rawHeaders`。兩個來源沒有明確的優先序，所以 emitter 回報 [`duplicate-message-headers`](../diagnostics#duplicate-message-headers)，且兩邊都不輸出。
 
@@ -226,7 +226,7 @@ components:
               type: string
 ```
 
-這個 model 不描述任何進入這個 message 的內容。它不再是 schema 走訪的起點，所以自己不佔用 `components.schemas` 的 key。它引用的 model 也一樣。但它沒有被排除在走訪之外。若有其他 message 引用到這個 model，或引用到它所引用的 model，那個 model 仍然會被收集。被收集的 model 會拿到一般的 `components.schemas` 項目，屬性也會一併輸出。這個 model 只是承載 message decorator 的載體，所以把它的內容留空。
+這個 model 不描述任何進入這個 message 的內容，所以不是 schema 走訪的起點，也不佔 `components.schemas` 的 key。它引用的 model 也一樣。但走訪不會跳過這個 model：其他 message 引用到它時，它仍然會拿到一般的 `components.schemas` 項目。這個 model 只承載 message decorator，內容留空。
 
 raw schema 直接寫進 message，不寫進 `components.schemas`。所以目前兩個 message 無法共用同一份 raw schema。
 
@@ -234,13 +234,13 @@ raw schema 直接寫進 message，不寫進 `components.schemas`。所以目前�
 
 Avro 中名為 `namespace` 的欄位要用反引號包住，因為 `namespace` 是 TypeSpec 的保留字：``#{ `namespace`: "com.example" }``。
 
-AsyncAPI 要求或建議的 `schemaFormat` 值不會有任何回報。其他值仍然會輸出，同時回報 [`unknown-schema-format`](../diagnostics#unknown-schema-format) 警告。空白值會回報 [`empty-schema-format`](../diagnostics#empty-schema-format)，該 message 退回使用從 model 建出來的 schema。
+AsyncAPI 規定或建議的 `schemaFormat` 值不會有任何回報。其他值仍然會輸出，同時回報 [`unknown-schema-format`](../diagnostics#unknown-schema-format) 警告。空白值會回報 [`empty-schema-format`](../diagnostics#empty-schema-format)，該 message 退回使用從 model 建出來的 schema。
 
 格式與 schema 之間有兩條規則，emitter 兩條都會回報。非 JSON 基礎的格式（例如 Protobuf）要把 schema 寫成字串。寫成 object 會回報 [`non-string-raw-schema`](../diagnostics#non-string-raw-schema)。最外層以 `#/` 開頭的 `$ref` 指向這份文件，而文件裡的每個 schema 都是 AsyncAPI Schema Object。其他格式會回報 [`raw-schema-local-ref`](../diagnostics#raw-schema-local-ref)。兩種情況下 schema 都照原樣輸出。
 
 emitter 也會解析最外層的 `$ref`，所有格式都一樣。若 reference 在完成的文件中找不到對應位置，會回報 [`unresolved-raw-schema-ref`](../diagnostics#unresolved-raw-schema-ref)。
 
-同一個 message 不要同時用欄位層級的 `@header`。被提升的欄位會離開 payload schema，而 emitter 無法從它不解讀的 schema 中移除欄位。emitter 回報 [`raw-payload-lifted-header`](../diagnostics#raw-payload-lifted-header)，兩邊都照樣輸出。改用 `@headers` 或 `@rawHeaders` 描述 headers。這兩個都可以與本 decorator 併用，且不會有任何回報。
+同一個 message 不要同時用欄位層級的 `@header`。被抽出的欄位會離開 payload schema，而 emitter 無法從它不解讀的 schema 中移除欄位。emitter 回報 [`raw-payload-lifted-header`](../diagnostics#raw-payload-lifted-header)，兩邊都照樣輸出。改用 `@headers` 或 `@rawHeaders` 描述 headers。這兩個都可以與本 decorator 併用，且不會有任何回報。
 
 同一個 model 只能套用一次。第二次套用會回報 [`duplicate-raw-payload-decorator`](../diagnostics#duplicate-raw-payload-decorator)。
 
@@ -286,7 +286,7 @@ components:
 
 這是描述 message headers 的第三種方式。另外兩種是欄位層級的 `@header`，以及傳給 `@headers` 的 model。三者只能擇一。同時使用一種以上會回報 [`duplicate-message-headers`](../diagnostics#duplicate-message-headers)，且完全不輸出 `headers`。
 
-raw headers 不會從 payload 提升任何欄位。所以 payload 仍然描述 model 的每一個欄位。
+raw headers 不會從 payload 抽出任何欄位。所以 payload 仍然描述 model 的每一個欄位。
 
 同一個 model 只能套用一次。第二次套用會回報 [`duplicate-raw-headers-decorator`](../diagnostics#duplicate-raw-headers-decorator)。
 
@@ -341,7 +341,7 @@ components:
 
 其他寫法回報 [`invalid-correlation-id-location`](../diagnostics#invalid-correlation-id-location)，且不輸出 `correlationId`。
 
-emitter 只檢查格式。它不檢查該 pointer 是否指向 headers 或 payload schema 已宣告的欄位。規格沒有這項要求，官方範例本身也指向 schema 未定義的路徑。
+emitter 只檢查格式。它不檢查該 pointer 是否指向 headers 或 payload schema 已宣告的欄位。
 
 每個 model 只套用一次。第二次套用回報 [`duplicate-correlation-id-decorator`](../diagnostics#duplicate-correlation-id-decorator)。
 
@@ -403,7 +403,7 @@ components:
             total: 999
 ```
 
-兩點要知道：
+要注意：
 
-- **每筆範例至少要有 `headers` 或 `payload` 其中之一。** 兩者皆無的範例說明不了任何事，會回報 [`empty-message-example`](../diagnostics#empty-message-example) 並捨棄該筆。
-- **範例內容不會與 message schema 對照檢查。** 值照寫的原樣輸出。若某個值無法序列化為 JSON（例如自訂 scalar 的建構式），該筆整筆捨棄，並回報 [`unserializable-message-example`](../diagnostics#unserializable-message-example)。
+- **每筆範例至少要有 `headers` 或 `payload` 其中之一。** 兩者皆無的範例說明不了任何事，會回報 [`empty-message-example`](../diagnostics#empty-message-example) 並丟棄該筆。
+- **範例內容不會與 message schema 對照檢查。** 值照寫的原樣輸出。若某個值無法序列化為 JSON（例如自訂 scalar 的建構式），該筆整筆丟棄，並回報 [`unserializable-message-example`](../diagnostics#unserializable-message-example)。

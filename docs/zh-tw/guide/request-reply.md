@@ -208,4 +208,4 @@ AsyncAPI 官方的 `rpc-client` 與 `rpc-server` 範例就是這種寫法。兩�
 ## 下一步
 
 - 到 [Decorator](../reference/decorators/) 參考頁查看完整簽章。
-- emitter 發出警告或錯誤時，到[診斷訊息](../reference/diagnostics)查詢。
+- emitter 回報警告或錯誤時，到[診斷訊息](../reference/diagnostics)查詢。

@@ -61,7 +61,7 @@ Every named model, enum, and union that a message reaches gets one entry in `com
 1. A `@friendlyName` wins outright. The resolved text is the whole key. No namespace prefix is added.
 2. Without one, the key is the declaration name, qualified by its namespace chain. The segments are joined with `.`. For example, `model WithdrawCompleted` inside `namespace Contracts.TransactionHistory` gets the key `Contracts.TransactionHistory.WithdrawCompleted`.
 
-The service namespace and the compiler's built-in `TypeSpec` namespace are dropped from the chain. Nearly every declaration in a single-service spec lives under the service namespace, so that segment carries no distinguishing information. `@typespec/openapi3` drops it the same way.
+The service namespace and the compiler's built-in `TypeSpec` namespace are dropped from the chain. Nearly every declaration in a single-service spec lives under the service namespace, so that segment carries no distinguishing information.
 
 A declaration in a library namespace outside the service namespace keeps that namespace as its prefix. Apply `@friendlyName` to shorten such a key.
 
@@ -83,9 +83,9 @@ The rewrite of a schema key is silent. The rewrite of a message key reports [`sa
 
 These come from `@typespec/compiler` — no import needed:
 
-| Decorator                                                                                                                                         | Effect in this emitter                                                                                                                                                                |
+| Decorator                                                                                                                                         | Effect in the emitter                                                                                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@service(#{ title })`                                                                                                                            | Marks the service namespace; `title` → `info.title`. One service per document — a second one warns ([`multiple-services`](../diagnostics#multiple-services)) and is ignored.          |
+| `@service(#{ title })`                                                                                                                            | Marks the service namespace; `title` → `info.title`. One service per document — a second one reports [`multiple-services`](../diagnostics#multiple-services) and is ignored.          |
 | `@tag("name")`                                                                                                                                    | One `info.tags` entry per application. It cannot target a `Model`, so a message is tagged with [`@asyncTag`](./document-info#asynctag) instead. The two merge when they name one tag. |
 | `@doc` / doc comments                                                                                                                             | `description` — on the namespace (fallback for `info.description`) and on every schema-layer declaration or property.                                                                 |
 | `@summary`                                                                                                                                        | `title` on a schema.                                                                                                                                                                  |

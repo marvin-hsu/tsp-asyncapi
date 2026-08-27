@@ -22,7 +22,7 @@ emitter 會填這些區段：
 | `correlationIds`    | 兩個以上的 message 寫出相同的 `@correlationId`                                       |
 | `serverBindings`    | 兩個以上的 server 帶著相同的 Bindings Object                                         |
 | `channelBindings`   | 兩個以上的 channel 帶著相同的 Bindings Object                                        |
-| `operationBindings` | 兩個以上的操作帶著相同的 Bindings Object                                             |
+| `operationBindings` | 兩個以上的 operation 帶著相同的 Bindings Object                                      |
 | `tags`              | 每個 tag                                                                             |
 | `externalDocs`      | 兩個以上的地方帶著相同的 `@externalDocs`                                             |
 
@@ -32,7 +32,7 @@ emitter 會填這些區段：
 
 一個片段用哪條規則，看作者有沒有給它名字。
 
-### 有名字的一律提升
+### 有名字的一律共用
 
 tag 帶著作者寫的名字。channel 參數、server 變數與 scalar 也是。用一次就夠。元件的 key 就是那個名字。
 
@@ -54,7 +54,7 @@ components:
       name: edge
 ```
 
-### 沒名字的，第二次使用才提升
+### 沒名字的，第二次使用才共用
 
 Bindings Object 沒有自己的名字。Correlation ID Object 與 External Documentation Object 也沒有。第二次使用才證明元件省得到東西。只用一次的片段留在原地。
 
@@ -90,7 +90,7 @@ components:
 
 ## 以其他語言撰寫的 schema
 
-payload 不一定是 TypeSpec model。[`@rawPayload`](./decorators/messages#rawpayload) 與 [`@rawHeaders`](./decorators/messages#rawheaders) 帶的是作者用其他語言寫的 schema。[preview 功能](./emitter-options#預覽功能)可以從來源產生一份。這兩種 schema，emitter 都不會讀進去。
+payload 不一定是 TypeSpec model。[`@rawPayload`](./decorators/messages#rawpayload) 與 [`@rawHeaders`](./decorators/messages#rawheaders) 帶的是作者用其他語言寫的 schema。[預覽功能](./emitter-options#預覽功能)可以從來源產生一份。這兩種 schema，emitter 都不會讀進去。
 
 這種 schema 沒有自己的名字，所以走第二條規則：第二個帶著它的 message 讓它取得 `schemas` 的項目，兩個 message 接著都寫 `$ref`。只有一個 message 帶著的 schema 留在該 message 裡。
 
@@ -114,15 +114,15 @@ key 會淨化成 AsyncAPI 規定的 `components` key 字元集。這個編碼與
 
 兩個 Tag Object 可以名字相同、其餘不同。它們是兩個片段，卻要求同一個 key。
 
-這時兩個都不提升，各自的地方都寫出 tag 本身。挑一個贏家會讓其中一個地方靜默拿到另一個地方的文字。
+這時兩個都不共用，各自的地方都寫出 tag 本身。挑一個贏家會讓其中一個地方靜默拿到另一個地方的文字。
 
 兩個 channel 對同名參數寫出不同描述時，規則相同。
 
-## 什麼時候 property 會就地展開 scalar
+## 什麼時候屬性會就地展開 scalar
 
-自訂 scalar 會拿到一個元件，指向它的 property 寫 `$ref`。
+自訂 scalar 會拿到一個元件，指向它的屬性寫 `$ref`。
 
-有一個例外。property 自己對這個值說了話時，就地展開 scalar。這包含 `@doc`、`@summary`、`@example`、`@format` 與 `@encode`。
+有一個例外。屬性自己對這個值說了話時，就地展開 scalar。這包含 `@doc`、`@summary`、`@example`、`@format` 與 `@encode`。
 
 這些是**取代**而不是疊加。`$ref` 拿不掉被指向那份 schema 裡的字，兩份都會寫出來，一份包在另一份裡。
 
@@ -155,7 +155,7 @@ components:
           description: Where the receipt goes.
 ```
 
-只加約束的 property 仍然寫 `$ref`。同一個值上的兩個約束同時成立，那正好就是 `allOf` 的意思。
+只加約束的屬性仍然寫 `$ref`。同一個值上的兩個約束同時成立，那正好就是 `allOf` 的意思。
 
 ```typespec
 @maxLength(254)
@@ -183,10 +183,10 @@ AsyncAPI 接受 `bindings` 上的 `$ref`，不接受 `bindings.kafka` 上的。
 
 ## emitter 不抽出來的東西
 
-| 區段                               | 為什麼不做                                                                                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `operationTraits`、`messageTraits` | trait 去重的是輸出文件，不是來源。TypeSpec 在來源層已經有 `extends`、`is` 與 spread。                                               |
-| `servers`                          | AsyncAPI 規定 channel 的 `servers` 必須指向根層的 `servers`。放進 `components` 沒有讀者。                                           |
-| `channels`                         | 操作只定址根層的 `channels`。這裡只放得下「沒有任何操作指向的 channel」。                                                           |
-| `operations`                       | 單一文件裡沒有東西會引用操作，放進來就是沒有工具會解析的文字。                                                                      |
-| `replies`、`replyAddresses`        | 兩個一模一樣的 Operation Reply Object 代表兩個操作共用一個 channel 而且共用一組 message。那是該回報給作者的事實，不是該去重的東西。 |
+| 區段                               | 為什麼不做                                                                                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `operationTraits`、`messageTraits` | trait 去重的是輸出文件，不是來源。TypeSpec 在來源層已經有 `extends`、`is` 與 spread。                                                      |
+| `servers`                          | AsyncAPI 規定 channel 的 `servers` 必須指向根層的 `servers`。放進 `components` 沒有讀者。                                                  |
+| `channels`                         | operation 只定址根層的 `channels`。這裡只放得下「沒有任何 operation 指向的 channel」。                                                     |
+| `operations`                       | 單一文件裡沒有東西會引用 operation，放進來就是沒有工具會解析的文字。                                                                       |
+| `replies`、`replyAddresses`        | 兩個一模一樣的 Operation Reply Object 代表兩個 operation 共用一個 channel 而且共用一組 message。那是該回報給作者的事實，不是該去重的東西。 |

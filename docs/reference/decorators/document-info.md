@@ -64,11 +64,11 @@ Attaches an external documentation link. The target is declared `unknown` becaus
 | A `@channel` interface                               | that channel's `externalDocs`   |
 | A `@send`/`@receive` operation                       | that operation's `externalDocs` |
 
-AsyncAPI's Schema Object defines `externalDocs` alongside `discriminator` and `deprecated` as one of the three fields it adds on top of JSON Schema draft-07. A `@message` model emits the link on both the message and its payload schema, which is what `@doc` already does.
+A `@message` model emits the link on both the message and its payload schema, which is what `@doc` already does.
 
 The servers come from the service namespace, and `info` reads that same namespace, so one link on that namespace appears in both places. AsyncAPI defines `externalDocs` on both objects.
 
-The `url` must be an absolute URL. AsyncAPI marks the field with the `uri` format, so a relative one such as `/docs` makes a parser reject the whole document. A url that is not absolute raises an [`invalid-url`](../diagnostics#invalid-url) error, and the whole application is dropped.
+The `url` must be an absolute URL. AsyncAPI marks the field with the `uri` format, so a relative one such as `/docs` makes a parser reject the whole document. A url that is not absolute reports an [`invalid-url`](../diagnostics#invalid-url) error, and that application is dropped.
 
 ```typespec
 @externalDocs("https://example.com/docs", "Service Documentation")
@@ -120,7 +120,7 @@ model ExternalDocs {
 
 Adds one tag, with its metadata, to the emitted object. Repeatable: each application adds one tag, and the emitted array follows source order.
 
-It is named `asyncTag` and not `tag` on purpose. The built-in `@tag` lives in the global `TypeSpec` namespace, which is always in scope. A second `tag` in the `AsyncAPI` namespace would make a plain `@tag(...)` ambiguous for anyone who writes `using AsyncAPI;`, and every existing `@tag` would have to be rewritten as `@TypeSpec.tag(...)`.
+It is named `asyncTag` and not `tag` on purpose, so that the built-in `@tag` stays unambiguous.
 
 Two things separate it from the built-in `@tag`:
 
@@ -129,7 +129,7 @@ Two things separate it from the built-in `@tag`:
 | Argument | A name, and nothing else              | A name plus `description` and `externalDocs` |
 | Target   | `Namespace \| Interface \| Operation` | Anything, `Model` included                   |
 
-AsyncAPI puts a full Tag Object on each item, where OpenAPI puts a bare string. And a message is a model, so **the built-in `@tag` cannot tag a message at all** — the compiler rejects the application.
+A message is a model, so **the built-in `@tag` cannot tag a message at all** — the compiler rejects the application.
 
 ```typespec
 @message
@@ -171,7 +171,7 @@ The emitter reads it at five places:
 
 The servers come from the service namespace, and `info` reads that same namespace, so one tag on that namespace appears in both places. AsyncAPI defines `tags` on both objects. Each server gets its own copy, so editing one server's tag cannot reach another's.
 
-The name must not be empty. `name` is required on an AsyncAPI Tag Object, and a blank one names nothing a consumer can match, so `@asyncTag("")` is reported as [`empty-tag-name`](../diagnostics#empty-tag-name) and the tag is dropped.
+The name must not be empty. `name` is required on an AsyncAPI Tag Object. `@asyncTag("")` reports [`empty-tag-name`](../diagnostics#empty-tag-name), and the tag is dropped.
 
 ### Merging
 
@@ -204,11 +204,11 @@ The emitter reads it at four places:
 
 A target that emits more than one object gets the extension on each of them. A namespace that is both the service and a channel is one such target.
 
-The key must match the AsyncAPI Specification Extensions pattern, `^x-[\w\d\.\-\_]+$`. That is `x-`, then one or more letters, digits, underscores, dots, or hyphens. AsyncAPI reads no other key as a specification extension. Any other key raises [`invalid-extension-key`](../diagnostics#invalid-extension-key) and that application is dropped.
+The key must match the AsyncAPI Specification Extensions pattern, `^x-[\w\d\.\-\_]+$`. That is `x-`, then one or more letters, digits, underscores, dots, or hyphens. AsyncAPI reads no other key as a specification extension. Any other key reports [`invalid-extension-key`](../diagnostics#invalid-extension-key) and that application is dropped.
 
-One key on one target takes one value. A second application of the same key on the same target raises [`duplicate-extension-key`](../diagnostics#duplicate-extension-key). The first application in source order is kept.
+One key on one target takes one value. A second application of the same key on the same target reports [`duplicate-extension-key`](../diagnostics#duplicate-extension-key). The first application in source order is kept.
 
-The value must be one the emitter can write as JSON. A value it cannot write raises [`unserializable-extension`](../diagnostics#unserializable-extension) and that application is dropped.
+The value must be one the emitter can write as JSON. A value it cannot write reports [`unserializable-extension`](../diagnostics#unserializable-extension) and that application is dropped.
 
 ```typespec
 @service(#{ title: "Order Service API" })
@@ -277,7 +277,7 @@ The two write to different layers, and the split does not change.
 | ----------- | ------------------------------------------------------- | ------------------------------------------------------- |
 | Writes into | An AsyncAPI object: `info`, channel, operation, message | A JSON Schema in `components.schemas`                   |
 | Key shape   | `^x-[\w\d\.\-\_]+$`                                     | Any key                                                 |
-| Typical use | Tooling metadata beside the specification fields        | A JSON Schema keyword this emitter has no decorator for |
+| Typical use | Tooling metadata beside the specification fields        | A JSON Schema keyword the emitter has no decorator for  |
 
 A `@message` model produces both a message object and a payload schema. `@extension` on that model writes the message object. To add a keyword to the payload schema, use `@jsonSchemaExtension`.
 
@@ -289,4 +289,4 @@ Both are declared with a named argument on a namespace, as in `@server("producti
 
 An extension on the service namespace therefore lands on `info` alone. It does not reach the servers that namespace declares. This differs from `@externalDocs` and `@asyncTag`, which copy onto every server.
 
-A target that emits none of the four supported objects raises [`extension-target-not-emitted`](../diagnostics#extension-target-not-emitted), and every extension on it is dropped.
+A target that emits none of the four supported objects reports [`extension-target-not-emitted`](../diagnostics#extension-target-not-emitted), and every extension on it is dropped.

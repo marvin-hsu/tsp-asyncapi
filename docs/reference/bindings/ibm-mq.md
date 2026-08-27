@@ -103,11 +103,11 @@ extern dec ibmMqMessage(target: Model, config: valueof AsyncAPIIbmMqMessageBindi
 | `description` | `string` | no       |
 | `expiry`      | `int32`  | no       |
 
-`type` is `string`, `jms` or `binary`. `expiry` is a number of milliseconds and is never negative. Zero means the message never expires.
+`type` is `string`, `jms` or `binary`. `expiry` is a number of milliseconds and is zero or more. Zero means the message never expires.
 
-`headers` is a comma-separated list of header names, not a Schema Object. IBM MQ is the one binding in this library that states the field that way.
+`headers` is a comma-separated list of header names, not a Schema Object.
 
-IBM MQ allows `headers` on a binary payload only. Written alongside any other `type`, it is reported through `invalid-binding-field`, and the field is dropped while the rest of the binding is kept.
+IBM MQ allows `headers` on a binary payload only. Written alongside any other `type`, it is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
 
 ```typespec
 @message

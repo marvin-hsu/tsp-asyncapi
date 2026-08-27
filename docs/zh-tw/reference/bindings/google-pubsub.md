@@ -69,7 +69,7 @@ extern dec googlePubSubMessage(
 | `orderingKey` | `string`                     | 否   |
 | `schema`      | `AsyncAPIGooglePubSubSchema` | 否   |
 
-套用在同時帶有 `@message` 的 model 上。沒有必填欄位。
+套用在同時帶有 `@message` 的 model 上。
 
 `schema` 是選填，但寫了 `schema` 卻沒寫 `name` 等於沒指名任何 schema，所以會被回報並丟棄。
 

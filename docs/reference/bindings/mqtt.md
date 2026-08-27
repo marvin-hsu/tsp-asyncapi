@@ -24,7 +24,7 @@ extern dec mqttServer(target: Namespace, config: valueof AsyncAPIMqttServerBindi
 
 Apply it to the service namespace. Every server that namespace declares gets its own copy.
 
-`lastWill` is the message the broker sends when the client goes away without saying goodbye. Its `qos` is `0`, `1` or `2`. A value outside that is reported and dropped, and the rest of the will is kept.
+`lastWill` is the message the broker sends when the client disconnects without a DISCONNECT packet. Its `qos` is `0`, `1` or `2`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the will is kept.
 
 `sessionExpiryInterval` and `maximumPacketSize` are MQTT 5 fields. Write each one as a number, or as a Schema Object describing the number.
 
@@ -72,7 +72,7 @@ extern dec mqttOperation(target: Operation, config: valueof AsyncAPIMqttOperatio
 
 Apply it to an operation that carries `@send` or `@receive`.
 
-`qos` is `0`, `1` or `2`. Any other value is reported and dropped.
+`qos` is `0`, `1` or `2`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
 
 ```typespec
 @send

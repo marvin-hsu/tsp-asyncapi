@@ -55,7 +55,7 @@ Apply the decorator once per target. A second application reports [`duplicate-ch
 
 ### Address parameters
 
-An address may hold `{name}` expressions. Each name is declared by a top-level parameter of an operation the channel owns. A parameter whose type carries `@message` is a message declaration, so it never declares an address parameter.
+An address may hold `{name}` templates. Each name is declared by a top-level parameter of an operation the channel owns. A parameter whose type carries `@message` is a message declaration, so it never declares an address parameter.
 
 ```typespec
 @channel("orders.{region}.created")
@@ -84,7 +84,7 @@ channels:
         $ref: "#/components/messages/OrderCreated"
 ```
 
-The AsyncAPI Parameter Object holds five fields and no `schema`. So a channel parameter carries no type, and its value is always a string.
+A channel parameter carries no type, and its value is always a string.
 
 | Parameter Object field | Source in TypeSpec                                                    |
 | ---------------------- | --------------------------------------------------------------------- |
@@ -94,7 +94,7 @@ The AsyncAPI Parameter Object holds five fields and no `schema`. So a channel pa
 | `examples`             | `@example`                                                            |
 | `location`             | [`@parameterLocation`](./channels#parameterlocation)                  |
 
-The `parameters` field is emitted only when the address holds at least one expression. Five mistakes are reported here: [`missing-channel-param`](../diagnostics#missing-channel-param), [`unused-channel-param`](../diagnostics#unused-channel-param), [`non-string-channel-param`](../diagnostics#non-string-channel-param), [`optional-channel-param`](../diagnostics#optional-channel-param), and [`conflicting-channel-param`](../diagnostics#conflicting-channel-param).
+The `parameters` field is emitted only when the address holds at least one template. Five mistakes are reported here: [`missing-channel-param`](../diagnostics#missing-channel-param), [`unused-channel-param`](../diagnostics#unused-channel-param), [`non-string-channel-param`](../diagnostics#non-string-channel-param), [`optional-channel-param`](../diagnostics#optional-channel-param), and [`conflicting-channel-param`](../diagnostics#conflicting-channel-param).
 
 ### Descriptive fields
 
@@ -133,9 +133,7 @@ channels:
         $ref: "#/components/messages/OrderAccepted"
 ```
 
-This is a separate decorator, and not a `@channel` with the address left out. A channel with an unknown address is a different kind of channel. Keeping the two decorators apart means "the address is unknown" stays distinguishable from "the address was forgotten".
-
-A dynamic channel never carries `parameters`, because it has no address to put an expression in. Everything else works as it works on `@channel`.
+A dynamic channel never carries `parameters`, because it has no address to put a template in. Everything else works as it works on `@channel`.
 
 Apply the decorator once per target, and never together with `@channel`. The two mistakes report [`duplicate-dynamic-channel-decorator`](../diagnostics#duplicate-dynamic-channel-decorator) and [`conflicting-channel-decorators`](../diagnostics#conflicting-channel-decorators).
 

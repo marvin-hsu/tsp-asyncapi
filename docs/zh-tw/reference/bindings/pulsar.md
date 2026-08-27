@@ -17,7 +17,7 @@ extern dec pulsarServer(target: Namespace, config: valueof AsyncAPIPulsarServerB
 | -------- | -------- | ---- |
 | `tenant` | `string` | 否   |
 
-套用在服務 namespace 上。topic 的位址是 `<tenant>/<namespace>/<topic>`，所以這個欄位和 channel 的 `namespace` 是同一個位址的兩個部分。
+套用在service namespace 上。topic 的位址是 `<tenant>/<namespace>/<topic>`，所以這個欄位和 channel 的 `namespace` 是同一個位址的兩個部分。
 
 ```typespec
 @service(#{ title: "Orders" })

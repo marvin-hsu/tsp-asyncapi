@@ -1,6 +1,6 @@
 ---
 title: "Messages"
-description: "Marks a model as an AsyncAPI message. Each marked model becomes an entry in `components.messages`, with its `payload` referencing the model's schema."
+description: "Exact signatures for @message, @headers, @rawHeaders, @rawPayload, @contentType, @correlationId, @messageExample, and the other message decorators."
 ---
 
 # Messages
@@ -52,7 +52,7 @@ model OrderCreated {
 }
 ```
 
-Two points worth knowing:
+Points to note:
 
 - **Only reachable models are emitted.** `components.schemas` holds the models a message reaches, directly or through its properties. A model no message references is left out.
 - **A message key drops the namespace prefix that a schema key keeps.** A `@message model Ev` inside `namespace Sales` produces the message key `Ev` and the schema key `Sales.Ev`. When a message key happens to match a different type's schema key, the emitter reports [`message-key-shadows-schema-key`](../diagnostics#message-key-shadows-schema-key).
@@ -137,9 +137,9 @@ components:
         - orderId
 ```
 
-Five points worth knowing:
+Points to note:
 
-- **It takes no name argument.** `@typespec/http`'s `@header` has one because HTTP renames a field to kebab-case. AsyncAPI application headers have no such convention. Use [`@encodedName`](#built-in-decorators-the-emitter-reads) to give a header a key that is not a TypeSpec identifier, the same way you rename a payload field.
+- **It takes no name argument.** Use [`@encodedName`](#built-in-decorators-the-emitter-reads) to give a header a key that is not a TypeSpec identifier, the same way you rename a payload field.
 - **Only a top-level field of a `@message` model is lifted.** A mark further down the payload is reported as [`nested-header-ignored`](../diagnostics#nested-header-ignored), and the field stays in the payload. Use `@headers` for a headers object with nesting of its own.
 - **`extends` and `...` differ here.** A spread, `...Base`, copies the properties into the message model, so a marked property is the message's own field and it is lifted. An `extends Base` keeps the property on the base model, which the payload refers to through `allOf`. Lifting it would change every other model that extends the same base, so the emitter leaves it in place and reports [`inherited-header-ignored`](../diagnostics#inherited-header-ignored).
 - **The payload gets a component of its own.** Lifting is local to the message. The model's own `components.schemas` entry keeps every field, so a subtype, another message's field, and any other reader still see the whole shape. The message points at a second component keyed `<Model>Payload`, which holds the fields that stayed. A model you already named `<Model>Payload` yourself is reported as [`duplicate-schema-key`](../diagnostics#duplicate-schema-key), and the message falls back to the model's own component.
@@ -226,7 +226,7 @@ components:
               type: string
 ```
 
-The model describes nothing that reaches this message. It stops being a root of the schema walk, so it claims no `components.schemas` key of its own. Neither do the models it refers to. It is not exempt from that walk. Another message that reaches this model, or one it refers to, still collects it. The collected model then gets its ordinary `components.schemas` entry, properties and all. The model is a carrier for the message decorators, so give it an empty body.
+The model describes nothing that reaches this message, so it is not a root of the schema walk and claims no `components.schemas` key. Neither do the models it refers to. Another message that reaches this model still collects it, with its ordinary `components.schemas` entry. The model only carries the message decorators, so give it an empty body.
 
 The raw schema is written into the message itself, never into `components.schemas`. So two messages cannot share one raw schema yet.
 
@@ -341,7 +341,7 @@ The `#` is required. The prose ABNF of the specification reads as if it were opt
 
 Anything else is reported as [`invalid-correlation-id-location`](../diagnostics#invalid-correlation-id-location), and no `correlationId` is emitted.
 
-The emitter checks the format and nothing else. It does not check that the pointer names a field the headers or payload schema declares. AsyncAPI states no such requirement, and its own examples point at paths their schemas never define.
+The emitter checks the format and nothing else. It does not check that the pointer names a field the headers or payload schema declares.
 
 Apply the decorator once per model. A second application is reported as [`duplicate-correlation-id-decorator`](../diagnostics#duplicate-correlation-id-decorator).
 
@@ -403,7 +403,7 @@ components:
             total: 999
 ```
 
-Two points worth knowing:
+Points to note:
 
 - **Every example carries at least one of `headers` and `payload`.** An example with neither shows nothing about the message, so it is reported as [`empty-message-example`](../diagnostics#empty-message-example) and dropped.
 - **The content is not checked against the message schema.** The value is emitted as written. A value the emitter cannot serialize to JSON, such as a custom scalar constructor, drops that whole entry and reports [`unserializable-message-example`](../diagnostics#unserializable-message-example).

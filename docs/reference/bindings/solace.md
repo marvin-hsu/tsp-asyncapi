@@ -20,7 +20,7 @@ extern dec solaceServer(target: Namespace, config: valueof AsyncAPISolaceServerB
 
 Apply it to the service namespace. `clientName` is at most 160 characters.
 
-The emitted field is `msgVpn`. Version 0.2.0 of the Solace binding spells it `msvVpn`, and this library emits 0.4.0.
+The emitted field is `msgVpn`. Version 0.2.0 of the Solace binding spells it `msvVpn`, and the emitter writes 0.4.0.
 
 ```typespec
 @service(#{ title: "Orders" })
@@ -56,7 +56,7 @@ extern dec solaceOperation(target: Operation, config: valueof AsyncAPISolaceOper
 
 Apply it to an operation that carries `@send` or `@receive`.
 
-Each entry of `destinations` may carry a `deliveryMode` of `direct` or `persistent`. Any other value is reported and dropped from that entry, and the rest of the entry is kept. The rest of an entry is emitted as written.
+Each entry of `destinations` may carry a `deliveryMode` of `direct` or `persistent`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the entry is emitted as written.
 
 `priority` is zero or more.
 

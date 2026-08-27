@@ -24,9 +24,9 @@ outline: 2
 
 > Schema key '\<name\>' is claimed twice. Message '\<message\>' lifts @header fields into its `headers`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '\<name\>', or describe the headers of '\<message\>' with @headers so its payload keeps every field.
 
-會提取 `@header` 欄位的 message 不能沿用 model 自己的 schema。那份 schema 仍然描述被提取的欄位，而那些欄位已經歸入 `headers`。所以 payload 會另外取得一份 component，key 以 message model 為基底加上 `Payload` 後綴。現在有另一個宣告先佔走了那把 key。
+會抽出 `@header` 欄位的 message 不能沿用 model 自己的 schema。那份 schema 仍然描述被抽出的欄位，而那些欄位已經歸入 `headers`。所以 payload 會另外取得一份 component，key 以 message model 為基底加上 `Payload` 後綴。現在有另一個宣告先佔走了那把 key。
 
-payload 的形狀改為就地輸出。若改為引用 model 自己的 component，等於把被提取的欄位描述成 payload 資料，message 會自相矛盾。
+payload 的形狀改為就地輸出。若改為引用 model 自己的 component，等於把被抽出的欄位描述成 payload 資料，message 會自相矛盾。
 
 **修法：** 改名另一個型別；或改用 [`@headers`](./decorators/messages#headers) 描述 headers，讓 payload 保留所有欄位，就不需要額外的 schema。
 
@@ -52,7 +52,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > This anonymous type refers back to itself with no named type in between. A plain (non-$ref) schema cannot express that cycle. Give the type a name so it can be referenced through $ref instead.
 
-匿名型別繞回自己，例如 `alias Foo = { a: Foo };`。匿名型別只能內聯（沒有 `components.schemas` 項目），而內聯 schema 無法表達循環。
+匿名型別繞回自己，例如 `alias Foo = { a: Foo };`。匿名型別只能內嵌（沒有 `components.schemas` 項目），而內嵌 schema 無法表達循環。
 
 **修法：** 把匿名型別改成具名 `model`。具名型別之間以 `$ref` 互相引用，循環沒有問題。
 
@@ -70,7 +70,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > @message is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @message.
 
-`@message` 不可重複標記。疊加時只會保留其中一次，其餘名稱不會進到文件裡。
+`@message` 不可重複套用。疊加時只會保留其中一次，其餘名稱不會進到文件裡。
 
 **修法：** 移除多餘的 `@message`。
 
@@ -78,7 +78,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > @contentType is applied to this model more than once. A message carries one content type, so only one application takes effect and the rest are discarded. Remove the extra @contentType.
 
-`@contentType` 不可重複標記。一個 message 只有一個 `contentType` 欄位。疊加時只會保留其中一次，其餘的值會被靜默丟棄。
+`@contentType` 不可重複套用。一個 message 只有一個 `contentType` 欄位。疊加時只會保留其中一次，其餘的值會被靜默丟棄。
 
 **修法：** 移除多餘的 `@contentType`。
 
@@ -88,7 +88,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 [`@contentType`](./decorators/messages#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
 
-這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報出來，不會靜默發生。
+這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報，不會靜默發生。
 
 **修法：** 給這個 decorator 一個媒體型態，例如 `application/json`，或是移除它。
 
@@ -96,7 +96,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > @headers is applied to this model more than once. Only one application takes effect, and the rest are discarded. Remove the extra @headers.
 
-`@headers` 不可重複標記。疊加時只會保留其中一次，其餘 headers model 不會進到文件裡。
+`@headers` 不可重複套用。疊加時只會保留其中一次，其餘 headers model 不會進到文件裡。
 
 **修法：** 移除多餘的 `@headers`。
 
@@ -158,7 +158,7 @@ schema 仍照原樣輸出，與 [`unknown-schema-format`](#unknown-schema-format
 
 > '\<format\>' is a JSON based schema language, so AsyncAPI requires its schema to be inlined rather than given as text to be parsed. This schema is a string that opens a JSON object or array, and the official parser rejects a document that carries one. Write the schema as an object value. Note that a bare JSON string is still allowed, because a format such as Avro names its primitive types that way.
 
-[`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schemaFormat` 指定了以 JSON 為基礎的 schema 語言，而 `schema` 參數是字串，且第一個非空白字元是物件或陣列的開頭。AsyncAPI 要求這種 schema 直接以值的形式內嵌，不是交出一段文字讓讀取端自行解析。
+[`@rawPayload`](./decorators/messages#rawpayload) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 的 `schemaFormat` 指定了以 JSON 為基礎的 schema 語言，而 `schema` 參數是字串，且第一個非空白字元是物件或陣列的開頭。AsyncAPI 規定這種 schema 直接以值的形式內嵌，不是交出一段文字讓讀取端自行解析。
 
 不是以物件或陣列開頭的字串不受影響。例如 Avro 就是用 `"long"` 這種單純字串命名它的原始型別。
 
@@ -192,11 +192,11 @@ emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用�
 
 > The message model '\<name\>' carries @rawPayload and also lifts @header fields into its `headers`. The emitter emits the raw payload exactly as written, so it cannot remove the lifted fields from a schema it does not read. The raw payload and the headers are both emitted, and they can describe the same field twice. Describe the headers of '\<name\>' with @headers or @rawHeaders, or drop the @header marks and let the raw schema carry those fields.
 
-同一個 message 同時有 `@rawPayload` 與至少一個標了 `@header` 的欄位。有欄位提升的 message 平常會取得自己的一份 payload schema，那份 schema 不含被提升的欄位。raw payload 是不透明的，emitter 無法從中拿掉任何東西。Avro 或 Protobuf 的 record 仍可能宣告 message 已經當成 header 的那個欄位。
+同一個 message 同時有 `@rawPayload` 與至少一個標了 `@header` 的欄位。有欄位抽出的 message 平常會取得自己的一份 payload schema，那份 schema 不含被抽出的欄位。raw payload 是不透明的，emitter 無法從中拿掉任何東西。Avro 或 Protobuf 的 record 仍可能宣告 message 已經當成 header 的那個欄位。
 
-兩邊都照樣輸出。raw payload 原樣進到 message，被提升的欄位仍然成為 `headers`。錯誤修好之前不會有任何你寫的東西消失。這一點與 [`duplicate-message-headers`](#duplicate-message-headers) 不同，後者兩個來源都不輸出。在那裡，兩個來源填的是同一個欄位。在這裡，兩者填的是兩個不同欄位。
+兩邊都照樣輸出。raw payload 原樣進到 message，被抽出的欄位仍然成為 `headers`。錯誤修好之前不會有任何你寫的東西消失。這一點與 [`duplicate-message-headers`](#duplicate-message-headers) 不同，後者兩個來源都不輸出。在那裡，兩個來源填的是同一個欄位。在這裡，兩者填的是兩個不同欄位。
 
-被提升的欄位若來自這個 model 繼承的 base message，同樣會回報。
+被抽出的欄位若來自這個 model 繼承的 base message，同樣會回報。
 
 **修法：** 改用 `@headers` 或 `@rawHeaders` 描述 headers，或移除 `@header` 標記，讓 raw schema 承載那些欄位。
 
@@ -204,7 +204,7 @@ emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用�
 
 > The model '\<name\>' given to @headers is backed by an array. AsyncAPI requires the headers schema to be a key/value map, so no `headers` were emitted. Pass a model with properties instead.
 
-傳給 `@headers` 的 model 會輸出 `type: "array"`。它以 array 為底（`is` 一個 array，或繼承自 array）。AsyncAPI 要求 `headers` schema 描述一組 key/value map。
+傳給 `@headers` 的 model 會輸出 `type: "array"`。它以 array 為底（`is` 一個 array，或繼承自 array）。AsyncAPI 規定 `headers` schema 描述一組 key/value map。
 
 **修法：** 改傳一個有屬性的 model，或以 `Record<T>` 為底的 model。兩者都輸出 object schema。
 
@@ -212,7 +212,7 @@ emitter 只讀 raw schema 的最外層。巢狀在更深處的 reference 是用�
 
 > The message model '\<name\>' lifts @header fields into its `headers` and also carries @discriminator. The discriminator names the subtype schemas, and those describe the lifted fields as payload data, so no payload could satisfy the message. The emitter leaves the discriminator off the payload schema. Describe the headers of '\<name\>' with @headers instead, so its payload keeps every field.
 
-message model 同時帶了 [`@discriminator`](./decorators/schemas#discriminator) 並提取 `@header` 欄位。discriminator 會把讀取端導向各個子型別的 schema，而每個子型別仍然把被提取的欄位描述成 payload 資料。這個 message 的任何 payload 都無法滿足它們。
+message model 同時帶了 [`@discriminator`](./decorators/schemas#discriminator) 並抽出 `@header` 欄位。discriminator 會把讀取端導向各個子型別的 schema，而每個子型別仍然把被抽出的欄位描述成 payload 資料。這個 message 的任何 payload 都無法滿足它們。
 
 該關鍵字不會寫進 payload schema。多型仍然透過 model 自己的 component 呈現，那份 component 描述所有欄位。
 
@@ -540,8 +540,6 @@ AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與
 
 空白字串等同於沒寫。全是空格的名稱沒有指名任何東西，價值不高於完全不寫該欄位。
 
-這是 error 而不是 warning。缺了該欄位，emitter 無法寫出這個 binding，作者也就沒有任何殘留可以檢查。只輸出一部分，會交給作者一份驗證失敗的文件，而失敗訊息講的是這個 emitter，不是原始碼。
-
 同一個物件缺的每個欄位都會回報，不是只報第一個。一次只報一個會讓作者多跑一輪。
 
 **修法：** 依訊息指名的欄位，補進 decorator 的設定裡。
@@ -560,7 +558,7 @@ AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與
 
 名稱超出 AsyncAPI 允許的 Components Object key 字元集。此處允許點號，根層 `servers` map 的 key 則不允許。
 
-有兩個 decorator 會發出這條診斷。`@securityScheme` 把名稱寫成 `components.securitySchemes` 的 key。`@useSecurity` 把名稱寫進指向該 key 的 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。
+有兩個 decorator 會回報這條診斷。`@securityScheme` 把名稱寫成 `components.securitySchemes` 的 key。`@useSecurity` 把名稱寫進指向該 key 的 JSON Pointer，字元集以外的字元會讓 pointer 格式錯誤。
 
 **修法：** 改用只含英文字母、數字、`.`、`-`、`_` 的名稱。emitter 絕不自動改名。
 
@@ -606,7 +604,7 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider 的順序，而那個順序不是專案講出來的。
 
-這時不會輸出文件。兩份 artifact 都被丟掉，model 會退回它的 TypeSpec 型別產生的 schema，那份文件等於用忽略請求的內容回答請求。
+這時不會輸出文件。兩份 artifact 都丟掉，model 退回 TypeSpec 型別產生的 schema。那份輸出等於答非所問。
 
 **修法：** 從 `tspconfig.yaml` 的 `preview-features` 移除其中一個名稱。
 
@@ -614,7 +612,7 @@ emitter 兩個都不採用。要選出勝者，只能看 emitter 列出 provider
 
 > The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。這兩個在本版都已經實作，所以目前沒有名稱會回報這條診斷。這個代碼保留下來，是為了回應下一個先被保留、實作還沒跟上的名稱。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
+[`preview-features`](./emitter-options#預覽功能) 選項指名了一個本版沒有實作的功能。保留的名稱是 `protobuf` 與 `avro`。這兩個在本版都已經實作，所以目前沒有名稱會回報這條診斷。不在保留集合裡的名稱會先被選項 schema 擋下，不會走到這條診斷。
 
 不會寫出任何檔案。在這個錯誤旁邊輸出一份文件，等於忽略了請求卻不說明。
 
@@ -671,7 +669,7 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 `@header` 說明那個屬性走在 payload 旁邊。兩種目標語言都沒有這個概念。Protobuf 給 message 的每個屬性一個欄位編號，Avro 給 record 的每個屬性一個 field，所以一個 payload 不帶的屬性既沒有位置可放，也沒有辦法標記成不存在。
 
-另一個選項是把屬性從產生的 schema 裡略過，那更糟。`@typespec/protobuf` 與 Avro emitter 都寫出完整的 model，兩者都不讀 AsyncAPI decorator。這樣文件裡的 schema 與獨立的檔案會描述同一個 message 的不同形狀，而兩個檔案都不會說出這件事。
+另一個選項是把屬性從產生的 schema 裡省略，那更糟。`@typespec/protobuf` 與 Avro emitter 都寫出完整的 model，兩者都不讀 AsyncAPI decorator。這樣文件裡的 schema 與獨立的檔案會描述同一個 message 的不同形狀，而兩個檔案都不會說出這件事。
 
 每個被標記的屬性都會被指名。修好一個再編譯一次找下一個，這個來回可以省下來。
 
@@ -686,8 +684,6 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 > Model '\<name\>' carries @Avro.avroRecord, and the Avro walk refused it: \<reason\> So this message has no generated payload. Describe that part with a construct Avro covers, or remove @Avro.avroRecord from the model. Emitting the Avro files themselves reports every reason rather than the first.
 
 某個 model 同時有 `@Avro.avroRecord` 與 `@AsyncAPI.message`，而 `tsp-avro` 拒絕替它建出 schema。訊息裡引述的原因來自那個套件。
-
-原因是引述，不是原樣轉發。診斷會帶上建立它的那個套件的代碼。只 emit 這個套件的專案不該讀到另一個套件的代碼。同時 emit 兩者的專案，否則每一條拒絕都會讀到兩次，兩個 emitter 各一次。
 
 只引述第一條原因。Avro 的走訪遇到拒絕之後會繼續走，所以一個 model 可能累積多條。要讀到全部，把 `tsp-avro` 放進 `emit` 再編譯一次。
 
@@ -737,7 +733,7 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 > @useServer names the server '\<name\>' more than once on this channel. AsyncAPI requires the entries of a channel's `servers` array to be unique, so one reference was emitted. Remove the extra @useServer.
 
-同一個 channel 上有兩個 `@useServer` 指到同一個名稱。AsyncAPI 要求該陣列的項目唯一，所以 emitter 只輸出一個參照。
+同一個 channel 上有兩個 `@useServer` 指到同一個名稱。AsyncAPI 規定該陣列的項目唯一，所以 emitter 只輸出一個參照。
 
 **修法：** 移除多餘的 `@useServer`。
 
@@ -801,7 +797,7 @@ server 的 `host` 或 `pathname` 含 `{var}` 模板，但同一個 server 的 `v
 
 > The `enum` of the server variable '\<name\>' names '\<value\>' more than once. AsyncAPI requires the entries to be unique, so a repeat makes the whole document fail validation. The repeat was dropped.
 
-server variable 的 `enum` 列出同一個值兩次。AsyncAPI 要求這些項目互不重複，重複會讓整份文件驗證失敗。
+server variable 的 `enum` 列出同一個值兩次。AsyncAPI 規定這些項目互不重複，重複會讓整份文件驗證失敗。
 
 重複的項目被丟棄，該變數本身保留。若發成 error，emitter 會在寫出這份文件之前就停下來。
 
@@ -919,17 +915,17 @@ base model 本身是獨立的宣告，每個繼承它的 model 都共用它，pa
 
 > The field '\<field\>' is lifted into the `headers` of message '\<base\>'. Message '\<message\>' extends '\<base\>' and describes its own headers with @headers or @rawHeaders, so the lift is cancelled and the field stays in the payload of '\<message\>'.
 
-基底 message 用 `@header` 把某個欄位提取進它的 `headers`。衍生的 message 改用 [`@headers`](./decorators/messages#headers) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 描述自己的 headers，這會整份取代原本的提取。該欄位於是同時是基底的 header，又是衍生 message 的 payload 資料。
+基底 message 用 `@header` 把某個欄位抽出到它的 `headers`。衍生的 message 改用 [`@headers`](./decorators/messages#headers) 或 [`@rawHeaders`](./decorators/messages#rawheaders) 描述自己的 headers，這會整份取代原本的抽出。該欄位於是同時是基底的 header，又是衍生 message 的 payload 資料。
 
 emitter 採用衍生 message 自己的宣告。兩種解讀都說得通，所以這個衝突會回報，而不是靜默決定。
 
-**修法：** 把該欄位加進衍生 message 的 headers schema；或移除那個 decorator，讓衍生 message 沿用原本的提取。
+**修法：** 把該欄位加進衍生 message 的 headers schema；或移除那個 decorator，讓衍生 message 沿用原本的抽出。
 
 ### `unserializable-message-example`
 
 > This @messageExample could not be serialized to JSON and was dropped from the emitted message.
 
-`@messageExample` 的值含有 compiler 無法序列化為純 JSON 的內容（不支援的 scalar 建構式、格式錯誤的 `duration.fromISO(...)` 值等）。該筆整筆捨棄，連同其中本來可以序列化的欄位。只保留一半 payload 的範例會描述出應用程式從不發送的 message。
+`@messageExample` 的值含有 compiler 無法序列化為純 JSON 的內容（不支援的 scalar 建構式、格式錯誤的 `duration.fromISO(...)` 值等）。該筆整筆丟棄，連同其中本來可以序列化的欄位。只保留一半 payload 的範例會描述出應用程式從不發送的 message。
 
 **修法：** 把範例值改寫成可用 JSON 表示的部分。
 
@@ -1003,7 +999,7 @@ server 與 security scheme 就是這種 target。兩者都以具名參數宣告�
 
 ### `encoded-name-override-conflict`
 
-覆寫屬性的 `@encodedName` 與父層同名屬性的 wire name 不同。一般的 `allOf: [$ref Base, own]` 形狀會同時要求**兩個** wire name，導致任何合法 payload 都被拒絕。emitter 改為攤平該 model 的 schema（繼承屬性內聯，不再 `$ref` 基底）。
+覆寫屬性的 `@encodedName` 與父層同名屬性的 wire name 不同。一般的 `allOf: [$ref Base, own]` 形狀會同時要求**兩個** wire name，導致任何合法 payload 都被拒絕。emitter 改為攤平該 model 的 schema（繼承屬性內嵌，不再 `$ref` 基底）。
 
 **修法：** 讓覆寫屬性用與父層相同的 `@encodedName`，或只在其中一層改名。
 
@@ -1028,8 +1024,6 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
 某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
-
-這一則是警告，因為 emitter 會自行復原。它只丟掉該欄位，其餘欄位照常輸出。其他 binding 診斷是錯誤，因為它們丟掉整個 binding。
 
 **修法：** 依訊息指出的範圍填值。
 

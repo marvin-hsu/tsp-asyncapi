@@ -22,9 +22,9 @@ extern dec mqttServer(target: Namespace, config: valueof AsyncAPIMqttServerBindi
 | `sessionExpiryInterval` | `unknown`              | 否   |
 | `maximumPacketSize`     | `unknown`              | 否   |
 
-套用在服務 namespace 上。該 namespace 宣告的每一個 server 各拿到一份。
+套用在service namespace 上。該 namespace 宣告的每一個 server 各拿到一份。
 
-`lastWill` 是用戶端未告別就離線時，broker 代發的訊息。它的 `qos` 是 `0`、`1` 或 `2`。超出範圍的值會被回報並丟棄，遺言的其餘欄位保留。
+`lastWill` 是用戶端沒送 DISCONNECT 就斷線時，broker 代發的 message。它的 `qos` 是 `0`、`1` 或 `2`。其他值會回報 `invalid-binding-field`，丟棄該欄位，其餘欄位保留。
 
 `sessionExpiryInterval` 與 `maximumPacketSize` 是 MQTT 5 欄位。寫成數字，或寫成描述該數字的 Schema Object。
 

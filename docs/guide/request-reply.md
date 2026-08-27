@@ -208,4 +208,4 @@ AsyncAPI's own `rpc-client` and `rpc-server` examples use this style. Both are v
 ## Next steps
 
 - Browse the [Decorators](../reference/decorators/) reference for exact signatures.
-- When the emitter warns or errors, look it up in [Diagnostics](../reference/diagnostics).
+- When the emitter reports a warning or an error, look it up in [Diagnostics](../reference/diagnostics).

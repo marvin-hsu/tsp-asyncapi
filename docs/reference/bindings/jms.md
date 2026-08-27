@@ -56,7 +56,7 @@ extern dec jmsChannel(
 | `destination`     | `string` | no       |
 | `destinationType` | `string` | no       |
 
-`destinationType` is `queue` or `fifo-queue`. JMS lists no `exchange`, unlike Anypoint MQ.
+`destinationType` is `queue` or `fifo-queue`. JMS states no `exchange`, unlike Anypoint MQ.
 
 ```typespec
 @jmsChannel(#{ destination: "orders", destinationType: "queue" })

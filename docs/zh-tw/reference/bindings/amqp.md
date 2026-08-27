@@ -25,7 +25,7 @@ extern dec amqpChannel(
 套用在帶有 `@channel` 或 `@dynamicChannel` 的 interface 或 namespace 上。
 
 ::: warning
-`is` 是 TypeSpec 的保留字。欄位名稱要用反引號寫成 `` `is`: "routingKey" ``。輸出的成員仍然是 `is`。
+`is` 是 TypeSpec 的關鍵字。欄位名稱要用反引號寫成 `` `is`: "routingKey" ``。輸出的成員仍然是 `is`。
 :::
 
 `is` 是 `queue` 或 `routingKey`。`exchange.type` 是 `topic`、`direct`、`fanout`、`default`、`headers` 其中之一。exchange 或 queue 的名稱最長 255 個字元。
@@ -75,7 +75,7 @@ extern dec amqpOperation(target: Operation, config: valueof AsyncAPIAmqpOperatio
 
 套用在帶有 `@send` 或 `@receive` 的 operation 上。
 
-`deliveryMode` 為 `1` 表示暫存，`2` 表示持久化。`expiration` 是毫秒數，不會是負數。
+`deliveryMode` 為 `1` 表示暫存，`2` 表示持久化。`expiration` 是毫秒數，是零或以上。
 
 輸出的欄位順序依照規格，不是作者書寫的順序。
 
