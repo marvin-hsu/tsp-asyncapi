@@ -100,17 +100,6 @@ export class SchemaBuilder {
   }
 
   /**
-   * Returns the `components.schemas` key `model` would claim, without
-   * registering it and without building anything.
-   * The message builder uses this to tell two models apart. Two models that
-   * share this key emit one component, so they are the same declaration as
-   * far as the document is concerned.
-   */
-  public schemaKeyCandidate(model: Model): string {
-    return this.declarations.keyCandidate(model);
-  }
-
-  /**
    * Builds the payload schema of a message that lifts `@header` fields.
    *
    * The lifted fields belong to the message's `headers`, so its payload

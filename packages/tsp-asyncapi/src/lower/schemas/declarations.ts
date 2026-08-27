@@ -345,11 +345,6 @@ export class DeclarationRegistry {
     return this.keyRegistry.candidateFor(model);
   }
 
-  /** The key a model claims. Registers it on first use. */
-  public keyFor(model: Model): string {
-    return this.keyRegistry.keyFor(model);
-  }
-
   /** Claims a key derived from another, such as `<model>Payload`. */
   public claimDerived(key: string, owner: Model, cause?: "payload" | "raw"): boolean {
     return this.keyRegistry.claimDerived(key, owner, cause);
