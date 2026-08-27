@@ -218,4 +218,56 @@ describe("Unit: Schemas — @encode", () => {
     expect(props.d).toEqual({ type: "string", format: "duration" });
     expect(props.b).toEqual({ type: "string", format: "byte" });
   });
+  /**
+   * A nullable value is a union, and only one of its variants is the value
+   * the encoding describes. Writing the encoded `type` on the union itself
+   * puts `type: "integer"` beside an `anyOf` of a string and a null, and no
+   * value satisfies all three at once.
+   */
+  describe("a union-typed property", () => {
+    it("encodes the variant the encoding describes and leaves null alone", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime | null;
+        }
+      `);
+
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("encodes a named scalar variant in place of its reference", async () => {
+      const props = await holderProperties(`
+        scalar Epoch extends utcDateTime;
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The component describes the un-encoded scalar, so a reference to it
+      // would describe a string where an integer travels.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("encodes every variant the encoding describes", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime | offsetDateTime;
+        }
+      `);
+
+      expect(props.ts).toEqual({
+        anyOf: [
+          { type: "integer", format: "unixtime" },
+          { type: "integer", format: "unixtime" },
+        ],
+      });
+    });
+  });
 });

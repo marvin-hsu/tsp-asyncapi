@@ -7,8 +7,16 @@
  * the document describes a shape the producer never sends.
  */
 
-import { ModelProperty, Program, Scalar, getEncode } from "@typespec/compiler";
-import { SchemaObject } from "../../types/index.js";
+import {
+  EncodeData,
+  ModelProperty,
+  Program,
+  Scalar,
+  Type,
+  Union,
+  getEncode,
+} from "@typespec/compiler";
+import { ReferenceObject, SchemaObject } from "../../types/index.js";
 import { SCHEMA_FORMAT } from "tsp-asyncapi-core";
 import { SCALAR_SCHEMAS, isBuiltinScalar } from "./scalars.js";
 
@@ -78,26 +86,100 @@ function naturalScalarShape(scalar: Scalar): SchemaObject {
 }
 
 /**
- * Returns the scalar whose natural shape an encoding is resolved against.
+ * Returns the type the encoding is resolved against.
  *
  * For a scalar declaration that is the scalar itself. For a property it is
- * the property's declared type, when that type is a scalar.
- * A property of any other type yields `undefined`. `@encode` only legally
- * targets a scalar-typed property, so this is the "cannot happen" case rather
- * than a shape worth guessing at.
+ * the property's declared type.
  */
-function declaredScalarOf(target: Scalar | ModelProperty): Scalar | undefined {
-  if (target.kind === "Scalar") return target;
-  return target.type.kind === "Scalar" ? target.type : undefined;
+function declaredTypeOf(target: Scalar | ModelProperty): Type {
+  return target.kind === "Scalar" ? target : target.type;
 }
 
 /**
- * Applies `target`'s own `@encode`, if it has one, to an already-built schema.
+ * Writes one encoding onto the shape of a single value.
  *
  * The encode target's `type` replaces the declared type's: a `utcDateTime`
  * encoded as `unixTimestamp` into an `int32` is an integer on the wire, not a
  * string. `items` goes with it whenever the new type is not an array, because
  * it described an element shape that no longer travels.
+ *
+ * `declared` is the scalar the encoded value was declared as, which decides
+ * the format the encoding resolves to. A value declared as anything else has
+ * no natural format to resolve against, so it takes the encoding's own.
+ */
+function encodeShape(
+  schema: SchemaObject,
+  encodeData: EncodeData,
+  declared: Scalar | undefined,
+): SchemaObject {
+  const encoded: SchemaObject = { ...schema };
+  const targetShape = naturalScalarShape(encodeData.type);
+  encoded.type = targetShape.type;
+  if (targetShape.type !== "array") {
+    delete encoded.items;
+  }
+  const naturalFormat = declared !== undefined ? naturalScalarShape(declared).format : undefined;
+  const format = mergeFormatAndEncoding(naturalFormat, encodeData.encoding, targetShape.format);
+  if (format !== undefined) {
+    encoded.format = format;
+  } else {
+    delete encoded.format;
+  }
+  return encoded;
+}
+
+/** The keywords a union's variant schemas are written under. */
+const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
+
+/**
+ * Applies an encoding to a union, variant by variant.
+ *
+ * A nullable value is a union, and `@encode` on one describes a single
+ * variant. `utcDateTime | null` encoded as a `unixTimestamp` arrives as
+ * either an integer or a null, never as an integer that is also a string.
+ * Writing the encoded `type` onto the union itself says all three at once,
+ * and no value satisfies that.
+ *
+ * So each branch is encoded on its own, and only a branch whose variant is a
+ * scalar is touched. A `null` variant, or a model variant, carries no encoded
+ * value and is left as it was.
+ *
+ * A branch that is a reference is replaced rather than wrapped. The component
+ * it points at describes the un-encoded scalar, and `allOf` would then ask
+ * for a string and an integer at once. This mirrors the plain scalar case,
+ * where a property carrying `@encode` writes the scalar in place instead of
+ * referring to it.
+ *
+ * A schema whose branches do not line up with the union's variants is
+ * returned untouched. That is a string-literal union collapsed to one `enum`,
+ * or a `@discriminated` envelope: neither has a branch per variant to encode,
+ * and the compiler's own `invalid-encode` already rejects an encoding on
+ * either.
+ */
+function encodeUnion(union: Union, schema: SchemaObject, encodeData: EncodeData): SchemaObject {
+  const variants = [...union.variants.values()];
+  for (const keyword of UNION_KEYWORDS) {
+    const branches = schema[keyword];
+    if (branches?.length !== variants.length) {
+      continue;
+    }
+    const encoded = branches.map((branch: SchemaObject | ReferenceObject, index: number) => {
+      const variant = variants[index].type;
+      if (variant.kind !== "Scalar") {
+        return branch;
+      }
+      return encodeShape("$ref" in branch ? {} : branch, encodeData, variant);
+    });
+    return { ...schema, [keyword]: encoded };
+  }
+  return schema;
+}
+
+/**
+ * Applies `target`'s own `@encode`, if it has one, to an already-built schema.
+ *
+ * A scalar-typed target is encoded in place. A union-typed one is encoded
+ * variant by variant; see `encodeUnion`.
  *
  * A target with no `@encode` is returned untouched, so callers can apply this
  * unconditionally.
@@ -116,19 +198,9 @@ export function applyEncoding(
   const encodeData = getEncode(program, target);
   if (encodeData === undefined) return schema;
 
-  const encoded: SchemaObject = { ...schema };
-  const targetShape = naturalScalarShape(encodeData.type);
-  encoded.type = targetShape.type;
-  if (targetShape.type !== "array") {
-    delete encoded.items;
+  const declared = declaredTypeOf(target);
+  if (declared.kind === "Union") {
+    return encodeUnion(declared, schema, encodeData);
   }
-  const declared = declaredScalarOf(target);
-  const naturalFormat = declared !== undefined ? naturalScalarShape(declared).format : undefined;
-  const format = mergeFormatAndEncoding(naturalFormat, encodeData.encoding, targetShape.format);
-  if (format !== undefined) {
-    encoded.format = format;
-  } else {
-    delete encoded.format;
-  }
-  return encoded;
+  return encodeShape(schema, encodeData, declared.kind === "Scalar" ? declared : undefined);
 }
