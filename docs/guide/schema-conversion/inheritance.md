@@ -1,17 +1,17 @@
 ---
 title: "Inheritance"
-description: "One message often has several shapes that share some fields. This page covers how extends becomes allOf, and how @discriminator tells a reader which shape it holds."
+description: "One message often has several shapes that share some properties. This page covers how extends becomes allOf, and how @discriminator tells a reader which shape it holds."
 ---
 
 # Inheritance
 
-One message often has several shapes that share some of their fields.
+One message often has several shapes that share some of their properties.
 `extends` factors the shared part out, and `@discriminator` tells a reader
-which field to look at to know which shape they have.
+which property to look at to know which shape they have.
 
-The two are independent. Use `extends` on its own to share fields.
+The two are independent. Use `extends` on its own to share properties.
 
-## `extends`: the shared fields, defined once
+## `extends`: the shared properties, defined once
 
 `model B extends A` becomes an `allOf` of two branches: a `$ref` to `A`, then
 the properties `B` adds. `A` is defined once and every subtype references it.
@@ -60,7 +60,7 @@ components:
             - amount
 ```
 
-## `@discriminator`: the field that tells them apart
+## `@discriminator`: the property that tells them apart
 
 Reach for this when several subtypes can arrive in the same place and the
 reader has to work out which one it holds. Bind each subtype to its own

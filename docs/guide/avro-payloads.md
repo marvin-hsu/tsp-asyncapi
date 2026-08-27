@@ -5,7 +5,7 @@ description: "A model that carries the tsp-avro decorators can get an Avro schem
 
 # Avro Payloads
 
-A model that carries the `tsp-avro` decorators can get an Avro schema as its AsyncAPI payload. This page shows how to turn that on and what it writes.
+This feature works through [`tsp-avro`](./avro-schemas).
 
 ::: warning
 This is a preview feature. It is off by default. The option that turns it on, the schema it writes, and the diagnostics it reports can change in a minor release.
@@ -13,15 +13,7 @@ This is a preview feature. It is off by default. The option that turns it on, th
 `tsp-avro` is experimental as well. It is pre-1.0, and its decorators and its output can change in any release.
 :::
 
-## What it does
-
-[`tsp-avro`](./avro-schemas) describes a model as an Avro record. Its own emitter writes that record out as a `.avsc` file.
-
-This emitter calls the same walk. The schema that walk returns becomes the payload of the AsyncAPI message. So one source describes the data once, and the document and the `.avsc` files carry one schema.
-
-Without the feature the `tsp-avro` decorators change nothing here. The models lower to JSON Schema, the way every other model does.
-
-## Turning it on
+## How to use it
 
 Install the Avro library next to this emitter.
 
@@ -29,9 +21,9 @@ Install the Avro library next to this emitter.
 pnpm add "tsp-avro@0.2.x"
 ```
 
-This release supports the `0.2.x` range of that library. `tsp-avro` is an optional peer dependency of this emitter. A project that never turns the feature on never installs it, and never loads it.
+The supported version is `0.2.x`. `tsp-avro` is not yet at 1.0, so its decorators can still change. The supported range follows its releases.
 
-Then name the feature in `tspconfig.yaml`.
+Then turn on the `avro` preview feature in `tspconfig.yaml`.
 
 ```yaml
 emit:
@@ -42,11 +34,9 @@ options:
     preview-features: ["avro"]
 ```
 
-The reserved names of [`preview-features`](../reference/emitter-options#preview-features) are `protobuf` and `avro`. Both work in this release.
+## Example
 
-## Writing the source
-
-The example below is [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads) in the repository. One Avro namespace, two records, and a Kafka cluster with a schema registry. The excerpts below are parts of that file. The repository holds the whole of it.
+The example below comes from [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads). One Avro namespace, two records, and a Kafka cluster with a schema registry. The excerpts below are parts of that file.
 
 `@Avro.avroNamespace` marks the namespace that qualifies every Avro name under it.
 
@@ -54,8 +44,6 @@ The example below is [`examples/18-avro-payloads`](https://github.com/marvin-hsu
 @Avro.avroNamespace("com.example.orders")
 namespace Orders {
 ```
-
-`@Avro.avroRecord` marks a model that becomes one Avro record. `@message` marks the same model as a message of the document. The two decorators answer different questions, so a message with an Avro payload carries both.
 
 ```typespec
   /**
@@ -101,8 +89,6 @@ namespace Orders {
   }
 ```
 
-Avro says nothing about the topics a record travels on. So the channels are written the same way as for any other payload.
-
 ```typespec
 @kafkaChannel(#{ topic: "orders.placed", partitions: 12, replicas: 3 })
 @channel("orders.placed")
@@ -124,7 +110,7 @@ interface PlacedRetry {
 
 Two channels carry `OrderPlaced`. One model is one message of the document, so both channels point at one entry under `components.messages`.
 
-## What the emitter writes
+## The result
 
 The payload is a [Multi Format Schema Object](https://www.asyncapi.com/docs/reference/specification/v3.0.0#multiFormatSchemaObject). `schemaFormat` names Avro 1.9.0, and `schema` holds the schema.
 
@@ -198,19 +184,9 @@ Each payload carries one Avro record and every named type that record reaches. A
 
 `Address` is reached by both records, so both payloads hold a whole copy of it. `Address` is not a message of the document, so it gets no payload of its own. A named type is written in full at its first occurrence and by name after that. That is also how a record that reaches itself terminates.
 
-## How it works
+## The `.avsc` files
 
-The compiler runs the `tsp-avro` decorators and each one records what it was given. `@Avro.avroNamespace` records the Avro namespace of a TypeSpec namespace. `@Avro.avroRecord` records that a model is an Avro record. The other decorators record what Avro has and TypeSpec cannot say, such as a logical type or an alias.
-
-This emitter reads none of those records. It loads `tsp-avro` and calls the walk that library already has. The Avro emitter and this one therefore render one schema from one walk, and neither can drift from the other.
-
-The load happens at run time, and only when the feature is on. `tsp-avro` is experimental and this package is not, so a static import would tie a stable release to a pre-1.0 version range. A project that leaves the feature off never loads the library.
-
-The walk collects its refusals here rather than reporting them. A project that emits both the `.avsc` files and the document would otherwise read every refusal twice, once from each emitter. So this emitter carries the reason into a diagnostic of its own, and one compile speaks with one voice.
-
-## Emitting the `.avsc` files as well
-
-The two emitters are independent. List both in `emit` when the project also needs the files on disk.
+To get the `.avsc` files as well, add the Avro emitter to `emit` in `tspconfig.yaml`.
 
 ```yaml
 emit:
@@ -284,46 +260,14 @@ The Avro emitter writes one file per record. The Avro namespace decides the path
 }
 ```
 
-The file and the payload carry one schema. The file is that schema as JSON text. The payload is the same schema as an object. So the payload is the same whether the files are written or not.
+## Headers
 
-## Headers stay out of the payload
+A model that carries `@Avro.avroRecord` must not mark one of its own properties with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written.
 
-`@header` lifts a property out of the payload and describes it beside the message. A generated Avro payload leaves it out for the same reason a JSON Schema payload does.
+To describe headers, point [`@headers`](../reference/decorators/messages#headers) at a separate model.
 
-Avro has no way to describe a property the payload does not carry. Every property of a record is a field of that record, and there is no mark for one that travels elsewhere.
+## `@rawPayload`
 
-So a model that carries `@Avro.avroRecord` must not mark one of its own fields with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written.
-
-Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the record and the `.avsc` file describe the same fields.
-
-The headers are lowered from their TypeSpec model, so they are JSON Schema while the payload is Avro. A Multi Format Schema Object takes a different format in each slot, which is what makes that legal.
-
-Headers are never Avro, and this is not a limitation of the preview feature. A header travels as its own key and value, so no transport carries the headers object as one encoded block. Avro could not name most of them either: a legal Avro name matches `[A-Za-z_][A-Za-z0-9_]*`, and a header is usually written `x-correlation-id`.
-
-## What Avro does not describe
-
-Avro describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.
-
-So `@channel`, `@send`, `@receive` and `@message` are still required. A model that carries `@Avro.avroRecord` and no `@AsyncAPI.message` gets no payload and reports nothing.
-
-## A payload the author wrote by hand
-
-[`@rawPayload`](../reference/decorators/messages#rawpayload) writes a schema in another language by hand. It is an explicit statement, so it wins over a generated one.
+[`@rawPayload`](../reference/decorators/messages#rawpayload) writes a schema in another language by hand. It wins over a generated one.
 
 A model that carries both reports [`conflicting-message-schema-source`](../reference/diagnostics#conflicting-message-schema-source). The document keeps the authored schema. Remove `@rawPayload` from the model to take the generated one.
-
-## When no schema is available
-
-The Avro walk refuses a construct Avro cannot carry. Inheritance, an anonymous model, a template instance, an unsigned integer, and a union that names one type twice are each refused. The [Avro Schemas guide](./avro-schemas) lists every refusal.
-
-A refusal on a model the document names reports [`avro-artifact-unavailable`](../reference/diagnostics#avro-artifact-unavailable). The message quotes the reason the walk gave.
-
-Only the first reason is quoted. The walk keeps going after a refusal, so one model can collect several. This emitter reports one diagnostic per model, and that diagnostic carries the first reason alone. So a model with several problems shows one of them here. To read all of them, put `tsp-avro` in `emit` and compile again. Its own emitter reports every reason.
-
-The emitter reports the problem instead of falling back to the schema the TypeSpec model produces. No document is written either, because a document that fell back to JSON Schema would answer a request for Avro without saying so.
-
-## When the library is missing
-
-The feature loads `tsp-avro` on the first compile that needs it. A load that fails reports [`avro-library-missing`](../reference/diagnostics#avro-library-missing), and the message quotes what the load reported.
-
-The author writes `@Avro.avroRecord`, so the library is installed whenever a model carries it. A load that fails is a broken install. Install `tsp-avro` beside this emitter, or remove `avro` from `preview-features`.

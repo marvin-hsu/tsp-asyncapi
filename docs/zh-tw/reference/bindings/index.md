@@ -1,6 +1,6 @@
 ---
 title: "通訊協定 binding"
-description: "binding 在這個 emitter 裡怎麼運作：十三種通訊協定、@binding 這條後路、跨物件的規則，以及 binding 版本怎麼決定。"
+description: "binding 在這個 emitter 裡怎麼運作：十三種通訊協定、沒有專屬 decorator 時用的 @binding、跨物件的規則，以及 binding 版本怎麼決定。"
 ---
 
 # 通訊協定 binding
@@ -38,7 +38,7 @@ extern dec binding(target: unknown, protocol: valueof string, config: valueof un
 在 target 產生的物件上加入一個原樣的 binding。用於新版 binding 才加入的欄位，以及下方那三個沒有欄位的通訊協定。
 
 ::: warning
-Bindings Object 的成員名稱是**封閉清單**。AsyncAPI 逐一列出它認得的通訊協定，其他名稱會被 parser 以「Property '\<name\>' is not expected to be here」拒絕。所以 `@binding("mycorp", ...)` 會產生一份無法通過驗證的文件。
+Bindings Object 的成員名稱是**封閉清單**。AsyncAPI 逐一列出它認得的通訊協定，parser 會拒絕其他名稱，訊息是「Property '\<name\>' is not expected to be here」。所以 `@binding("mycorp", ...)` 會產生一份無法通過驗證的文件。
 
 要放自訂的通訊協定，名稱請以 `x-` 開頭。那是規格擴充機制，parser 在任何位置都接受。
 :::
@@ -64,7 +64,7 @@ channels:
         retain: true
 ```
 
-target 是 `unknown`，因為四個位置都可能是目標。這個 decorator 不指定層級。binding 會落在 target 所產生的物件上。
+binding 會落在 target 所產生的物件上。
 
 ::: warning
 一個 namespace 可以同時是 service namespace 與 channel 的目標。此時 `@binding` 會同時進入 server 與 channel。若只想指定其中一個，改用專屬的 decorator。

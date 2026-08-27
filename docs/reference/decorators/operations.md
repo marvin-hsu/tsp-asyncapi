@@ -11,7 +11,7 @@ description: "Exact signatures for @send, @receive, @replyChannel, and @replyAdd
 extern dec send(target: Operation, operationId?: valueof string);
 ```
 
-Marks one operation as a message this application sends. The emitted operation carries `action: "send"`. AsyncAPI 3 reads the action from the point of view of this application, so `send` means this application produces the message.
+Marks one operation as a message this service sends. The emitted operation carries `action: "send"`. AsyncAPI 3 reads the action from the point of view of this service, so `send` means this service produces the message.
 
 The operation points at the channel of the interface or namespace that holds it. The parameter types name the messages it sends.
 

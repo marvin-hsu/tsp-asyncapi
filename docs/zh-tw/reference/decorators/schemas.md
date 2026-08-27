@@ -1,9 +1,9 @@
 ---
-title: "結構與內建 (Schemas)"
+title: "Schema 與內建 decorator"
 description: "@oneOf 與 @jsonSchemaExtension 的精確簽章、schema key 怎麼組成，以及 schema 層會讀取的 compiler 內建 decorator。"
 ---
 
-# 結構與內建 (Schemas)
+# Schema 與內建 decorator
 
 ## `@oneOf`
 
@@ -34,7 +34,7 @@ Shape:
 extern dec jsonSchemaExtension(target: Model | ModelProperty, key: valueof string, value: valueof unknown);
 ```
 
-在目標的輸出 schema 加一組原始 key/value。這是沒有專屬 decorator 時的逃生口。可重複套用，每次加一組。extension key 會蓋過 emitter 自己產生的同名關鍵字。
+在目標的輸出 schema 加一組原始 key/value。沒有專屬 decorator 時用它。可重複套用，每次加一組。extension key 會蓋過 emitter 自己產生的同名關鍵字。
 
 ```typespec
 @jsonSchemaExtension("unevaluatedProperties", false)
@@ -61,7 +61,7 @@ Strict:
 1. 有 `@friendlyName` 時，解析後的文字直接是整個 key。不加 namespace 前綴。
 2. 沒有時，key 是宣告名稱，前面加上 namespace 鏈。各段用 `.` 連接。例如 `namespace Contracts.TransactionHistory` 裡的 `model WithdrawCompleted`，key 是 `Contracts.TransactionHistory.WithdrawCompleted`。
 
-service namespace 與 compiler 內建的 `TypeSpec` namespace 會從鏈中剔除。單一 service 的 spec 裡幾乎每個宣告都住在 service namespace 底下，這一段沒有區別資訊。`@typespec/openapi3` 也是同樣剔除。
+service namespace 與 compiler 內建的 `TypeSpec` namespace 會從鏈中剔除。單一 service 的 spec 裡幾乎每個宣告都住在 service namespace 底下，這一段沒有區別資訊。
 
 住在 service namespace 之外的 library namespace 的宣告，會保留那段 namespace 當前綴。要縮短這種 key，套 `@friendlyName`。
 

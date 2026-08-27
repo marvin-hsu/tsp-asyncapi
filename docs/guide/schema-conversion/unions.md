@@ -97,7 +97,7 @@ model Square {
 }
 ```
 
-Every field of both is optional, and JSON Schema allows extra properties by
+Every property of both is optional, and JSON Schema allows extra properties by
 default, so `{ "radius": 1 }` matches both. `Circle` recognises `radius`, and
 `Square` treats it as an extra property while `side` is allowed to be absent.
 

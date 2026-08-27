@@ -42,7 +42,7 @@ tsp compile . --emit tsp-asyncapi \
 
 ## 預覽功能
 
-預覽功能會改變輸出的文件。保留的名稱有兩個：`protobuf` 與 `avro`。本版兩個都可以使用。背後沒有實作的名稱會回報 `preview-feature-unavailable`，而且不寫出檔案。一份請求同時指名一個可用的功能與一個不可用的功能，一樣整份被拒絕，因為整份請求無法被回應。
+預覽功能會改變輸出的文件。保留的名稱有兩個：`protobuf` 與 `avro`。本版兩個都可以使用。背後沒有實作的名稱會回報 `preview-feature-unavailable`，而且不寫出檔案。請求同時指名可用與不可用的功能時，整份一樣會被拒絕。
 
 `protobuf` 讓帶有官方 `TypeSpec.Protobuf` decorator 的 model 拿到 proto3 payload。[Protobuf payload 指南](../guide/protobuf-payloads)說明它寫出什麼。
 
@@ -53,5 +53,3 @@ tsp compile . --emit tsp-asyncapi \
 ::: warning
 預覽功能被拒絕時不會輸出任何東西。在錯誤旁邊寫出一份文件，等於忽略了請求卻不說明。
 :::
-
-名稱在功能存在之前就先保留。先保留的用意是：專案寫下這個名稱時，得到的是關於這個功能的答覆，而不是「未知的值」這種 schema 錯誤。

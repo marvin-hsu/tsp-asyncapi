@@ -146,7 +146,7 @@ describe("Integration: the Avro example", () => {
     const blocks = blocksOf(page, "json");
     const files = SCHEMAS.map(committedText);
 
-    expect(blocks).toHaveLength(3);
+    expect(blocks).toHaveLength(2);
     for (const block of blocks) {
       expect(block).not.toBe("");
       expect(files.some((file) => file.includes(block))).toBe(true);

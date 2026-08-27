@@ -11,7 +11,7 @@ description: "Exact signatures for @server and @useServer."
 extern dec server(target: Namespace, name: valueof string, config: valueof AsyncAPIServer);
 ```
 
-Declares one server the application connects to. The `name` argument becomes the key of that server in the root `servers` map. `host` and `protocol` are required. `protocolVersion`, `pathname`, `title`, `summary`, and `description` are optional.
+Declares one server the client connects to. The `name` argument becomes the key of that server in the root `servers` map. `host` and `protocol` are required. `protocolVersion`, `pathname`, `title`, `summary`, and `description` are optional.
 
 The decorator is repeatable. Each application adds its own entry.
 
@@ -45,7 +45,7 @@ The servers keep the order they are written in. The order comes from the source 
 
 Every string field is trimmed. A required field that is blank after the trim drops the server with an [`empty-server-field`](../diagnostics#empty-server-field) error. An optional field that is blank after the trim is treated as absent and stays out of the document.
 
-A server name may only use letters, digits, `_`, and `-`. Any other name is rejected with an [`invalid-server-name`](../diagnostics#invalid-server-name) error. The name is never rewritten. Two servers that share a name raise a [`duplicate-server-name`](../diagnostics#duplicate-server-name) error, and the first one in source order is kept.
+A server name may only use letters, digits, `_`, and `-`. Any other name is rejected with an [`invalid-server-name`](../diagnostics#invalid-server-name) error. The name is never rewritten. Two servers that share a name report a [`duplicate-server-name`](../diagnostics#duplicate-server-name) error, and the first one in source order is kept.
 
 ### Server variables
 
@@ -60,7 +60,7 @@ model AsyncAPIServerVariable {
 }
 ```
 
-Every field is optional. AsyncAPI, unlike OpenAPI 3, does not require a `default`. Write `` `enum` `` with backticks, because `enum` is a TypeSpec keyword.
+AsyncAPI, unlike OpenAPI 3, does not require a `default`. Write `` `enum` `` with backticks, because `enum` is a TypeSpec keyword.
 
 ```typespec
 @service(#{ title: "Orders" })
@@ -93,7 +93,7 @@ servers:
         default: acme
 ```
 
-The names in `host` and `pathname` are read as one set. A template with no matching entry raises an [`undeclared-server-variable`](../diagnostics#undeclared-server-variable) warning. The server is still emitted, and the template text stays as written. An entry that no template uses raises an [`unused-server-variable`](../diagnostics#unused-server-variable) warning, and the entry is still emitted. A `default` outside the `enum` of the same variable raises a [`server-variable-default-not-in-enum`](../diagnostics#server-variable-default-not-in-enum) warning. A blank entry of `enum` or of `examples` names no value, so it is dropped with a [`blank-server-variable-value`](../diagnostics#blank-server-variable-value) warning. A list left with no entry is dropped whole.
+The names in `host` and `pathname` are read as one set. A template with no matching entry reports an [`undeclared-server-variable`](../diagnostics#undeclared-server-variable) warning. The server is still emitted, and the template text stays as written. An entry that no template uses reports an [`unused-server-variable`](../diagnostics#unused-server-variable) warning, and the entry is still emitted. A `default` outside the `enum` of the same variable reports a [`server-variable-default-not-in-enum`](../diagnostics#server-variable-default-not-in-enum) warning. A blank entry of `enum` or of `examples` reports a [`blank-server-variable-value`](../diagnostics#blank-server-variable-value) warning and is dropped. A list left with no entry is dropped whole.
 
 ## `@useServer`
 

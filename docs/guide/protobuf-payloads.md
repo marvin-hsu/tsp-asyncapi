@@ -5,21 +5,13 @@ description: "A model that carries the official TypeSpec.Protobuf decorators can
 
 # Protobuf Payloads
 
-A model that carries the official `TypeSpec.Protobuf` decorators can get proto3 text as its AsyncAPI payload. This page shows how to turn that on and what it writes.
+`tsp-asyncapi` supports the decorators of [`@typespec/protobuf`](https://www.npmjs.com/package/@typespec/protobuf) natively.
 
 ::: warning
 This is a preview feature. It is off by default. The option that turns it on, the schema it writes, and the diagnostics it reports can change in a minor release.
 :::
 
-## What it does
-
-The [`@typespec/protobuf`](https://www.npmjs.com/package/@typespec/protobuf) library describes a model as a Protobuf message. Its own emitter writes that model out as a `.proto` file.
-
-This emitter reads the same decorators. It writes proto3 text of its own, and that text becomes the payload of the AsyncAPI message. So one source describes the data once, and the document and the `.proto` file describe one wire format.
-
-Without the feature the official decorators change nothing here. The models lower to JSON Schema, the way every other model does.
-
-## Turning it on
+## How to use it
 
 Install the official library next to this emitter.
 
@@ -27,9 +19,9 @@ Install the official library next to this emitter.
 pnpm add "@typespec/protobuf@0.85.x"
 ```
 
-This release supports the `0.85.x` range of that library. The emitter reads the decorator state that range writes. Another range can write state it does not read, and the payload is then unavailable.
+The supported version is `0.85.x`. `@typespec/protobuf` is not yet at 1.0, so its decorators can still change. The supported range follows the official releases.
 
-Then name the feature in `tspconfig.yaml`.
+Then turn on the `protobuf` preview feature in `tspconfig.yaml`.
 
 ```yaml
 emit:
@@ -40,13 +32,9 @@ options:
     preview-features: ["protobuf"]
 ```
 
-The reserved names of [`preview-features`](../reference/emitter-options#preview-features) are `protobuf` and `avro`. Both work in this release. The [Avro Payloads guide](./avro-payloads) covers the other one.
+## Example
 
-## Writing the source
-
-The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel. The repository holds the whole file.
-
-A header travels beside the payload, so it is not part of the proto message. Protobuf has no field number that means "this one is elsewhere", so a `@header` on a `@Protobuf.message` model is an error. The headers get a model of their own instead, and both packages point at the same one.
+The example below comes from [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads). Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel.
 
 ```typespec
 /** What every message of this application carries beside its payload. */
@@ -121,11 +109,7 @@ interface Placed {
 }
 ```
 
-Two decorators named `message` are in scope. `@message` is the AsyncAPI one, and it marks a model as a message of the document. `@Protobuf.message` marks the same model as a message of the `.proto` file. Write the Protobuf one qualified.
-
-`@Protobuf.package` marks the namespace that becomes one `.proto` file. The name in it is the `package` declaration of that file, and it is independent of the TypeSpec namespace name.
-
-## What the emitter writes
+## The result
 
 The payload is a [Multi Format Schema Object](https://www.asyncapi.com/docs/reference/specification/v3.0.0#multiFormatSchemaObject). `schemaFormat` names proto3, and `schema` holds the text. This is the `OrderPlaced` message of the example, as `asyncapi.yaml` carries it:
 
@@ -186,27 +170,9 @@ Each payload is proto3 text that stands on its own. It carries the `syntax` line
 
 `OrderPlaced` names `Money` in a field, so its payload carries both declarations. `OrderShipped` names nothing, so its payload carries itself alone. `Money` is not a message of the document, so it gets no payload of its own.
 
-The message of a payload is the declaration nothing else in the text references. That is how a Protobuf reader finds the root. Every other declaration is there because a reference pulled it in.
+## The `.proto` file
 
-Two models that reference each other leave no such declaration. Each of the two is referenced by the other, so a payload that carries the pair has no root. The text is still correct proto3, and this emitter writes it. The official AsyncAPI Protobuf schema parser rejects it, because that parser roots a schema on the declaration nothing references.
-
-Two models of one package are therefore two payloads. The wire formats differ. One shared schema would claim that one type decodes both.
-
-## How it works
-
-The compiler runs the official decorators and each one records what it was given. `@Protobuf.package` records the name of a package on a namespace. `@Protobuf.message` records that a model is a Protobuf message. `@Protobuf.field` records the number of a property. `@Protobuf.reserve` records what a message reserves.
-
-This emitter reads those records. For one message model it finds the nearest namespace above it that carries `@Protobuf.package`. Then it walks the fields of the model. A scalar field becomes a proto3 scalar. A field whose type is a named model or enum pulls that declaration in, and the walk continues into it. A declaration already in the text is not walked again, so a model that reaches itself stops.
-
-The result is the closure of one message. A printer writes it out as proto3 text, in the order the walk reached each declaration. The order of the fields is the order the model declares its properties. So one source renders one text, every time.
-
-Nothing in this emitter imports `@typespec/protobuf` at run time. The compiler builds a state key from the library name, so the records are reachable by name alone. The official library stays a dependency of the project that writes the decorators.
-
-The official emitter is the authority on what those decorators mean. The test suite compiles one source twice. One compile renders the payload with this emitter. The other runs the official emitter and reads the `.proto` file it wrote. Both texts are parsed into descriptors, and the descriptors are compared. Types, field numbers, labels, and names must be equal. Comments and layout are not compared, because two texts that describe one wire format are equal for every consumer of the document.
-
-## Emitting the `.proto` file as well
-
-The two emitters are independent. List both in `emit` when the project also needs the file on disk.
+To get the `.proto` file as well, add the official emitter to `emit` in `tspconfig.yaml`.
 
 ```yaml
 emit:
@@ -248,31 +214,15 @@ message OrderShipped {
 }
 ```
 
-This emitter never reads that file, and it never runs the official emitter. The two read the same decorators and write their own text. So the payload is the same whether the file is written or not.
+## Headers
 
-The two texts differ in layout. The file above holds every message of the package, in the order the source declares them. A payload holds one message and its closure, and the message comes first. Both describe the same wire format.
+A model that carries `@Protobuf.message` must not mark one of its own properties with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written.
 
-## Headers stay out of the payload
+To describe headers, point [`@headers`](../reference/decorators/messages#headers) at a separate model.
 
-Protobuf has no way to describe a property the payload does not carry. Every property of a proto message takes a field number, and there is no number that means "this one travels elsewhere".
+## `@rawPayload`
 
-So a model that carries `@Protobuf.message` must not mark one of its own fields with `@header`. A model that does reports [`header-on-generated-payload`](../reference/diagnostics#header-on-generated-payload), and no file is written. That holds whether or not the property carries `@Protobuf.field`, and whether or not the preview feature is on.
-
-Use [`@headers`](../reference/decorators/messages#headers) instead. A separate model holds the headers, the message model holds the payload, and the proto message and the `.proto` file describe the same fields.
-
-The headers are lowered from their TypeSpec model, so they are JSON Schema while the payload is proto3. A Multi Format Schema Object takes a different format in each slot, which is what makes that legal.
-
-Headers are never Protobuf, and this is not a limitation of the preview feature. A header travels as its own key and value, so no transport carries the headers object as one encoded block.
-
-## What Protobuf does not describe
-
-Protobuf describes the data. It says nothing about the channel a message travels on, the direction of a message, or the operations of an application.
-
-So `@channel`, `@send`, `@receive` and `@message` are still required. A model that carries `@Protobuf.message` and no `@AsyncAPI.message` gets no payload and reports nothing.
-
-## A payload the author wrote by hand
-
-[`@rawPayload`](../reference/decorators/messages#rawpayload) writes a schema in another language by hand. It is an explicit statement, so it wins over a generated one.
+[`@rawPayload`](../reference/decorators/messages#rawpayload) writes a schema in another language by hand. It wins over a generated one.
 
 A model that carries both reports [`conflicting-message-schema-source`](../reference/diagnostics#conflicting-message-schema-source). The document keeps the authored schema. Remove `@rawPayload` from the model to take the generated one.
 
@@ -281,5 +231,3 @@ A model that carries both reports [`conflicting-message-schema-source`](../refer
 A generated payload can be missing, for one of three reasons. The model can have no `@Protobuf.package` above it. The walk can reach a construct that has no proto3 form this emitter writes. A field can use a scalar that maps to no proto3 type.
 
 Each of these reports [`protobuf-artifact-unavailable`](../reference/diagnostics#protobuf-artifact-unavailable), and the message says which one it is. The reference page lists every construct the walk refuses.
-
-The emitter reports the problem instead of writing an empty payload. An empty payload reads as a schema that describes nothing. No document is written either, because a document that fell back to JSON Schema would answer a request for proto3 without saying so.

@@ -1,9 +1,9 @@
 ---
-title: "操作 (Operations)"
+title: "Operation"
 description: "@send、@receive、@replyChannel 與 @replyAddress 的精確簽章。"
 ---
 
-# 操作 (Operations)
+# Operation
 
 ## `@send`
 
@@ -39,7 +39,7 @@ operations:
 
 每個 message 參照都指向 channel 的 `messages` map。這是 AsyncAPI 的規定。直接指向 `components.messages` 在此處不合法。
 
-簽章沒有指出任何 message 的 operation 不輸出 `messages` 欄位。AsyncAPI 把這讀作「channel 上任何 message 皆可」。emitter 絕不輸出空陣列，因為空陣列會讓所有 message 都不合法。
+operation 的簽章沒有指出任何 message 時，不輸出 `messages` 欄位。AsyncAPI 把這讀作「channel 上任何 message 皆可」。emitter 絕不輸出空陣列，因為空陣列會讓所有 message 都不合法。
 
 ### 一個 operation、多則 message
 
@@ -218,6 +218,6 @@ operations:
 
 `location` 的文法與 [`@correlationId`](./messages#correlationid) 相同。開頭是 `$message.header#` 或 `$message.payload#`，後面可以接 JSON Pointer。emitter 只檢查格式。超出文法的運算式回報 [`invalid-reply-address-location`](../diagnostics#invalid-reply-address-location)，並丟棄該次標記。
 
-給了回覆位址時，AsyncAPI 要求回覆 channel 的 address 必須是 `null`。所以那個 channel 要用 [`@dynamicChannel`](./channels#dynamicchannel) 宣告。在帶有 address 的 channel 上給回覆位址會回報 [`reply-address-needs-dynamic-channel`](../diagnostics#reply-address-needs-dynamic-channel)。`address` 從 reply 中被丟棄，reply 的其餘部分保留。
+給了回覆位址時，AsyncAPI 規定回覆 channel 的 address 必須是 `null`。所以那個 channel 要用 [`@dynamicChannel`](./channels#dynamicchannel) 宣告。在帶有 address 的 channel 上給回覆位址會回報 [`reply-address-needs-dynamic-channel`](../diagnostics#reply-address-needs-dynamic-channel)。`address` 從 reply 中被丟棄，reply 的其餘部分保留。
 
 一個 operation 只能套用一次，而且該 operation 要帶 `@send` 或 `@receive`。兩種錯誤分別回報 [`duplicate-reply-address-decorator`](../diagnostics#duplicate-reply-address-decorator) 與 [`reply-without-action`](../diagnostics#reply-without-action)。

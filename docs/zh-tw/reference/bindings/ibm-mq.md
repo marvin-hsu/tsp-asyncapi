@@ -103,9 +103,9 @@ extern dec ibmMqMessage(target: Model, config: valueof AsyncAPIIbmMqMessageBindi
 | `description` | `string` | 否   |
 | `expiry`      | `int32`  | 否   |
 
-`type` 是 `string`、`jms` 或 `binary`。`expiry` 是毫秒數，不會是負數。零表示訊息永不過期。
+`type` 是 `string`、`jms` 或 `binary`。`expiry` 是毫秒數，是零或以上。零表示訊息永不過期。
 
-`headers` 是以逗號分隔的標頭名稱清單，不是 Schema Object。IBM MQ 是這個 library 裡唯一這樣定義該欄位的 binding。
+`headers` 是以逗號分隔的標頭名稱清單，不是 Schema Object。
 
 IBM MQ 只允許 binary payload 帶 `headers`。搭配其他 `type` 寫下去時，會透過 `invalid-binding-field` 回報，該欄位被丟棄，binding 的其餘欄位保留。
 

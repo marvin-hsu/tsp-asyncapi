@@ -46,12 +46,10 @@ A preview feature changes the emitted document. Two names are reserved: `protobu
 
 `protobuf` gives a model that carries the official `TypeSpec.Protobuf` decorators a proto3 payload. The [Protobuf payloads guide](../guide/protobuf-payloads) shows what it writes.
 
-`avro` gives a model that carries the `tsp-avro` `@Avro.avroRecord` decorator an Avro payload. The payload is written as an object, because Avro is JSON. `tsp-avro` is an optional peer dependency of this emitter. Install it in the project that turns this feature on.
+`avro` gives a model that carries the `tsp-avro` `@Avro.avroRecord` decorator an Avro payload. The payload is written as an object, because Avro is JSON. `tsp-avro` is an optional peer dependency of the emitter. Install it in the project that turns this feature on.
 
 Both features can be on at once. One model may carry only one of the two sets of decorators. A model that carries both is reported as `conflicting-generated-schema-source`, and no file is written.
 
 ::: warning
 Nothing is emitted when a preview feature is refused. A document written next to the error would ignore the request without saying so.
 :::
-
-A name is reserved before the feature behind it exists. Reserving it early means a project that writes the name gets an answer about the feature, not a schema error about an unknown value.

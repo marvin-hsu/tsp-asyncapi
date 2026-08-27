@@ -93,7 +93,7 @@ model Square {
 }
 ```
 
-兩個 model 的欄位都是選填，JSON Schema 預設也允許多餘的屬性，所以
+兩個 model 的屬性都是選填，JSON Schema 預設也允許多餘的屬性，所以
 `{ "radius": 1 }` 同時符合 `Circle` 與 `Square`：對 `Circle` 來說 `radius` 對得上，
 對 `Square` 來說 `radius` 只是個多餘的屬性，而 `side` 可以不存在。
 

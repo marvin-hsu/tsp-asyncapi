@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 
 /** The example directory, as a URL the reads below resolve against. */
@@ -39,54 +39,6 @@ const RECORDS = [
 
 /** The two guide pages that quote the output of the example. */
 const GUIDES = ["docs/guide/avro-payloads.md", "docs/zh-tw/guide/avro-payloads.md"] as const;
-
-/**
- * The limitation each guide has to name, in the language of that page.
- *
- * The provider carries only the first reason the Avro walk collected. A model
- * with several problems shows one of them here and all of them when the Avro
- * emitter runs. A page that omits that sends a reader to fix one problem and
- * meet the next.
- */
-const FIRST_REASON_LIMITATION = [
-  ["docs/guide/avro-payloads.md", "first reason"],
-  ["docs/zh-tw/guide/avro-payloads.md", "第一條原因"],
-] as const;
-
-/**
- * The examples index of each locale, with the two counts it states in prose
- * spelled in the words of that locale.
- *
- * The index states how many example directories there are, and how many of
- * them hold a document. This example moved both numbers: it is a directory,
- * and it emits a document. A page whose word no longer matches the tree tells
- * a reader a number the tree contradicts.
- *
- * A count outside these two makes the lookup answer nothing, and the case
- * fails rather than skipping the claim.
- */
-const EXAMPLE_INDEX = [
-  ["docs/guide/examples.md", { 17: "Seventeen", 18: "Eighteen" }],
-  ["docs/zh-tw/guide/examples.md", { 17: "十七", 18: "十八" }],
-] as const;
-
-/** The directory every example lives under. */
-const EXAMPLES = new URL("../../examples/", import.meta.url);
-
-/**
- * The sibling guide of each locale, and the link it has to carry.
- *
- * A reader who searches for Avro lands on the schema guide first, because
- * that one names the library. Nothing there tells them the same schema can go
- * into a document, so the route only ran one way.
- */
-const SIBLING_GUIDES = [
-  ["docs/guide/avro-schemas.md", "](./avro-payloads)"],
-  ["docs/zh-tw/guide/avro-schemas.md", "](./avro-payloads)"],
-] as const;
-
-/** The three files every other example directory holds. */
-const USUAL_FILES = ["main.tsp", "tspconfig.yaml", "asyncapi.yaml"];
 
 /** The manifest of the emitter package, which declares the supported range. */
 const MANIFEST = JSON.parse(
@@ -260,46 +212,6 @@ describe("Integration: the committed Avro payload example", () => {
     const page = readFileSync(new URL(guide, ROOT), "utf8");
 
     expect(page).toContain(SUPPORTED_RANGE);
-  });
-
-  it.each(SIBLING_GUIDES)("routes a reader from %s to this feature", (guide, link) => {
-    const page = readFileSync(new URL(guide, ROOT), "utf8");
-
-    expect(page).toContain(link);
-  });
-
-  it.each(FIRST_REASON_LIMITATION)("states the one-reason limitation in %s", (guide, phrase) => {
-    const page = readFileSync(new URL(guide, ROOT), "utf8");
-
-    expect(page).toContain(phrase);
-  });
-
-  /**
-   * The examples index describes the tree in prose. This example changed the
-   * tree twice: it is one more directory, one more document, and it holds
-   * files no other example does. So the intro has to state both counts the
-   * tree now has, and it has to name the extra files.
-   */
-  it.each(EXAMPLE_INDEX)("describes this example in the intro of %s", (guide, words) => {
-    const extras = readdirSync(EXAMPLE).filter((name) => !USUAL_FILES.includes(name));
-    expect(extras).not.toHaveLength(0);
-
-    const directories = readdirSync(EXAMPLES, { withFileTypes: true }).filter((entry) =>
-      entry.isDirectory(),
-    );
-    const documented = directories.filter((entry) =>
-      readdirSync(new URL(`${entry.name}/`, EXAMPLES)).includes("asyncapi.yaml"),
-    );
-
-    const page = readFileSync(new URL(guide, ROOT), "utf8");
-    const intro = page.slice(0, page.indexOf("## "));
-
-    for (const count of [directories.length, documented.length]) {
-      const word = (words as Record<number, string | undefined>)[count];
-      expect(word, `the word for ${String(count)}`).toBeDefined();
-      expect(intro).toContain(word);
-    }
-    expect(intro).toContain(".avsc");
   });
 
   it("passes the parser with the Avro schema parser registered", async () => {

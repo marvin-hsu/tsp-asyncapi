@@ -27,7 +27,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `schemaSettings` is required, and it requires an `encoding` and a `name` of its own. A binding without them is reported through `missing-binding-field` and dropped whole.
 
-`labels` is an open map. Pub/Sub puts no rule on its keys or values, so it is emitted as written.
+`labels` is an open map. Pub/Sub states no rule for its keys or values, so it is emitted as written.
 
 ```typespec
 @googlePubSubChannel(#{
@@ -69,7 +69,7 @@ extern dec googlePubSubMessage(
 | `orderingKey` | `string`                     | no       |
 | `schema`      | `AsyncAPIGooglePubSubSchema` | no       |
 
-Apply it to a model that also carries `@message`. No field is required.
+Apply it to a model that also carries `@message`.
 
 `schema` is optional, but a `schema` written without a `name` names no schema, so it is reported and dropped.
 

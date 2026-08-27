@@ -1,9 +1,9 @@
 ---
-title: "通道 (Channels)"
+title: "Channel"
 description: "@channel、@dynamicChannel 與 @parameterLocation 的精確簽章。"
 ---
 
-# 通道 (Channels)
+# Channel
 
 ## `@channel`
 
@@ -11,7 +11,7 @@ description: "@channel、@dynamicChannel 與 @parameterLocation 的精確簽章�
 extern dec channel(target: Interface | Namespace, address: valueof string, channelId?: valueof string);
 ```
 
-宣告一個 channel。這個 channel 擁有直接寫在該 interface 或 namespace 裡的 operation。巢狀的 interface 與巢狀的 namespace 是各自獨立的範圍。它們可以各自帶自己的 channel。
+宣告 channel。直接寫在該 interface 或 namespace 裡的 operation 都屬於這個 channel。巢狀的 interface 與 namespace 各自是獨立範圍，也可以各自帶 channel。
 
 `address` 是必填。沒給 `channelId` 時，`channels` map 的 key 就是 address 本身。用 Kafka 這類 broker 時，address 是 topic 名稱，讀者也是用 topic 名稱找 channel。要用別的名稱當 key 時，傳 `channelId`。
 
@@ -84,7 +84,7 @@ channels:
         $ref: "#/components/messages/OrderCreated"
 ```
 
-AsyncAPI Parameter Object 只有五個欄位，**沒有 `schema`**。所以 channel 參數不帶型別資訊，值一律是字串。
+channel 參數不帶型別資訊，值一律是字串。
 
 | Parameter Object 欄位 | TypeSpec 來源                                        |
 | --------------------- | ---------------------------------------------------- |
@@ -132,8 +132,6 @@ channels:
       OrderAccepted:
         $ref: "#/components/messages/OrderAccepted"
 ```
-
-這是獨立的 decorator，不是「省略 address 的 `@channel`」。位址未知的 channel 在語意上是另一種 channel。兩個 decorator 分開，「刻意要 null」與「忘記寫 address」才能在語法上區分。
 
 dynamic channel 永遠不帶 `parameters`，因為它沒有可以放模板的 address。其餘行為與 `@channel` 相同。
 

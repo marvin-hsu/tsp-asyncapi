@@ -103,7 +103,7 @@ components:
 | `defaultContentType`                                                  | The `default-content-type` option in `tspconfig.yaml`                                             |
 
 With more than one `@service`, the first is used and `multiple-services`
-warns. To get a document per service, split them into separate projects that
+is reported. To get a document per service, split them into separate projects that
 share the same TypeSpec sources.
 
 ## Next steps
@@ -111,4 +111,4 @@ share the same TypeSpec sources.
 - Design your event payload models with the [Schema Conversion](./schema-conversion/) rules — verified input/output pairs for every supported construct.
 - See all configuration knobs in [Emitter Options](../reference/emitter-options).
 - Browse the [Decorators](../reference/decorators/) reference for exact signatures.
-- When the emitter warns or errors, look it up in [Diagnostics](../reference/diagnostics).
+- When the emitter reports a warning or an error, look it up in [Diagnostics](../reference/diagnostics).

@@ -1,9 +1,9 @@
 ---
-title: "文件資訊 (Document Info)"
+title: "Document Info"
 description: "填入 service namespace 的 AsyncAPI `info` 區塊。參數的形狀："
 ---
 
-# 文件資訊 (Document Info)
+# Document Info
 
 ## `@info`
 
@@ -64,7 +64,7 @@ extern dec externalDocs(target: unknown, url: valueof string, description?: valu
 | `@channel` interface                      | 該 channel 的 `externalDocs`   |
 | `@send`／`@receive` operation             | 該 operation 的 `externalDocs` |
 
-AsyncAPI 的 Schema Object 在 JSON Schema draft-07 之上只加了三個欄位，`externalDocs` 與 `discriminator`、`deprecated` 並列。`@message` model 會同時輸出到 message 與它的 payload schema，`@doc` 本來就是這樣。
+`@message` model 會同時輸出到 message 與它的 payload schema，`@doc` 本來就是這樣。
 
 server 來自 service namespace，而 `info` 讀的是同一個 namespace，所以標在該 namespace 的一個連結會出現在兩處。AsyncAPI 在兩種物件上都定義了 `externalDocs`。
 
@@ -120,7 +120,7 @@ model ExternalDocs {
 
 在輸出的物件上加一個 tag 與它的 metadata。可重複套用：每次套用加一個 tag，輸出的陣列依原始碼順序排列。
 
-名字刻意取為 `asyncTag` 而非 `tag`。內建的 `@tag` 位於全域的 `TypeSpec` namespace，永遠在可見範圍內。若在 `AsyncAPI` namespace 再放一個 `tag`，使用者寫 `using AsyncAPI;` 之後的 `@tag(...)` 就會變成有歧義的識別字，既有的 `@tag` 全部得改寫成 `@TypeSpec.tag(...)`。
+名字刻意取為 `asyncTag` 而非 `tag`，內建的 `@tag` 才不會有歧義。
 
 它與內建 `@tag` 有兩點不同：
 
@@ -129,7 +129,7 @@ model ExternalDocs {
 | 參數   | 只有名字                              | 名字加上 `description` 與 `externalDocs` |
 | target | `Namespace \| Interface \| Operation` | 任何型別，包含 `Model`                   |
 
-AsyncAPI 的每個項目放的是完整的 Tag Object，OpenAPI 放的是單純的字串。message 是 model，所以**內建 `@tag` 根本標不到 message 上**，編譯器會直接拒絕該次套用。
+message 是 model，所以**內建 `@tag` 根本標不到 message 上**，編譯器會直接拒絕該次套用。
 
 ```typespec
 @message

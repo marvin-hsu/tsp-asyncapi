@@ -24,8 +24,6 @@ extern dec websocketChannel(
 
 Apply it to the interface or namespace that carries `@channel` or `@dynamicChannel`.
 
-The emitted member is `ws`. AsyncAPI names the binding folder `websockets`, and it names the member `ws`. The member name is what a reader of the document sees.
-
 `method` is the HTTP method that opens the connection. AsyncAPI allows `GET` and `POST`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
 
 `query` and `headers` describe the handshake. Each one is a Schema Object. Write it as an object literal of type `object` with a `properties` key. AsyncAPI states both requirements. A schema that meets neither describes no parameter, so the emitter reports it and drops the field. A `$ref` passes without either key, because the schema behind it lives elsewhere.

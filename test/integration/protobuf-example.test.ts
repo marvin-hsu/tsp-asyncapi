@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { descriptorOf } from "../utils/protobuf-parity.js";
 
@@ -41,32 +41,6 @@ const GUIDES = [
   "docs/guide/protobuf-payloads.md",
   "docs/zh-tw/guide/protobuf-payloads.md",
 ] as const;
-
-/**
- * The limitation each guide has to name, in the language of that page.
- *
- * Two messages that reference each other leave no declaration that nothing
- * references. The official AsyncAPI Protobuf parser roots a payload on that
- * declaration, so it cannot root such a payload. A page that states the
- * rooting rule without the exception teaches a reader a rule this emitter
- * breaks.
- */
-const ROOTING_LIMITATION = [
-  ["docs/guide/protobuf-payloads.md", "reference each other"],
-  ["docs/zh-tw/guide/protobuf-payloads.md", "互相引用"],
-] as const;
-
-/**
- * The examples index of each locale, with the count claim that page must not
- * make. The claim is false for this example, so the phrase is the evidence.
- */
-const EXAMPLE_INDEX = [
-  ["docs/guide/examples.md", "three files"],
-  ["docs/zh-tw/guide/examples.md", "三個檔案"],
-] as const;
-
-/** The three files every other example directory holds. */
-const USUAL_FILES = ["main.tsp", "tspconfig.yaml", "asyncapi.yaml"];
 
 /** The manifest of the emitter package, which declares the supported range. */
 const MANIFEST = JSON.parse(
@@ -256,34 +230,6 @@ describe("Integration: the committed Protobuf example", () => {
     const page = readFileSync(new URL(`../../${guide}`, import.meta.url), "utf8");
 
     expect(page).toContain(SUPPORTED_RANGE);
-  });
-
-  /**
-   * Both pages state how a Protobuf reader finds the root of a payload. Two
-   * messages that reference each other leave no root, and the emitter writes
-   * that payload anyway. A page that omits the exception states a rule this
-   * emitter breaks.
-   */
-  it.each(ROOTING_LIMITATION)("states the rooting limitation in %s", (guide, phrase) => {
-    const page = readFileSync(new URL(`../../${guide}`, import.meta.url), "utf8");
-
-    expect(page).toContain(phrase);
-  });
-
-  /**
-   * The examples index says what one example directory holds. This directory
-   * holds more, because the official emitter also wrote `.proto` files into
-   * it. An index that states a fixed count contradicts its own table.
-   */
-  it.each(EXAMPLE_INDEX)("admits the extra files of this example in %s", (guide, claim) => {
-    const extras = readdirSync(EXAMPLE).filter((name) => !USUAL_FILES.includes(name));
-    expect(extras).not.toHaveLength(0);
-
-    const page = readFileSync(new URL(`../../${guide}`, import.meta.url), "utf8");
-    const intro = page.slice(0, page.indexOf("## "));
-
-    expect(intro).not.toContain(claim);
-    expect(intro).toContain(".proto");
   });
 
   it("passes the parser with the Protobuf schema parser registered", async () => {

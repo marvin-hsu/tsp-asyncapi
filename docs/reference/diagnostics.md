@@ -4,11 +4,7 @@ outline: 2
 
 # Diagnostics
 
-Every warning and error this emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `tsp-asyncapi/<code>`.
-
-A common design principle across all of them: **the emitter never silently drops or silently rewrites your intent.** Anything it cannot represent is either omitted with a warning, or reported as an error.
-
-A diagnostic is not a lint rule. The emitter reports a diagnostic whenever it finds the problem, and a diagnostic can be an error. A [lint rule](./linter) runs during semantic analysis, you turn it on yourself, and it is always a warning.
+Every warning and error the emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `tsp-asyncapi/<code>`.
 
 ## Errors
 
@@ -24,7 +20,7 @@ Two declarations resolved to the same `components.schemas` key. Typical causes: 
 
 > Schema key '\<name\>' is claimed twice. Message '\<message\>' lifts @header fields into its `headers`, so its payload needs a schema of its own, and that schema is keyed after the message model. Rename the other type that claims '\<name\>', or describe the headers of '\<message\>' with @headers so its payload keeps every field.
 
-A message that lifts `@header` fields cannot reuse the model's own schema: that schema still describes the lifted fields, which now belong to `headers`. So the payload gets a component of its own, keyed after the message model with a `Payload` suffix. Another declaration already claims that key.
+A message that lifts `@header` fields cannot reuse the model's own schema: that schema still describes the lifted fields, which now belong to `headers`. The payload therefore gets a component of its own, keyed after the message model with a `Payload` suffix. Another declaration already claims that key.
 
 The payload shape is emitted inline instead. A reference to the model's own component would describe the lifted fields as payload data, so the message would contradict its own `headers`.
 
@@ -42,7 +38,7 @@ The raw schema is written in each message instead. Nothing is lost, and the docu
 
 ### `unsupported-payload-type`
 
-> This emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.
+> The emitter does not support a \<kind\> here. Use a model, scalar, enum, union, or literal value instead.
 
 A property or payload position names a TypeSpec entity the schema layer cannot convert — an `Interface`, `Namespace`, `Operation`, and so on. The compiler itself does not reject this; only the emitter does.
 
@@ -168,9 +164,9 @@ This is the mirror of [`non-string-raw-schema`](#non-string-raw-schema), which c
 
 ### `raw-schema-local-ref`
 
-> This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema this emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
+> This schema refers to '\<ref\>', and it is written in '\<format\>'. AsyncAPI requires both ends of a $ref to carry the same schemaFormat. Every schema the emitter writes into the document is an AsyncAPI Schema Object, so the two ends disagree. The schema is emitted as written. Inline the definition instead of referring to it, or write this schema in the AsyncAPI Schema Object format.
 
-The schema given to [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) carries a top-level `$ref` that starts with `#/`, and its `schemaFormat` is not the AsyncAPI Schema Object format. Such a reference points into the emitted document. Every schema this emitter writes there is an AsyncAPI Schema Object, so the target carries a different `schemaFormat` than the schema that refers to it.
+The schema given to [`@rawPayload`](./decorators/messages#rawpayload) or [`@rawHeaders`](./decorators/messages#rawheaders) carries a top-level `$ref` that starts with `#/`, and its `schemaFormat` is not the AsyncAPI Schema Object format. Such a reference points into the emitted document. Every schema the emitter writes there is an AsyncAPI Schema Object, so the target carries a different `schemaFormat` than the schema that refers to it.
 
 Only the top level of the raw schema is read. A reference nested deeper is written in the schema language itself, and the emitter does not read that language.
 
@@ -222,7 +218,7 @@ The keyword is left off the payload schema. The polymorphism still reaches the d
 
 > The header '\<name\>' names the message content type, and this message also carries @contentType. AsyncAPI has one field for the content type, so two sources for it are ambiguous. Remove the @header field and keep @contentType.
 
-A header field is named `content-type` (the comparison uses the emitted wire name and ignores case), and the same message also carries `@contentType`. AsyncAPI keeps the content type in its own message field, so the two sources cannot both be honoured. `@typespec/http` reclassifies such a header because HTTP has no other way to state it; this emitter does have `@contentType`, so it reports instead of choosing.
+A header field is named `content-type` (the comparison uses the emitted wire name and ignores case), and the same message also carries `@contentType`. AsyncAPI keeps the content type in its own message field, so the two sources cannot both be honoured. `@typespec/http` reclassifies such a header because HTTP has no other way to state it; the emitter does have `@contentType`, so it reports instead of choosing.
 
 The check covers both headers mechanisms. The field may carry `@header` on the message model, or it may be a property of the model given to `@headers`, including a property that model inherits.
 
@@ -394,7 +390,7 @@ The address holds an expression that no operation of the channel declares. The e
 
 ### `unused-channel-param`
 
-> The parameter '\<name\>' is not used by the address of channel '\<id\>'. An operation parameter whose type is not a @message model describes a channel address parameter, and this emitter never rewrites the address to absorb one. Add '{\<name\>}' to the address, or mark the parameter type with @message.
+> The parameter '\<name\>' is not used by the address of channel '\<id\>'. An operation parameter whose type is not a @message model describes a channel address parameter, and the emitter never rewrites the address to absorb one. Add '{\<name\>}' to the address, or mark the parameter type with @message.
 
 An operation of the channel declares a parameter the address never names. Every top-level operation parameter whose type does not carry `@message` describes a channel address parameter, so this one has nowhere to go.
 
@@ -404,7 +400,7 @@ An operation of the channel declares a parameter the address never names. Every 
 
 > The channel parameter '\<name\>' is not declared as a string. The AsyncAPI Parameter Object has no `schema` field, so a channel parameter carries no type and its value is always a string. Declare it as a string, a string literal, a union of string literals, or a string-backed enum.
 
-The declared type is not a string type. The AsyncAPI Parameter Object holds `enum`, `default`, `description`, `examples`, and `location`, and no `schema`. So there is nowhere to put a type.
+The declared type is not a string type. The AsyncAPI Parameter Object holds `enum`, `default`, `description`, `examples`, and `location`, and no `schema`, so there is nowhere to put a type.
 
 **Fix:** declare the parameter as a string, a string literal, a union of string literals, or a string-backed enum.
 
@@ -540,8 +536,6 @@ Several bindings state fields the author has to give. A Pulsar channel needs a `
 
 A blank string counts as absent. A name of spaces names nothing, so it is worth no more than no field at all.
 
-This is an error rather than a warning. The emitter cannot write the binding without the field, so nothing of it survives for the author to inspect. Emitting it in part would hand back a document that fails validation with a message about this emitter rather than about the source.
-
 Every missing field of one object is reported, not only the first. Reporting one at a time would send the author round the loop twice.
 
 **Fix:** add the field the message names to the decorator config.
@@ -612,9 +606,9 @@ No document is written. Both artifacts are gone, so the model would fall back to
 
 ### `preview-feature-unavailable`
 
-> The preview feature '\<feature\>' is not available in this release. It is a name this emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
+> The preview feature '\<feature\>' is not available in this release. It is a name the emitter reserves, and the provider behind it is not built yet. Remove '\<feature\>' from `preview-features` in `tspconfig.yaml`.
 
-The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Both have a provider in this release, so no name reports this today. The code stays, because it answers the next reserved name that arrives before its provider does. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
+The [`preview-features`](./emitter-options#preview-features) option names a feature that has no provider in this release. The reserved names are `protobuf` and `avro`. Both have a provider in this release, so no name reports this today. A name outside the reserved set fails the option schema instead, and never reaches this diagnostic.
 
 No file is written. A document emitted next to this error would ignore the request without saying so.
 
@@ -624,13 +618,13 @@ No file is written. A document emitted next to this error would ignore the reque
 
 > Model '\<name\>' carries @Protobuf.message, and no namespace above it carries @Protobuf.package. A generated payload is the proto3 text of a whole package, so the model needs one. Add @Protobuf.package to the namespace that holds this model.
 
-> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing this emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
+> Model '\<name\>' of package '\<package\>' reaches \<construct\>, and proto3 has nothing the emitter can write it as. So this message has no generated payload. Describe that part with a construct proto3 covers, or remove @Protobuf.message from the model.
 
 > Scalar '\<scalar\>' has no proto3 type, and no scalar it extends has one either. So model '\<name\>' of package '\<package\>' has no generated payload. Give the field a scalar that extends one of the Protobuf scalar types.
 
-Three problems report this code, and the message names which one it is. The model has no package above it. The model reaches a construct this emitter cannot write as proto3. A field uses a scalar that maps to no proto3 type.
+Three problems report this code, and the message names which one it is. The model has no package above it. The model reaches a construct the emitter cannot write as proto3. A field uses a scalar that maps to no proto3 type.
 
-The second message names the construct it stopped at. This emitter writes the proto3 text of one payload, and that text carries no `import` line. It refuses every construct that has no honest form there:
+The second message names the construct it stopped at. The emitter writes the proto3 text of one payload, and that text carries no `import` line. It refuses every construct that has no honest form there:
 
 - a union, or any other property type proto3 has no form for
 - an anonymous model
@@ -648,23 +642,23 @@ The second message names the construct it stopped at. This emitter writes the pr
 - a model or enum whose name another declaration of the payload already takes
 - an enum whose first variant is not zero
 - an enum with a variant that is not an integer
-- a `@Protobuf.package` declaration this emitter cannot read
-- a `@Protobuf.reserve` list this emitter cannot read
+- a `@Protobuf.package` declaration the emitter cannot read
+- a `@Protobuf.reserve` list the emitter cannot read
 
-Four entries name state this emitter cannot read. They are the `Protobuf.Map`
+Four entries name state the emitter cannot read. They are the `Protobuf.Map`
 with no key and value, the `Protobuf.Map` of values, the `@Protobuf.package`
 declaration, and the `@Protobuf.reserve` list. That state belongs to another
 library, and that library promises nothing about the shape of it. A shape this
 emitter does not know is refused rather than guessed at. A guess would put
 wrong proto3 text in the document and say so nowhere.
 
-The third message names the scalar. This emitter maps the 15 scalars the Protobuf library maps. Nine of them are built in TypeSpec scalars, and six come from the Protobuf library. It also follows the chain a custom scalar extends. A scalar whose chain reaches none of the 15 has no type to write.
+The third message names the scalar. The emitter maps the 15 scalars the Protobuf library maps. Nine of them are built in TypeSpec scalars, and six come from the Protobuf library. It also follows the chain a custom scalar extends. A scalar whose chain reaches none of the 15 has no type to write.
 
 A model that carries `@Protobuf.message` and no `@AsyncAPI.message` reports nothing. It asks for no payload, so a project that uses the official decorators for other types keeps its build green.
 
 The `protobuf` preview feature reports this while it collects generated payloads. A model this code names gets no generated payload. The emitter reports the problem instead of writing an empty one, because an empty payload reads as a schema that describes nothing.
 
-The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. This emitter reads the decorator state, so a renamed package is matched by the name it declares.
+The package of a model is decided by the nearest namespace above it that carries `@Protobuf.package`. The emitter reads the decorator state, so a renamed package is matched by the name it declares.
 
 **Fix:** add `@Protobuf.package` to the namespace of the model. For the other two messages, change the type the message names, or remove `@Protobuf.message` from the model.
 
@@ -676,7 +670,7 @@ A message model carries `@header` on one of its own fields, and it also carries 
 
 `@header` says the property travels beside the payload. Neither target language has that idea. Protobuf gives every property of a message a field number, and Avro gives every property of a record a field, so a property the payload does not carry has nowhere to go and no way to be marked as absent.
 
-Leaving the property out of the generated schema is the other option, and it is worse. `@typespec/protobuf` and the Avro emitter both write the whole model, and neither reads an AsyncAPI decorator. So the schema in the document and the standalone file would describe different shapes for one message, and nothing in either file would say so.
+Leaving the property out of the generated schema is the other option, and it is worse. `@typespec/protobuf` and the Avro emitter both write the whole model, and neither reads an AsyncAPI decorator. The schema in the document and the standalone file would then describe different shapes for one message, and nothing in either file would say so.
 
 Every marked property is named. Fixing one and compiling again to find the next is a round trip this can spare.
 
@@ -692,8 +686,6 @@ A mark on a model reached from the message is a different case. That model is no
 
 A model carries `@Avro.avroRecord` and `@AsyncAPI.message`, and `tsp-avro` refused to build a schema for it. The reason comes from that library and is quoted in the message.
 
-The reason is quoted rather than forwarded. A diagnostic carries the code of the library that built it. A project that emits only this library should not read the codes of another one. A project that emits both would otherwise read every refusal twice, once from each emitter.
-
 Only the first reason is quoted. The Avro walk keeps going after a refusal, so one model can collect several. To read all of them, put `tsp-avro` in `emit` and compile again.
 
 No document is written. The payload of that model would fall back to the schema its TypeSpec type produces. That file answers a request for Avro with ordinary JSON Schema, and nothing in it says so.
@@ -704,11 +696,11 @@ A model that carries `@Avro.avroRecord` and no `@AsyncAPI.message` reports nothi
 
 ### `avro-library-missing`
 
-> The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: \<reason\> That library holds the Avro walk, and this emitter carries no copy of it. Install 'tsp-avro' beside this emitter, or remove 'avro' from `preview-features` in `tspconfig.yaml`.
+> The preview feature 'avro' is on, and 'tsp-avro' could not be loaded: \<reason\> That library holds the Avro walk, and the emitter carries no copy of it. Install 'tsp-avro' beside the emitter, or remove 'avro' from `preview-features` in `tspconfig.yaml`.
 
 The [`preview-features`](./emitter-options#preview-features) option names `avro`, and the load of `tsp-avro` failed. The message quotes what the load reported.
 
-`tsp-avro` is an optional peer dependency of this emitter. It is loaded only when the feature is on, so a project that never turns it on never needs it. A project that turns it on installs it itself.
+`tsp-avro` is an optional peer dependency of the emitter. It is loaded only when the feature is on, so a project that never turns it on never needs it. A project that turns it on installs it itself.
 
 No document is written. Every Avro payload the project asked for is missing, and a document without them describes something else.
 
@@ -722,9 +714,9 @@ No document is written. Every Avro payload the project asked for is missing, and
 
 Two channels carry the same address. The document stays valid, because their ids differ and each names its own messages, so this is a warning.
 
-What it costs is clarity. The address is the thing that exists at run time; the channel id is not. So a reader of the document cannot tell which set of messages that one address actually carries.
+The address is what exists at runtime; the channel id is not. A reader of the document therefore cannot tell which set of messages that one address carries.
 
-A [`@dynamicChannel`](./decorators/channels#dynamicchannel) is never reported. Its address is `null` because the address is unknown until run time, so two of them state nothing about each other.
+A [`@dynamicChannel`](./decorators/channels#dynamicchannel) is never reported. Its address is `null` because the address is unknown until runtime, so two of them state nothing about each other.
 
 Only the second channel of a pair is reported, and the message names the first.
 
@@ -898,7 +890,7 @@ A base model is a declaration of its own, shared by every model that extends it,
 
 ### `server-outside-service`
 
-> Server '\<name\>' on namespace '\<namespace\>' was dropped. This emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.
+> Server '\<name\>' on namespace '\<namespace\>' was dropped. The emitter reads the servers of the service namespace only. Move this @server to the service namespace this document is emitted from.
 
 `@server` is applied to a namespace that is not the service namespace this document comes from. The emitter reads servers from the service namespace only, the same source as `info`.
 
@@ -942,7 +934,7 @@ A `@messageExample` value contains something the compiler cannot serialize to pl
 
 > @extension sits on a target that emits no info, channel, operation, or message object, so it reaches no part of the document. Every @extension here was dropped. Move it to the service namespace, a channel, an operation, or a @message model.
 
-[`@extension`](./decorators/document-info#extension) accepts any target, because AsyncAPI allows a specification extension on every object. This emitter writes one on four objects only: `info`, a channel, an operation, and a message. A target that emits none of them reaches no part of the document.
+[`@extension`](./decorators/document-info#extension) accepts any target, because AsyncAPI allows a specification extension on every object. The emitter writes one on four objects only: `info`, a channel, an operation, and a message. A target that emits none of them reaches no part of the document.
 
 A server and a security scheme are two such targets. Both are declared with a named argument on a namespace, so one `@extension` cannot name which of them it means.
 
@@ -972,7 +964,7 @@ A property's default value, written as `name?: T = value`, contains something th
 
 > @visibility does not change an AsyncAPI message. A message has one shape, not a shape per lifecycle phase, so this property is emitted in full. Use @invisible to leave a property out of the document.
 
-[`@visibility`](https://typespec.io/docs/language-basics/visibility/) gives one model several shapes, one per lifecycle phase. An AsyncAPI message has no phases: it is one shape, sent once. So there is no phase for the emitter to select, and the property is emitted in full.
+[`@visibility`](https://typespec.io/docs/language-basics/visibility/) gives one model several shapes, one per lifecycle phase. An AsyncAPI message has no phases: it is one shape, sent once. There is no phase for the emitter to select, and the property is emitted in full.
 
 `@invisible(Lifecycle)` is different. It places the property in no phase at all, which needs no phase to interpret, so the emitter honours it and leaves the property out. Nothing is reported for that case.
 
@@ -1032,9 +1024,7 @@ A binding sits on the object its target emits. A target that emits no object car
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-One field carries a value the binding specification forbids. The Kafka binding raises it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
-
-This is a warning because the emitter recovers. It drops the one field and emits the rest of the binding. The other binding codes are errors, because each of them drops a whole binding.
+One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
 
 **Fix:** give the field a value the message names.
 

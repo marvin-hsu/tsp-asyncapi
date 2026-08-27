@@ -27,7 +27,7 @@ extern dec sqsChannel(
 
 `deadLetterQueue` 是選填，形狀相同。寫了但不完整時會被回報並丟棄，binding 的其餘部分保留。
 
-`deduplicationScope` 是 `queue` 或 `messageGroup`。`fifoThroughputLimit` 是 `perQueue` 或 `perMessageGroupId`。四個時間欄位都是秒數，不會是負數。
+`deduplicationScope` 是 `queue` 或 `messageGroup`。`fifoThroughputLimit` 是 `perQueue` 或 `perMessageGroupId`。四個時間欄位都是秒數，是零或以上。
 
 ```typespec
 @sqsChannel(#{
@@ -66,8 +66,6 @@ extern dec sqsOperation(target: Operation, config: valueof AsyncAPISqsOperationB
 套用在帶有 `@send` 或 `@receive` 的 operation 上。
 
 `queues` 是必填，每一筆都要求 `name`。缺 `name` 的那一筆會被回報並丟棄。整份清單一筆不剩時，會回報成缺少 `queues`，因為空清單沒有指名任何 queue。
-
-這一層的 queue 只要求 `name`。channel binding 還要求 `fifoQueue`，這是 AsyncAPI 對兩層所訂的差異。
 
 ```typespec
 @send

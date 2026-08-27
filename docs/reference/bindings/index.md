@@ -1,6 +1,6 @@
 ---
 title: "Protocol bindings"
-description: "How protocol bindings work in this emitter: the thirteen protocols, the @binding escape hatch, the rules that span two objects, and how a binding version is chosen."
+description: "How protocol bindings work in the emitter: the thirteen protocols, the @binding escape hatch, the rules that span two objects, and how a binding version is chosen."
 ---
 
 # Protocol bindings
@@ -38,7 +38,7 @@ extern dec binding(target: unknown, protocol: valueof string, config: valueof un
 Adds one raw binding to whichever object the target emits. Use it for a field a newer version of a binding added, and for the three protocols below that carry no fields.
 
 ::: warning
-The member names of a Bindings Object are a closed list. AsyncAPI names every protocol it knows, and a parser rejects any other name with "Property '\<name\>' is not expected to be here". So `@binding("mycorp", ...)` writes a document that fails validation.
+The member names of a Bindings Object are a closed list. AsyncAPI names every protocol it knows, and a parser rejects any other name with "Property '\<name\>' is not expected to be here". `@binding("mycorp", ...)` therefore writes a document that fails validation.
 
 For a protocol of your own, use a name that starts with `x-`. That prefix is the specification extension mechanism, and a parser accepts it anywhere.
 :::
@@ -64,7 +64,7 @@ channels:
         retain: true
 ```
 
-The target is `unknown`, because all four positions are reachable. This decorator names no level. The binding lands wherever the target emits an object.
+The binding lands wherever the target emits an object.
 
 ::: warning
 A namespace can be both the service namespace and a channel target. A `@binding` there reaches the server and the channel. Use the protocol-specific decorator when only one of the two is meant.
@@ -76,7 +76,7 @@ AsyncAPI reserves five more member names. This library ships no decorator for th
 
 `amqp1`, `redis` and `stomp` are accepted by the AsyncAPI parser, and each one carries no field. A named decorator would validate nothing and stamp no version, so `@binding("redis", #{})` already says everything they can say.
 
-`mercure`, `mqtt5` and `ros2` are rejected by the AsyncAPI parser at every level of an AsyncAPI 3.0 document. A document carrying one of them fails validation, so this library emits neither a decorator nor a generic binding that would produce one.
+`mercure`, `mqtt5` and `ros2` are rejected by the AsyncAPI parser at every level of an AsyncAPI 3.0 document. A document carrying one of them fails validation, so the emitter has neither a decorator nor a generic binding that would produce one.
 
 ## Rules that span two objects
 

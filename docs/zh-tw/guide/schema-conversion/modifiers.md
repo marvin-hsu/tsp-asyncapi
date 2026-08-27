@@ -19,7 +19,7 @@ TypeSpec 的名稱不同，以及怎麼補上 emitter 沒有涵蓋的 JSON Schem
 三個都能標在 model、scalar、enum、union、屬性與 union variant 上。
 
 `@example` 可以標多個，依原始碼順序輸出，值序列化成純 JSON。序列化不了的會被丟棄，
-並發出 [`unserializable-example`](../../reference/diagnostics#unserializable-example) 警告。
+並回報 [`unserializable-example`](../../reference/diagnostics#unserializable-example) 警告。
 
 ### 範例
 

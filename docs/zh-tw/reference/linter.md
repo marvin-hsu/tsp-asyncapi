@@ -19,9 +19,7 @@ linter 回報 emitter 會接受的錯誤。這些寫法都產出合法的 AsyncA
 | 嚴重度   | 錯誤或警告            | 只能是警告            |
 | 代碼     | `tsp-asyncapi/<code>` | `tsp-asyncapi/<rule>` |
 
-[診斷](./diagnostics)是一份契約。emitter 只要發現問題就回報。它不能停止回報，否則會破壞使用者。
-
-規則是你自己的選擇。所以規則可以對「不算錯」的寫法說「你大概不是這個意思」。
+[診斷](./diagnostics)一定會回報。規則要自己開，所以規則可以對不算錯的寫法提出警告。
 
 ## 開啟 linter
 
@@ -68,7 +66,7 @@ linter:
 
 > This program declares AsyncAPI content but no `@service`. The emitted document falls back to the title "AsyncAPI Document" and the version "0.0.0".
 
-`info.title` 與 `info.version` 是必填欄位。沒有任何 namespace 標上 `@service` 時，emitter 用預設值填這兩個欄位。文件是合法的，而那兩個值夠像真的，review 時很容易放過。
+`info.title` 與 `info.version` 是必填欄位。沒有任何 namespace 標上 `@service` 時，emitter 用佔位值填這兩個欄位。文件是合法的，而那兩個值夠像真的，review 時很容易放過。
 
 規則需要有 channel 才會回報。應用程式會宣告 channel，只放 `@message` model 的共用 library 不會。那種 library 本來就刻意沒有自己的 `@service`。
 
@@ -159,7 +157,7 @@ namespace 可以宣告多種通訊協定的 server。只要其中一個對得上
 
 > Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it a Protobuf payload.
 
-`@contentType` 說明線上的位元組如何編碼，它不產生那些位元組。所以一個 message 可以指名 Protobuf 媒體型別，而它的 payload 仍然由 TypeSpec model 降級而來。這樣的文件等於叫消費端用 Protobuf 解碼，卻用 JSON Schema 描述同一批位元組。
+`@contentType` 說明傳輸中的位元組如何編碼，並不產生那些位元組。所以一個 message 可以指名 Protobuf 媒體型別，而它的 payload 仍然是從 TypeSpec model 產生的。這樣的文件等於叫消費端用 Protobuf 解碼，卻用 JSON Schema 描述同一批位元組。
 
 ```typespec
 // 會回報。content type 說是 Protobuf，payload 卻是 JSON Schema。
@@ -185,7 +183,7 @@ namespace Orders {
 
 > Message '\<name\>' declares the content type '\<contentType\>', but nothing gives it an Avro payload.
 
-`@contentType` 說明線上的位元組如何編碼，它不產生那些位元組。所以一個 message 可以指名 Avro 媒體型別，而它的 payload 仍然由 TypeSpec model 降級而來。這樣的文件等於叫消費端用 Avro 解碼，卻用 JSON Schema 描述同一批位元組。
+`@contentType` 說明傳輸中的位元組如何編碼，並不產生那些位元組。所以一個 message 可以指名 Avro 媒體型別，而它的 payload 仍然是從 TypeSpec model 產生的。這樣的文件等於叫消費端用 Avro 解碼，卻用 JSON Schema 描述同一批位元組。
 
 ```typespec
 // 會回報。content type 說是 Avro，payload 卻是 JSON Schema。
@@ -224,11 +222,3 @@ namespace Orders;
 ```
 
 **修法：** 在有宣告 server 的 namespace 上加 `@useSecurity`，或移除這個 scheme。
-
-## linter 不做的事
-
-linter 不重複既有的診斷。emitter 會回報 103 個診斷，其中 49 個要等到它執行才發出。
-
-把診斷改寫成規則，等於同一個檢查有兩份實作。兩份會隨時間漂移。嚴重度也會改變：那 49 個當中有 15 個是錯誤，而規則只能是警告。
-
-所以上面這些規則，涵蓋的都是沒有任何診斷涵蓋的錯誤。

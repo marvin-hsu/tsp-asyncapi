@@ -19,9 +19,7 @@ Both appear in compiler output. They are not the same thing.
 | Severity  | Error or warning      | Warning only             |
 | Code      | `tsp-asyncapi/<code>` | `tsp-asyncapi/<rule>`    |
 
-[Diagnostics](./diagnostics) are a contract. The emitter reports them whenever it finds the problem, and it cannot stop doing so without breaking you.
-
-A rule is a choice you make. That is why a rule can say "you probably did not mean this" about something that is not wrong.
+The emitter always reports a [diagnostic](./diagnostics). You enable a rule yourself, so a rule can flag source that is not wrong.
 
 ## Turning the linter on
 
@@ -224,11 +222,3 @@ namespace Orders;
 ```
 
 **Fix:** apply `@useSecurity` to a namespace that declares a server, or remove the scheme.
-
-## What the linter does not do
-
-The linter does not repeat the diagnostics. The emitter reports 103 of them, and 49 of those wait until it runs.
-
-Mirroring one as a rule would put the same check in two places, and the two would drift. It would also change the severity: 15 of the emit-time codes are errors, and a rule can only be a warning.
-
-So the rules above cover mistakes that no diagnostic covers.
