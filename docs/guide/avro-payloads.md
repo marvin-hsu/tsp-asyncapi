@@ -36,7 +36,7 @@ options:
 
 ## Example
 
-The example below is [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads) in the repository. One Avro namespace, two records, and a Kafka cluster with a schema registry. The excerpts below are parts of that file. The repository holds the whole of it.
+The example below comes from [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads). One Avro namespace, two records, and a Kafka cluster with a schema registry. The excerpts below are parts of that file.
 
 `@Avro.avroNamespace` marks the namespace that qualifies every Avro name under it.
 

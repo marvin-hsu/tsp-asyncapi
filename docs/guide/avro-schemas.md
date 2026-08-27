@@ -1,25 +1,15 @@
 ---
 title: "Avro Schemas"
-description: "tsp-avro is a second emitter in this repository. It writes Apache Avro schema files from TypeSpec models. This page shows what it emits and the rules it holds."
+description: "tsp-avro writes Apache Avro schema files from TypeSpec models, and it backs the avro feature of tsp-asyncapi. This page shows what it emits and the rules it holds."
 ---
 
 # Avro Schemas
 
-[`tsp-avro`](https://www.npmjs.com/package/tsp-avro) is a second emitter in this repository. It writes Apache Avro schema files from TypeSpec models. It writes no AsyncAPI document, and it needs no AsyncAPI decorator.
+[`tsp-avro`](https://www.npmjs.com/package/tsp-avro) writes Apache Avro schema files from TypeSpec models, and it backs the `avro` feature of `tsp-asyncapi`.
 
 ::: warning
 This package is experimental, and it is pre-1.0. Its decorators, its output and its diagnostics can change in any release. Pin an exact version if you depend on it.
 :::
-
-The `avro` preview feature of the AsyncAPI emitter calls this same library. With it on, a model that carries `@Avro.avroRecord` also gets an Avro schema as its AsyncAPI payload. The [Avro Payloads guide](./avro-payloads) says how to turn that on.
-
-## What it does
-
-The package is the Avro counterpart of [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/). It declares its own decorators, and it registers its own emitter.
-
-A model marked with `@Avro.avroRecord` becomes one `.avsc` file. The Avro namespace of the model becomes the directory that file is written into.
-
-Avro needs few decorators, because a plain TypeSpec model is already a valid Avro record. Avro has no field number. So the decorators here cover what Avro has and TypeSpec cannot say.
 
 ## Installing it and turning it on
 
@@ -40,11 +30,9 @@ options:
     emitter-output-dir: "{project-root}/schemas"
 ```
 
-The emitter has no option of its own. `emitter-output-dir` is a compiler option, and every emitter takes it.
+## Example
 
-## Writing the source
-
-The example below is [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas) in the repository. It holds the source, the `tspconfig.yaml` it was compiled with, and the schema files the emitter wrote.
+The example below comes from [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas).
 
 ```typespec
 @Avro.avroNamespace("com.example.orders")
@@ -92,7 +80,7 @@ model OrderFulfilmentChanged {
 }
 ```
 
-## What the emitter writes
+## The result
 
 That model becomes `schemas/com/example/orders/OrderFulfilmentChanged.avsc`.
 
@@ -198,32 +186,7 @@ A `/** */` comment becomes the `doc` of what it sits on. A `//` comment is not e
 
 The file holds the model `Address` and the enum `FulfilmentStatus` in full. Neither declaration carries `@Avro.avroRecord`, so neither gets a file of its own.
 
-## One file holds one whole schema
-
-Avro has no import. A schema file stands alone.
-
-So every named type a record reaches is written into that record's own file. Avro writes a named type in full at its first occurrence. It writes the full name alone after that. The example has two records that both reach `Address`, and each file holds a copy of it.
-
-The second occurrence inside one file is a name. This is the `billing` field of `OrderPlaced`, which reaches the `Address` that the `shipping` field already wrote out.
-
-<!-- prettier-ignore -->
-```json
-    {
-      "name": "billing",
-      "type": [
-        "null",
-        "com.example.orders.Address"
-      ],
-      "doc": "Where the invoice goes, when it is not the shipping address.",
-      "default": null
-    },
-```
-
-A record that reaches itself needs no rule of its own. Its name is claimed before its fields are walked. So the field that reaches back finds the name already there.
-
 ## Optional fields and defaults
-
-Avro has no optional field. A field that may be absent is a union with null.
 
 Avro reads a default against the first branch of a union alone. So the `?` and the `= value` of TypeSpec decide the shape together.
 
@@ -233,8 +196,6 @@ Avro reads a default against the first branch of a union alone. So the `?` and t
 | `x?: string`       | `{"name":"x","type":["null","string"],"default":null}` |
 | `x: string = "a"`  | `{"name":"x","type":"string","default":"a"}`           |
 | `x?: string = "a"` | `{"name":"x","type":["string","null"],"default":"a"}`  |
-
-The last row reverses the order. The author wrote a default that is not null, so null cannot lead. The `trackingNumber` field of the file above is that row.
 
 A union is written with `|`. A union inside a union is flattened, because Avro allows neither nesting nor a repeated branch. A named branch is compared by its full name. Every other branch is compared by its Avro type name.
 
@@ -333,9 +294,7 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 | `tsp-avro/duplicate-record`       | Two records write to one path.                                        |
 | `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                            |
 
-## What it refuses
-
-The list below is refused with a diagnostic rather than translated.
+## Refusals
 
 - A model that extends another model. An Avro record holds no inheritance.
 - An anonymous model. An Avro record needs a name.

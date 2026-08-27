@@ -36,7 +36,7 @@ options:
 
 ## 範例
 
-下面這份是 repository 裡的 [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads)。它有一個 Avro namespace、兩個 record，以及一個帶 schema registry 的 Kafka 叢集。以下節錄該檔案的幾個片段，完整檔案在 repository 裡。
+以下範例來自 [`examples/18-avro-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/18-avro-payloads)。它有一個 Avro namespace、兩個 record，以及一個帶 schema registry 的 Kafka 叢集。以下只節錄幾個片段。
 
 `@Avro.avroNamespace` 標記一個 namespace，底下每一個 Avro 名稱都由它限定。
 

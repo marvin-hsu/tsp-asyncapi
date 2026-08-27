@@ -34,7 +34,7 @@ options:
 
 ## Example
 
-The example below is [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads) in the repository. Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel. The repository holds the whole file.
+The example below comes from [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads). Two Protobuf packages, three messages with examples, and a RabbitMQ broker with AMQP bindings. The excerpt below is the orders package and one channel.
 
 ```typespec
 /** What every message of this application carries beside its payload. */

@@ -1,25 +1,15 @@
 ---
 title: "Avro schema"
-description: "tsp-avro 是這個 repository 的第二個 emitter。它把 TypeSpec model 寫成 Apache Avro schema 檔案。本頁說明它寫出什麼，以及它守住哪些規則。"
+description: "tsp-avro 把 TypeSpec model 寫成 Apache Avro schema 檔案，並且用於支援 tsp-asyncapi 的 avro 功能。本頁說明它寫出什麼，以及它守住哪些規則。"
 ---
 
 # Avro schema
 
-[`tsp-avro`](https://www.npmjs.com/package/tsp-avro) 是這個 repository 的第二個 emitter。它把 TypeSpec model 寫成 Apache Avro schema 檔案。它不寫 AsyncAPI 文件，也不需要任何 AsyncAPI decorator。
+[`tsp-avro`](https://www.npmjs.com/package/tsp-avro) 把 TypeSpec model 寫成 Apache Avro schema 檔案，並且用於支援 tsp-asyncapi 的 `avro` 功能。
 
 ::: warning
 這是實驗性套件，尚未進入 1.0。它的 decorator、輸出與診斷都可能在任何一次發佈中改變。若要相依它，請鎖定確切版本。
 :::
-
-AsyncAPI emitter 的 `avro` 預覽功能呼叫的是同一個套件。開啟之後，帶著 `@Avro.avroRecord` 的 model 也會拿到 Avro schema 當作 AsyncAPI payload。開啟方式見 [Avro payload 指南](./avro-payloads)。
-
-## 這個套件做什麼
-
-它是 [`@typespec/protobuf`](https://typespec.io/docs/emitters/protobuf/reference/) 的 Avro 同位物。它宣告自己的 decorator，也註冊自己的 emitter。
-
-標上 `@Avro.avroRecord` 的 model 會變成一個 `.avsc` 檔案。model 的 Avro namespace 決定那個檔案寫進哪個目錄。
-
-Avro 需要的 decorator 很少，因為一個純 TypeSpec model 本來就是合法的 Avro record。Avro 沒有欄位編號。所以這裡的 decorator 只補 Avro 有、而 TypeSpec 表達不了的東西。
 
 ## 安裝與開啟
 
@@ -40,11 +30,9 @@ options:
     emitter-output-dir: "{project-root}/schemas"
 ```
 
-這個 emitter 沒有自己的選項。`emitter-output-dir` 是 compiler 選項，每個 emitter 都收。
+## 範例
 
-## 撰寫來源
-
-以下範例是 repository 裡的 [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)。那個目錄有原始碼、編譯時用的 `tspconfig.yaml`，以及 emitter 寫出的 schema 檔案。
+以下範例來自 [`examples/17-avro-schemas`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/17-avro-schemas)。
 
 ```typespec
 @Avro.avroNamespace("com.example.orders")
@@ -92,7 +80,7 @@ model OrderFulfilmentChanged {
 }
 ```
 
-## emitter 寫出什麼
+## 結果
 
 這個 model 會變成 `schemas/com/example/orders/OrderFulfilmentChanged.avsc`。
 
@@ -198,32 +186,7 @@ model OrderFulfilmentChanged {
 
 這個檔案完整寫下 model `Address` 與 enum `FulfilmentStatus`。兩個宣告都沒有 `@Avro.avroRecord`，所以都沒有自己的檔案。
 
-## 一個檔案裝一份完整的 schema
-
-Avro 沒有 import。一份 schema 檔案自成一體。
-
-所以一個 record 走得到的每個具名型別，都寫進這個 record 自己的檔案。Avro 在具名型別第一次出現時寫完整定義，之後只寫它的完整名稱。範例裡兩個 record 都走到 `Address`，兩個檔案就各有一份。
-
-同一個檔案裡的第二次出現只是一個名稱。以下是 `OrderPlaced` 的 `billing` 欄位，它走到的 `Address` 已經由 `shipping` 欄位寫出來了。
-
-<!-- prettier-ignore -->
-```json
-    {
-      "name": "billing",
-      "type": [
-        "null",
-        "com.example.orders.Address"
-      ],
-      "doc": "Where the invoice goes, when it is not the shipping address.",
-      "default": null
-    },
-```
-
-走到自己的 record 不需要另一條規則。它的名稱在欄位走訪之前就先登記好，所以回頭指向它的欄位找得到那個名稱。
-
 ## 選填欄位與預設值
-
-Avro 沒有選填欄位。可以不存在的欄位是一個帶 null 的 union。
 
 Avro 只拿 union 的第一個分支來讀預設值。所以 TypeSpec 的 `?` 與 `= value` 一起決定輸出的形狀。
 
@@ -233,8 +196,6 @@ Avro 只拿 union 的第一個分支來讀預設值。所以 TypeSpec 的 `?` �
 | `x?: string`       | `{"name":"x","type":["null","string"],"default":null}` |
 | `x: string = "a"`  | `{"name":"x","type":"string","default":"a"}`           |
 | `x?: string = "a"` | `{"name":"x","type":["string","null"],"default":"a"}`  |
-
-最後一列的順序是反的。作者寫了一個不是 null 的預設值，所以 null 不能排第一。上面那個檔案的 `trackingNumber` 欄位就是這一列。
 
 union 用 `|` 寫。union 裡的 union 會被攤平，因為 Avro 既不允許巢狀，也不允許重複的分支。具名分支以完整名稱比對，其餘分支以 Avro 型別名稱比對。
 
@@ -333,9 +294,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 | `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                       |
 | `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                            |
 
-## 它拒絕什麼
-
-以下情況會回報診斷，而不是硬翻。
+## 錯誤情境
 
 - 繼承其他 model 的 model。Avro record 沒有繼承。
 - 匿名 model。Avro record 需要名稱。

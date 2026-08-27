@@ -34,7 +34,7 @@ options:
 
 ## 範例
 
-下面這份是 repository 裡的 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。下面節錄 orders package 與一個 channel。完整檔案在 repository 裡。
+以下範例來自 [`examples/16-protobuf-payloads`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples/16-protobuf-payloads)。它有兩個 Protobuf package、三個帶範例的 message，以及一個掛 AMQP binding 的 RabbitMQ broker。以下只節錄 orders package 與一個 channel。
 
 ```typespec
 /** What every message of this application carries beside its payload. */
