@@ -115,6 +115,20 @@ describe("how the Avro walk writes a union", () => {
     ]);
   });
 
+  it("writes a union of one branch as the branch itself", async () => {
+    // Avro spells a union of one as the type, not as an array of one. A field
+    // already folded it, and the items of an array did not, so `U[]` put a
+    // union index on the wire that nothing needed.
+    expect(
+      (
+        await fieldOf(`
+          union U { a: string }
+          @Avro.avroRecord model Row { x: U[]; }
+        `)
+      ).type,
+    ).toEqual({ type: "array", items: "string" });
+  });
+
   it("round-trips an instance of every branch through a buffer", async () => {
     const files = await emitAvroFiles(`
       @Avro.avroNamespace("com.example.unions")

@@ -58,7 +58,6 @@ import {
   type AvroFixed,
   type AvroRecord,
   type AvroSchema,
-  type AvroUnion,
 } from "../types.js";
 import { applyLogicalType, namedTypeOf } from "./logical-types.js";
 import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
@@ -584,8 +583,13 @@ function namedModelFor(
  * Flattening never fails, because a nested union always opens up. What fails
  * is the rule underneath it: `(string | int32) | string` flattens to three
  * branches, and two of them are `string`.
+ *
+ * A union of one branch is written as that branch. Avro spells a union of one
+ * as the type itself, and folding it here rather than at the field alone is
+ * what keeps the items of an array and the values of a map spelled the same
+ * way: a union index the reader does not need is a byte on the wire.
  */
-function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroUnion {
+function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroSchema {
   const branches: AvroBranch[] = [];
   const keys = new Set<string>();
 
@@ -596,7 +600,7 @@ function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget):
     }
   }
 
-  return branches;
+  return schemaOf(branches);
 }
 
 /**
