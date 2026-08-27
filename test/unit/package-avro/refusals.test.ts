@@ -283,7 +283,7 @@ describe("what the Avro walk refuses", () => {
         @Avro.avroRecord model int { value: string; }
       }
       `,
-      `invalid-name: Avro keeps the name "int" for a type of its own. A record, an enum and a fixed type take a name that is none of: null, boolean, int, long, float, double, bytes, string, record, enum, array, map, union, fixed.`,
+      `invalid-name: Avro keeps the name "int" for a type of its own. A record, an enum and a fixed type take a name that is none of: null, boolean, int, long, float, double, bytes, string.`,
     );
   });
 

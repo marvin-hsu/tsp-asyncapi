@@ -24,9 +24,13 @@ export function isAvroName(name: string): boolean {
 /**
  * The names Avro keeps for a type of its own.
  *
- * These are the eight primitive names and the six complex ones. A schema
- * spells a type by name, so a record named `int` is written into a file that
- * reads back as the primitive.
+ * These are the eight primitive names. A schema spells a primitive by name
+ * alone, so a record named `int` is written into a file that reads back as
+ * the primitive.
+ *
+ * A complex type is spelled by an object that carries a `type` field, never
+ * by its keyword alone. A record named `map` or `union` is therefore a name
+ * nothing else answers to, and Avro takes it.
  */
 const AVRO_RESERVED_NAMES: readonly string[] = [
   "null",
@@ -37,12 +41,6 @@ const AVRO_RESERVED_NAMES: readonly string[] = [
   "double",
   "bytes",
   "string",
-  "record",
-  "enum",
-  "array",
-  "map",
-  "union",
-  "fixed",
 ];
 
 /**

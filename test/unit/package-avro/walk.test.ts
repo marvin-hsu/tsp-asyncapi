@@ -367,4 +367,25 @@ describe("the Avro walk", () => {
     });
     expectInstanceRoundTrip(files["com/example/plain/Event.avsc"]);
   });
+
+  it("lets a record take the name of a complex Avro type", async () => {
+    // Avro keeps the eight primitive names alone. A complex type is spelled
+    // by an object with a `type` field, so a record named `map` is not a name
+    // a reference can land on by mistake. `emitAvroFiles` runs the file past
+    // the reference implementation, which is the proof this is legal.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.complex")
+      namespace Complex {
+        @Avro.avroRecord model map { values: Record<string>; }
+      }
+    `);
+
+    expect(files["com/example/complex/map.avsc"]).toEqual({
+      type: "record",
+      name: "map",
+      namespace: "com.example.complex",
+      fields: [{ name: "values", type: { type: "map", values: "string" } }],
+    });
+    expectInstanceRoundTrip(files["com/example/complex/map.avsc"]);
+  });
 });
