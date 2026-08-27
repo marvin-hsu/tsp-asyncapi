@@ -26,7 +26,7 @@ import {
   SchemaObject,
 } from "../types/index.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { sharedEach, sharedOptional } from "./components/survey.js";
+import { sharedSiteFields } from "./components/survey.js";
 import { componentRef, refFor } from "./json-pointer.js";
 
 /** Builds the `headers` of one Message Object. */
@@ -93,6 +93,7 @@ function lowerMessage(
   promoted: DocumentPromotions,
   node: MessageNode,
 ): MessageObject {
+  const site = sharedSiteFields(promoted, "messageBindings", node);
   return {
     name: node.key,
     ...text("title", node.title),
@@ -101,19 +102,9 @@ function lowerMessage(
     ...present("headers", lowerHeaders(schemas, promoted, node.headers)),
     payload: lowerPayload(schemas, promoted, node.payload),
     ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
-    ...present(
-      "bindings",
-      sharedOptional(
-        promoted.messageBindings,
-        "messageBindings",
-        promoted.renderedBindings.render(node.bindings),
-      ),
-    ),
-    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
-    ...present(
-      "externalDocs",
-      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
-    ),
+    ...present("bindings", site.bindings),
+    ...present("tags", site.tags),
+    ...present("externalDocs", site.externalDocs),
     ...present("examples", node.examples.length > 0 ? [...node.examples] : undefined),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.

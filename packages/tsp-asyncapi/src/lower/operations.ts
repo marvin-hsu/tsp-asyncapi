@@ -15,7 +15,7 @@ import { present, text } from "tsp-asyncapi-core";
 import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer.js";
 import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { sharedEach, sharedOptional } from "./components/survey.js";
+import { sharedSiteFields } from "./components/survey.js";
 
 /** Turns resolved message keys into references into a channel's `messages`. */
 function lowerMessageRefs(nodes: readonly MessageRefNode[]): ReferenceObject[] | undefined {
@@ -38,6 +38,7 @@ function lowerReply(node: OperationReplyNode): OperationReplyObject {
  * The field order follows the Operation Object table of the specification.
  */
 function lowerOperation(node: OperationNode, promoted: DocumentPromotions): OperationObject {
+  const site = sharedSiteFields(promoted, "operationBindings", node);
   return {
     action: node.action,
     channel: { $ref: channelRef(node.channelKey) },
@@ -49,19 +50,9 @@ function lowerOperation(node: OperationNode, promoted: DocumentPromotions): Oper
         ? node.security.map((name) => ({ $ref: securitySchemeRef(name) }))
         : undefined,
     ),
-    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
-    ...present(
-      "externalDocs",
-      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
-    ),
-    ...present(
-      "bindings",
-      sharedOptional(
-        promoted.operationBindings,
-        "operationBindings",
-        promoted.renderedBindings.render(node.bindings),
-      ),
-    ),
+    ...present("tags", site.tags),
+    ...present("externalDocs", site.externalDocs),
+    ...present("bindings", site.bindings),
     ...present("messages", lowerMessageRefs(node.messages)),
     ...present("reply", node.reply ? lowerReply(node.reply) : undefined),
     // The `x-` fields go last. They cannot collide with a specification

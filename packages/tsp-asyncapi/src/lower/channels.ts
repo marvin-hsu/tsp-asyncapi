@@ -15,7 +15,7 @@ import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
 import { lowerParameter } from "./channels/parameters.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared, sharedEach, sharedOptional } from "./components/survey.js";
+import { shared, sharedSiteFields } from "./components/survey.js";
 
 /** Turns the resolved parameters of one channel into the `parameters` map. */
 function lowerParameters(
@@ -56,6 +56,7 @@ function lowerMessages(node: ChannelNode): Record<string, ReferenceObject> | und
  * emitter had nothing to say".
  */
 function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelObject {
+  const site = sharedSiteFields(promoted, "channelBindings", node);
   return {
     address: node.address,
     ...text("title", node.title),
@@ -66,19 +67,9 @@ function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelO
     ),
     ...present("parameters", lowerParameters(node.parameters, promoted)),
     ...present("messages", lowerMessages(node)),
-    ...present(
-      "bindings",
-      sharedOptional(
-        promoted.channelBindings,
-        "channelBindings",
-        promoted.renderedBindings.render(node.bindings),
-      ),
-    ),
-    ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
-    ...present(
-      "externalDocs",
-      sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
-    ),
+    ...present("bindings", site.bindings),
+    ...present("tags", site.tags),
+    ...present("externalDocs", site.externalDocs),
     // The `x-` fields go last. They cannot collide with a specification
     // field, so their place is after every one of them.
     ...structuredClone(node.extensions),

@@ -16,7 +16,7 @@ import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/in
 import { securitySchemeRef } from "./json-pointer.js";
 import { lowerServerVariable } from "./servers/variables.js";
 import type { DocumentPromotions } from "./components/survey.js";
-import { shared, sharedEach, sharedOptional } from "./components/survey.js";
+import { shared, sharedSiteFields } from "./components/survey.js";
 
 /** Turns the resolved variables of one server into Server Variable Objects. */
 function lowerServerVariables(
@@ -49,28 +49,20 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
     server.variables = lowerServerVariables(node.variables, promoted);
 
   // Each server gets its own objects, so a later change to one server cannot
-  // reach another. The three fields below come from the namespace, so one
-  // resolved value is shared by every server, and writing it in directly
-  // would put one object in several places in the output.
-  // A reference is flat, so a fresh object per entry is enough. A Tag Object
-  // holds an External Documentation Object of its own, and a Bindings Object
-  // holds one object per protocol, so both of those need a deep copy.
+  // reach another. `security` is a list of references, and a reference is
+  // flat, so a fresh object per entry is enough. The three fragments below
+  // come from the namespace, so one resolved value is shared by every
+  // server; `sharedSiteFields` hands each server a reference or a deep copy.
   if (node.security.length > 0) {
     const security: ReferenceObject[] = node.security.map((name) => ({
       $ref: securitySchemeRef(name),
     }));
     server.security = security;
   }
-  const externalDocs = sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs);
-  if (externalDocs !== undefined) server.externalDocs = externalDocs;
-  const tags = sharedEach(promoted.tags, "tags", node.tags);
-  if (tags !== undefined) server.tags = tags;
-  const bindings = sharedOptional(
-    promoted.serverBindings,
-    "serverBindings",
-    promoted.renderedBindings.render(node.bindings),
-  );
-  if (bindings !== undefined) server.bindings = bindings;
+  const site = sharedSiteFields(promoted, "serverBindings", node);
+  if (site.externalDocs !== undefined) server.externalDocs = site.externalDocs;
+  if (site.tags !== undefined) server.tags = site.tags;
+  if (site.bindings !== undefined) server.bindings = site.bindings;
   return server;
 }
 

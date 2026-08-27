@@ -260,3 +260,51 @@ export function sharedEach<T>(
   if (values.length === 0) return undefined;
   return values.map((value) => shared(promoter, section, value));
 }
+
+/** The `components` section one kind of site promotes its bindings into. */
+export type BindingsSection =
+  "serverBindings" | "channelBindings" | "operationBindings" | "messageBindings";
+
+/**
+ * The three fragments every kind of site carries: `tags`, `externalDocs` and
+ * `bindings`.
+ *
+ * A server, a channel, an operation and a message each carry all three, and
+ * each answered the same three questions in its own words. What differs
+ * between them is only which `components` section the bindings go to, which
+ * is the one argument this takes.
+ *
+ * The fields come back separately rather than as a piece of the object to
+ * spread. Each site writes them in the order its own specification table
+ * lists, and those orders differ.
+ *
+ * @param promoted - The closed surveys
+ * @param section - The bindings section of this kind of site
+ * @param node - The resolved site
+ * @returns What this site writes for each of the three, `undefined` where it
+ * carries nothing
+ * @internal
+ */
+export function sharedSiteFields(
+  promoted: DocumentPromotions,
+  section: BindingsSection,
+  node: {
+    readonly tags: readonly TagObject[];
+    readonly externalDocs?: ExternalDocumentationObject;
+    readonly bindings: readonly BindingNode[];
+  },
+): {
+  readonly tags: (TagObject | ReferenceObject)[] | undefined;
+  readonly externalDocs: ExternalDocumentationObject | ReferenceObject | undefined;
+  readonly bindings: BindingsObject | ReferenceObject | undefined;
+} {
+  return {
+    tags: sharedEach(promoted.tags, "tags", node.tags),
+    externalDocs: sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    bindings: sharedOptional(
+      promoted[section],
+      section,
+      promoted.renderedBindings.render(node.bindings),
+    ),
+  };
+}
