@@ -37,7 +37,7 @@
     "test:watch": "vitest",
     "api-extractor:local": "pnpm -r api-extractor:local",
     "api-extractor:ci": "pnpm -r api-extractor:ci",
-    "check:package": "pnpm build && pnpm -r check:package",
+    "check:package": "pnpm build && pnpm api-extractor:ci && pnpm -r check:package",
     "mutation": "stryker run",
     "knip": "knip",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod",

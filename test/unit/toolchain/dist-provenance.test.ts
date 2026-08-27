@@ -32,8 +32,8 @@ interface Manifest {
  *
  * API Extractor writes it, and it names the TSDoc version the declarations
  * were written against. A TSDoc reader looks for it beside the types, so it
- * is published on purpose. The next build removes it with the rest of `dist`
- * and API Extractor writes it again.
+ * is published on purpose. Every build removes it with the rest of `dist`,
+ * so only a later API Extractor run puts it back.
  */
 const WRITTEN_BY_API_EXTRACTOR = new Set(["src/tsdoc-metadata.json"]);
 
@@ -77,6 +77,28 @@ describe("Unit: the provenance of the build output", () => {
     // the removal covers a root build, a filtered build and a release job
     // alike.
     expect(manifest.scripts.prebuild).toBe("pnpm run clean");
+  });
+
+  it("regenerates the API Extractor output when it rebuilds before it packs", async () => {
+    const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
+    const steps = manifest.scripts["check:package"].split("&&").map((step) => step.trim());
+
+    // The step that packs the tarballs. Everything before it decides what
+    // the tarballs hold.
+    const pack = steps.findIndex((step) => step.includes("-r check:package"));
+    expect(pack, "the root check:package packs nothing").toBeGreaterThanOrEqual(0);
+
+    const before = steps.slice(0, pack);
+    const rebuild = before.findIndex((step) => step.endsWith("build"));
+    if (rebuild < 0) return;
+
+    // A rebuild removes `dist`, and `tsdoc-metadata.json` with it. Only API
+    // Extractor writes that file back, so it has to run again before the
+    // pack, or the tarballs go out without it.
+    expect(
+      before.slice(rebuild + 1).some((step) => step.includes("api-extractor")),
+      "the rebuild drops tsdoc-metadata.json from the tarballs",
+    ).toBe(true);
   });
 
   /**
