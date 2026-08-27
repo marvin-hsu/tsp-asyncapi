@@ -85,4 +85,21 @@ describe("Unit: @info field checks", () => {
       license: { name: "MIT", url: "https://opensource.org/licenses/MIT" },
     });
   });
+
+  it("applies one augment @@info once when its namespace is reopened", async () => {
+    // An augment decorator runs once per declaration of its target
+    // namespace. A reopened namespace therefore runs the same `@@info`
+    // again, and the second run must not look like a second application.
+    const runner = await AsyncAPITester.createInstance();
+    const [{ Test }, diagnostics] = await runner.compileAndDiagnose(t.code`
+      @service(#{ title: "Orders" })
+      namespace ${t.namespace("Test")} {}
+      namespace Test {}
+
+      @@info(Test, #{ version: "1.0.0" });
+    `);
+
+    expect(diagnosticsWith(diagnostics, "duplicate-info-decorator")).toHaveLength(0);
+    expect(getInfo(runner.program, Test)?.version).toBe("1.0.0");
+  });
 });

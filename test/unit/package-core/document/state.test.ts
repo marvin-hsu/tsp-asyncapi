@@ -22,6 +22,9 @@ describe("Unit: Decorators", () => {
     const mockContext = {
       program,
       call: {} as any,
+      // The guard that keeps `@info` to one application reads where the
+      // application was written, so the stand-in has to name a source node.
+      decoratorTarget: TestService,
       getArgumentTarget: () => TestService,
     } as unknown as DecoratorContext;
 

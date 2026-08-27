@@ -1,6 +1,7 @@
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
-import { useStateSet } from "@typespec/compiler/utils";
+import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
+import { SourcePosition, isSameApplication, sourcePositionOf } from "../source-order.js";
 
 /**
  * The diagnostic a decorator reports when it is applied twice.
@@ -14,8 +15,10 @@ export type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
 /** The guard one decorator uses to keep itself to a single application. */
 export interface ApplicationGuard {
   /**
-   * Records that the decorator ran on a target, and tells the caller whether
-   * it may proceed. A second application is reported and rejected.
+   * Records where the decorator ran on a target, and tells the caller
+   * whether it may proceed. A second application is reported and rejected.
+   * A repeat run of the one statement already recorded is not a second
+   * application, so it proceeds.
    */
   claim(context: DecoratorContext, target: Type): boolean;
   /**
@@ -53,19 +56,29 @@ export interface ApplicationGuard {
  * @returns The guard for that decorator
  */
 export function singleApplication(stateKey: symbol, code: DuplicateCode): ApplicationGuard {
-  const [isApplied, markApplied] = useStateSet<Type>(stateKey);
+  const [claimedAt, recordClaim] = useStateMap<Type, SourcePosition>(stateKey);
 
   return {
     claim(context: DecoratorContext, target: Type): boolean {
-      if (isApplied(context.program, target)) {
+      const position = sourcePositionOf(context.decoratorTarget);
+      const claimed = claimedAt(context.program, target);
+      if (claimed !== undefined) {
+        // The same statement can run more than once. An augment decorator
+        // runs once per declaration of its target, so one statement runs
+        // again for every reopened `namespace` block and for every file that
+        // opens the namespace. Those runs are one application, and the value
+        // they carry is the same one, so the repeat proceeds rather than
+        // being reported. Two distinct statements can never share a file and
+        // an offset, so a real duplicate is still reported.
+        if (isSameApplication(claimed, position)) return true;
         reportDiagnostic(context.program, { code, target });
         return false;
       }
-      markApplied(context.program, target);
+      recordClaim(context.program, target, position);
       return true;
     },
     isApplied(program: Program, target: Type): boolean {
-      return isApplied(program, target);
+      return claimedAt(program, target) !== undefined;
     },
   };
 }
