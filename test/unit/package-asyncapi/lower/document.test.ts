@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
-import type { Program } from "@typespec/compiler";
 import { lowerDocument } from "#emitter/lower/document.js";
+import { unusedProgram } from "../../../utils/program.js";
 
 /**
- * The assembly stage never touches the program; it only forwards it to the
- * schema builder, and the empty service below declares nothing to build.
+ * The assembly stage never touches the program. It only forwards it to the
+ * schema builder, and the empty service below declares nothing to build. The
+ * program below refuses every read, so that claim is checked rather than
+ * stated.
  */
-const stubProgram = {} as unknown as Program;
+const stubProgram = unusedProgram();
 
 /** The empty service: every section a model can leave empty, left empty. */
 const EMPTY_SERVICE = {

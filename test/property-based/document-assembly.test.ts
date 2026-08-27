@@ -1,12 +1,11 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import type { Program } from "@typespec/compiler";
-
 import { lowerDocument } from "#emitter/lower/document.js";
 import { resolvesInDocument } from "#emitter/lower/json-pointer.js";
 import { ASYNCAPI_VERSION } from "#core/constants.js";
 import type { AsyncAPIEmitterOptions } from "#emitter/emitter-options.js";
 import { infoNode, service } from "./ir-arbitraries.js";
+import { unusedProgram } from "../utils/program.js";
 
 /**
  * Properties of the document assembly.
@@ -30,7 +29,7 @@ import { infoNode, service } from "./ir-arbitraries.js";
  */
 
 /** A program no assertion in this file lets the emitter reach. */
-const stubProgram = {} as unknown as Program;
+const stubProgram = unusedProgram();
 
 const RUNS = { numRuns: 300, seed: 20260815 };
 

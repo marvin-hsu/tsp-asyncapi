@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { Program } from "@typespec/compiler";
 import { isPlainObject, toPlainValue } from "#core/marshalled-values.js";
+import { unusedProgram } from "../../utils/program.js";
 
 describe("Unit: isPlainObject — what counts as a JSON object", () => {
   /** A value paired with the answer its category demands. */
@@ -42,7 +42,7 @@ describe("Unit: toPlainValue — marshalled arguments as plain JSON", () => {
    * program is never read. An empty object stands in for it, which keeps
    * these cases free of a compilation.
    */
-  const program = {} as Program;
+  const program = unusedProgram();
 
   it.each([
     { name: "a string", value: "text", plain: "text" },
