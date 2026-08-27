@@ -70,10 +70,7 @@ export default defineConfig({
                   { text: "Inheritance", link: "/guide/schema-conversion/inheritance" },
                   { text: "Validation", link: "/guide/schema-conversion/validation" },
                   { text: "Modifiers", link: "/guide/schema-conversion/modifiers" },
-                  {
-                    text: "Templates and name collisions",
-                    link: "/guide/schema-conversion/advanced",
-                  },
+                  { text: "Templated models", link: "/guide/schema-conversion/templated-models" },
                 ],
               },
               { text: "Request and Reply", link: "/guide/request-reply" },
@@ -160,7 +157,10 @@ export default defineConfig({
                   { text: "繼承與多型", link: "/zh-tw/guide/schema-conversion/inheritance" },
                   { text: "驗證器", link: "/zh-tw/guide/schema-conversion/validation" },
                   { text: "說明、命名與其他", link: "/zh-tw/guide/schema-conversion/modifiers" },
-                  { text: "Template 與名稱衝突", link: "/zh-tw/guide/schema-conversion/advanced" },
+                  {
+                    text: "Templated model",
+                    link: "/zh-tw/guide/schema-conversion/templated-models",
+                  },
                 ],
               },
               { text: "Request 與 Reply", link: "/zh-tw/guide/request-reply" },

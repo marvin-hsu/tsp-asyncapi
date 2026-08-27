@@ -16,7 +16,7 @@ outline: 2
 
 > Duplicate schema name: '\<name\>'. Check @friendlyName decorators and overlap with types in TypeSpec or service namespace.
 
-兩個宣告解析到同一個 `components.schemas` key。常見原因：兩個 `@friendlyName` 解析成同一字串；或 model 名稱撞到 template 具現化的推導名稱（例如已宣告 `model PageString`，又使用 `Page<string>`）。
+兩個宣告解析到同一個 `components.schemas` key。常見原因：兩個 `@friendlyName` 解析成同一字串；或 model 名稱撞到 template instantiation 的推導名稱（例如已宣告 `model PageString`，又使用 `Page<string>`）。
 
 **修法：** 改掉其中一個宣告的名稱，或給其中一個不同的 `@friendlyName`。emitter 絕不自動改名。
 
@@ -62,7 +62,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 兩個 `@message` model 解析到同一個 `components.messages` key。常見原因：不同 namespace 下的同名 model（message key 不帶 namespace 前綴，schema key 會帶）；或兩個 `@friendlyName` 解析成同一字串。
 
-同一個 template 的兩個具現化算出同一個 key 不會回報——原始碼裡只有一個 `@message`，兩者也指向同一份輸出的 component。
+同一個 template 的兩個 instantiation 算出同一個 key 不會回報——原始碼裡只有一個 `@message`，兩者也指向同一份輸出的 component。
 
 **修法：** 對其中一個的 `@message` 傳入明確名稱。
 
