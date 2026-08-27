@@ -273,6 +273,21 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
+  it("refuses a fixed scalar that does not extend bytes", async () => {
+    // An Avro fixed type holds bytes. A fixed string was written out as a
+    // fixed type all the same, and what `extends string` said was lost.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { value: Word; }
+      }
+      `,
+      `invalid-fixed: The scalar "Word" carries @fixed and extends the Avro type "string". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
+    );
+  });
+
   it("refuses a fixed model that declares fields", async () => {
     await expectRefusal(
       `

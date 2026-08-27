@@ -279,22 +279,22 @@ Every diagnostic of this package is an error. An error stops every write. So one
 
 A part of a schema is still a valid schema. A registry would accept one, and a reader would then decode data into a shape the author never wrote.
 
-| Code                              | When                                                                  |
-| --------------------------------- | --------------------------------------------------------------------- |
-| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                              |
-| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                    |
-| `tsp-avro/unsupported-type`       | A type has no Avro form.                                              |
-| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                     |
-| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.  |
-| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.    |
-| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive.                 |
-| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.  |
-| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                  |
-| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow. |
-| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                            |
-| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.         |
-| `tsp-avro/duplicate-record`       | Two records write to one path.                                        |
-| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                            |
+| Code                              | When                                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                                                        |
+| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                                              |
+| `tsp-avro/unsupported-type`       | A type has no Avro form.                                                                        |
+| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                                               |
+| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.                            |
+| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.                              |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive, or a scalar that does not extend `bytes`. |
+| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.                            |
+| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                                            |
+| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow.                           |
+| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                                                      |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.                                   |
+| `tsp-avro/duplicate-record`       | Two records write to one path.                                                                  |
+| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                                                      |
 
 ## Refusals
 
@@ -303,5 +303,6 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - A template instance, such as `Box<string>`. Two instances of one template share a name.
 - A model that holds an index signature and fields together.
 - A scalar outside the table above.
+- A scalar that carries `@Avro.fixed` and does not extend `bytes`. An Avro fixed type holds bytes.
 - A union that names one type twice, such as `string[] | int32[]`.
 - Two declarations that resolve to one Avro full name.

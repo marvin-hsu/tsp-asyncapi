@@ -35,6 +35,7 @@ export function $fixed(context: DecoratorContext, target: Model | Scalar, size: 
   if (size <= 0) {
     reportDiagnostic(context.program, {
       code: "invalid-fixed",
+      messageId: "default",
       format: { size: String(size) },
       target: context.decoratorTarget,
     });

@@ -298,6 +298,35 @@ function scalarFor(
       return undefined;
     }
   } else {
+    // An Avro fixed type is a width of bytes. A scalar that carries @fixed and
+    // extends anything else says two things at once, and writing the fixed
+    // type would drop what the author wrote about the type underneath.
+    const underlying = avroScalarFor(context.scalars, scalar);
+    if (underlying === undefined) {
+      refuse(
+        context,
+        createDiagnostic({
+          code: "unsupported-type",
+          messageId: "scalar",
+          format: { name: scalar.name },
+          target,
+        }),
+      );
+      return undefined;
+    }
+    if (underlying !== "bytes") {
+      refuse(
+        context,
+        createDiagnostic({
+          code: "invalid-fixed",
+          messageId: "underlying",
+          format: { name: scalar.name, underlying },
+          target,
+        }),
+      );
+      return undefined;
+    }
+
     base = fixedFor(context, scalar, size, target);
     if (base === undefined) {
       return undefined;

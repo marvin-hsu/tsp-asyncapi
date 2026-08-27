@@ -102,6 +102,7 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`"${"size"}" is not a width an Avro fixed type can have. A fixed type holds a positive number of bytes.`,
+        underlying: paramMessage`The scalar "${"name"}" carries @fixed and extends the Avro type "${"underlying"}". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
       },
     },
     "invalid-decimal": {
