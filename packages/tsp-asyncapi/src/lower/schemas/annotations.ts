@@ -418,7 +418,12 @@ function buildJsonSchemaExtensionFields(
  * from `docs`, wins when present. Otherwise, the inherited value already on
  * `schema` is carried up instead of being silently dropped. `restValidation`
  * and `format` are then merged onto the wrapper: `format` last, so this
- * level's `format`, if any, wins over the base's.
+ * level's `format`, if any, wins over the base's. It wins outright: the
+ * base's is removed from the branch rather than left there beside it.
+ * `format` is a draft-07 annotation, not a keyword `allOf` intersects, so a
+ * branch saying `uuid` under a wrapper saying `email` is a contradiction
+ * rather than two constraints that both hold. A base format this level says
+ * nothing about stays in the branch, where it already describes the value.
  */
 function hoistAnnotationsAboveAllOf(
   schema: SchemaObject,
@@ -427,6 +432,9 @@ function hoistAnnotationsAboveAllOf(
   format: string | undefined,
 ): SchemaObject {
   const inner: SchemaObject = { ...schema };
+  if (format !== undefined) {
+    delete inner.format;
+  }
   const title = docs.title ?? inner.title;
   const description = docs.description ?? inner.description;
   const examples = docs.examples ?? inner.examples;
