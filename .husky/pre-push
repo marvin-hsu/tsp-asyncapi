@@ -51,10 +51,16 @@ fi
 # `pre-commit`, which stays fast enough to run on every commit. CI runs them
 # again, but a CI round trip costs about 2.5 minutes.
 #
-# `tsc --noEmit` covers the tests as well as `src`. The build inside `test`
+# `typecheck` covers the tests as well as `src`. The build inside `test`
 # covers `src` alone, so neither one makes the other redundant.
+#
+# It is the workspace script rather than a bare `tsc --noEmit`. The root
+# project references the three packages, and a referenced project whose
+# declarations are missing is reported as TS6305. A bare `tsc --noEmit`
+# builds none of them, so it fails on a clean clone. The script builds the
+# references first, then checks the tests against them.
 echo "pre-push: checking types..."
-pnpm exec tsc --noEmit || exit 1
+pnpm typecheck || exit 1
 
 echo "pre-push: running tests..."
 pnpm test || exit 1
