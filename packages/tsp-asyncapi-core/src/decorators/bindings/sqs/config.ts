@@ -23,7 +23,8 @@ import type {
 import {
   enumeratedField,
   missingFields,
-  reportBindingField,
+  nonNegativeField,
+  objectField,
   reportMissingField,
 } from "../fields.js";
 
@@ -79,11 +80,8 @@ export function readQueue(
   required: readonly string[],
   target: DiagnosticTarget,
 ): SqsQueueObject | undefined {
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, SQS_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
-  }
+  const plain = objectField(context, SQS_BINDING_PROTOCOL, field, value, target);
+  if (plain === undefined) return undefined;
 
   const missing = missingFields(plain, required);
   for (const name of missing) {
@@ -145,19 +143,14 @@ function seconds(
   plain: Record<string, unknown>,
   target: DiagnosticTarget,
 ): number | undefined {
-  const value = plain[field] as number | undefined;
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(
-      context,
-      SQS_BINDING_PROTOCOL,
-      `${queueField}.${field}`,
-      "zero or more seconds",
-      target,
-    );
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(
+    context,
+    SQS_BINDING_PROTOCOL,
+    `${queueField}.${field}`,
+    plain[field] as number | undefined,
+    "seconds",
+    target,
+  );
 }
 
 /** Passes an object through, and drops anything else without a report. */

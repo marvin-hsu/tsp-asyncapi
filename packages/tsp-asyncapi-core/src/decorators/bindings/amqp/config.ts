@@ -9,7 +9,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { AMQP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   AmqpChannelBindingObject,
   AmqpExchangeObject,
@@ -17,7 +16,15 @@ import type {
   AmqpOperationBindingObject,
   AmqpQueueObject,
 } from "../../../types/index.js";
-import { enumeratedField, numericField, reportBindingField } from "../fields.js";
+import {
+  boundedName,
+  enumeratedField,
+  nonEmptyObject,
+  nonNegativeField,
+  numericField,
+  objectField,
+  stringListField,
+} from "../fields.js";
 
 /**
  * What one AMQP decorator records, for each of the three levels.
@@ -117,12 +124,7 @@ export function expiration(
   value: number | undefined,
   target: DiagnosticTarget,
 ): number | undefined {
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(context, AMQP_BINDING_PROTOCOL, "expiration", "zero or more", target);
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(context, AMQP_BINDING_PROTOCOL, "expiration", value, undefined, target);
 }
 
 /**
@@ -146,16 +148,14 @@ export function routingKeys(
   value: unknown,
   target: DiagnosticTarget,
 ): string[] | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!Array.isArray(plain)) {
-    reportBindingField(context, AMQP_BINDING_PROTOCOL, field, "a list of routing keys", target);
-    return undefined;
-  }
-  const keys = plain
-    .map((entry) => trimmed(entry as string))
-    .filter((entry): entry is string => entry !== undefined);
-  return keys.length > 0 ? keys : undefined;
+  return stringListField(
+    context,
+    AMQP_BINDING_PROTOCOL,
+    field,
+    value,
+    "a list of routing keys",
+    target,
+  );
 }
 
 /**
@@ -170,19 +170,14 @@ function topologyName(
   value: unknown,
   target: DiagnosticTarget,
 ): string | undefined {
-  const name = trimmed(value as string | undefined);
-  if (name === undefined) return undefined;
-  if (name.length > MAX_NAME_LENGTH) {
-    reportBindingField(
-      context,
-      AMQP_BINDING_PROTOCOL,
-      field,
-      `at most ${String(MAX_NAME_LENGTH)} characters`,
-      target,
-    );
-    return undefined;
-  }
-  return name;
+  return boundedName(
+    context,
+    AMQP_BINDING_PROTOCOL,
+    field,
+    value as string | undefined,
+    MAX_NAME_LENGTH,
+    target,
+  );
 }
 
 /**
@@ -203,14 +198,9 @@ function topology<T extends object>(
   target: DiagnosticTarget,
   read: (plain: Record<string, unknown>) => T,
 ): T | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, AMQP_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
-  }
-  const read_ = read(plain);
-  return Object.keys(read_).length > 0 ? read_ : undefined;
+  const plain = objectField(context, AMQP_BINDING_PROTOCOL, field, value, target);
+  if (plain === undefined) return undefined;
+  return nonEmptyObject(read(plain));
 }
 
 /**

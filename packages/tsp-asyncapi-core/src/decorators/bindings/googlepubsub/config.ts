@@ -10,7 +10,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { GOOGLE_PUB_SUB_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   GooglePubSubChannelBindingObject,
   GooglePubSubMessageBindingObject,
@@ -18,7 +17,13 @@ import type {
   GooglePubSubSchemaSettingsObject,
   GooglePubSubStoragePolicyObject,
 } from "../../../types/index.js";
-import { missingFields, reportBindingField, reportMissingField } from "../fields.js";
+import {
+  missingFields,
+  nonEmptyObject,
+  objectField,
+  reportMissingField,
+  stringListField,
+} from "../fields.js";
 
 /**
  * What each Google Cloud Pub/Sub decorator records.
@@ -41,20 +46,14 @@ export type GooglePubSubMessageBindingState = Omit<
 /** The fields `schemaSettings` requires. */
 const REQUIRED_SCHEMA_SETTINGS = ["encoding", "name"];
 
-/** Reads one object field, reporting a value that is not an object. */
-function objectField(
+/** Reads one object field, naming the protocol for the caller. */
+function pubSubObject(
   context: DecoratorContext,
   field: string,
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
-  }
-  return plain;
+  return objectField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, value, target);
 }
 
 /**
@@ -76,7 +75,7 @@ export function schemaSettings(
   value: unknown,
   target: DiagnosticTarget,
 ): GooglePubSubSchemaSettingsObject | undefined {
-  const plain = objectField(context, "schemaSettings", value, target);
+  const plain = pubSubObject(context, "schemaSettings", value, target);
   if (plain === undefined) return undefined;
 
   const missing = missingFields(plain, REQUIRED_SCHEMA_SETTINGS);
@@ -110,25 +109,18 @@ export function messageStoragePolicy(
   value: unknown,
   target: DiagnosticTarget,
 ): GooglePubSubStoragePolicyObject | undefined {
-  const plain = objectField(context, "messageStoragePolicy", value, target);
+  const plain = pubSubObject(context, "messageStoragePolicy", value, target);
   if (plain === undefined) return undefined;
 
-  const written = plain.allowedPersistenceRegions;
-  if (written === undefined) return undefined;
-  if (!Array.isArray(written)) {
-    reportBindingField(
-      context,
-      GOOGLE_PUB_SUB_BINDING_PROTOCOL,
-      "messageStoragePolicy.allowedPersistenceRegions",
-      "a list of region names",
-      target,
-    );
-    return undefined;
-  }
-  const regions = written
-    .map((entry) => (entry as string).trim())
-    .filter((entry) => entry.length > 0);
-  return regions.length > 0 ? { allowedPersistenceRegions: regions } : undefined;
+  const regions = stringListField(
+    context,
+    GOOGLE_PUB_SUB_BINDING_PROTOCOL,
+    "messageStoragePolicy.allowedPersistenceRegions",
+    plain.allowedPersistenceRegions,
+    "a list of region names",
+    target,
+  );
+  return regions === undefined ? undefined : { allowedPersistenceRegions: regions };
 }
 
 /**
@@ -151,9 +143,7 @@ export function openMap(
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  const plain = objectField(context, field, value, target);
-  if (plain === undefined) return undefined;
-  return Object.keys(plain).length > 0 ? plain : undefined;
+  return nonEmptyObject(pubSubObject(context, field, value, target));
 }
 
 /**
@@ -173,7 +163,7 @@ export function messageSchema(
   value: unknown,
   target: DiagnosticTarget,
 ): GooglePubSubSchemaObject | undefined {
-  const plain = objectField(context, "schema", value, target);
+  const plain = pubSubObject(context, "schema", value, target);
   if (plain === undefined) return undefined;
 
   if (missingFields(plain, ["name"]).length > 0) {

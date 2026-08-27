@@ -2,10 +2,16 @@
  * The field checks every protocol binding shares.
  *
  * A binding specification states rules about its own fields. Several rules
- * recur across protocols: a field must hold one of a fixed set of values or
- * numbers, a field must hold a Schema Object, and a field the specification
- * requires must be there at all. Each is checked here, and the protocol name
- * arrives as an argument.
+ * recur across protocols. A field must hold one of a fixed set of values or
+ * numbers. A field must hold a Schema Object, a plain object or a list. A
+ * number is never negative. A name is at most so many characters. A field the
+ * specification requires must be there at all. Each rule is checked here, and
+ * the protocol name arrives as an argument.
+ *
+ * A protocol that states a rule of its own keeps that check in its own
+ * directory. Kafka reads `cleanup.policy`, and no other binding has such a
+ * field. A rule two protocols share belongs here instead, so the two cannot
+ * answer the same source in different ways.
  *
  * Two diagnostic codes cover all of them. `invalid-binding-field` carries the
  * protocol, the field and what the field expects, so a new rule adds a call
@@ -78,6 +84,205 @@ export function enumeratedField<T extends string>(
     return undefined;
   }
   return written as T;
+}
+
+/**
+ * Checks one field a binding states as an object.
+ *
+ * Several bindings nest an object that is not a Schema Object. The exchange
+ * of an AMQP channel and the Last Will of an MQTT server are two of them. A
+ * scalar or an array describes neither, so it is reported and dropped.
+ *
+ * The object comes back as the author wrote it. An object with no field in it
+ * comes back the same way. A caller that reads required fields out of the
+ * object has to report those first, so this check cannot drop an empty one on
+ * its own. Pass the result through `nonEmptyObject` where an empty object
+ * states nothing.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @returns The plain JSON object, or `undefined` when it was absent or
+ * rejected
+ * @internal
+ */
+export function objectField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  target: DiagnosticTarget,
+): Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (!isPlainObject(plain)) {
+    reportBindingField(context, protocol, field, "an object", target);
+    return undefined;
+  }
+  return plain;
+}
+
+/**
+ * Drops a nested binding object that has no field left in it.
+ *
+ * An object with no field states nothing. An absent field states the same,
+ * and it is the shorter of the two. Every binding here drops the empty one,
+ * so no two protocols answer the same source in different ways.
+ *
+ * An object arrives empty for two reasons. The author wrote it empty, or
+ * every field in it was reported and dropped.
+ *
+ * @param value - The object to check
+ * @returns The object, or `undefined` when it is absent or has no field
+ * @internal
+ */
+export function nonEmptyObject<T extends object>(value: T | undefined): T | undefined {
+  if (value === undefined) return undefined;
+  return Object.keys(value).length > 0 ? value : undefined;
+}
+
+/**
+ * Checks one field a binding states as zero or more.
+ *
+ * Six fields across five bindings state a length of time, a size or a
+ * priority. None of them is ever negative. Zero is a value on all of them,
+ * because it turns the delay, the retention or the timeout off. So zero is
+ * kept and only a negative value is reported.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param measure - What the number counts, such as `seconds`. Pass
+ * `undefined` where the binding states no unit.
+ * @param target - Where a problem is reported
+ * @returns The value, or `undefined` when it was absent or rejected
+ * @internal
+ */
+export function nonNegativeField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: number | undefined,
+  measure: string | undefined,
+  target: DiagnosticTarget,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (value < 0) {
+    const expected = measure === undefined ? "zero or more" : `zero or more ${measure}`;
+    reportBindingField(context, protocol, field, expected, target);
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Checks one field a binding states as a list.
+ *
+ * The entries are not checked here. Each binding states its own rule about
+ * them, and some state none at all. This check answers one question only:
+ * whether the author wrote a list.
+ *
+ * The caller names what the list holds, because the diagnostic reads better
+ * with the subject in it. AMQP says `a list of routing keys` rather than
+ * `a list`.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ * @returns The entries, or `undefined` when the field was absent or rejected
+ * @internal
+ */
+export function listField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  expected: string,
+  target: DiagnosticTarget,
+): unknown[] | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (!Array.isArray(plain)) {
+    reportBindingField(context, protocol, field, expected, target);
+    return undefined;
+  }
+  // `Array.isArray` narrows an `unknown` to `any[]`, and the entries are
+  // whatever the author wrote. The caller checks them.
+  return plain as unknown[];
+}
+
+/**
+ * Checks one field a binding states as a list of names.
+ *
+ * A blank entry names nothing, so it is dropped. A list left with no entry is
+ * dropped as well. An empty list states no routing, no replication and no
+ * region, which is what an absent field already says.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ * @returns The names, or `undefined` when the field was absent, empty, or
+ * rejected
+ * @internal
+ */
+export function stringListField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  expected: string,
+  target: DiagnosticTarget,
+): string[] | undefined {
+  const plain = listField(context, protocol, field, value, expected, target);
+  if (plain === undefined) return undefined;
+  const names = plain
+    .map((entry) => trimmed(entry as string))
+    .filter((entry): entry is string => entry !== undefined);
+  return names.length > 0 ? names : undefined;
+}
+
+/**
+ * Checks one name field a binding limits to a length.
+ *
+ * AMQP allows 255 characters in the name of an exchange or a queue. Solace
+ * allows 160 in a client name. A broker refuses a longer name at connect
+ * time. Emitting one would write a document that describes a topology no
+ * broker builds.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param maxLength - The longest name the binding allows
+ * @param target - Where a problem is reported
+ * @returns The trimmed name, or `undefined` when it was absent, blank, or too
+ * long
+ * @internal
+ */
+export function boundedName(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: string | undefined,
+  maxLength: number,
+  target: DiagnosticTarget,
+): string | undefined {
+  const name = trimmed(value);
+  if (name === undefined) return undefined;
+  if (name.length > maxLength) {
+    reportBindingField(context, protocol, field, `at most ${String(maxLength)} characters`, target);
+    return undefined;
+  }
+  return name;
 }
 
 /**

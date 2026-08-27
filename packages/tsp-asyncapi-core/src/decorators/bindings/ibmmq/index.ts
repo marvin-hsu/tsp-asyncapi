@@ -17,13 +17,18 @@ import {
 } from "@typespec/compiler";
 import { IBM_MQ_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   IbmMqChannelBindingObject,
   IbmMqMessageBindingObject,
   IbmMqServerBindingObject,
 } from "../../../types/index.js";
-import { enumeratedField, reportBindingField } from "../fields.js";
+import {
+  enumeratedField,
+  nonEmptyObject,
+  nonNegativeField,
+  objectField,
+  reportBindingField,
+} from "../fields.js";
 import { claimBinding } from "../state.js";
 
 type IbmMqServerBindingState = Omit<IbmMqServerBindingObject, "bindingVersion">;
@@ -73,13 +78,7 @@ function subObject(
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, IBM_MQ_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
-  }
-  return Object.keys(plain).length > 0 ? plain : undefined;
+  return nonEmptyObject(objectField(context, IBM_MQ_BINDING_PROTOCOL, field, value, target));
 }
 
 /**
@@ -361,10 +360,5 @@ function expiry(
   value: number | undefined,
   target: DiagnosticTarget,
 ): number | undefined {
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(context, IBM_MQ_BINDING_PROTOCOL, "expiry", "zero or more", target);
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(context, IBM_MQ_BINDING_PROTOCOL, "expiry", value, undefined, target);
 }

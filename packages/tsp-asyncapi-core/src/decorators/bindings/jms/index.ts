@@ -8,13 +8,18 @@
 import { DecoratorContext, Interface, Model, Namespace } from "@typespec/compiler";
 import { JMS_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { toPlainValue } from "../../../marshalled-values.js";
 import type {
   JmsChannelBindingObject,
   JmsMessageBindingObject,
   JmsServerBindingObject,
 } from "../../../types/index.js";
-import { enumeratedField, reportBindingField, reportMissingField, schemaField } from "../fields.js";
+import {
+  enumeratedField,
+  listField,
+  reportBindingField,
+  reportMissingField,
+  schemaField,
+} from "../fields.js";
 import { claimBinding } from "../state.js";
 
 type JmsServerBindingState = Omit<JmsServerBindingObject, "bindingVersion">;
@@ -103,12 +108,8 @@ function properties(
   value: unknown,
   target: Parameters<typeof reportBindingField>[4],
 ): unknown[] | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!Array.isArray(plain)) {
-    reportBindingField(context, JMS_BINDING_PROTOCOL, "properties", "a list", target);
-    return undefined;
-  }
+  const plain = listField(context, JMS_BINDING_PROTOCOL, "properties", value, "a list", target);
+  if (plain === undefined) return undefined;
   return plain.length > 0 ? plain : undefined;
 }
 
