@@ -2,22 +2,13 @@ import {
   Type,
   Model,
   ModelProperty,
-  getDoc,
-  getEncode,
-  getExamples,
-  getFormat,
-  getSummary,
-  isSecret,
-  Scalar,
   Enum,
   Union,
   Program,
   StringLiteral,
   isArrayModelType,
   isRecordModelType,
-  walkPropertiesInherited,
   resolveEncodedName,
-  getDiscriminator,
   getDiscriminatedUnion,
   ignoreDiagnostics,
 } from "@typespec/compiler";
@@ -33,11 +24,14 @@ import { refFor } from "./json-pointer.js";
 import { SchemaDiagnostics } from "./schemas/diagnostics.js";
 import { DeclarationRegistry } from "./schemas/declarations.js";
 import {
-  findEncodedNameOverrideConflict,
-  findNeverOverrideOfInheritedProperty,
-  resolveDiscriminator,
+  InheritanceWalk,
+  applyDiscriminator,
+  applyExtends,
+  buildFlattenedObjectSchema,
+  declareDiscriminatedHierarchy,
+  reportInheritanceConflicts,
 } from "./schemas/inheritance.js";
-import { withDocs, withPropertyDocs, buildValidationKeywords } from "./schemas/annotations.js";
+import { withDocs, withPropertyDocs } from "./schemas/annotations.js";
 import {
   isBuiltinScalar,
   isBuiltinCollectionInstantiation,
@@ -45,20 +39,44 @@ import {
   buildIntrinsicSchema,
   buildEnumSchemaBody,
   buildEnumMemberSchema,
-  SCALAR_SCHEMAS,
+  buildScalarSchema,
+  buildScalarShapeWithDocs,
+  propertyStatesItsOwnShape,
 } from "./schemas/scalars.js";
-import { applyEncoding } from "./schemas/encoding.js";
 import { shouldEmitProperty } from "./schemas/visibility.js";
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
+ *
+ * The builder dispatches on a type's kind and assembles what each kind
+ * writes down: objects out of properties, collections, unions, and enums.
+ * The two subjects with rules of their own live beside it. `extends` and
+ * `@discriminator` are in `schemas/inheritance.ts`, and a scalar's own
+ * shape is in `schemas/scalars.ts`.
  */
 export class SchemaBuilder {
   private readonly declarations: DeclarationRegistry;
 
+  /**
+   * What the inheritance rules in `schemas/inheritance.ts` reach back
+   * through. Built once, so the rules can be free functions without a fresh
+   * object per call.
+   */
+  private readonly inheritance: InheritanceWalk;
+
   public constructor(private readonly program: Program) {
     this.declarations = new DeclarationRegistry(program);
     this.diagnostics = new SchemaDiagnostics(program);
+    this.inheritance = {
+      program,
+      diagnostics: this.diagnostics,
+      declarations: this.declarations,
+      buildSchema: (type) => this.buildSchema(type),
+      buildDeclarationRef: (model) => this.buildDeclarationRef(model),
+      buildCollectionSchema: (model) => this.buildCollectionSchema(model),
+      buildObjectSchemaFromProperties: (properties) =>
+        this.buildObjectSchemaFromProperties(properties),
+    };
   }
 
   public getSchemas(): Record<string, SchemaObject> {
@@ -177,59 +195,10 @@ export class SchemaBuilder {
    * `declareDiscriminatedHierarchy`.
    */
   private buildPayloadShape(model: Model, omitted: ReadonlySet<ModelProperty>): SchemaObject {
-    this.reportInheritanceConflicts(model);
-    this.declareDiscriminatedHierarchy(model);
-    const shape = this.buildFlattenedObjectSchema(model, omitted);
+    reportInheritanceConflicts(this.inheritance, model);
+    declareDiscriminatedHierarchy(this.inheritance, model);
+    const shape = buildFlattenedObjectSchema(this.inheritance, model, omitted);
     return withDocs(this.program, model, shape, this.diagnostics);
-  }
-
-  /**
-   * Declares every level of `model`'s hierarchy that carries
-   * `@discriminator`, and reports the one case a payload cannot express.
-   *
-   * A discriminator names its variants by their `components.schemas` key. A
-   * variant is a subtype of the model that carries the decorator, and every
-   * subtype describes the lifted fields as payload data. So a payload that
-   * carried the keyword would send a reader to a schema no payload of this
-   * message can satisfy. The keyword is left off, and the pair is reported.
-   *
-   * The polymorphism still reaches the document. The model's own component
-   * carries the keyword, and it describes every field. `buildDeclarationRef`
-   * builds it, which also queues the subtypes.
-   *
-   * An ancestor that carries the decorator is declared for a second reason.
-   * The payload is flattened, so it inlines the ancestors rather than
-   * referring to them, and nothing else would build them. A subtype is
-   * reachable through the `extends` link alone (see `flushPendingSubtypes`),
-   * so the sibling subtypes of that ancestor would be missing from the
-   * document altogether.
-   */
-  private declareDiscriminatedHierarchy(model: Model): void {
-    for (
-      let ancestor: Model | undefined = model.baseModel;
-      ancestor !== undefined;
-      ancestor = ancestor.baseModel
-    ) {
-      if (getDiscriminator(this.program, ancestor) !== undefined) {
-        this.buildDeclarationRef(ancestor);
-      }
-    }
-    // A missing or optional discriminating property drops the keyword too,
-    // and that is not this conflict. So whether the keyword applies at all
-    // is what tells the two apart. It is asked through
-    // `discriminatingProperty`, which builds nothing and queues nothing:
-    // asking `applyDiscriminator` would queue this model's subtypes here as
-    // well as at the model's own component, on the strength of a schema
-    // built only to be thrown away.
-    if (this.discriminatingProperty(model) === undefined) {
-      return;
-    }
-    reportDiagnostic(this.program, {
-      code: "discriminated-lifted-header",
-      target: model,
-      format: { name: model.name },
-    });
-    this.buildDeclarationRef(model);
   }
 
   /**
@@ -270,7 +239,7 @@ export class SchemaBuilder {
       case "Model":
         return this.buildModelSchema(type);
       case "Scalar":
-        return this.buildScalarSchema(type);
+        return buildScalarSchema(this.program, this.declarations, this.diagnostics, type);
       case "Intrinsic":
         return buildIntrinsicSchema(type);
       case "Enum":
@@ -354,7 +323,7 @@ export class SchemaBuilder {
       } else {
         own = { ...collection, ...this.buildObjectSchema(model) };
       }
-      const shape = this.applyExtends(model, own);
+      const shape = applyExtends(this.inheritance, model, own);
       // `@discriminator` is applied here, on the fully-assembled shape.
       // This happens *after* `applyExtends` has already wrapped it in
       // `allOf` when `model` has a `baseModel`, rather than inside
@@ -377,7 +346,12 @@ export class SchemaBuilder {
       // reports `missing-discriminator-property` and omits
       // `discriminator`, rather than silently dropping the decorator with
       // no diagnostic at all.
-      return withDocs(this.program, model, this.applyDiscriminator(model, shape), this.diagnostics);
+      return withDocs(
+        this.program,
+        model,
+        applyDiscriminator(this.inheritance, model, shape),
+        this.diagnostics,
+      );
     };
 
     // The anonymous use site, such as `string[]` or `Record<int32>`, has no
@@ -564,7 +538,7 @@ export class SchemaBuilder {
    * `Array`/`Record` template. This covers `string[]`, `Record<int32>`, or
    * a named alias declared with `is`.
    * Returns `undefined` when `model` is neither.
-   * This method is shared by both the anonymous-use-site early return and
+   * This is shared by both the anonymous-use-site early return and
    * the named-alias path, so the two can never drift apart.
    */
   private buildCollectionSchema(model: Model): SchemaObject | undefined {
@@ -580,318 +554,9 @@ export class SchemaBuilder {
     return undefined;
   }
 
-  /**
-   * Converts `model B extends A` to `{ allOf: [{ $ref: A }, own] }`.
-   * This registers `A` into `components.schemas`, via the recursive
-   * `buildSchema` call, the same way any other named-model reference does,
-   * if it is not registered already.
-   * `own` is `B`'s own shape, built from only its own declared properties.
-   * `model.properties` already excludes inherited members; they live on
-   * `baseModel` and are walked separately here. So there is no risk of
-   * double-counting a property both in `own` and via the base's `$ref`.
-   * A model with no `baseModel`, the common case, returns `own` unchanged.
-   * Wrapping every model in a single-element `allOf` would be needlessly
-   * noisy.
-   *
-   * When `own` contributes nothing beyond the bare `{ type: "object" }`
-   * shape, the second `allOf` branch is dropped too. This happens when the
-   * derived model declares no properties of its own, a common pattern for
-   * a `@discriminator` sub-type that only narrows a literal. An empty
-   * `{ type: "object" }` sibling adds no constraint. So it is pure noise,
-   * against the same omit-empty convention `buildObjectSchema` already
-   * follows for `properties`/`required`.
-   *
-   * `model.baseModel` can itself be array/record-backed: a `Model extends
-   * Array<T>`/`Record<T>`, built-in or a named `is` alias. When that is
-   * true, *and* `own` contributes nothing beyond the empty
-   * `{ type: "object" }` shape, `own` is dropped entirely. It is not paired
-   * with the base's actual `array`/`object`-with-`additionalProperties`
-   * shape. An `own` that is always the bare `{type:"object"}` sibling would
-   * otherwise sit next to a `type:"array"` branch under `allOf`'s implicit
-   * AND, making the schema unsatisfiable by any value.
-   * For an *anonymous* base, `Array<T>`/`Record<T>` at the use site, the
-   * base's collection shape is then returned directly with no `allOf`
-   * wrapper at all. There is no declaration to register or `$ref`.
-   * For a *named* `is`-alias base, such as `model Names is string[];`, the
-   * base is still a real declaration. It must go through `buildSchema` so
-   * its own docs and validation keywords are preserved, and so it is
-   * registered into `components.schemas`. So a single-branch
-   * `{ allOf: [base] }` is returned instead.
-   *
-   * An **Array** base can never have a non-empty `own` here. TypeSpec
-   * itself rejects declaring properties on top of an array's indexer
-   * (`no-array-properties`). So `own` is unconditionally empty in that
-   * case.
-   * A **Record** base has no such restriction. `model Bag extends
-   * Record<T> { count: int32; }` is perfectly legal whenever `count`'s type
-   * is compatible with `T`. `own` then carries real
-   * `properties`/`required` that must not be discarded.
-   * So the emptiness of `own`, not merely whether the base is a collection,
-   * is what decides whether it gets folded into the result.
-   *
-   * A non-empty `own` against a **named** Record-backed alias base is
-   * paired into `{ allOf: [base, own] }`, the same shape a non-collection
-   * base gets below. `base` there is a real `$ref` that must stay a
-   * distinct branch.
-   * Against an **anonymous** Record base, though, there is no `$ref` to
-   * keep separate. `baseCollection` is already an inline
-   * `{ type: "object", additionalProperties: ... }` object. So it is merged
-   * directly with `own` into one flat schema; both share `type: "object"`.
-   * This avoids wrapping it in a needless single-level-deeper `allOf`, the
-   * same omit-unnecessary-nesting convention this method already applies
-   * to the `ownIsEmpty` cases above.
-   */
-  private applyExtends(model: Model, own: SchemaObject): SchemaObject {
-    if (model.baseModel === undefined) {
-      return own;
-    }
-    if (this.reportInheritanceConflicts(model)) {
-      return this.buildFlattenedObjectSchema(model);
-    }
-    const ownKeys = Object.keys(own);
-    const ownIsEmpty = ownKeys.length === 1 && ownKeys[0] === "type";
-    // Whether the base is a collection is asked of the base itself, never of
-    // a shape built from it. Building the base's collection shape builds its
-    // element type, and a second build of a declaration is what promotes it
-    // from an inline shape to a component. A base built once to answer the
-    // question and once again to write the branch below therefore moved its
-    // element into `components.schemas`, purely because some model extended
-    // the base. See `isBuiltinCollectionInstantiation` for the anonymous
-    // case, which is built exactly once here and is the shape that is used.
-    if (isBuiltinCollectionInstantiation(model.baseModel)) {
-      const baseCollection = this.buildCollectionSchema(model.baseModel);
-      if (baseCollection !== undefined) {
-        // See the doc comment above. An anonymous base has no declaration to
-        // refer to, so its collection shape is written in place. An empty
-        // `own` cannot contradict it, and a non-empty one is an object
-        // beside an object.
-        return ownIsEmpty ? baseCollection : { ...baseCollection, ...own };
-      }
-    } else if (isArrayModelType(model.baseModel) || isRecordModelType(model.baseModel)) {
-      const named = this.buildSchema(model.baseModel);
-      return ownIsEmpty ? { allOf: [named] } : { allOf: [named, own] };
-    }
-    const base = this.buildSchema(model.baseModel);
-    if (ownIsEmpty) {
-      return { allOf: [base] };
-    }
-    return { allOf: [base, own] };
-  }
-
-  /**
-   * Reports the conflicts an `extends` chain can hold, and says whether the
-   * flattened shape must be used in place of `allOf`.
-   *
-   * An overriding property whose `@encodedName` differs from the same-named
-   * ancestor property's makes the usual `{ allOf: [{ $ref: Base }, own] }`
-   * shape unsatisfiable. See `findEncodedNameOverrideConflict`'s doc
-   * comment. The base branch would still require the ancestor's wire name,
-   * while `own` requires the override's. A real payload can only ever carry
-   * one of the two.
-   *
-   * A `never`-typed override of an inherited property means that property
-   * does not exist on `model` (see `isNeverTypedProperty`). But `own` never
-   * consults the base's properties. So the usual shape would still require
-   * it through the `$ref` branch.
-   *
-   * The flattened shape repairs both. `buildFlattenedObjectSchema` walks
-   * `walkPropertiesInherited`. That walk gives an override precedence over
-   * the ancestor's definition, and it skips `never`-typed properties.
-   *
-   * A model can reach this from two builds: its own component, and the
-   * payload component of a message that lifts `@header` fields. The
-   * conflict belongs to the model rather than to either component, so it is
-   * reported once per model.
-   *
-   * The checks can only arise from a named, property-bearing ancestor. An
-   * array base can never have a conflicting property. TypeSpec's own
-   * `no-array-properties` rule forbids declaring properties on top of one.
-   *
-   * @param model - The model to check
-   * @returns True when the caller must flatten instead of composing
-   */
-  private reportInheritanceConflicts(model: Model): boolean {
-    if (model.baseModel === undefined) {
-      return false;
-    }
-    const conflict = findEncodedNameOverrideConflict(this.program, model);
-    if (conflict !== undefined) {
-      this.reportModelDiagnosticOnce(model, "encoded-name-override-conflict", {
-        property: conflict.property.name,
-        reason: conflict.reason,
-      });
-      return true;
-    }
-    const neverOverride = findNeverOverrideOfInheritedProperty(model);
-    if (neverOverride !== undefined) {
-      this.reportModelDiagnosticOnce(model, "never-typed-property-override", {
-        property: neverOverride.name,
-      });
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Reports a diagnostic about `model` at most once per code.
-   *
-   * A model with lifted `@header` fields is built twice. Its payload
-   * component and its own component both resolve the same decorators on the
-   * same model. A diagnostic about the model is one mistake either way, and
-   * the message names no component, so a second report would put the same
-   * text on the same squiggle.
-   *
-   * The record lives in `diagnostics`, so it is scoped to one builder and
-   * one emit.
-   */
-  private reportModelDiagnosticOnce(
-    model: Model,
-    code:
-      | "encoded-name-override-conflict"
-      | "never-typed-property-override"
-      | "missing-discriminator-property"
-      | "optional-discriminator-property",
-    format: Record<string, string>,
-  ): void {
-    this.diagnostics.reportOnce({ code, target: model, format });
-  }
-
-  /**
-   * The property `@discriminator` names on `model`, or `undefined` when the
-   * keyword does not apply.
-   *
-   * `resolveDiscriminator` decides; this adds the report. AsyncAPI 3.x, via
-   * draft-07, requires the discriminating property to be defined on the
-   * schema and to be required. A `discriminator` naming a property no reader
-   * could find is worse than no `discriminator` at all, so the keyword is
-   * dropped and the reason is reported rather than silently swallowed. The
-   * compiler itself never validates this.
-   *
-   * The report is deduped per model, so both callers can ask without the
-   * author seeing one mistake twice.
-   */
-  private discriminatingProperty(model: Model): ModelProperty | undefined {
-    const resolution = resolveDiscriminator(this.program, model);
-    switch (resolution.kind) {
-      case "applies":
-        return resolution.property;
-      case "absent":
-        return undefined;
-      default:
-        this.reportModelDiagnosticOnce(model, resolution.kind, {
-          property: resolution.propertyName,
-        });
-        return undefined;
-    }
-  }
-
-  /**
-   * Applies `@discriminator` to the fully-assembled `schema` for `model`.
-   * This is the older, `extends`-chain-based discriminator decorator.
-   * AsyncAPI 3.x's Schema Object represents it as a bare string naming the
-   * discriminating property. This differs from OpenAPI 3.0's
-   * `{ propertyName, mapping }` object.
-   *
-   * Whether the keyword applies is decided by `discriminatingProperty`,
-   * which also reports the two cases that drop it.
-   *
-   * `@discriminator("x")` names the property by its **TypeSpec** declaration
-   * name, not its wire name. Only once the property is found is its wire
-   * name computed, via `resolveEncodedName`, and written into
-   * `schema.discriminator`. That is the key that actually appears under
-   * `properties`/`required` (see `buildObjectSchema`).
-   * Matching wire name against `discriminator.propertyName`, as an earlier
-   * version of this method did, silently breaks the moment the
-   * discriminating property has its own `@encodedName`.
-   *
-   * This method uses a deliberate lenient interpretation. When the
-   * discriminating property is found only on an ancestor (`Base` above),
-   * this method still writes `discriminator` onto `schema`, even though
-   * `schema` itself, as opposed to the assembled
-   * `{ allOf: [{ $ref: Base }, own] }`, has no own `properties`/`required`
-   * naming it.
-   * AsyncAPI 3.x's Schema Object text says the property "MUST be defined at
-   * this schema and ... in the required property list". Read literally,
-   * that would require copying the ancestor's property definition into
-   * `own` on every discriminated subtype.
-   * This is intentionally not done. A `discriminator` is read after
-   * resolving `allOf`; every validator and codegen this project has
-   * checked against does so. So a property defined in an `allOf` branch
-   * reachable via `$ref` is, in practice, "defined at this schema".
-   * Copying it into every subtype's `own` would duplicate the property's
-   * definition, in the base and every subtype, kept in sync by hand, for
-   * no behavioral gain. It would also fight the same omit-duplication
-   * principle `applyExtends` already follows: `own` excludes inherited
-   * members precisely so they are not double-counted against the base's
-   * `$ref`.
-   * Do not "fix" this by re-declaring the property in `own`. That is the
-   * discussed and rejected alternative, not an oversight.
-   */
-  private applyDiscriminator(model: Model, schema: SchemaObject): SchemaObject {
-    const prop = this.discriminatingProperty(model);
-    if (prop === undefined) {
-      return schema;
-    }
-    // The emitted schema now advertises a polymorphic payload. Its variants
-    // must be present in `components.schemas` for that to mean anything. The
-    // subtypes are queued rather than built here, so this model's own entry
-    // lands first. See `flushPendingSubtypes`.
-    // Nothing is queued when the checks above dropped `discriminator`. The
-    // emitted schema then advertises no polymorphism, so a subtype that no
-    // message reaches stays out of the document.
-    this.declarations.queueSubtypes(model);
-    const wireName = resolveEncodedName(this.program, prop, SCHEMA_ENCODING_MIME_TYPE);
-    return { ...schema, discriminator: wireName };
-  }
-
   /** Builds the `object` shape for a plain (non-collection) model. */
   private buildObjectSchema(model: Model): SchemaObject {
     return this.buildObjectSchemaFromProperties(model.properties.values());
-  }
-
-  /**
-   * Builds the fully flattened `object` shape for `model`.
-   * It includes every property reachable through the `baseModel` chain,
-   * inlined into one schema with no `allOf`/`$ref` to an ancestor. An
-   * overriding property in a more-derived level wins over the same-named
-   * ancestor's, exactly as `walkPropertiesInherited` already resolves.
-   * `applyExtends` uses this as the fallback when
-   * `findEncodedNameOverrideConflict` finds an override whose
-   * `@encodedName` differs from its ancestor's. The normal
-   * `{ allOf: [{ $ref: Base }, own] }` shape would then key the base branch
-   * and the own branch by two different wire names for the same conceptual
-   * property. That would make the assembled schema reject every valid
-   * payload.
-   * `buildPayloadShape` uses it for the payload component of a message that
-   * lifts `@header` fields, and hands in those fields as `omitted`. That
-   * payload must flatten for a reason of its own. A lifted field can be
-   * inherited, and an `allOf` branch to the base would bring it back.
-   *
-   * @param model - The model to flatten
-   * @param omitted - Properties to leave out of the result
-   */
-  private buildFlattenedObjectSchema(
-    model: Model,
-    omitted: ReadonlySet<ModelProperty> = new Set(),
-  ): SchemaObject {
-    const kept = [...walkPropertiesInherited(model)].filter((property) => !omitted.has(property));
-    const schema = this.buildObjectSchemaFromProperties(kept);
-    // The flattened shape has no `$ref`/`allOf` back to any ancestor.
-    // So an indexer constraint, `additionalProperties`, declared on
-    // `model` itself or inherited from a `baseModel`, would otherwise be
-    // silently dropped. Walk the chain, mirroring how the compiler itself
-    // resolves an inherited indexer, for the nearest one, and merge it in.
-    for (
-      let current: Model | undefined = model;
-      current !== undefined;
-      current = current.baseModel
-    ) {
-      const collection = this.buildCollectionSchema(current);
-      if (collection !== undefined) {
-        return { ...collection, ...schema };
-      }
-    }
-    return schema;
   }
 
   /**
@@ -1001,116 +666,13 @@ export class SchemaBuilder {
    * always layered its own above an `allOf`, and still does.
    */
   private buildPropertyTypeSchema(prop: ModelProperty): SchemaObject | ReferenceObject {
-    if (prop.type.kind === "Scalar" && !isBuiltinScalar(prop.type) && this.speaksForItself(prop)) {
-      return this.buildScalarSchemaShapeWithDocs(prop.type);
+    if (
+      prop.type.kind === "Scalar" &&
+      !isBuiltinScalar(prop.type) &&
+      propertyStatesItsOwnShape(this.program, prop)
+    ) {
+      return buildScalarShapeWithDocs(this.program, this.diagnostics, prop.type);
     }
     return this.buildSchema(prop.type);
-  }
-
-  /**
-   * Whether a property says something of its own that would replace, rather
-   * than add to, what the scalar says.
-   */
-  private speaksForItself(prop: ModelProperty): boolean {
-    return (
-      getEncode(this.program, prop) !== undefined ||
-      getFormat(this.program, prop) !== undefined ||
-      // `@secret` is a format too: it is what `password` is written from
-      // (see `buildValidationKeywords`). A property that carries it says
-      // this value is a password, which stands in place of whatever format
-      // the scalar states, exactly as an explicit `@format` does.
-      isSecret(this.program, prop) ||
-      getDoc(this.program, prop) !== undefined ||
-      getSummary(this.program, prop) !== undefined ||
-      getExamples(this.program, prop).length > 0
-    );
-  }
-
-  private buildScalarSchema(scalar: Scalar): SchemaObject | ReferenceObject {
-    // TypeSpec's own built-in scalars, such as `string` and `int32`, carry
-    // their own standard-library doc comments. For example, `string` has "A
-    // sequence of textual characters." Surfacing those on every plain
-    // `string`/`int32` field would flood the output. So only a
-    // user-declared scalar's own documentation is applied here.
-    // `buildScalarSchemaShapeWithDocs` walks the whole `baseScalar` chain.
-    // This keeps documentation on an intermediate or base user scalar from
-    // being lost when the use site is derived through more than one level.
-    // For example, `scalar WorkEmail extends Email;` where only `Email`
-    // itself carries `@doc`/`@summary`/`@example`.
-    // A user-declared scalar is a declaration the author named, so it earns
-    // a `components.schemas` entry and every use site writes a reference.
-    // This is the rule every other named declaration already follows, and
-    // the one `@typespec/openapi3` follows for a scalar
-    // (`schema-emitter.ts`, `scalarDeclaration`).
-    //
-    // A built-in stays inline. `string` has no name of the author's own, and
-    // a component per built-in would be a component per primitive.
-    if (isBuiltinScalar(scalar)) {
-      return this.buildScalarSchemaShapeWithDocs(scalar);
-    }
-    return this.declarations.register(scalar, () => this.buildScalarSchemaShapeWithDocs(scalar));
-  }
-
-  /**
-   * Builds the `type`/`format` shape for `scalar`, merged with
-   * documentation collected along the entire `baseScalar` chain.
-   * The base's own docs are applied first. Then each more-derived level's
-   * own `@summary`/`@doc`/`@example` overrides them. `withDocs`'s
-   * object-spread semantics already give the more specific fields priority
-   * when merged last.
-   * Built-in scalars never contribute documentation, only the shape. See
-   * `isBuiltinScalar` at the `buildScalarSchema` call site's doc comment.
-   * This method bottoms out at the first built-in ancestor found, or at the
-   * unconstrained `{}` shape for an unmapped root scalar. It then merges
-   * each user-declared level's docs back on the way up.
-   * `withPropertyDocs` on the use site can still override with the
-   * property's own documentation afterward.
-   */
-  private buildScalarSchemaShapeWithDocs(scalar: Scalar): SchemaObject {
-    if (isBuiltinScalar(scalar)) {
-      const shape = Object.hasOwn(SCALAR_SCHEMAS, scalar.name)
-        ? { ...SCALAR_SCHEMAS[scalar.name] }
-        : {};
-      // Built-ins never contribute *documentation* (see this method's own
-      // doc comment). But an augment decorator, such as
-      // `@@minLength(TypeSpec.string, 3);`, is the only legal way to apply
-      // a 2.8 validation decorator to a built-in scalar. It is real user
-      // intent, not library noise. So it must still be read back here,
-      // rather than silently discarded.
-      // `@@encode` reaches a built-in the same way, and changes the very
-      // `type`/`format` this shape is made of, so it is applied first. An
-      // explicit `@format` merged in afterwards still wins over the format
-      // the encoding resolved to.
-      return {
-        ...applyEncoding(this.program, scalar, shape),
-        ...buildValidationKeywords(this.program, scalar, this.diagnostics),
-      };
-    }
-    // This is a derived, user-declared scalar. Start from its base
-    // scalar's shape, recursing all the way to a built-in ancestor, or to
-    // `{}` for an unmapped root scalar. Then merge this level's own
-    // documentation on top.
-    //
-    // A validation keyword this level re-declares that the base already
-    // baked in must NOT simply replace the base's value the way plain
-    // object-spread would. For example, `@minLength(2) scalar Loose
-    // extends Tight;` where `Tight` already has `@minLength(5)`. Two
-    // constraints on the same value form a JSON Schema intersection; both
-    // must hold. This is the same as the property-vs-scalar collision
-    // `withPropertyDocs` guards against. Otherwise, a more-derived scalar
-    // could silently erase a stricter ancestor constraint with no
-    // diagnostic.
-    // On collision, `base` is wrapped whole in `allOf`, the same wrap
-    // `withPropertyDocs` uses, so both levels' keywords hold
-    // simultaneously. Otherwise, keywords are merged in directly as before.
-    // This level's own `@encode` changes the `type`/`format` it inherited
-    // from the base. It is applied before `withDocs`, so an explicit
-    // `@format` on this same scalar still wins over the encoding's format.
-    const base = applyEncoding(
-      this.program,
-      scalar,
-      scalar.baseScalar ? this.buildScalarSchemaShapeWithDocs(scalar.baseScalar) : {},
-    );
-    return withDocs(this.program, scalar, base, this.diagnostics);
   }
 }
