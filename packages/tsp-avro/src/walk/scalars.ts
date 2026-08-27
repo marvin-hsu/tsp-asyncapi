@@ -11,8 +11,9 @@
  * lets a project name its own scalars without teaching this table about them.
  *
  * The table is built for one program, because a TypeSpec type is only the same
- * object inside one program. It is built once per emit and passed down the
- * walk, so nothing outlives the emit that made it.
+ * object inside one program. It is built once per program and passed down the
+ * walk. The programs are held weakly, so nothing here outlives the program
+ * that the table is about.
  */
 
 import { formatDiagnostic, type Program, type Scalar, type Type } from "@typespec/compiler";
@@ -42,14 +43,37 @@ const SCALAR_ENTRIES: readonly (readonly [string, AvroPrimitiveName])[] = [
 export type AvroScalarTable = ReadonlyMap<Type, AvroPrimitiveName>;
 
 /**
+ * Every table built so far, by the program it is about.
+ *
+ * Resolving seven type references is work, and the walk is entered once per
+ * `@record`. The answer is the same every time inside one program, so a
+ * program that declares fifty records resolved them fifty times over.
+ */
+const tables = new WeakMap<Program, AvroScalarTable>();
+
+/**
+ * The table for one program, built the first time it is asked for.
+ *
+ * @internal
+ */
+export function scalarTableFor(program: Program): AvroScalarTable {
+  const built = tables.get(program);
+  if (built !== undefined) {
+    return built;
+  }
+
+  const table = createScalarTable(program);
+  tables.set(program, table);
+  return table;
+}
+
+/**
  * Builds the table for one program.
  *
  * A reference that fails to resolve is a defect in this file, not in the
  * program being compiled, so it throws instead of reporting a diagnostic.
- *
- * @internal
  */
-export function createScalarTable(program: Program): AvroScalarTable {
+function createScalarTable(program: Program): AvroScalarTable {
   const table = new Map<Type, AvroPrimitiveName>();
   for (const [reference, primitive] of SCALAR_ENTRIES) {
     const [type, diagnostics] = program.resolveTypeReference(reference);

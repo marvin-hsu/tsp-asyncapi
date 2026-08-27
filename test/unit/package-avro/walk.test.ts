@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   acceptSchema,
+  compileAvro,
   emitAvro,
   emitAvroFiles,
   expectInstanceRoundTrip,
@@ -8,6 +9,7 @@ import {
   fieldNamed,
   recordFields,
 } from "../../utils/avro.js";
+import { scalarTableFor } from "#avro/walk/scalars.js";
 
 /**
  * The walk, judged by the reference Avro implementation and by shape.
@@ -50,6 +52,23 @@ const ORDERS = `
 `;
 
 const ORDER_FILE = "com/example/orders/OrderPlaced.avsc";
+
+describe("the scalar table", () => {
+  it("builds one table per program", async () => {
+    // The walk is entered once per @record, and resolving the seven type
+    // references answers the same table every time inside one program. A
+    // program that declares fifty records resolved them fifty times over.
+    const program = await compileAvro(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model One { a: string; }
+        @Avro.avroRecord model Two { b: string; }
+      }
+    `);
+
+    expect(scalarTableFor(program)).toBe(scalarTableFor(program));
+  });
+});
 
 describe("the Avro walk", () => {
   it("writes a schema avsc accepts", async () => {

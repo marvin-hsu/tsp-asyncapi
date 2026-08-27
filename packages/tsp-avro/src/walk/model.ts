@@ -61,7 +61,7 @@ import {
 } from "../types.js";
 import { avroFullName, avroNamespaceOf } from "./full-names.js";
 import { applyLogicalType, namedTypeOf } from "./logical-types.js";
-import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
+import { avroScalarFor, scalarTableFor, type AvroScalarTable } from "./scalars.js";
 
 /**
  * What the walk carries from one type to the next.
@@ -152,7 +152,7 @@ export function buildAvroRecordWithDiagnostics(
 
   const context: WalkContext = {
     program,
-    scalars: createScalarTable(program),
+    scalars: scalarTableFor(program),
     defined: new Map(),
     diagnostics,
   };
