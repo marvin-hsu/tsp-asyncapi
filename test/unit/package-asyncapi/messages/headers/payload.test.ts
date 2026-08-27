@@ -464,4 +464,52 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       $ref: "#/components/schemas/RenamedPayload",
     });
   });
+  it("leaves the message model's own key free when only its payload is emitted", async () => {
+    await runner.compile(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model Inner {
+        @header
+        traceId: string;
+
+        v: string;
+      }
+
+      @friendlyName("Inner")
+      model Other {
+        x: string;
+      }
+
+      @message
+      model Outer {
+        collides: Other;
+      }
+    `);
+
+    const doc = await documentFrom(runner.program);
+
+    // Nothing reads `Inner` itself, so it emits no component of its own.
+    // Holding its key anyway would leave `Other` reported as a duplicate of
+    // a schema that is never written, and `Outer` referring to a key with
+    // nothing behind it.
+    expect(diagnosticsWith(runner.program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
+    expect(doc.components?.schemas?.Inner).toEqual({
+      type: "object",
+      properties: { x: { type: "string" } },
+      required: ["x"],
+    });
+    expect(schemaOf(schemasOf(doc).Outer).properties?.collides).toEqual({
+      $ref: "#/components/schemas/Inner",
+    });
+    expect(doc.components?.messages?.Inner.payload).toEqual({
+      $ref: "#/components/schemas/InnerPayload",
+    });
+    expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
+      "Inner",
+      "InnerPayload",
+      "Outer",
+    ]);
+  });
 });
