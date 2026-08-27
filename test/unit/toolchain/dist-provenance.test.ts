@@ -68,6 +68,15 @@ describe("Unit: the provenance of the build output", () => {
     expect(orphans, `${name} carries output no source file explains`).toEqual([]);
   });
 
+  /**
+   * A package that was never built has no `dist` at all. The listing has to
+   * report that as no file, so the case that reads it fails with the message
+   * it wrote for that state.
+   */
+  it("lists a directory that does not exist as no file", async () => {
+    await expect(filesIn(new URL("packages/tsp-asyncapi/dist-absent/", ROOT))).resolves.toEqual([]);
+  });
+
   it.each(PACKAGES)("removes the build output of %s before it builds", async (name) => {
     const manifest = JSON.parse(
       await readFile(new URL(`packages/${name}/package.json`, ROOT), "utf8"),
@@ -148,11 +157,20 @@ function sourceOf(file: string): string | undefined {
 /**
  * Every file below one directory.
  *
+ * A directory that does not exist holds no file, so it is reported as an
+ * empty listing. A package that was never built has no `dist`, and the case
+ * that reads it says so in its own words instead of failing on the read.
+ *
  * @param root - The directory to walk
  * @returns The path of each file, relative to that directory
  */
 async function filesIn(root: URL): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true, recursive: true });
+  const entries = await readdir(root, { withFileTypes: true, recursive: true }).catch(
+    (error: unknown) => {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
+      throw error;
+    },
+  );
   const base = fileURLToPath(root);
   return entries
     .filter((entry) => entry.isFile())
