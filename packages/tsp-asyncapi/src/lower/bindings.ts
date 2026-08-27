@@ -96,10 +96,13 @@ const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
  * order every example in the AsyncAPI binding repository shows.
  */
 function render(node: BindingNode): BindingObject {
-  const config = node.config as BindingObject;
+  // The config is copied rather than handed over. It belongs to the resolved
+  // model, which every stage after resolve treats as read only, and the copy
+  // is also what turns its read-only shape into the mutable one the document
+  // types use.
   const version = BINDING_VERSIONS[node.renderer];
-  if (version === null) return config;
-  return { ...config, bindingVersion: version };
+  if (version === null) return { ...node.config };
+  return { ...node.config, bindingVersion: version };
 }
 
 /**

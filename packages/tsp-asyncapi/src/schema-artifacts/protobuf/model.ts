@@ -492,8 +492,9 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
     return undefined;
   }
 
-  const repeated = isArrayInstance(property.type);
-  const target = repeated ? elementOf(property.type as Model) : property.type;
+  const declared = property.type;
+  const repeated = isArrayInstance(declared);
+  const target = repeated ? elementOf(declared) : declared;
   if (target === undefined) {
     refuse(walk, property, `property '${property.name}' whose array element is not a type`);
     return undefined;
@@ -530,14 +531,17 @@ function fieldTypeOf(
   property: ModelProperty,
   repeated: boolean,
 ): string | undefined {
-  if (!isProtobufMap(walk.program, target)) {
+  // `Protobuf.Map` is declared as a model, so a marked type is a model. The
+  // kind is read here rather than asserted below, which is what lets
+  // `mapTypeOf` take the type with no cast.
+  if (!isProtobufMap(walk.program, target) || target.kind !== "Model") {
     return typeNameOf(walk, target, property);
   }
   if (repeated) {
     refuse(walk, property, `property '${property.name}' with an array of Protobuf.Map values`);
     return undefined;
   }
-  return mapTypeOf(walk, target as Model, property);
+  return mapTypeOf(walk, target, property);
 }
 
 /**
@@ -598,18 +602,26 @@ function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | u
     refuse(walk, property, `property '${property.name}' of an @Protobuf.externRef type`);
     return undefined;
   }
-  if (isProtobufMap(walk.program, type)) {
-    refuse(walk, property, `property '${property.name}' with a Protobuf.Map inside another type`);
-    return undefined;
-  }
-  if (isArrayInstance(type)) {
-    refuse(walk, property, `property '${property.name}' with an array of arrays`);
-    return undefined;
-  }
   switch (type.kind) {
     case "Scalar":
       return scalarNameOf(walk, type);
     case "Model":
+      // Both refusals below are about a model: `Protobuf.Map` is a model
+      // instantiation, and so is `Array<T>`. They are read inside this case
+      // rather than above the switch, so neither check has to say what kind
+      // of type it just recognized.
+      if (isProtobufMap(walk.program, type)) {
+        refuse(
+          walk,
+          property,
+          `property '${property.name}' with a Protobuf.Map inside another type`,
+        );
+        return undefined;
+      }
+      if (isArrayInstance(type)) {
+        refuse(walk, property, `property '${property.name}' with an array of arrays`);
+        return undefined;
+      }
       return visitModel(walk, type);
     case "Enum":
       return visitEnum(walk, type);
@@ -707,10 +719,13 @@ function takesOptionalLabel(property: ModelProperty, repeated: boolean): boolean
 /**
  * Whether a type is an instantiation of the built in `Array`.
  *
+ * The answer narrows the type, so a caller that then asks for the element
+ * needs no cast to say what the check already established.
+ *
  * @param type - The type to judge
  * @returns Whether it is `TypeSpec.Array<T>`
  */
-function isArrayInstance(type: Type): boolean {
+function isArrayInstance(type: Type): type is Model {
   return type.kind === "Model" && type.name === "Array" && type.namespace?.name === "TypeSpec";
 }
 
