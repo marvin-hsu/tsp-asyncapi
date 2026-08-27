@@ -289,15 +289,22 @@ function scalarFor(
       return undefined;
     }
 
-    // An alias stands for a name, and this scalar has none: it is written as
+    // An alias stands for a name, and this scalar has none. It is written as
     // an Avro primitive, and a primitive is the same type wherever it occurs.
     // Only `@fixed` gives a scalar a name for an alias to stand for.
-    if (getAvroAliases(context.program, scalar) !== undefined) {
+    //
+    // The chain is read, the same way `@fixed` and `@logicalType` are. An
+    // alias written further up is dropped just as silently, so it is refused
+    // just as loudly, under the name of the scalar that carries it.
+    const aliased = inheritedMark(scalar, (one) =>
+      getAvroAliases(context.program, one) === undefined ? undefined : one,
+    );
+    if (aliased !== undefined) {
       refuse(
         context,
         createDiagnostic({
           code: "aliases-target",
-          format: { name: scalar.name },
+          format: { name: aliased.name },
           target,
         }),
       );
