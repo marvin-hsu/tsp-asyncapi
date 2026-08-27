@@ -310,4 +310,4 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - A scalar that carries `@Avro.fixed` and does not extend `bytes`. An Avro fixed type holds bytes.
 - A union that names one type twice, such as `string[] | int32[]`.
 - Two declarations that resolve to one Avro full name.
-- A record, an enum or a fixed type named after an Avro type: `null`, `boolean`, `int`, `long`, `float`, `double`, `bytes`, `string`, `record`, `enum`, `array`, `map`, `union` or `fixed`.
+- A record, an enum or a fixed type named after an Avro primitive: `null`, `boolean`, `int`, `long`, `float`, `double`, `bytes` or `string`. A schema spells a primitive by name alone, so a type of that name reads back as the primitive. A name such as `record` or `map` is free, because Avro spells a complex type as an object rather than by the keyword alone.

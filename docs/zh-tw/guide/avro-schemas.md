@@ -310,4 +310,4 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 - 帶著 `@Avro.fixed` 但沒有繼承 `bytes` 的 scalar。Avro fixed 型別承載的是位元組。
 - 同一個型別出現兩次的 union，例如 `string[] | int32[]`。
 - 兩個宣告對應到同一個 Avro 完整名稱。
-- 用 Avro 型別名稱命名的 record、enum 或 fixed 型別：`null`、`boolean`、`int`、`long`、`float`、`double`、`bytes`、`string`、`record`、`enum`、`array`、`map`、`union` 與 `fixed`。
+- 用 Avro 原始型別名稱命名的 record、enum 或 fixed 型別：`null`、`boolean`、`int`、`long`、`float`、`double`、`bytes` 與 `string`。schema 只用名稱本身表示原始型別，所以叫這些名稱的型別會被讀成原始型別。`record`、`map` 這類名稱可以使用，因為 Avro 用物件表示複合型別，不是只用關鍵字。
