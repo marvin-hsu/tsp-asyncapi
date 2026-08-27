@@ -69,7 +69,7 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default: paramMessage`A property of kind "${"kind"}" has no Avro form.`,
         anonymous: "An anonymous model has no name, and an Avro record needs one.",
-        scalar: paramMessage`The scalar "${"name"}" has no Avro form.`,
+        scalar: paramMessage`The scalar "${"name"}" has no Avro form. Avro has eight primitive types. Declare the field as one it does have, and use @Avro.logicalType to say what the value means: a timestamp is an int64 that carries "timestamp-millis".`,
         intrinsic: paramMessage`The type "${"name"}" has no Avro form.`,
         inheritance: paramMessage`The model "${"name"}" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
         template: paramMessage`The model "${"name"}" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,

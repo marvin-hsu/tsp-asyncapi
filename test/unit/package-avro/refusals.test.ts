@@ -102,7 +102,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.avroNamespace("com.example.a")
       namespace A { @Avro.avroRecord model Event { count: uint32; } }
       `,
-      `unsupported-type: The scalar "uint32" has no Avro form.`,
+      `unsupported-type: The scalar "uint32" has no Avro form. Avro has eight primitive types. Declare the field as one it does have, and use @Avro.logicalType to say what the value means: a timestamp is an int64 that carries "timestamp-millis".`,
     );
   });
 
