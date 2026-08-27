@@ -296,6 +296,21 @@ function scalarFor(
       );
       return undefined;
     }
+
+    // An alias stands for a name, and this scalar has none: it is written as
+    // an Avro primitive, and a primitive is the same type wherever it occurs.
+    // Only `@fixed` gives a scalar a name for an alias to stand for.
+    if (getAvroAliases(context.program, scalar) !== undefined) {
+      refuse(
+        context,
+        createDiagnostic({
+          code: "aliases-target",
+          format: { name: scalar.name },
+          target,
+        }),
+      );
+      return undefined;
+    }
   } else {
     // An Avro fixed type is a width of bytes. A scalar that carries @fixed and
     // extends anything else says two things at once, and writing the fixed
@@ -407,9 +422,8 @@ function fixedFor(
     type: "fixed",
     name: declaration.name,
     namespace: namespaceOf(fullName),
-    // A scalar never carries an alias, because `@aliases` targets a model, a
-    // field and an enum. Reading one here answers undefined and says so in one
-    // place rather than two.
+    // A model and a scalar both reach here, and `@aliases` targets both. So
+    // one read serves the two, the way it does for a record and an enum.
     aliases: getAvroAliases(context.program, declaration),
     size,
   };

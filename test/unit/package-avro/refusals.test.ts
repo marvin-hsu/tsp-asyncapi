@@ -287,6 +287,21 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
+  it("refuses aliases on a scalar that is written as a primitive", async () => {
+    // An alias stands for a name, and an Avro primitive is the same type
+    // wherever it occurs. Nothing would carry the alias.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `,
+      `aliases-target: The scalar "Age" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+    );
+  });
+
   it("refuses a fixed scalar that does not extend bytes", async () => {
     // An Avro fixed type holds bytes. A fixed string was written out as a
     // fixed type all the same, and what `extends string` said was lost.

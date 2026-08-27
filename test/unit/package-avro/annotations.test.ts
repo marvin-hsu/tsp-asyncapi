@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { emitAvroFiles, expectInstanceRoundTrip } from "../../utils/avro.js";
+import { emitAvroFiles, expectInstanceRoundTrip, fieldNamed } from "../../utils/avro.js";
 
 /**
  * The decorators that carry what Avro has and TypeSpec cannot say.
@@ -167,6 +167,31 @@ describe("the Avro annotations", () => {
     });
 
     expectInstanceRoundTrip(schema);
+  });
+
+  it("writes a scalar marked fixed, with the aliases it carries", async () => {
+    // `@fixed` makes a named Avro type of a scalar, and a named type is what
+    // an alias stands for. A fixed model already took one, and a fixed scalar
+    // could not.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("${NAMESPACE}")
+      namespace A {
+        @Avro.aliases("com.example.old.Md5")
+        @Avro.fixed(16)
+        scalar Md5 extends bytes;
+
+        @Avro.avroRecord
+        model Event { sum: Md5; }
+      }
+    `);
+
+    expect(fieldNamed(files["com/example/a/Event.avsc"], "sum").type).toEqual({
+      type: "fixed",
+      name: "Md5",
+      namespace: NAMESPACE,
+      aliases: ["com.example.old.Md5"],
+      size: 16,
+    });
   });
 
   it("writes a model marked fixed, with the aliases it carries", async () => {

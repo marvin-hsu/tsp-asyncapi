@@ -34,7 +34,7 @@ export {
   resolveAvroNamespace,
 } from "./decorators/index.js";
 
-export type { AvroLogicalTypeAnnotation } from "./decorators/index.js";
+export type { AvroAliasTarget, AvroLogicalTypeAnnotation } from "./decorators/index.js";
 
 export { isAvroLogical, isAvroUnion } from "./types.js";
 

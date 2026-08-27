@@ -8,6 +8,8 @@
 
 export { $aliases, getAvroAliases } from "./aliases.js";
 
+export type { AvroAliasTarget } from "./aliases.js";
+
 export { $decimal, $logicalType, getAvroLogicalType } from "./logical-type.js";
 
 export type { AvroLogicalTypeAnnotation } from "./logical-type.js";

@@ -6,7 +6,7 @@ namespace Avro;
 
 extern dec avroNamespace(target: Namespace, name: valueof string);
 extern dec avroRecord(target: Model);
-extern dec aliases(target: Model | ModelProperty | Enum, ...names: valueof string[]);
+extern dec aliases(target: Model | ModelProperty | Enum | Scalar, ...names: valueof string[]);
 extern dec order(target: ModelProperty, mode: valueof string);
 extern dec fixed(target: Model | Scalar, size: valueof int32);
 extern dec logicalType(target: Scalar | ModelProperty, name: valueof string);

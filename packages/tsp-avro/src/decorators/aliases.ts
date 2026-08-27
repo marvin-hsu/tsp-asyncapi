@@ -5,10 +5,20 @@ import { isAvroName, isAvroNamespace } from "./names.js";
 
 const aliasesStateKey = Symbol.for("tsp-avro.aliases");
 
-const [getAliasesInternal, setAliasesInternal] = useStateMap<
-  Model | ModelProperty | Enum | Scalar,
-  readonly string[]
->(aliasesStateKey);
+/**
+ * What an alias can be written on.
+ *
+ * Avro gives a name to a record, an enum, a fixed type and a field, and an
+ * alias is a name a reader also knows the declaration by. A scalar is here
+ * because `@fixed` makes a named Avro type of one.
+ *
+ * @public
+ */
+export type AvroAliasTarget = Model | ModelProperty | Enum | Scalar;
+
+const [getAliasesInternal, setAliasesInternal] = useStateMap<AvroAliasTarget, readonly string[]>(
+  aliasesStateKey,
+);
 
 /**
  * Declares the names a reader also knows this declaration by.
@@ -21,8 +31,12 @@ const [getAliasesInternal, setAliasesInternal] = useStateMap<
  * A name that breaks the Avro rules is reported here, where the author wrote
  * it, and nothing is recorded.
  *
+ * A scalar takes one where `@fixed` makes it a named Avro type. A scalar that
+ * is a primitive carries no name of its own, so an alias there stands for
+ * nothing and is refused by the walk.
+ *
  * @param context - The decorator context
- * @param target - The record, enum or field the names belong to
+ * @param target - The record, enum, fixed type or field the names belong to
  * @param names - The alternate names, in the order Avro writes them
  *
  * @example
@@ -38,7 +52,7 @@ const [getAliasesInternal, setAliasesInternal] = useStateMap<
  */
 export function $aliases(
   context: DecoratorContext,
-  target: Model | ModelProperty | Enum,
+  target: AvroAliasTarget,
   ...names: string[]
 ): void {
   // A full name has the grammar of a namespace: one or more Avro names joined
@@ -72,9 +86,8 @@ export function $aliases(
 /**
  * Reads the aliases declared on a declaration.
  *
- * A scalar is accepted because `@fixed` turns one into a named Avro type, and
- * the walk reads the aliases of every named type through one call. No scalar
- * carries any, because `@aliases` does not target one.
+ * A scalar carries aliases where `@fixed` turns one into a named Avro type.
+ * The walk reads the aliases of every named type through this one call.
  *
  * @param program - The program to read the state from
  * @param target - The declaration to read
@@ -84,7 +97,7 @@ export function $aliases(
  */
 export function getAvroAliases(
   program: Program,
-  target: Model | ModelProperty | Enum | Scalar,
+  target: AvroAliasTarget,
 ): readonly string[] | undefined {
   return getAliasesInternal(program, target);
 }

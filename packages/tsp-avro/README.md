@@ -69,16 +69,16 @@ takes.
 
 ## Decorators
 
-| Decorator                         | Target                           | What it does                                                          |
-| --------------------------------- | -------------------------------- | --------------------------------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | Declares the Avro namespace. A record takes the nearest one above it. |
-| `@Avro.avroRecord`                | `Model`                          | Marks a model to emit. One marked model becomes one `.avsc` file.     |
-| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum` | Former names, so a reader can read data written before a rename.      |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`, `descending` or `ignore`.                                |
-| `@Avro.fixed(size)`               | `Model`, `Scalar`                | Makes an Avro fixed type of that many bytes.                          |
-| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`        | Writes one of the logical types the specification defines.            |
-| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`        | Writes the `decimal` logical type with its parameters.                |
-| `@Avro.enumDefault(member)`       | `Enum`                           | The member a reader uses when it meets a symbol it does not know.     |
+| Decorator                         | Target                                     | What it does                                                          |
+| --------------------------------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | Declares the Avro namespace. A record takes the nearest one above it. |
+| `@Avro.avroRecord`                | `Model`                                    | Marks a model to emit. One marked model becomes one `.avsc` file.     |
+| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum`, `Scalar` | Former names, so a reader can read data written before a rename.      |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`, `descending` or `ignore`.                                |
+| `@Avro.fixed(size)`               | `Model`, `Scalar`                          | Makes an Avro fixed type of that many bytes.                          |
+| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`                  | Writes one of the logical types the specification defines.            |
+| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`                  | Writes the `decimal` logical type with its parameters.                |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | The member a reader uses when it meets a symbol it does not know.     |
 
 Documentation comes from a `/** */` comment and a field default from
 `= value`. Neither needs a decorator.

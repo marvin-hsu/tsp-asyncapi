@@ -260,16 +260,16 @@ A pair outside the table is refused. A name outside the table is refused as well
 
 ## Decorators
 
-| Decorator                         | Target                           | What it does                                                         |
-| --------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
-| `@Avro.avroRecord`                | `Model`                          | Marks a model to emit. One marked model becomes one file.            |
-| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum` | Names what the declaration used to be called.                        |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`, `descending` or `ignore`.                               |
-| `@Avro.fixed(size)`               | `Model`, `Scalar`                | Makes an Avro fixed type of that many bytes.                         |
-| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`        | Writes a logical type from the table above.                          |
-| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`        | Writes the `decimal` logical type with its parameters.               |
-| `@Avro.enumDefault(member)`       | `Enum`                           | Names the symbol a reader falls back to.                             |
+| Decorator                         | Target                                     | What it does                                                                                          |
+| --------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | Declares the Avro namespace. The nearest ancestor that has one wins.                                  |
+| `@Avro.avroRecord`                | `Model`                                    | Marks a model to emit. One marked model becomes one file.                                             |
+| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum`, `Scalar` | Names what the declaration used to be called. A scalar takes one where `@Avro.fixed` gives it a name. |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`, `descending` or `ignore`.                                                                |
+| `@Avro.fixed(size)`               | `Model`, `Scalar`                          | Makes an Avro fixed type of that many bytes.                                                          |
+| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`                  | Writes a logical type from the table above.                                                           |
+| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`                  | Writes the `decimal` logical type with its parameters.                                                |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | Names the symbol a reader falls back to.                                                              |
 
 Documentation comes from the native `/** */` comment. A field default comes from the native `= value`. There is no decorator for either.
 
@@ -284,6 +284,7 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 | `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                                                        |
 | `tsp-avro/invalid-name`           | A name breaks the Avro name rules, or Avro keeps it for a type of its own.                      |
 | `tsp-avro/unsupported-type`       | A type has no Avro form.                                                                        |
+| `tsp-avro/aliases-target`         | `@Avro.aliases` is on a scalar that is written as an Avro primitive.                            |
 | `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                                               |
 | `tsp-avro/invalid-default`        | A default has no JSON form, or it names no one branch of its union.                             |
 | `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.                              |
@@ -303,6 +304,7 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - A template instance, such as `Box<string>`. Two instances of one template share a name.
 - A model that holds an index signature and fields together.
 - A scalar outside the table above.
+- `@Avro.aliases` on a scalar that carries no `@Avro.fixed`. An alias stands for a name, and a primitive has none.
 - A scalar that carries `@Avro.fixed` and does not extend `bytes`. An Avro fixed type holds bytes.
 - A union that names one type twice, such as `string[] | int32[]`.
 - Two declarations that resolve to one Avro full name.

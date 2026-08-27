@@ -260,16 +260,16 @@ logical type 是型別的一個屬性，不是獨立的型別。Avro 用 `int` �
 
 ## Decorator
 
-| Decorator                         | 目標                             | 作用                                                 |
-| --------------------------------- | -------------------------------- | ---------------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。由最靠近的上層 namespace 決定。 |
-| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。        |
-| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                         |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。              |
-| `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。                 |
-| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`        | 寫出上表中的一個 logical type。                      |
-| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`        | 寫出 `decimal` logical type 與它的參數。             |
-| `@Avro.enumDefault(member)`       | `Enum`                           | 指定 reader 退回的符號。                             |
+| Decorator                         | 目標                                       | 作用                                                                   |
+| --------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | 宣告 Avro namespace。由最靠近的上層 namespace 決定。                   |
+| `@Avro.avroRecord`                | `Model`                                    | 標記一個 model 要輸出。一個標記產生一個檔案。                          |
+| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum`、`Scalar` | 指定這個宣告以前叫什麼名字。scalar 要有 `@Avro.fixed` 給的名稱才能標。 |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`、`descending` 或 `ignore`。                                |
+| `@Avro.fixed(size)`               | `Model`、`Scalar`                          | 做成指定位元組數的 Avro fixed 型別。                                   |
+| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`                  | 寫出上表中的一個 logical type。                                        |
+| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`                  | 寫出 `decimal` logical type 與它的參數。                               |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | 指定 reader 退回的符號。                                               |
 
 doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`。這兩件事都沒有 decorator。
 
@@ -284,6 +284,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 | `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                                        |
 | `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則，或是 Avro 保留給自身型別的名稱。            |
 | `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                                                    |
+| `tsp-avro/aliases-target`         | `@Avro.aliases` 標在會寫成 Avro 原始型別的 scalar 上。                  |
 | `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。                             |
 | `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或指不出 union 的哪一個分支。                     |
 | `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。                          |
@@ -303,6 +304,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 - template 執行個體，例如 `Box<string>`。同一個 template 的兩個執行個體共用一個名稱。
 - 同時帶索引簽章與欄位的 model。
 - 上面對照表以外的 scalar。
+- 標在沒有 `@Avro.fixed` 的 scalar 上的 `@Avro.aliases`。alias 代表的是名稱，而原始型別沒有名稱。
 - 帶著 `@Avro.fixed` 但沒有繼承 `bytes` 的 scalar。Avro fixed 型別承載的是位元組。
 - 同一個型別出現兩次的 union，例如 `string[] | int32[]`。
 - 兩個宣告對應到同一個 Avro 完整名稱。

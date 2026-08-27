@@ -80,6 +80,12 @@ export const $lib = createTypeSpecLibrary({
         notRecord: paramMessage`The model "${"name"}" did not translate into an Avro record. @record asks for a record, and nothing else can be written in its place.`,
       },
     },
+    "aliases-target": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The scalar "${"name"}" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+      },
+    },
     "duplicate-union-branch": {
       severity: "error",
       messages: {

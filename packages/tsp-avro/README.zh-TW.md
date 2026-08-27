@@ -67,16 +67,16 @@ Avro namespace 決定檔案寫進哪個目錄。這個 emitter 沒有自己的�
 
 ## Decorator
 
-| Decorator                         | 目標                             | 作用                                                   |
-| --------------------------------- | -------------------------------- | ------------------------------------------------------ |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。record 往上找，用最接近的那一個。 |
-| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。          |
-| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 舊名字。讓 reader 讀得懂改名前寫下的資料。             |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。                |
-| `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。                   |
-| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`        | 寫出規格定義的其中一個 logical type。                  |
-| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`        | 寫出 `decimal` logical type 與參數。                   |
-| `@Avro.enumDefault(member)`       | `Enum`                           | reader 遇到不認得的符號時，改用這一個。                |
+| Decorator                         | 目標                                       | 作用                                                   |
+| --------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | 宣告 Avro namespace。record 往上找，用最接近的那一個。 |
+| `@Avro.avroRecord`                | `Model`                                    | 標記一個 model 要輸出。一個標記產生一個檔案。          |
+| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum`、`Scalar` | 舊名字。讓 reader 讀得懂改名前寫下的資料。             |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`、`descending` 或 `ignore`。                |
+| `@Avro.fixed(size)`               | `Model`、`Scalar`                          | 做成指定位元組數的 Avro fixed 型別。                   |
+| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`                  | 寫出規格定義的其中一個 logical type。                  |
+| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`                  | 寫出 `decimal` logical type 與參數。                   |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | reader 遇到不認得的符號時，改用這一個。                |
 
 doc 寫在 `/** */` 註解裡，欄位預設值寫成 `= value`，兩者都不需要 decorator。
 
