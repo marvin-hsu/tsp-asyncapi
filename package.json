@@ -20,7 +20,7 @@
   },
   "type": "module",
   "scripts": {
-    "clean": "pnpm run -r clean",
+    "clean": "pnpm run -r clean && rimraf ./dist ./temp",
     "prebuild": "pnpm run clean",
     "build": "tsc -b tsconfig.ws.json",
     "watch": "tsc -b tsconfig.ws.json --watch",
@@ -82,6 +82,7 @@
     "knip": "^6.32.2",
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
+    "rimraf": "^6.1.3",
     "protobufjs": "^8.7.2",
     "tsp-asyncapi": "workspace:*",
     "tsp-asyncapi-core": "workspace:*",

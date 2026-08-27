@@ -101,6 +101,17 @@ describe("Unit: the provenance of the build output", () => {
     ).toBe(true);
   });
 
+  it("removes the build output the root itself carries", async () => {
+    const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
+
+    // The workspace was one package before it was three, and a checkout from
+    // that time still holds the `dist` and `temp` it wrote at the root. The
+    // recursive clean reaches the packages alone, so the root removes its
+    // own.
+    expect(manifest.scripts.clean).toContain("./dist");
+    expect(manifest.scripts.clean).toContain("./temp");
+  });
+
   /**
    * `pnpm clean` runs pnpm's own command, not the script of that name. The
    * script is reached with `pnpm run clean`, and the removal is silently
@@ -109,7 +120,7 @@ describe("Unit: the provenance of the build output", () => {
   it("reaches the clean script of every package from the root", async () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
 
-    expect(manifest.scripts.clean).toBe("pnpm run -r clean");
+    expect(manifest.scripts.clean).toContain("pnpm run -r clean");
     // The root build compiles every package in one `tsc -b`, and reads no per
     // package script. So the root removes the output of all three itself.
     expect(manifest.scripts.prebuild).toBe("pnpm run clean");
