@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { TesterInstance } from "@typespec/compiler/testing";
+import type { Model, Program } from "@typespec/compiler";
+import { reportUnresolvedRawSchemaRefs } from "#emitter/lower/raw-schema-refs.js";
+import { namespaceOf } from "../../../utils/namespace.js";
 import { ASYNCAPI_VERSION } from "#core/constants.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { documentFrom } from "../../../utils/test-host.js";
@@ -10,6 +13,21 @@ const NATIVE = `application/vnd.aai.asyncapi+json;version=${ASYNCAPI_VERSION}`;
 
 /** The code of the rule this file is about. */
 const CODE = "unresolved-raw-schema-ref";
+
+/**
+ * Finds one model of the compiled source by name.
+ *
+ * @param program - The compiled program
+ * @param name - The name the source gives the model
+ * @returns That model
+ */
+function modelOf(program: Program, name: string): Model {
+  const model = namespaceOf(program, "Test").models.get(name);
+  if (model === undefined) {
+    throw new Error(`The compiled program declares no model named '${name}'.`);
+  }
+  return model;
+}
 
 describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
   let runner: TesterInstance;
@@ -260,5 +278,27 @@ describe("Unit: Message raw schemas: local $ref targets (Phase 3.9)", () => {
 
     const reported = findDiagnostic(runner.program.diagnostics, CODE);
     expect(reported.message).toContain("#/components/messages/Other/tags/7");
+  });
+  it("passes over a key the document holds no message for", async () => {
+    await runner.compile(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model OrderCreated {
+        id: string;
+      }
+    `);
+
+    const doc = await documentFrom(runner.program);
+    const model = modelOf(runner.program, "OrderCreated");
+
+    // Every key of the map names an emitted message, which the rule reads a
+    // slot of. The guard states that invariant: a key the document lost
+    // reports nothing, rather than failing on a message that is not there.
+    expect(() => {
+      reportUnresolvedRawSchemaRefs(runner.program, doc, new Map<Model, string>([[model, "Gone"]]));
+    }).not.toThrow();
+    expect(diagnosticsWith(runner.program.diagnostics, CODE)).toHaveLength(0);
   });
 });

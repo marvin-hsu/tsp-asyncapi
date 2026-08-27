@@ -164,8 +164,6 @@ export interface MessageNode {
     readonly headers: MessageHeadersNode;
     readonly key: string;
     readonly payload: MessagePayloadNode;
-    readonly rawHeadersRef?: string;
-    readonly rawPayloadRef?: string;
     readonly tags: readonly TagNode[];
     readonly target: Model;
     readonly title?: string;

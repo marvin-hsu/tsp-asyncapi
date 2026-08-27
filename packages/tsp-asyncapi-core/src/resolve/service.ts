@@ -415,19 +415,6 @@ export interface MessageNode {
   readonly externalDocs?: ExternalDocsNode;
   /** The protocol bindings of the message, in source order. */
   readonly bindings: readonly BindingNode[];
-  /**
-   * The local reference the raw payload schema points at.
-   *
-   * Resolve extracts it from the raw schema. The lower stage then only
-   * asks whether the reference resolves in the finished document. It never
-   * inspects a built slot to find the reference again.
-   *
-   * Two named fields are used instead of a list of slot and reference pairs.
-   * There are exactly two slots, and a named field states which one.
-   */
-  readonly rawPayloadRef?: string;
-  /** The local reference the raw headers schema points at. */
-  readonly rawHeadersRef?: string;
   /** The `x-` extensions of the object, in source order. Empty means none. */
   readonly extensions: JsonObject;
 }
