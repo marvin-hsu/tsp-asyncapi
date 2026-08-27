@@ -71,13 +71,14 @@ import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalar
  * can resolve to one Avro name, and a name alone cannot tell that apart from a
  * second visit to the same declaration.
  *
- * `refused` is set once and never cleared: the walk keeps going after a
- * refusal so the author sees every problem in one compile, and the caller
- * drops the record at the end.
+ * `diagnostics` holds every refusal the walk built, and it is also what says
+ * the walk refused: a refusal collects a reason, and the walk keeps going
+ * after one so the author sees every problem in one compile. A flag beside
+ * this list would be a second answer to one question.
  *
- * `diagnostics` holds every refusal the walk built. Nothing here reports one.
- * The caller decides where they go, which is what lets an emitter in another
- * package read a reason and say it under its own name.
+ * Nothing here reports a diagnostic. The caller decides where they go, which
+ * is what lets an emitter in another package read a reason and say it under
+ * its own name.
  */
 type AvroDeclaration = Model | Enum | Scalar;
 
@@ -86,7 +87,6 @@ interface WalkContext {
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
   readonly diagnostics: Diagnostic[];
-  refused: boolean;
 }
 
 /**
@@ -154,13 +154,12 @@ export function buildAvroRecordWithDiagnostics(
     scalars: createScalarTable(program),
     defined: new Map(),
     diagnostics,
-    refused: false,
   };
 
   const schema = namedModelFor(context, model, model);
 
   if (
-    context.refused ||
+    diagnostics.length > 0 ||
     schema === undefined ||
     typeof schema === "string" ||
     schema.type !== "record"
@@ -204,24 +203,16 @@ export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): read
 }
 
 /**
- * Records that the walk refused something.
+ * Collects one refusal, which drops the record being built.
  *
- * The caller collects why, calls this, and returns undefined. The record it is
- * building is dropped at the end.
- */
-function markRefused(context: WalkContext): void {
-  context.refused = true;
-}
-
-/**
- * Collects one refusal and drops the record being built.
+ * The caller returns undefined after this. The reason is what says the walk
+ * refused, so collecting it is the whole of the bookkeeping.
  *
  * @param context - The walk
  * @param diagnostic - Why the walk refused
  */
 function refuse(context: WalkContext, diagnostic: Diagnostic): void {
   context.diagnostics.push(diagnostic);
-  markRefused(context);
 }
 
 /**
@@ -447,12 +438,9 @@ function withLogicalType(
     return schema;
   }
 
-  const written = applyLogicalType(context.diagnostics, schema, annotation, target);
-  if (written === undefined) {
-    markRefused(context);
-    return undefined;
-  }
-  return written;
+  // `applyLogicalType` collects its own reason into the same list, so a
+  // refusal here is already recorded.
+  return applyLogicalType(context.diagnostics, schema, annotation, target);
 }
 
 /**
