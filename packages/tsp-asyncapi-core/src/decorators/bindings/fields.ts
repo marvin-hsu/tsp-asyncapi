@@ -488,6 +488,58 @@ export function reportMissingField(
 }
 
 /**
+ * What one read of a nested binding object produced.
+ *
+ * A nested object fails in two ways, and the two cost different amounts. A
+ * field outside what the specification allows is reported as
+ * `invalid-binding-field`, which is a warning, and it takes only itself away.
+ * A required field the author left out is reported as
+ * `missing-binding-field`, which is an error, and the whole binding goes with
+ * it.
+ *
+ * The reader cannot make that call on its own. Only the decorator knows what
+ * the binding is without this object. So the reader names the outcome and the
+ * decorator acts on it.
+ *
+ * @internal
+ */
+export type NestedRead<T> =
+  | { readonly outcome: "read"; readonly value: T }
+  | { readonly outcome: "dropped" }
+  | { readonly outcome: "incomplete" };
+
+/**
+ * Reports every required field a nested binding object does not carry.
+ *
+ * The diagnostic names the path rather than the field alone. A queue of an
+ * SQS channel reports `deadLetterQueue.name`, so the author reads which of
+ * the two queues is short of a name.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the object belongs to
+ * @param path - The path of the object, such as `deadLetterQueue`
+ * @param value - The object the author wrote
+ * @param required - The field names the specification requires
+ * @param target - Where the problems are reported
+ * @returns Whether the object carries every required field
+ * @internal
+ */
+export function requiredFields(
+  context: DecoratorContext,
+  protocol: string,
+  path: string,
+  value: Record<string, unknown>,
+  required: readonly string[],
+  target: DiagnosticTarget,
+): boolean {
+  const missing = missingFields(value, required);
+  for (const field of missing) {
+    reportMissingField(context, protocol, `${path}.${field}`, target);
+  }
+  return missing.length === 0;
+}
+
+/**
  * Names the fields a nested binding object requires but does not carry.
  *
  * Several bindings nest an object that has required fields of its own. The

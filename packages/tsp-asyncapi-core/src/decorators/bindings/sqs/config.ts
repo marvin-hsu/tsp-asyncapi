@@ -22,10 +22,10 @@ import type {
 } from "../../../types/index.js";
 import {
   enumeratedField,
-  missingFields,
+  NestedRead,
   nonNegativeField,
   objectField,
-  reportMissingField,
+  requiredFields,
 } from "../fields.js";
 
 /**
@@ -57,9 +57,10 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  *
  * Every field rule SQS states about a queue is applied here. A field that
  * fails a rule is reported and dropped on its own, and the rest of the queue
- * survives. A required field that is absent is different: the queue cannot be
- * emitted at all, so the reader returns nothing and the caller decides what
- * that costs.
+ * survives. A required field that is absent is different. The queue cannot be
+ * emitted at all, and the diagnostic for it is an error. So the reader names
+ * that outcome apart from the others, and the caller drops the whole binding
+ * on it.
  *
  * `redrivePolicy`, `policy` and `tags` pass through as written. SQS states no
  * shape this emitter can check for them.
@@ -69,8 +70,8 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * @param value - The queue as the author wrote it, still marshalled
  * @param required - The fields this level requires
  * @param target - Where a problem is reported
- * @returns The queue, or `undefined` when it was not an object or is missing
- * a required field
+ * @returns The queue, `dropped` when it was not an object, or `incomplete`
+ * when a required field is absent
  * @internal
  */
 export function readQueue(
@@ -79,17 +80,15 @@ export function readQueue(
   value: unknown,
   required: readonly string[],
   target: DiagnosticTarget,
-): SqsQueueObject | undefined {
+): NestedRead<SqsQueueObject> {
   const plain = objectField(context, SQS_BINDING_PROTOCOL, field, value, target);
-  if (plain === undefined) return undefined;
+  if (plain === undefined) return { outcome: "dropped" };
 
-  const missing = missingFields(plain, required);
-  for (const name of missing) {
-    reportMissingField(context, SQS_BINDING_PROTOCOL, `${field}.${name}`, target);
+  if (!requiredFields(context, SQS_BINDING_PROTOCOL, field, plain, required, target)) {
+    return { outcome: "incomplete" };
   }
-  if (missing.length > 0) return undefined;
 
-  return {
+  const queue: SqsQueueObject = {
     name: (plain.name as string).trim(),
     ...present("fifoQueue", plain.fifoQueue as boolean | undefined),
     ...present(
@@ -128,6 +127,7 @@ export function readQueue(
     ...present("policy", objectOrUndefined(context, plain.policy)),
     ...present("tags", objectOrUndefined(context, plain.tags)),
   };
+  return { outcome: "read", value: queue };
 }
 
 /**

@@ -121,7 +121,7 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       });
     });
 
-    it("drops an incomplete dead letter queue and keeps the rest", async () => {
+    it("drops the whole binding when the dead letter queue is incomplete", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
@@ -135,13 +135,14 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // The dead letter queue is optional, so only it goes. The channel still
-      // names the queue it is.
+      // The field is optional, but the author wrote it. A required field of
+      // it is absent, which is an error, so the whole binding goes. Emitting
+      // the rest would hand the author a document beside an error that says
+      // the binding was dropped.
       const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("deadLetterQueue.name");
-      expect(channelsOf(doc).orders.bindings).toEqual({
-        sqs: { queue: { name: "orders", fifoQueue: false }, bindingVersion: "0.2.0" },
-      });
+      expect(reported.severity).toBe("error");
+      expect(channelsOf(doc).orders.bindings).toBeUndefined();
     });
 
     it("reports a deduplication scope SQS does not define, and keeps the queue", async () => {
@@ -273,13 +274,13 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
 
-    it("drops the whole binding when every entry was rejected", async () => {
+    it("drops the whole binding when the queue list is empty", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
         @channel("orders")
         interface OrderChannel {
-          @sqsOperation(#{ queues: #[#{ fifoQueue: false }] })
+          @sqsOperation(#{ queues: #[] })
           @send
           op publish(event: OrderCreated): void;
         }
@@ -288,12 +289,11 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       // An emitted `queues: []` would fail validation, so the author is told
       // the field is missing rather than left with an invalid document.
       const missing = diagnosticsWith(diagnostics, "missing-binding-field");
-      expect(missing.map((d) => d.message).join(" ")).toContain("queues[0].name");
       expect(missing.map((d) => d.message).join(" ")).toContain("the field 'queues'");
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
 
-    it("keeps the entries that survived when one was rejected", async () => {
+    it("drops the whole binding when one queue entry is incomplete", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
 
@@ -307,12 +307,12 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // One bad entry is no reason to lose an entry the author wrote
-      // correctly, and the emitted list is still valid.
-      findDiagnostic(diagnostics, "missing-binding-field");
-      expect(operationsOf(doc).publish.bindings).toEqual({
-        sqs: { queues: [{ name: "orders" }], bindingVersion: "0.2.0" },
-      });
+      // A queue the author declared and the emitter dropped is worse than no
+      // binding. The author has to fix the source either way, because the
+      // diagnostic is an error.
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
+      expect(reported.message).toContain("queues[0].name");
+      expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
   });
 });

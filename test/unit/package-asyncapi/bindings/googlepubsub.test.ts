@@ -183,7 +183,7 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       });
     });
 
-    it("reports a schema written without a name, and keeps the rest", async () => {
+    it("drops the whole binding when the schema is written without a name", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         @service(#{ title: "Orders" })
         @server("prod", #{ host: "pubsub.googleapis.com", protocol: "googlepubsub" })
@@ -201,13 +201,12 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      // The object itself is optional, so only it goes. The binding still
-      // says how the messages are ordered.
+      // The object itself is optional, but the author wrote it. Its required
+      // field is absent, which is an error, so the whole binding goes.
       const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("schema.name");
-      expect(doc.components?.messages?.OrderCreated.bindings).toEqual({
-        googlepubsub: { orderingKey: "customer-id", bindingVersion: "0.2.0" },
-      });
+      expect(reported.severity).toBe("error");
+      expect(doc.components?.messages?.OrderCreated.bindings).toBeUndefined();
     });
 
     it("emits the binding version on its own when no field was written", async () => {

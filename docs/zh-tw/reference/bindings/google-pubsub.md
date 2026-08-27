@@ -71,7 +71,7 @@ extern dec googlePubSubMessage(
 
 套用在同時帶有 `@message` 的 model 上。
 
-`schema` 是選填，但寫了 `schema` 卻沒寫 `name` 等於沒指名任何 schema，所以會被回報並丟棄。
+`schema` 是選填，但寫了 `schema` 卻沒寫 `name` 等於沒指名任何 schema。這時 binding 會透過 `missing-binding-field` 回報並整個丟棄。
 
 ```typespec
 @message

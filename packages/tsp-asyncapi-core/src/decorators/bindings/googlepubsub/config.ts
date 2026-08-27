@@ -18,10 +18,10 @@ import type {
   GooglePubSubStoragePolicyObject,
 } from "../../../types/index.js";
 import {
-  missingFields,
+  NestedRead,
   nonEmptyObject,
   objectField,
-  reportMissingField,
+  requiredFields,
   stringListField,
 } from "../fields.js";
 
@@ -66,29 +66,40 @@ function pubSubObject(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The schema settings, or `undefined` when the object was absent or
- * incomplete
+ * @returns The schema settings, `dropped` when the object was not an object,
+ * or `incomplete` when a required field is absent
  * @internal
  */
 export function schemaSettings(
   context: DecoratorContext,
   value: unknown,
   target: DiagnosticTarget,
-): GooglePubSubSchemaSettingsObject | undefined {
+): NestedRead<GooglePubSubSchemaSettingsObject> {
   const plain = pubSubObject(context, "schemaSettings", value, target);
-  if (plain === undefined) return undefined;
+  if (plain === undefined) return { outcome: "dropped" };
 
-  const missing = missingFields(plain, REQUIRED_SCHEMA_SETTINGS);
-  for (const field of missing) {
-    reportMissingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, `schemaSettings.${field}`, target);
+  const path = "schemaSettings";
+  if (
+    !requiredFields(
+      context,
+      GOOGLE_PUB_SUB_BINDING_PROTOCOL,
+      path,
+      plain,
+      REQUIRED_SCHEMA_SETTINGS,
+      target,
+    )
+  ) {
+    return { outcome: "incomplete" };
   }
-  if (missing.length > 0) return undefined;
 
   return {
-    encoding: (plain.encoding as string).trim(),
-    name: (plain.name as string).trim(),
-    ...present("firstRevisionId", trimmed(plain.firstRevisionId as string | undefined)),
-    ...present("lastRevisionId", trimmed(plain.lastRevisionId as string | undefined)),
+    outcome: "read",
+    value: {
+      encoding: (plain.encoding as string).trim(),
+      name: (plain.name as string).trim(),
+      ...present("firstRevisionId", trimmed(plain.firstRevisionId as string | undefined)),
+      ...present("lastRevisionId", trimmed(plain.lastRevisionId as string | undefined)),
+    },
   };
 }
 
@@ -155,20 +166,22 @@ export function openMap(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The schema, or `undefined` when it was absent or has no name
+ * @returns The schema, `dropped` when it was absent or not an object, or
+ * `incomplete` when it has no name
  * @internal
  */
 export function messageSchema(
   context: DecoratorContext,
   value: unknown,
   target: DiagnosticTarget,
-): GooglePubSubSchemaObject | undefined {
+): NestedRead<GooglePubSubSchemaObject> {
   const plain = pubSubObject(context, "schema", value, target);
-  if (plain === undefined) return undefined;
+  if (plain === undefined) return { outcome: "dropped" };
 
-  if (missingFields(plain, ["name"]).length > 0) {
-    reportMissingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, "schema.name", target);
-    return undefined;
+  if (
+    !requiredFields(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, "schema", plain, ["name"], target)
+  ) {
+    return { outcome: "incomplete" };
   }
-  return { name: (plain.name as string).trim() };
+  return { outcome: "read", value: { name: (plain.name as string).trim() } };
 }

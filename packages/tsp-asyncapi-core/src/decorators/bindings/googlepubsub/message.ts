@@ -28,7 +28,8 @@ export interface GooglePubSubMessageBindingConfig {
  * reported once the document is built.
  *
  * No field of this binding is required. `schema` is optional, but a `schema`
- * written without a `name` names no schema, so it is reported and dropped.
+ * written without a `name` names no schema. That is reported as an error, and
+ * the whole binding goes with it.
  *
  * @param context - The decorator context
  * @param target - The message model
@@ -54,10 +55,16 @@ export function $googlePubSubMessage(
   config: GooglePubSubMessageBindingConfig,
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
+
+  const schema = messageSchema(context, config.schema, configTarget);
+  // The schema has no name. That is an error, and the error says the binding
+  // was dropped, so the binding is dropped.
+  if (schema.outcome === "incomplete") return;
+
   const state: GooglePubSubMessageBindingState = {
     ...present("attributes", openMap(context, "attributes", config.attributes, configTarget)),
     ...present("orderingKey", trimmed(config.orderingKey)),
-    ...present("schema", messageSchema(context, config.schema, configTarget)),
+    ...present("schema", schema.outcome === "read" ? schema.value : undefined),
   };
 
   claimBinding(context, {

@@ -30,8 +30,8 @@ export interface SqsChannelBindingConfig {
  * would reject the emitted document.
  *
  * `deadLetterQueue` is optional and has the same shape. A dead letter queue
- * that is written but incomplete is reported and dropped, and the rest of the
- * binding is kept.
+ * the author wrote without a required field of its own is reported the same
+ * way, and the whole binding goes with it.
  *
  * @param context - The decorator context
  * @param target - The channel interface or namespace
@@ -63,21 +63,27 @@ export function $sqsChannel(
   const queue = readQueue(context, "queue", config.queue, CHANNEL_QUEUE_REQUIRED, configTarget);
   // `readQueue` reported whatever was wrong. The binding cannot be written
   // without the queue, so it goes whole.
-  if (queue === undefined) return;
+  if (queue.outcome !== "read") return;
+
+  const deadLetterQueue =
+    config.deadLetterQueue === undefined
+      ? undefined
+      : readQueue(
+          context,
+          "deadLetterQueue",
+          config.deadLetterQueue,
+          CHANNEL_QUEUE_REQUIRED,
+          configTarget,
+        );
+  // A required field of the dead letter queue is absent. That is an error,
+  // and the error says the binding was dropped, so the binding is dropped.
+  if (deadLetterQueue?.outcome === "incomplete") return;
 
   const state: SqsChannelBindingState = {
-    queue,
+    queue: queue.value,
     ...present(
       "deadLetterQueue",
-      config.deadLetterQueue === undefined
-        ? undefined
-        : readQueue(
-            context,
-            "deadLetterQueue",
-            config.deadLetterQueue,
-            CHANNEL_QUEUE_REQUIRED,
-            configTarget,
-          ),
+      deadLetterQueue?.outcome === "read" ? deadLetterQueue.value : undefined,
     ),
   };
 

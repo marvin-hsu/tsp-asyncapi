@@ -23,9 +23,9 @@ export interface SqsOperationBindingConfig {
  * Apply it to an operation that carries `@send` or `@receive`.
  *
  * `queues` is required, and every entry requires a `name`. An entry without
- * one is reported and dropped. A list left with no entry is reported as a
- * missing `queues`, because an empty list names no queue and AsyncAPI would
- * reject the emitted document.
+ * one is reported, and the whole binding goes with it. An empty list is
+ * reported as a missing `queues`, because an empty list names no queue and
+ * AsyncAPI would reject the emitted document.
  *
  * A queue here requires only a name. The channel binding requires a
  * `fifoQueue` as well, which is the difference AsyncAPI states between the
@@ -61,11 +61,16 @@ export function $sqsOperation(
     return;
   }
 
-  const queues = written
-    .map((entry, index) =>
-      readQueue(context, `queues[${String(index)}]`, entry, OPERATION_QUEUE_REQUIRED, configTarget),
-    )
-    .filter((queue) => queue !== undefined);
+  const read = written.map((entry, index) =>
+    readQueue(context, `queues[${String(index)}]`, entry, OPERATION_QUEUE_REQUIRED, configTarget),
+  );
+
+  // One entry short of a required field is an error, and the error says the
+  // binding was dropped. A list with that entry left out would describe fewer
+  // queues than the author declared, which is worse than no binding at all.
+  if (read.some((queue) => queue.outcome === "incomplete")) return;
+
+  const queues = read.filter((queue) => queue.outcome === "read").map((queue) => queue.value);
 
   // Every entry was rejected, or the author wrote an empty list. Either way
   // the emitted binding would carry no queue, which AsyncAPI refuses.

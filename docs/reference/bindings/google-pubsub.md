@@ -71,7 +71,7 @@ extern dec googlePubSubMessage(
 
 Apply it to a model that also carries `@message`.
 
-`schema` is optional, but a `schema` written without a `name` names no schema, so it is reported and dropped.
+`schema` is optional, but a `schema` written without a `name` names no schema. It is reported through `missing-binding-field`, and the binding is dropped whole.
 
 ```typespec
 @message
