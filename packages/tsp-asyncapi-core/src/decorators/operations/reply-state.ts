@@ -39,8 +39,9 @@ interface ReplyChannelRecord {
  * The diagnostic target is kept for the same reason. AsyncAPI only allows a
  * reply address on a channel whose address is `null`, and that check needs
  * the built channel set.
+ * @internal
  */
-interface ReplyAddressRecord {
+export interface ReplyAddressRecord {
   /** The recorded state, which is what reaches the document. */
   state: ReplyAddressState;
   /** Where to report a problem about this application. */

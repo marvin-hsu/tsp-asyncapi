@@ -11,7 +11,7 @@
 
 import { Model, Operation, Program, getDoc, getSummary } from "@typespec/compiler";
 import { ChannelTarget } from "../decorators/channels/state.js";
-import { listOperationActions } from "../decorators/operations/state.js";
+import { OperationActionState, listOperationActions } from "../decorators/operations/state.js";
 import { listReplyDeclarations } from "../decorators/operations/reply-state.js";
 import { getOperationAction } from "../decorators/operations/action.js";
 import { reportDiagnostic } from "../lib.js";
@@ -32,7 +32,7 @@ import { OperationNode } from "./service.js";
 /** One operation, paired with the channel it reached, if any. */
 interface PlacedOperation {
   target: Operation;
-  record: ReturnType<typeof listOperationActions>[number]["record"];
+  record: OperationActionState;
   channel: EmittedChannel | undefined;
 }
 

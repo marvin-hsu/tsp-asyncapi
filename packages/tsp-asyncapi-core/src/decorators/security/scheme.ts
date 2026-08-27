@@ -12,7 +12,7 @@ import {
 import { isAbsoluteUrl } from "../absolute-url.js";
 import { sourcePositionOf } from "../../source-order.js";
 import { settleNameClash } from "../name-clash.js";
-import { HTTP_BEARER_SCHEME, SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
+import { HTTP_BEARER_SCHEME, COMPONENTS_KEY_PATTERN } from "../../constants.js";
 
 export type { AsyncAPISecuritySchemeState } from "./scheme-state.js";
 
@@ -486,7 +486,7 @@ export function $securityScheme(
   // Report on the scheme argument. Every field problem points here.
   const schemeTarget = context.getArgumentTarget(1) ?? target;
 
-  if (!SECURITY_SCHEME_NAME_PATTERN.test(name)) {
+  if (!COMPONENTS_KEY_PATTERN.test(name)) {
     // The name is written by hand, so it is not rewritten to a legal key.
     // Rewriting it would silently change the key the author asked for.
     reportDiagnostic(context.program, {
