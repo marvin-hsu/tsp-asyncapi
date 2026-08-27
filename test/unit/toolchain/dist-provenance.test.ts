@@ -11,9 +11,9 @@ import { describe, expect, it } from "vitest";
  * leaves its output behind. That stale file is published, and a project that
  * imports it gets code no one maintains.
  *
- * The build now removes `dist` before it runs, so a stale file cannot
- * survive. This case is what proves the removal happens, and it reports the
- * offenders by name when it does not.
+ * The packaging path removes `dist` before it rebuilds, so no stale file
+ * reaches a tarball. These cases prove the removal happens on that path, and
+ * they report the offenders by name when the working output holds one.
  */
 
 /** The workspace root, as a path from this file. */
@@ -82,9 +82,10 @@ describe("Unit: the provenance of the build output", () => {
       await readFile(new URL(`packages/${name}/package.json`, ROOT), "utf8"),
     ) as Manifest;
 
-    // `prebuild` runs before `build`, whichever command starts the build. So
-    // the removal covers a root build, a filtered build and a release job
-    // alike.
+    // `prebuild` runs before `build`, whichever command starts the build of
+    // this package. So the removal covers `pnpm -r build` and a filtered
+    // build alike. The root drives its own build with one `tsc -b`, and
+    // removes the output of all three in `check:package`.
     expect(manifest.scripts.prebuild).toBe("pnpm run clean");
   });
 
@@ -137,9 +138,23 @@ describe("Unit: the provenance of the build output", () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
 
     expect(manifest.scripts.clean).toContain("pnpm run -r clean");
-    // The root build compiles every package in one `tsc -b`, and reads no per
-    // package script. So the root removes the output of all three itself.
-    expect(manifest.scripts.prebuild).toBe("pnpm run clean");
+  });
+
+  /**
+   * The removal belongs to the packaging path alone.
+   *
+   * Each package writes `temp/tsconfig.tsbuildinfo`, and `clean` removes
+   * `temp` with `dist`. A clean before every root build erases that state, so
+   * `pnpm test` and `pnpm check` compile the workspace from nothing every
+   * time. What the removal protects is the tarball, and `check:package` is
+   * the only path that writes one.
+   */
+  it("removes the whole workspace output before it packs", async () => {
+    const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
+    const steps = manifest.scripts["check:package"].split("&&").map((step) => step.trim());
+
+    expect(steps[0]).toBe("pnpm run clean");
+    expect(manifest.scripts.prebuild, "every root build starts from nothing").toBeUndefined();
   });
 });
 
