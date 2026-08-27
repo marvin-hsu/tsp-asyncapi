@@ -6,10 +6,6 @@ outline: 2
 
 本頁列出 emitter 會回報的所有警告與錯誤，附原因與修法。診斷代碼在 compiler 輸出中顯示為 `tsp-asyncapi/<code>`。
 
-所有診斷共用一條設計原則：**emitter 絕不靜默丟棄或靜默改寫你的意圖。** 無法表達的內容，一律以警告省略，或回報錯誤。
-
-診斷不是 lint 規則。emitter 只要發現問題就回報診斷，而診斷可以是錯誤。[lint 規則](./linter)在語意分析階段執行，要你自己開啟，而且一律是警告。
-
 ## 錯誤
 
 ### `duplicate-schema-key`

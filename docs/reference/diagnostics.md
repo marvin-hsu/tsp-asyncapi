@@ -6,10 +6,6 @@ outline: 2
 
 Every warning and error the emitter can report, with what causes it and how to fix it. Diagnostic codes appear in compiler output as `tsp-asyncapi/<code>`.
 
-A common design principle across all of them: **the emitter never silently drops or silently rewrites your intent.** Anything it cannot represent is either omitted with a warning, or reported as an error.
-
-A diagnostic is not a lint rule. The emitter reports a diagnostic whenever it finds the problem, and a diagnostic can be an error. A [lint rule](./linter) runs during semantic analysis, you turn it on yourself, and it is always a warning.
-
 ## Errors
 
 ### `duplicate-schema-key`

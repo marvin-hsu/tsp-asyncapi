@@ -222,9 +222,3 @@ namespace Orders;
 ```
 
 **Fix:** apply `@useSecurity` to a namespace that declares a server, or remove the scheme.
-
-## What the linter does not do
-
-The linter does not repeat the diagnostics. The emitter reports 103 of them, and 49 of those wait until it runs.
-
-So the rules above cover mistakes that no diagnostic covers.

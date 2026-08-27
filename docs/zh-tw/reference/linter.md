@@ -222,9 +222,3 @@ namespace Orders;
 ```
 
 **修法：** 在有宣告 server 的 namespace 上加 `@useSecurity`，或移除這個 scheme。
-
-## linter 不做的事
-
-linter 不重複既有的診斷。emitter 會回報 103 個診斷，其中 49 個要等到它執行才回報。
-
-所以上面這些規則，涵蓋的都是沒有任何診斷涵蓋的錯誤。
