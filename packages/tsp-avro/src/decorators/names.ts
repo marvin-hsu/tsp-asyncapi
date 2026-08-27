@@ -22,6 +22,46 @@ export function isAvroName(name: string): boolean {
 }
 
 /**
+ * The names Avro keeps for a type of its own.
+ *
+ * These are the eight primitive names and the six complex ones. A schema
+ * spells a type by name, so a record named `int` is written into a file that
+ * reads back as the primitive.
+ */
+const AVRO_RESERVED_NAMES: readonly string[] = [
+  "null",
+  "boolean",
+  "int",
+  "long",
+  "float",
+  "double",
+  "bytes",
+  "string",
+  "record",
+  "enum",
+  "array",
+  "map",
+  "union",
+  "fixed",
+];
+
+/**
+ * The names a named type may not take, as a message lists them.
+ *
+ * @internal
+ */
+export const AVRO_RESERVED_NAME_LIST = AVRO_RESERVED_NAMES.join(", ");
+
+/**
+ * Tells whether Avro keeps the name for a type of its own.
+ *
+ * @internal
+ */
+export function isAvroReservedName(name: string): boolean {
+  return AVRO_RESERVED_NAMES.includes(name);
+}
+
+/**
  * Tells whether the text is a legal Avro namespace.
  *
  * The empty namespace is written by leaving the field out, not by an empty

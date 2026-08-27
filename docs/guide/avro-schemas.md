@@ -282,7 +282,7 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 | Code                              | When                                                                                            |
 | --------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                                                        |
-| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                                              |
+| `tsp-avro/invalid-name`           | A name breaks the Avro name rules, or Avro keeps it for a type of its own.                      |
 | `tsp-avro/unsupported-type`       | A type has no Avro form.                                                                        |
 | `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                                               |
 | `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.                            |
@@ -306,3 +306,4 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - A scalar that carries `@Avro.fixed` and does not extend `bytes`. An Avro fixed type holds bytes.
 - A union that names one type twice, such as `string[] | int32[]`.
 - Two declarations that resolve to one Avro full name.
+- A record, an enum or a fixed type named after an Avro type: `null`, `boolean`, `int`, `long`, `float`, `double`, `bytes`, `string`, `record`, `enum`, `array`, `map`, `union` or `fixed`.

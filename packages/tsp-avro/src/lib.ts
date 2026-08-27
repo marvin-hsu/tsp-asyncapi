@@ -60,6 +60,7 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default: paramMessage`"${"name"}" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
         namespace: paramMessage`"${"name"}" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
+        reserved: paramMessage`Avro keeps the name "${"name"}" for a type of its own. A record, an enum and a fixed type take a name that is none of: ${"reserved"}.`,
         alias: paramMessage`"${"name"}" is not a legal Avro alias. An alias of a named type is a full name: one or more legal Avro names, joined by dots.`,
       },
     },

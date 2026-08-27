@@ -273,6 +273,20 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
+  it("refuses a named type that takes a name Avro keeps", async () => {
+    // The name passes the Avro grammar, and it names a primitive. A reader
+    // that met this record would read the primitive instead.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model int { value: string; }
+      }
+      `,
+      `invalid-name: Avro keeps the name "int" for a type of its own. A record, an enum and a fixed type take a name that is none of: null, boolean, int, long, float, double, bytes, string, record, enum, array, map, union, fixed.`,
+    );
+  });
+
   it("refuses a fixed scalar that does not extend bytes", async () => {
     // An Avro fixed type holds bytes. A fixed string was written out as a
     // fixed type all the same, and what `extends string` said was lost.

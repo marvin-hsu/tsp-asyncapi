@@ -45,7 +45,7 @@ import { getAvroAliases } from "../decorators/aliases.js";
 import { getAvroEnumDefault } from "../decorators/enum-default.js";
 import { getAvroFixedSize } from "../decorators/fixed.js";
 import { getAvroLogicalType, type AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
-import { isAvroName } from "../decorators/names.js";
+import { AVRO_RESERVED_NAME_LIST, isAvroName, isAvroReservedName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { getAvroOrder } from "../decorators/order.js";
 import { createDiagnostic } from "../lib.js";
@@ -688,6 +688,7 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
       context,
       createDiagnostic({
         code: "invalid-name",
+        messageId: "default",
         format: { name: property.name },
         target: property,
       }),
@@ -952,6 +953,7 @@ function enumFor(
         context,
         createDiagnostic({
           code: "invalid-name",
+          messageId: "default",
           format: { name: member.name },
           target: member,
         }),
@@ -1040,7 +1042,26 @@ function fullNameOf(
   target: DiagnosticTarget,
 ): string | undefined {
   if (!isAvroName(name)) {
-    refuse(context, createDiagnostic({ code: "invalid-name", format: { name }, target }));
+    refuse(
+      context,
+      createDiagnostic({ code: "invalid-name", messageId: "default", format: { name }, target }),
+    );
+    return undefined;
+  }
+
+  // Avro spells a type by name, so a record named `int` is written into a
+  // schema that reads back as the primitive. The name is legal by the grammar,
+  // and it names something else.
+  if (isAvroReservedName(name)) {
+    refuse(
+      context,
+      createDiagnostic({
+        code: "invalid-name",
+        messageId: "reserved",
+        format: { name, reserved: AVRO_RESERVED_NAME_LIST },
+        target,
+      }),
+    );
     return undefined;
   }
 
