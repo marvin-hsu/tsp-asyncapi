@@ -25,7 +25,6 @@ import {
   ReferenceObject,
   SchemaObject,
 } from "../types/index.js";
-import { lowerBindings } from "./bindings.js";
 import type { DocumentPromotions } from "./components/survey.js";
 import { sharedEach, sharedOptional } from "./components/survey.js";
 import { componentRef, refFor } from "./json-pointer.js";
@@ -104,7 +103,11 @@ function lowerMessage(
     ...present("correlationId", lowerCorrelationId(promoted, node.correlationId)),
     ...present(
       "bindings",
-      sharedOptional(promoted.messageBindings, "messageBindings", lowerBindings(node.bindings)),
+      sharedOptional(
+        promoted.messageBindings,
+        "messageBindings",
+        promoted.renderedBindings.render(node.bindings),
+      ),
     ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present(

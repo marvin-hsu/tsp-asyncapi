@@ -13,7 +13,6 @@
 
 import type { ServerNode, ServerVariableNode } from "tsp-asyncapi-core/unstable";
 import { ReferenceObject, ServerObject, ServerVariableObject } from "../types/index.js";
-import { lowerBindings } from "./bindings.js";
 import { securitySchemeRef } from "./json-pointer.js";
 import { lowerServerVariable } from "./servers/variables.js";
 import type { DocumentPromotions } from "./components/survey.js";
@@ -69,7 +68,7 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   const bindings = sharedOptional(
     promoted.serverBindings,
     "serverBindings",
-    lowerBindings(node.bindings),
+    promoted.renderedBindings.render(node.bindings),
   );
   if (bindings !== undefined) server.bindings = bindings;
   return server;

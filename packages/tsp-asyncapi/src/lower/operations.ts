@@ -14,7 +14,6 @@ import type { MessageRefNode, OperationNode, OperationReplyNode } from "tsp-asyn
 import { present, text } from "tsp-asyncapi-core";
 import { channelMessageRef, channelRef, securitySchemeRef } from "./json-pointer.js";
 import { OperationObject, OperationReplyObject, ReferenceObject } from "../types/index.js";
-import { lowerBindings } from "./bindings.js";
 import type { DocumentPromotions } from "./components/survey.js";
 import { sharedEach, sharedOptional } from "./components/survey.js";
 
@@ -57,7 +56,11 @@ function lowerOperation(node: OperationNode, promoted: DocumentPromotions): Oper
     ),
     ...present(
       "bindings",
-      sharedOptional(promoted.operationBindings, "operationBindings", lowerBindings(node.bindings)),
+      sharedOptional(
+        promoted.operationBindings,
+        "operationBindings",
+        promoted.renderedBindings.render(node.bindings),
+      ),
     ),
     ...present("messages", lowerMessageRefs(node.messages)),
     ...present("reply", node.reply ? lowerReply(node.reply) : undefined),

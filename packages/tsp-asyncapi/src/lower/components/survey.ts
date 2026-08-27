@@ -17,7 +17,7 @@
  */
 
 import type { AsyncAPIService, BindingNode } from "tsp-asyncapi-core/unstable";
-import { lowerBindings } from "../bindings.js";
+import { BindingsRenderer } from "../bindings.js";
 import { lowerParameter } from "../channels/parameters.js";
 import { lowerServerVariable } from "../servers/variables.js";
 import type {
@@ -53,6 +53,11 @@ function keyFromSite(site: string): string {
 /** Every promotion one document drives, each survey already closed. */
 export interface DocumentPromotions {
   readonly rawSchemas: RawSchemaPromoter;
+  /**
+   * The renderer the survey used, carried on so each site writes the object
+   * the survey already rendered for it.
+   */
+  readonly renderedBindings: BindingsRenderer;
   readonly correlationIds: Promoter<CorrelationIdObject>;
   readonly externalDocs: Promoter<ExternalDocumentationObject>;
   readonly tags: Promoter<TagObject>;
@@ -108,6 +113,7 @@ export function surveyDocument(
   const tags = byName<TagObject>();
   const parameters = byKey<ParameterObject>();
   const serverVariables = byKey<ServerVariableObject>();
+  const renderedBindings = new BindingsRenderer();
   const bindings = {
     serverBindings: anonymous<BindingsObject>(),
     channelBindings: anonymous<BindingsObject>(),
@@ -122,9 +128,9 @@ export function surveyDocument(
   ): void => {
     // The identity is taken from the rendered object, because
     // `bindingVersion` is appended there rather than recorded by the
-    // decorator. Rendering is a pure function of the nodes, so surveying
-    // costs one extra render per site and changes nothing.
-    const rendered = lowerBindings(nodes);
+    // decorator. The renderer is carried on to the sites, so each node list
+    // is rendered once for the survey and the site that writes it.
+    const rendered = renderedBindings.render(nodes);
     if (rendered === undefined) return;
     // The reason one Bindings Object reaches several sites is that one
     // declaration carries it, so that declaration names the component. The
@@ -179,6 +185,7 @@ export function surveyDocument(
 
   return {
     rawSchemas: RawSchemaPromoter.survey(service, schemas),
+    renderedBindings,
     correlationIds,
     externalDocs,
     tags,

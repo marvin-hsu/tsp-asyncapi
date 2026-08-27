@@ -13,7 +13,6 @@ import type { ChannelNode, ChannelParameterNode } from "tsp-asyncapi-core/unstab
 import { present, text } from "tsp-asyncapi-core";
 import { componentsMessageRef, serverRef } from "./json-pointer.js";
 import { ChannelObject, ParameterObject, ReferenceObject } from "../types/index.js";
-import { lowerBindings } from "./bindings.js";
 import { lowerParameter } from "./channels/parameters.js";
 import type { DocumentPromotions } from "./components/survey.js";
 import { shared, sharedEach, sharedOptional } from "./components/survey.js";
@@ -69,7 +68,11 @@ function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelO
     ...present("messages", lowerMessages(node)),
     ...present(
       "bindings",
-      sharedOptional(promoted.channelBindings, "channelBindings", lowerBindings(node.bindings)),
+      sharedOptional(
+        promoted.channelBindings,
+        "channelBindings",
+        promoted.renderedBindings.render(node.bindings),
+      ),
     ),
     ...present("tags", sharedEach(promoted.tags, "tags", node.tags)),
     ...present(
