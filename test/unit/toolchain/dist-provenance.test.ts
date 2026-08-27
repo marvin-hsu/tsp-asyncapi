@@ -88,7 +88,7 @@ describe("Unit: the provenance of the build output", () => {
     expect(manifest.scripts.prebuild).toBe("pnpm run clean");
   });
 
-  it("regenerates the API Extractor output when it rebuilds before it packs", async () => {
+  it("rebuilds and regenerates the API Extractor output before it packs", async () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
     const steps = manifest.scripts["check:package"].split("&&").map((step) => step.trim());
 
@@ -98,8 +98,15 @@ describe("Unit: the provenance of the build output", () => {
     expect(pack, "the root check:package packs nothing").toBeGreaterThanOrEqual(0);
 
     const before = steps.slice(0, pack);
+
+    // The pack has to follow a build of its own. Without one the tarballs
+    // hold whatever `dist` the checkout already carried, which is the state
+    // this file exists to keep out of a release.
     const rebuild = before.findIndex((step) => step.endsWith("build"));
-    if (rebuild < 0) return;
+    expect(
+      rebuild,
+      "the root check:package packs an output it did not build",
+    ).toBeGreaterThanOrEqual(0);
 
     // A rebuild removes `dist`, and `tsdoc-metadata.json` with it. Only API
     // Extractor writes that file back, so it has to run again before the
