@@ -18,6 +18,7 @@
 import type { Diagnostic, DiagnosticTarget } from "@typespec/compiler";
 import type { AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
 import { createDiagnostic } from "../lib.js";
+import { avroFullName } from "./full-names.js";
 import {
   isAvroLogical,
   isAvroUnion,
@@ -196,7 +197,7 @@ export function namedTypeOf(schema: AvroSchema): string | undefined {
     case "record":
     case "enum":
     case "fixed":
-      return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
+      return avroFullName(schema.namespace, schema.name);
     default:
       return undefined;
   }

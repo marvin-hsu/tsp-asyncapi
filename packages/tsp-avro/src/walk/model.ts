@@ -59,6 +59,7 @@ import {
   type AvroRecord,
   type AvroSchema,
 } from "../types.js";
+import { avroFullName, avroNamespaceOf } from "./full-names.js";
 import { applyLogicalType, namedTypeOf } from "./logical-types.js";
 import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
 
@@ -412,7 +413,7 @@ function fixedFor(
   return {
     type: "fixed",
     name: declaration.name,
-    namespace: namespaceOf(fullName),
+    namespace: avroNamespaceOf(fullName),
     // A model and a scalar both reach here, and `@aliases` targets both. So
     // one read serves the two, the way it does for a record and an enum.
     aliases: getAvroAliases(context.program, declaration),
@@ -568,7 +569,7 @@ function namedModelFor(
   return {
     type: "record",
     name: model.name,
-    namespace: namespaceOf(fullName),
+    namespace: avroNamespaceOf(fullName),
     doc: getDoc(context.program, model),
     aliases: getAvroAliases(context.program, model),
     fields,
@@ -661,7 +662,7 @@ function branchKey(schema: AvroBranch): string {
     case "record":
     case "enum":
     case "fixed":
-      return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
+      return avroFullName(schema.namespace, schema.name);
     case "array":
     case "map":
       return schema.type;
@@ -1003,7 +1004,7 @@ function enumFor(
   return {
     type: "enum",
     name: target.name,
-    namespace: namespaceOf(fullName),
+    namespace: avroNamespaceOf(fullName),
     doc: getDoc(context.program, target),
     aliases: getAvroAliases(context.program, target),
     symbols,
@@ -1097,12 +1098,5 @@ function fullNameOf(
     return undefined;
   }
 
-  return `${namespace}.${name}`;
-}
-
-/**
- * Splits the namespace back off a full name.
- */
-function namespaceOf(fullName: string): string {
-  return fullName.slice(0, fullName.lastIndexOf("."));
+  return avroFullName(namespace, name);
 }
