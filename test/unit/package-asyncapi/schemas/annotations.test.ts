@@ -41,6 +41,21 @@ describe("Unit: Schemas — annotations", () => {
       expect(props.id).toEqual({ type: "string", format: "uuid" });
     });
 
+    it("replaces the scalar's own format rather than sitting beside it", async () => {
+      const props = await holderProperties(`
+        @format("uuid") scalar Id extends string;
+        model Holder {
+          @secret id: Id;
+        }
+      `);
+
+      // `@secret` on the property is a format the property states for
+      // itself, so it stands in place of the scalar's, the same way an
+      // explicit `@format` on the property does. Layering it over a
+      // reference would say the value is a uuid and a password at once.
+      expect(props.id).toEqual({ type: "string", format: "password" });
+    });
+
     it("applies to a scalar declaration", async () => {
       const props = await holderProperties(`
         @secret scalar Password extends string;

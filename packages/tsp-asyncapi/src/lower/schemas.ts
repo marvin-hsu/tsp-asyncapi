@@ -7,6 +7,7 @@ import {
   getExamples,
   getFormat,
   getSummary,
+  isSecret,
   Scalar,
   Enum,
   Union,
@@ -1014,6 +1015,11 @@ export class SchemaBuilder {
     return (
       getEncode(this.program, prop) !== undefined ||
       getFormat(this.program, prop) !== undefined ||
+      // `@secret` is a format too: it is what `password` is written from
+      // (see `buildValidationKeywords`). A property that carries it says
+      // this value is a password, which stands in place of whatever format
+      // the scalar states, exactly as an explicit `@format` does.
+      isSecret(this.program, prop) ||
       getDoc(this.program, prop) !== undefined ||
       getSummary(this.program, prop) !== undefined ||
       getExamples(this.program, prop).length > 0
