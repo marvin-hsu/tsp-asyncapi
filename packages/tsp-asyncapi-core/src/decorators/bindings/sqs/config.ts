@@ -63,8 +63,7 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * on it.
  *
  * `redrivePolicy`, `policy` and `tags` pass through as written. SQS states no
- * shape this emitter can check for them. An empty one is dropped, and one
- * that is no object at all is reported.
+ * shape this emitter can check for them. An empty one is dropped.
  *
  * @param context - The decorator context
  * @param field - The path of this queue, for the diagnostics
@@ -161,9 +160,15 @@ function seconds(
  * Passes one open object of a queue through.
  *
  * SQS states no shape this emitter can check for `redrivePolicy`, `policy`
- * and `tags`, so the object is emitted as written. Two rules still apply. A
- * value that is no object is reported rather than dropped in silence. An
+ * and `tags`, so the object is emitted as written. One rule applies. An
  * object with no field in it is dropped, because it states nothing.
+ *
+ * The `objectField` call around that rule reports nothing in practice. The
+ * library types all three fields as `Record<unknown>`, so the checker refuses
+ * a scalar or a list before this decorator runs. A member the serializer
+ * cannot represent fails the whole queue one level up, where `readQueue`
+ * reports the queue itself. The call stays as a guard on the type this
+ * function accepts.
  */
 function openObject(
   context: DecoratorContext,
