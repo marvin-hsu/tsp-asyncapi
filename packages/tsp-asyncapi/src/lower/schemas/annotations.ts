@@ -411,6 +411,32 @@ function buildJsonSchemaExtensionFields(
 }
 
 /**
+ * Returns `schema` with `format` removed from it and from every `allOf`
+ * branch below it.
+ *
+ * The removal follows the whole `allOf` spine, not only its first level. An
+ * `extends` chain of three scalars wraps one `allOf` inside another. A
+ * `format` two levels down still describes the same single value as the one
+ * on the wrapper. Depth does not make the two agree.
+ *
+ * A branch that is a `$ref` keeps its format. That format lives in the
+ * component the reference points at, and other values share it.
+ *
+ * @param schema - The schema to strip
+ * @returns A copy with no `format` on any `allOf` level
+ */
+function withoutFormat(schema: SchemaObject): SchemaObject {
+  const stripped: SchemaObject = { ...schema };
+  delete stripped.format;
+  if (stripped.allOf !== undefined) {
+    stripped.allOf = stripped.allOf.map((branch) =>
+      "$ref" in branch ? branch : withoutFormat(branch),
+    );
+  }
+  return stripped;
+}
+
+/**
  * Wraps `schema` in `allOf` and hoists `title`/`description`/`examples`
  * above it. `withDocs` and `withPropertyDocs` both call this on a
  * validation-keyword collision. Left inside the `allOf` branch, these three
@@ -419,7 +445,8 @@ function buildJsonSchemaExtensionFields(
  * `schema` is carried up instead of being silently dropped. `restValidation`
  * and `format` are then merged onto the wrapper: `format` last, so this
  * level's `format`, if any, wins over the base's. It wins outright: the
- * base's is removed from the branch rather than left there beside it.
+ * base's is removed from the branch, and from any `allOf` nested inside it,
+ * rather than left there beside it.
  * `format` is a draft-07 annotation, not a keyword `allOf` intersects, so a
  * branch saying `uuid` under a wrapper saying `email` is a contradiction
  * rather than two constraints that both hold. A base format this level says
@@ -431,10 +458,7 @@ function hoistAnnotationsAboveAllOf(
   restValidation: SchemaObject,
   format: string | undefined,
 ): SchemaObject {
-  const inner: SchemaObject = { ...schema };
-  if (format !== undefined) {
-    delete inner.format;
-  }
+  const inner: SchemaObject = format !== undefined ? withoutFormat(schema) : { ...schema };
   const title = docs.title ?? inner.title;
   const description = docs.description ?? inner.description;
   const examples = docs.examples ?? inner.examples;

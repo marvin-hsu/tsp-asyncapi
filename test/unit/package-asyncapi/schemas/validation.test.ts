@@ -254,6 +254,32 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     });
   });
 
+  it("should drop a base format nested deeper than one allOf level", async () => {
+    // Three scalars in one `extends` chain wrap an `allOf` inside an
+    // `allOf`. The `uuid` two levels down describes the same value as the
+    // `email` on the wrapper. Depth does not make the two agree.
+    const { builder } = await buildDocSchema(t.code`
+      @format("uuid")
+      @minLength(5)
+      scalar Tight extends string;
+      @minLength(2)
+      scalar Mid extends Tight;
+      @format("email")
+      @minLength(1)
+      scalar Loose extends Mid;
+      model ${t.model("M")} {
+        v: Loose;
+      }
+    `);
+
+    const props = resolvedProperties(builder, "M");
+    expect(props.v).toEqual({
+      allOf: [{ allOf: [{ type: "string", minLength: 5 }], minLength: 2 }],
+      minLength: 1,
+      format: "email",
+    });
+  });
+
   it("should keep an inherited scalar description at the top level when a derived scalar's own validation keyword collides", async () => {
     const { builder } = await buildDocSchema(t.code`
       @doc("Tight")
