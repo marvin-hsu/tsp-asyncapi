@@ -15,6 +15,7 @@ import { listOperationActions } from "../decorators/operations/state.js";
 import { listReplyDeclarations } from "../decorators/operations/reply-state.js";
 import { getOperationAction } from "../decorators/operations/action.js";
 import { reportDiagnostic } from "../lib.js";
+import { present, text } from "../optional-fields.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { buildTags } from "./tags.js";
 import { resolveExtensions } from "./extensions.js";
@@ -144,14 +145,14 @@ export function resolveOperations(
       key,
       action: record.action,
       channelKey: channel.id,
-      ...optional("title", getSummary(program, target)),
-      ...optional("description", getDoc(program, target)),
+      ...text("title", getSummary(program, target)),
+      ...text("description", getDoc(program, target)),
       security: resolveSecuritySchemeNames(program, target, declaredSchemes),
       tags: buildTags(program, target) ?? [],
-      ...optional("externalDocs", buildExternalDocs(program, target)),
+      ...present("externalDocs", buildExternalDocs(program, target)),
       bindings: resolveBindings(program, "operation", target, placements),
       messages: resolveMessageRefs(request, channel, messageKeys),
-      ...optional("reply", replyNode),
+      ...present("reply", replyNode),
       extensions: resolveExtensions(program, target),
     });
   }
@@ -191,12 +192,4 @@ function reportRepliesWithoutAction(program: Program): void {
     if (getOperationAction(program, operation) !== undefined) continue;
     reportDiagnostic(program, { code: "reply-without-action", target });
   }
-}
-
-/** Includes a field only when it is defined. */
-function optional<K extends string, V>(
-  name: K,
-  value: V | undefined,
-): Record<K, V> | Record<string, never> {
-  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
 }

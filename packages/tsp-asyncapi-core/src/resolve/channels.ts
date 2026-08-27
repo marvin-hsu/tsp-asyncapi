@@ -15,6 +15,7 @@ import { Model, Program, getDoc, getSummary } from "@typespec/compiler";
 import { ChannelTarget, listChannelsInternal } from "../decorators/channels/state.js";
 import { listUseServerTargets } from "../decorators/channels/use-server-state.js";
 import { reportDiagnostic } from "../lib.js";
+import { present, text } from "../optional-fields.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { buildTags } from "./tags.js";
 import { resolveExtensions } from "./extensions.js";
@@ -115,14 +116,14 @@ export function resolveChannels(
       target,
       key,
       address: record.state.address,
-      ...optional("title", getSummary(program, target)),
-      ...optional("description", getDoc(program, target)),
+      ...text("title", getSummary(program, target)),
+      ...text("description", getDoc(program, target)),
       servers: resolveChannelServers(program, target, declaredServers),
       parameters: resolveChannelParameters(program, target, record, key),
       messages: messages.messages,
       messageKeys: messages.keys,
       tags: buildTags(program, target) ?? [],
-      ...optional("externalDocs", buildExternalDocs(program, target)),
+      ...present("externalDocs", buildExternalDocs(program, target)),
       bindings: resolveBindings(program, "channel", target, placements),
       extensions: resolveExtensions(program, target),
     });
@@ -185,12 +186,4 @@ function reportUseServerWithoutChannel(program: Program): void {
       });
     }
   }
-}
-
-/** Includes a field only when it is defined. */
-function optional<K extends string, V>(
-  name: K,
-  value: V | undefined,
-): Record<K, V> | Record<string, never> {
-  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
 }

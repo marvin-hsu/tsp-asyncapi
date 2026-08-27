@@ -12,6 +12,7 @@ import { buildTags } from "./tags.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { DEFAULT_DOCUMENT_TITLE, DEFAULT_INFO_VERSION } from "../constants.js";
 import { InfoNode } from "./service.js";
+import { present, text } from "../optional-fields.js";
 
 /**
  * Resolves the `info` object of one service.
@@ -52,20 +53,12 @@ export function resolveInfo(program: Program, service: Service | undefined): Inf
     // the decorator that names the application.
     title: service.title ?? DEFAULT_DOCUMENT_TITLE,
     version: custom?.version ?? DEFAULT_INFO_VERSION,
-    ...optional("description", custom?.description ?? getDoc(program, target)),
-    ...optional("termsOfService", custom?.termsOfService),
-    ...optional("contact", custom?.contact),
-    ...optional("license", custom?.license),
+    ...text("description", custom?.description ?? getDoc(program, target)),
+    ...text("termsOfService", custom?.termsOfService),
+    ...present("contact", custom?.contact),
+    ...present("license", custom?.license),
     tags: buildTags(program, target) ?? [],
-    ...optional("externalDocs", buildExternalDocs(program, target)),
+    ...present("externalDocs", buildExternalDocs(program, target)),
     extensions: resolveExtensions(program, target),
   };
-}
-
-/** Includes a field only when it is defined. */
-function optional<K extends string, V>(
-  name: K,
-  value: V | undefined,
-): Record<K, V> | Record<string, never> {
-  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
 }

@@ -20,6 +20,7 @@ import {
   listMessages,
 } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
+import { present } from "../optional-fields.js";
 import {
   MessageHeaderPlan,
   liftedOf,
@@ -305,10 +306,10 @@ export function resolveMessages(
       ...textField("contentType", getContentType(program, model)),
       headers: resolveHeaders(plan, model),
       payload: resolvePayload(program, plan, model, artifacts),
-      ...optional("correlationId", getCorrelationId(program, model)),
+      ...present("correlationId", getCorrelationId(program, model)),
       examples: buildMessageExamples(program, model) ?? [],
       tags: buildTags(program, model) ?? [],
-      ...optional("externalDocs", buildExternalDocs(program, model)),
+      ...present("externalDocs", buildExternalDocs(program, model)),
       bindings: resolveBindings(program, "message", model, placements),
       extensions: resolveExtensions(program, model),
     });
@@ -323,12 +324,4 @@ function textField<K extends string>(
   value: string | undefined,
 ): Record<K, string> | Record<string, never> {
   return value !== undefined && value.length > 0 ? ({ [name]: value } as Record<K, string>) : {};
-}
-
-/** Includes a field only when it is defined. */
-function optional<K extends string, V>(
-  name: K,
-  value: V | undefined,
-): Record<K, V> | Record<string, never> {
-  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
 }
