@@ -20,7 +20,8 @@
   },
   "type": "module",
   "scripts": {
-    "clean": "pnpm -r clean",
+    "clean": "pnpm run -r clean",
+    "prebuild": "pnpm run clean",
     "build": "tsc -b tsconfig.ws.json",
     "watch": "tsc -b tsconfig.ws.json --watch",
     "docs:dev": "vitepress dev docs",

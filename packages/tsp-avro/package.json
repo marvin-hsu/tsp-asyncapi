@@ -57,6 +57,7 @@
   },
   "scripts": {
     "clean": "rimraf ./dist ./temp",
+    "prebuild": "pnpm run clean",
     "build": "tsc -b tsconfig.json",
     "api-extractor:local": "api-extractor run --local && api-extractor run --local -c api-extractor.unstable.json",
     "api-extractor:ci": "api-extractor run && api-extractor run -c api-extractor.unstable.json",
