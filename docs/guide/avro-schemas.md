@@ -285,7 +285,7 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 | `tsp-avro/invalid-name`           | A name breaks the Avro name rules, or Avro keeps it for a type of its own.                      |
 | `tsp-avro/unsupported-type`       | A type has no Avro form.                                                                        |
 | `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                                               |
-| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.                            |
+| `tsp-avro/invalid-default`        | A default has no JSON form, or it names no one branch of its union.                             |
 | `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.                              |
 | `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive, or a scalar that does not extend `bytes`. |
 | `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.                            |

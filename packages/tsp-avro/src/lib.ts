@@ -90,7 +90,7 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         unserializable: paramMessage`The default of "${"name"}" has no JSON form the emitter can write. ${"detail"}`,
-        branch: paramMessage`The default of "${"name"}" belongs to no branch of its union. Avro reads a default against the first branch alone, so the default has to name one of them.`,
+        branch: paramMessage`The default of "${"name"}" names no one branch of its union. Avro reads a default against the first branch alone, so the branch the default belongs to has to be the one that leads.`,
       },
     },
     "invalid-order": {

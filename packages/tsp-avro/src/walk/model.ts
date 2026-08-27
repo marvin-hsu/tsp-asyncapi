@@ -852,7 +852,10 @@ function leadWithDefault(
   }
 
   const key = written === undefined ? "null" : defaultBranchKey(context, written);
-  const index = key === undefined ? -1 : branches.findIndex((one) => branchKey(one) === key);
+  const index =
+    key === undefined
+      ? soleBranchBesideNull(branches)
+      : branches.findIndex((one) => branchKey(one) === key);
   if (index < 0) {
     refuse(
       context,
@@ -867,6 +870,23 @@ function leadWithDefault(
   }
 
   return [branches[index], ...branches.slice(0, index), ...branches.slice(index + 1)];
+}
+
+/**
+ * The one branch a default can sit in when the value names none itself.
+ *
+ * A model literal and a tuple carry no scalar, so nothing in the value says
+ * which branch it is. A union of one type and null still leaves one place for
+ * the default, and `["null", Inner]` is how every optional record field is
+ * written, so there is no guess to make.
+ *
+ * @param branches - The flattened branches
+ * @returns The index of that branch, or -1 when more than one branch could
+ *   carry the default
+ */
+function soleBranchBesideNull(branches: AvroBranch[]): number {
+  const candidates = branches.filter((one) => one !== "null");
+  return candidates.length === 1 ? branches.indexOf(candidates[0]) : -1;
 }
 
 /**

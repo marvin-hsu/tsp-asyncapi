@@ -285,7 +285,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 | `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則，或是 Avro 保留給自身型別的名稱。            |
 | `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                                                    |
 | `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。                             |
-| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或不屬於 union 的任何分支。                       |
+| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或指不出 union 的哪一個分支。                     |
 | `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。                          |
 | `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數，或標在沒有繼承 `bytes` 的 scalar 上。 |
 | `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。                      |
