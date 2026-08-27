@@ -82,7 +82,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-[`@contentType`](./decorators/messages#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
+[`@contentType`](./decorators/messages#contenttype) 收到空白的媒體型態。值會先去除前後空白，所以只有空白的值等同空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
 
 這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報，不會靜默發生。
 
@@ -256,7 +256,7 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-某次 [`@asyncTag`](./decorators/document-info#asynctag) 套用把空字串當成 tag 名稱。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
+某次 [`@asyncTag`](./decorators/document-info#asynctag) 套用給了空白的 tag 名稱。值會先去除前後空白，所以只有空白的名稱等同空字串。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
 
 **修法：** 為該 tag 補上名稱。
 

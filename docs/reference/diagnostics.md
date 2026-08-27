@@ -82,7 +82,7 @@ Two instantiations of one template that produce the same key are not reported â€
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-An application of [`@contentType`](./decorators/messages#contenttype) passed the empty string. A blank media type names no format, so the emitter cannot write it into the message.
+An application of [`@contentType`](./decorators/messages#contenttype) passed a blank media type. The value is trimmed first, so a value of spaces alone is blank. A blank media type names no format, so the emitter cannot write it into the message.
 
 The message falls back to the document `defaultContentType`, the same result an absent `@contentType` gives. The user typed the empty string on purpose, so that fallback is reported rather than silent.
 
@@ -256,7 +256,7 @@ An application of `@messageExample` gave an empty value, or gave only `name` and
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-An application of [`@asyncTag`](./decorators/document-info#asynctag) passed the empty string as the tag name. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
+An application of [`@asyncTag`](./decorators/document-info#asynctag) passed a blank tag name. The value is trimmed first, so a name of spaces alone is blank. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
 
 **Fix:** give the tag a name.
 

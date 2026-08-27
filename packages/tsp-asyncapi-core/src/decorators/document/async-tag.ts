@@ -2,6 +2,7 @@ import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../../lib.js";
+import { trimmed } from "../../optional-fields.js";
 
 const asyncTagStateKey = Symbol.for("tsp-asyncapi.asyncTag");
 
@@ -106,7 +107,10 @@ export function $asyncTag(
   // Its static type is the wider `DiagnosticTarget`, so it is narrowed here
   // to the node kinds a decorator application can have.
   const node = context.decoratorTarget as DecoratorExpressionNode | AugmentDecoratorStatementNode;
-  if (name.length === 0) {
+  // The name is trimmed first. A name of spaces alone names no tag, and a
+  // length check would let it through.
+  const tagName = trimmed(name);
+  if (tagName === undefined) {
     reportDiagnostic(context.program, { code: "empty-tag-name", target: node });
     return;
   }
@@ -118,7 +122,7 @@ export function $asyncTag(
   // is reported above instead.
   tags.push({
     node,
-    name,
+    name: tagName,
     ...(metadata?.description ? { description: metadata.description } : {}),
     ...(metadata?.externalDocs !== undefined
       ? { externalDocs: toExternalDocs(metadata.externalDocs) }
