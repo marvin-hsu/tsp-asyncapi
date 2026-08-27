@@ -1,13 +1,11 @@
 ---
 title: "範例"
-description: "這個 repository 附的十八個完整範例，每個都是能直接編譯的專案，附 TypeSpec 原始碼、tspconfig.yaml 與編出來的文件。"
+description: "每個範例都是能直接編譯的專案，附 TypeSpec 原始碼、tspconfig.yaml 與編出來的輸出。"
 ---
 
 # 範例
 
-這個 repository 的 [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下有十八個完整範例。每個目錄都有 TypeSpec 原始碼與編譯時用的 `tspconfig.yaml`。其中十七個另有 emitter 產生的 `asyncapi.yaml`。Protobuf 範例另外有官方 emitter 產生的 `.proto` 檔案。兩個範例另外有 `tsp-avro` 產生的 `.avsc` 檔案，其中一個不產生文件。
-
-輸出已經 commit，所以不必執行任何東西就能對照輸入與輸出。十七份文件都通過官方 AsyncAPI parser。
+[`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) 底下每個目錄都是一個能直接編譯的專案，含 TypeSpec 原始碼、編譯時用的 `tspconfig.yaml`，以及編出來的輸出。輸出已經 commit，不必執行任何東西就能對照輸入與輸出。
 
 ## 範例一覽
 
@@ -34,7 +32,7 @@ description: "這個 repository 附的十八個完整範例，每個都是能直
 
 ## 執行其中一個
 
-複製這個 repository，然後在想看的目錄裡編譯：
+把 repository clone 下來，在想看的目錄裡編譯：
 
 ```bash
 git clone https://github.com/marvin-hsu/tsp-asyncapi.git
@@ -45,7 +43,3 @@ pnpm exec tsp compile .
 ```
 
 emitter 會把 `asyncapi.yaml` 寫在 `main.tsp` 旁邊，覆蓋 repository 裡的那一份。接著用 `git diff` 就能看出你建置出來的結果和 commit 的是否一致。
-
-::: tip
-每份 `main.tsp` 開頭都是 `import "../..";`，指向這個 repository 的根目錄。在你自己的專案裡，改為依賴套件並寫 `import "tsp-asyncapi";`。
-:::

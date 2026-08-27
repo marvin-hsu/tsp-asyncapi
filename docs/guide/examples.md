@@ -1,13 +1,11 @@
 ---
 title: "Examples"
-description: "Eighteen worked examples in the repository, each a compilable project with its TypeSpec source, its tspconfig.yaml, and the document it emits."
+description: "Each example is a project that compiles as it stands, with its TypeSpec source, its tspconfig.yaml, and the output it emits."
 ---
 
 # Examples
 
-Eighteen worked examples live in the repository, under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples). Each directory holds the TypeSpec source and the `tspconfig.yaml` it was compiled with. Seventeen of them also hold the `asyncapi.yaml` the emitter wrote from that source. The Protobuf example holds the `.proto` files the official emitter wrote. Two examples hold the `.avsc` files `tsp-avro` wrote. One of those two writes no document.
-
-The output is committed, so you can read an input and its output side by side without running anything. Every one of the seventeen documents passes the official AsyncAPI parser.
+Every directory under [`examples/`](https://github.com/marvin-hsu/tsp-asyncapi/tree/main/examples) is a project that compiles as it stands. It holds the TypeSpec source, the `tspconfig.yaml` it was compiled with, and the output. The output is committed, so you can read an input and its output side by side without running anything.
 
 ## The examples
 
@@ -34,7 +32,7 @@ The output is committed, so you can read an input and its output side by side wi
 
 ## Running one
 
-Clone the repository and compile inside the directory you want:
+Clone the repository, then compile inside the directory you want:
 
 ```bash
 git clone https://github.com/marvin-hsu/tsp-asyncapi.git
@@ -45,7 +43,3 @@ pnpm exec tsp compile .
 ```
 
 The emitter writes `asyncapi.yaml` next to `main.tsp`, overwriting the copy in the repository. `git diff` then shows whether your build produces what was committed.
-
-::: tip
-Every `main.tsp` starts with `import "../..";`, which points at the root of this repository. In your own project, depend on the package and write `import "tsp-asyncapi";` instead.
-:::
