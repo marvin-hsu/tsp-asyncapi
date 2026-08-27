@@ -27,6 +27,16 @@ interface Manifest {
   scripts: Record<string, string>;
 }
 
+/**
+ * The one file in `dist` that no source file explains.
+ *
+ * API Extractor writes it, and it names the TSDoc version the declarations
+ * were written against. A TSDoc reader looks for it beside the types, so it
+ * is published on purpose. The next build removes it with the rest of `dist`
+ * and API Extractor writes it again.
+ */
+const WRITTEN_BY_API_EXTRACTOR = new Set(["src/tsdoc-metadata.json"]);
+
 describe("Unit: the provenance of the build output", () => {
   it("maps each kind of emitted file back to its source", () => {
     // A mapper that knew one extension would pass while another kind of
@@ -50,6 +60,7 @@ describe("Unit: the provenance of the build output", () => {
     expect(sources.size, `${name} has no source`).toBeGreaterThan(0);
 
     const orphans = emitted.filter((file) => {
+      if (WRITTEN_BY_API_EXTRACTOR.has(file)) return false;
       const source = sourceOf(file);
       return source === undefined || !sources.has(source.slice("src/".length));
     });
