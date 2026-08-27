@@ -97,9 +97,8 @@ const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
  */
 function render(node: BindingNode): BindingObject {
   // The config is copied rather than handed over. It belongs to the resolved
-  // model, which every stage after resolve treats as read only, and the copy
-  // is also what turns its read-only shape into the mutable one the document
-  // types use.
+  // model, which every stage after resolve treats as read only. The copy is
+  // also what gives the document types the mutable value they declare.
   const version = BINDING_VERSIONS[node.renderer];
   if (version === null) return { ...node.config };
   return { ...node.config, bindingVersion: version };

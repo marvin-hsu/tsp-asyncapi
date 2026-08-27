@@ -51,8 +51,8 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   // Each server gets its own objects, so a later change to one server cannot
   // reach another. `security` is a list of references, and a reference is
   // flat, so a fresh object per entry is enough. The three fragments below
-  // come from the namespace, so one resolved value is shared by every
-  // server; `sharedSiteFields` hands each server a reference or a deep copy.
+  // come from the namespace, so one resolved value serves every server.
+  // `sharedSiteFields` hands each server a reference or a deep copy.
   if (node.security.length > 0) {
     const security: ReferenceObject[] = node.security.map((name) => ({
       $ref: securitySchemeRef(name),
