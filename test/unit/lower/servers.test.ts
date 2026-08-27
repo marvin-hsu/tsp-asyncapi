@@ -2,18 +2,18 @@ import { describe, it, expect } from "vitest";
 import { lowerServers } from "#emitter/lower/servers.js";
 import type { ServerNode } from "#core/resolve/service.js";
 import { noPromotions } from "../../utils/promotions.js";
+import { stubServerNode } from "../../utils/ir-stubs.js";
 
 /** The smallest server node lowerServers accepts, keyed by the name under test. */
 function stubServer(name: string): ServerNode {
-  return {
-    target: { kind: "Namespace", name: "Stub" } as unknown as ServerNode["target"],
+  return stubServerNode({
     name,
     host: "broker.example.com",
     protocol: "mqtt",
     security: [],
     tags: [],
     bindings: [],
-  };
+  });
 }
 
 describe("Unit: lowering the servers of one document", () => {

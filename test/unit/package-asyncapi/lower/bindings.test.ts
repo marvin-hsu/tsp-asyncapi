@@ -5,6 +5,7 @@ import { surveyDocument } from "#emitter/lower/components/survey.js";
 import type { AsyncAPIService, ServerNode } from "#core/resolve/service.js";
 import { KAFKA_BINDING_VERSION } from "#core/constants.js";
 import { RENDERERS } from "../../../utils/renderers.js";
+import { stubServerNode } from "../../../utils/ir-stubs.js";
 import { present } from "../../../utils/document.js";
 
 describe("Unit: lowering the bindings of one object", () => {
@@ -100,15 +101,14 @@ describe("Unit: rendering the Bindings Object of one site", () => {
   }
 
   it("renders one node list once for the survey and the site together", () => {
-    const server: ServerNode = {
-      target: { kind: "Namespace", name: "Stub" } as unknown as ServerNode["target"],
+    const server = stubServerNode({
       name: "production",
       host: "broker.example.com",
       protocol: "kafka",
       security: [],
       tags: [],
       bindings: [{ protocol: "kafka", renderer: "kafka", config: { schemaRegistryUrl: "u" } }],
-    };
+    });
     // Rendering walks the node list. Counting that walk counts the renders,
     // whatever the two stages do around it.
     const walked = vi.spyOn(server.bindings, "map");

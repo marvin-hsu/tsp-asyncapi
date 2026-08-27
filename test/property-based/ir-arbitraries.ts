@@ -1,6 +1,5 @@
 import fc from "fast-check";
 
-import type { DiagnosticTarget, Model } from "@typespec/compiler";
 import type {
   AsyncAPIService,
   BindingNode,
@@ -18,6 +17,7 @@ import type {
 } from "#core/resolve/service.js";
 import type { SecuritySchemeObject } from "#emitter/types/index.js";
 import { RENDERERS } from "../utils/renderers.js";
+import { stubModel, stubTarget } from "../utils/ir-stubs.js";
 
 /**
  * Generators of hand-written semantic model nodes.
@@ -39,20 +39,6 @@ import { RENDERERS } from "../utils/renderers.js";
  * exactly the keys where building a map and writing a pointer decide the
  * answer.
  */
-
-/**
- * A source location the lower stage never reads.
- *
- * Every node carries a target, and the lower half of the pipeline only
- * reports against one after schema expansion. Nothing these properties drive
- * expands a schema, so one shared stub serves every node.
- */
-const stubTarget = { kind: "Namespace", name: "Stub" } as unknown as DiagnosticTarget;
-
-/** Builds a distinct stub model, so identity comparisons stay meaningful. */
-function stubModel(name: string): Model {
-  return { kind: "Model", name } as unknown as Model;
-}
 
 /** Spreads a field only when it has an answer, the way resolve builds a node. */
 function optional<K extends string, V>(key: K, value: V | undefined): Record<K, V> | object {
