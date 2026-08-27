@@ -194,6 +194,34 @@ describe("the Avro annotations", () => {
     });
   });
 
+  it("writes a scalar marked fixed, with the aliases written further up the chain", async () => {
+    // `@fixed` is read along the chain a scalar extends, and so is `@aliases`.
+    // Reading the leaf alone dropped an alias the author wrote on the base.
+    // The name of the fixed type comes from the scalar being walked, and the
+    // alias the base carries stands for that name.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("${NAMESPACE}")
+      namespace A {
+        @Avro.aliases("com.example.old.Md5")
+        @Avro.fixed(16)
+        scalar Md5 extends bytes;
+
+        scalar Digest extends Md5;
+
+        @Avro.avroRecord
+        model Event { sum: Digest; }
+      }
+    `);
+
+    expect(fieldNamed(files["com/example/a/Event.avsc"], "sum").type).toEqual({
+      type: "fixed",
+      name: "Digest",
+      namespace: NAMESPACE,
+      aliases: ["com.example.old.Md5"],
+      size: 16,
+    });
+  });
+
   it("writes a model marked fixed, with the aliases it carries", async () => {
     const files = await emitAvroFiles(`
       @Avro.avroNamespace("${NAMESPACE}")

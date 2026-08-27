@@ -231,7 +231,7 @@ A TypeSpec enum becomes an Avro enum. Avro holds symbols alone, so a member that
 
 A scalar you declare is matched through the scalar it extends. `scalar Age extends int32` maps to `int`.
 
-`@Avro.logicalType`, `@Avro.decimal` and `@Avro.fixed` are read through that chain as well. `scalar CreatedAt extends Timestamp` carries the logical type of `Timestamp`. The nearest declaration wins, so write the decorator again to say something else.
+`@Avro.logicalType`, `@Avro.decimal`, `@Avro.fixed` and `@Avro.aliases` are read through that chain as well. `scalar CreatedAt extends Timestamp` carries the logical type of `Timestamp`. The nearest declaration wins, so write the decorator again to say something else.
 
 Avro has no unsigned integer. `uint32` and `uint64` are refused, because widening them would change what you wrote.
 

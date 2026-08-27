@@ -231,7 +231,7 @@ TypeSpec enum 變成 Avro enum。Avro 的 enum 只有符號，所以帶著自己
 
 自己宣告的 scalar 依它所繼承的 scalar 對應。`scalar Age extends int32` 對應到 `int`。
 
-`@Avro.logicalType`、`@Avro.decimal` 與 `@Avro.fixed` 也沿著同一條繼承鏈讀取。`scalar CreatedAt extends Timestamp` 帶有 `Timestamp` 的 logical type。最近的宣告優先，所以要表達別的意思就再寫一次裝飾器。
+`@Avro.logicalType`、`@Avro.decimal`、`@Avro.fixed` 與 `@Avro.aliases` 也沿著同一條繼承鏈讀取。`scalar CreatedAt extends Timestamp` 帶有 `Timestamp` 的 logical type。最近的宣告優先，所以要表達別的意思就再寫一次裝飾器。
 
 Avro 沒有無號整數。`uint32` 與 `uint64` 會被拒絕，因為放寬型別會改變作者寫下的意思。
 

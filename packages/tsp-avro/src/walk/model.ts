@@ -422,11 +422,34 @@ function fixedFor(
     type: "fixed",
     name: declaration.name,
     namespace: avroNamespaceOf(fullName),
-    // A model and a scalar both reach here, and `@aliases` targets both. So
-    // one read serves the two, the way it does for a record and an enum.
-    aliases: getAvroAliases(context.program, declaration),
+    aliases: fixedAliasesOf(context, declaration),
     size,
   };
+}
+
+/**
+ * Reads the aliases of a fixed type.
+ *
+ * A model and a scalar both reach here, and `@aliases` targets both. A model
+ * carries its own, the way a record and an enum do.
+ *
+ * A scalar is read along the chain it extends, the way `@fixed` itself is.
+ * The fixed type is named after the scalar being walked. An alias written
+ * further up stands for that same name, so reading the leaf alone dropped it
+ * without a word. The nearest declaration wins, so a scalar restates the
+ * aliases by writing its own.
+ *
+ * @param context - The walk in progress
+ * @param declaration - The model or the scalar the fixed type comes from
+ * @returns The aliases, or undefined where no declaration carries any
+ */
+function fixedAliasesOf(
+  context: WalkContext,
+  declaration: Model | Scalar,
+): readonly string[] | undefined {
+  return declaration.kind === "Model"
+    ? getAvroAliases(context.program, declaration)
+    : inheritedMark(declaration, (one) => getAvroAliases(context.program, one));
 }
 
 /**
