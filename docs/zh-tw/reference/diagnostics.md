@@ -743,6 +743,22 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 **修法：** 移除多餘的 `@useServer`。
 
+### `invalid-use-server-name`
+
+> Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
+
+`@useServer` 拿到的名稱用了 AsyncAPI 不允許出現在根層 `servers` map key 的字元。名稱會先去除前後空白，所以只有空白的名稱等同空字串。emitter 不會改寫名稱，因為那會換掉作者指定的 server。
+
+**修法：** 名稱只使用英文字母、數字、`_` 與 `-`。
+
+### `undeclared-used-server`
+
+> @useServer names the server '\<name\>', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.
+
+`@useServer` 指到的 server 名稱，在 service namespace 上沒有任何 `@server` 宣告。輸出的參照會指向文件裡不存在的 key。parser 會因為這種參照拒收整份文件，所以該筆項目被丟棄。
+
+**修法：** 在 service namespace 上宣告同名的 `@server`，或改正名稱。
+
 ### `use-server-without-channel`
 
 > @useServer names the server '\<name\>', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a `servers` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.

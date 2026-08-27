@@ -545,6 +545,22 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`@useServer names the server '${"name"}' more than once on this channel. AsyncAPI requires the entries of a channel's \`servers\` array to be unique, so one reference was emitted. Remove the extra @useServer.`,
       },
     },
+    "invalid-use-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Invalid server name: '${"name"}'. @useServer emits a reference to the key of that server in the root \`servers\` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.`,
+      },
+    },
+    "undeclared-used-server": {
+      // This is a warning, not an error, for the reason every build-time
+      // "this name resolves to nothing" check here is one. The check needs
+      // the declared servers, and an error stops the compiler before the
+      // document this message describes is written.
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useServer names the server '${"name"}', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.`,
+      },
+    },
     "use-server-without-channel": {
       severity: "warning",
       messages: {

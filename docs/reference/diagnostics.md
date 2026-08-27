@@ -748,6 +748,22 @@ One name reached `@useServer` twice on one channel. AsyncAPI requires the entrie
 
 **Fix:** remove the extra `@useServer`.
 
+### `invalid-use-server-name`
+
+> Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
+
+The name given to `@useServer` uses a character AsyncAPI does not allow in a key of the root `servers` map. The name is trimmed first, so a name of spaces alone is blank. The emitter does not rewrite the name, because that would change the server the author asked for.
+
+**Fix:** write the name with letters, digits, `_`, and `-` only.
+
+### `undeclared-used-server`
+
+> @useServer names the server '\<name\>', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.
+
+`@useServer` names a server that no `@server` on the service namespace declares. The emitted reference would address a key the document does not carry. A parser rejects the whole document over such a reference, so the entry is dropped.
+
+**Fix:** declare a `@server` with this name on the service namespace, or correct the name.
+
 ### `use-server-without-channel`
 
 > @useServer names the server '\<name\>', but this interface or namespace carries neither @channel nor @dynamicChannel. Only a channel has a `servers` field, so this @useServer reaches no part of the document. Add @channel, or remove this @useServer.

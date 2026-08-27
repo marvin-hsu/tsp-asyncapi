@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
-import { documentFrom } from "../../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { resolveParameters } from "../../../utils/document.js";
 
 describe("Unit: Channel servers (Phase 4.6)", () => {
@@ -13,8 +13,9 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
   });
 
   it("emits one reference for one @useServer", async () => {
-    await runner.compile(`
+    const { doc } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       namespace Test;
 
       @message
@@ -29,14 +30,14 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = await documentFrom(runner.program);
-
-    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
+    expect(doc?.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
 
   it("keeps two stacked applications in source order", async () => {
-    await runner.compile(`
+    const { doc } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
+      @server("kafka-dr", #{ host: "kafka.dr.example.com:9092", protocol: "kafka" })
       namespace Test;
 
       @message
@@ -52,9 +53,7 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = await documentFrom(runner.program);
-
-    expect(doc.channels?.["orders.created"].servers).toEqual([
+    expect(doc?.channels?.["orders.created"].servers).toEqual([
       { $ref: "#/servers/kafka-prod" },
       { $ref: "#/servers/kafka-dr" },
     ]);
@@ -82,8 +81,9 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
   });
 
   it("emits one reference and warns when a name is given twice", async () => {
-    const diagnostics = await runner.diagnose(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
+      @server("kafka-prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })
       namespace Test;
 
       @message
@@ -99,11 +99,10 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       }
     `);
 
-    const doc = await documentFrom(runner.program);
     const warning = findDiagnostic(diagnostics, "duplicate-use-server");
 
     expect(warning.severity).toBe("warning");
-    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
+    expect(doc?.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/kafka-prod" }]);
   });
 
   it("warns about a @useServer on a target with no channel", async () => {
@@ -158,57 +157,12 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     expect(reported.map((d) => d.message).join(" ")).toMatch(/kafka-dr/);
   });
 
-  it("names a server that no @server declares, without a diagnostic", async () => {
-    const diagnostics = await runner.diagnose(`
-      @service(#{ title: "Orders" })
-      namespace Test;
-
-      @message
-      model OrderCreated {
-        id: string;
-      }
-
-      @channel("orders.created")
-      @useServer("typo")
-      interface OrderChannel {
-        publish(event: OrderCreated): void;
-      }
-    `);
-
-    const doc = await documentFrom(runner.program);
-
-    expect(diagnostics).toEqual([]);
-    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/typo" }]);
-  });
-
-  it("escapes a server name for the JSON Pointer of the reference", async () => {
-    await runner.compile(`
-      @service(#{ title: "Orders" })
-      namespace Test;
-
-      @message
-      model OrderCreated {
-        id: string;
-      }
-
-      @channel("orders.created")
-      @useServer("a/b~c")
-      interface OrderChannel {
-        publish(event: OrderCreated): void;
-      }
-    `);
-
-    const doc = await documentFrom(runner.program);
-
-    // `@useServer` takes a bare string and checks no character in it, unlike
-    // `@server`. A raw `/` or `~` would make every conforming resolver read
-    // the pointer as a path through nested objects.
-    expect(doc.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/a~1b~0c" }]);
-  });
-
   it("accepts every channel decorator in its augment form", async () => {
-    const diagnostics = await runner.diagnose(`
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
+      @server("inline-a", #{ host: "a.example.com", protocol: "kafka" })
+      @server("augment-b", #{ host: "b.example.com", protocol: "kafka" })
+      @server("augment-c", #{ host: "c.example.com", protocol: "kafka" })
       namespace Test;
 
       @message
@@ -237,18 +191,16 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
       @@dynamicChannel(ReplyChannel);
     `);
 
-    const doc = await documentFrom(runner.program);
-
     expect(diagnostics).toEqual([]);
-    expect(doc.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");
-    expect(doc.channels?.ReplyChannel.address).toBeNull();
-    expect(resolveParameters(doc, doc.channels?.["orders.{region}.created"].parameters)).toEqual({
+    expect(doc?.channels?.["orders.{region}.created"].address).toBe("orders.{region}.created");
+    expect(doc?.channels?.ReplyChannel.address).toBeNull();
+    expect(resolveParameters(doc, doc?.channels?.["orders.{region}.created"].parameters)).toEqual({
       region: { enum: ["eu", "us"], location: "$message.payload#/region" },
     });
     // The checker splices augment applications in before the inline ones, so
     // the recorded order starts with the two augments. Sorting by source
     // position puts the inline application back in front of them.
-    expect(doc.channels?.["orders.{region}.created"].servers).toEqual([
+    expect(doc?.channels?.["orders.{region}.created"].servers).toEqual([
       { $ref: "#/servers/inline-a" },
       { $ref: "#/servers/augment-b" },
       { $ref: "#/servers/augment-c" },

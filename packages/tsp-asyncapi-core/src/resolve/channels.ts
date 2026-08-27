@@ -73,6 +73,8 @@ export interface ResolvedChannels {
  * @param messageKeys - The `components.messages` key each model claimed
  * @param placements - Where the binding applications this build placed are
  * recorded
+ * @param declaredServers - The name of every server the document holds. A
+ * `@useServer` outside that set names nothing a reference can address.
  * @returns The channels in source order, and the channel each target
  * contributed
  * @internal
@@ -81,6 +83,7 @@ export function resolveChannels(
   program: Program,
   messageKeys: ReadonlyMap<Model, string>,
   placements: BindingPlacements,
+  declaredServers: ReadonlySet<string>,
 ): ResolvedChannels {
   const channels: ChannelNode[] = [];
   const claimedBy = new Set<string>();
@@ -114,7 +117,7 @@ export function resolveChannels(
       address: record.state.address,
       ...optional("title", getSummary(program, target)),
       ...optional("description", getDoc(program, target)),
-      servers: resolveChannelServers(program, target),
+      servers: resolveChannelServers(program, target, declaredServers),
       parameters: resolveChannelParameters(program, target, record, key),
       messages: messages.messages,
       messageKeys: messages.keys,

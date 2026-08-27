@@ -11,6 +11,7 @@ import { emptySchemaArtifacts, type SchemaArtifactIndex } from "../schema-artifa
 import {
   reportSecurityUsesWithoutServer,
   reportServersOutsideService,
+  declaredServerNames,
   resolveServers,
 } from "./servers.js";
 
@@ -673,6 +674,9 @@ export function resolveService(
 ): AsyncAPIService {
   const securitySchemes = resolveSecuritySchemes(program);
   const declaredSchemes = new Set(securitySchemes.map((scheme) => scheme.name));
+  // The channels are resolved before the servers, and a channel writes a
+  // reference to a server. So the names are read here, ahead of both.
+  const declaredServers = declaredServerNames(program, service?.type);
 
   const {
     messages,
@@ -683,7 +687,7 @@ export function resolveService(
     channels,
     emitted,
     extensionCarriers: channelCarriers,
-  } = resolveChannels(program, keys, placements);
+  } = resolveChannels(program, keys, placements, declaredServers);
 
   // A server on any namespace other than the service's never reaches the
   // document, and a `@useSecurity` beside it has just as little to attach to.
