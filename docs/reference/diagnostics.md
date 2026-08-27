@@ -598,9 +598,27 @@ The `flows` field of an `oauth2` scheme is an empty object.
 
 A URL field holds a value that is not an absolute URL. A relative reference such as `/token` fails, and so does free text. AsyncAPI marks these fields with the `uri` format, and a parser rejects the document over a value that fails it.
 
-Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
+Three decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server. `@info` reports it for `termsOfService`, `contact.url`, and `license.url`.
+
+`@info` drops the field alone and keeps the rest of the decorator. The other two drop the whole decorator. The message says which of the two happened.
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
+
+### `empty-info-version`
+
+> @info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.
+
+The `version` given to `@info` is blank. The value is trimmed first, so a value of spaces alone is blank. AsyncAPI requires the field, so the version falls back to `0.0.0`.
+
+**Fix:** give `@info` a version, such as `1.0.0`.
+
+### `duplicate-info-decorator`
+
+> @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.
+
+`@info` is applied to one namespace more than once. A document carries one Info Object, so only one application takes effect. Decorators on one declaration run bottom-up, so the application written last runs first and wins.
+
+**Fix:** merge the applications into one, and remove the extra `@info`.
 
 ### `conflicting-generated-schema-source`
 

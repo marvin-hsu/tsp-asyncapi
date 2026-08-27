@@ -598,9 +598,27 @@ OAuth flow 缺少該 flow 必填的 URL。`implicit` 與 `authorizationCode` 需
 
 URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，純文字也不合格。AsyncAPI 對這些欄位標了 `uri` 格式。值不合格時，parser 會拒絕整份文件。
 
-兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
+三個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。`@info` 檢查 `termsOfService`、`contact.url` 與 `license.url`。
+
+`@info` 只丟掉該欄位，decorator 的其餘部分保留。另外兩個會丟掉整個 decorator。訊息本身會說明是哪一種。
 
 **修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
+
+### `empty-info-version`
+
+> @info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.
+
+`@info` 拿到的 `version` 是空白。值會先去除前後空白，所以只有空白的值等同空字串。AsyncAPI 規定這個欄位必填，所以版本後備為 `0.0.0`。
+
+**修法：** 給 `@info` 一個版本，例如 `1.0.0`。
+
+### `duplicate-info-decorator`
+
+> @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.
+
+同一個 namespace 套用了多次 `@info`。一份文件只有一個 Info Object，所以只有一次套用會生效。同一個宣告上的 decorator 由下往上執行，所以寫在最後的那次先執行並勝出。
+
+**修法：** 把多次套用合併成一次，移除多餘的 `@info`。
 
 ### `conflicting-generated-schema-source`
 

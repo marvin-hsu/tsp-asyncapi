@@ -641,6 +641,25 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`The '${"field"}' value '${"url"}' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.`,
+        // A second wording for a decorator that carries more than this one
+        // field. Dropping the whole of `@info` over its license URL would
+        // take the version and the description with it, and neither is at
+        // fault.
+        field: paramMessage`The '${"field"}' value '${"url"}' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This field was dropped, and the rest of the decorator was kept. Write a URL with a scheme, such as 'https://example.com/terms'.`,
+      },
+    },
+    "empty-info-version": {
+      severity: "error",
+      messages: {
+        default:
+          "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.",
+      },
+    },
+    "duplicate-info-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.",
       },
     },
     "missing-oauth-flow-url": {
