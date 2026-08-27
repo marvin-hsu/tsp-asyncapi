@@ -10,7 +10,8 @@ const infoStateKey = Symbol.for("tsp-asyncapi.info");
 
 /**
  * State interface representing the extracted info data.
- * @internal
+ * It is the value `getInfo` returns, so it is part of the public surface.
+ * @public
  */
 export interface AsyncAPIInfoState {
   version: string;

@@ -5,7 +5,9 @@ const jsonSchemaExtensionStateKey = Symbol.for("tsp-asyncapi.jsonSchemaExtension
 
 /**
  * One raw key/value pair recorded by `@jsonSchemaExtension`.
- * @internal
+ * It is the element type `getJsonSchemaExtensions` returns, so it is part of
+ * the public surface.
+ * @public
  */
 export interface JsonSchemaExtensionRecord {
   key: string;

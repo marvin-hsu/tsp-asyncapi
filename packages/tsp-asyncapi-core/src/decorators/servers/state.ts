@@ -8,7 +8,7 @@ const serverStateKey = Symbol.for("tsp-asyncapi.server");
  * One value that a `{var}` template of `host` or `pathname` stands for.
  * It is part of the state `getServers` returns, so it is part of the
  * public surface.
- * @internal
+ * @public
  */
 export interface AsyncAPIServerVariableState {
   /** The values this variable is allowed to take. */
@@ -23,7 +23,9 @@ export interface AsyncAPIServerVariableState {
 
 /**
  * State interface representing one server declared by `@server`.
- * @internal
+ * It is the element type `getServers` returns, so it is part of the public
+ * surface.
+ * @public
  */
 export interface AsyncAPIServerState {
   /** The key this server takes in the emitted `servers` map. */

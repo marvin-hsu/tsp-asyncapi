@@ -7,7 +7,9 @@ const externalDocsKey = Symbol.for("tsp-asyncapi.externalDocs");
 
 /**
  * State interface representing external documentation.
- * @internal
+ * It is the value `getExternalDocs` returns, so it is part of the public
+ * surface.
+ * @public
  */
 export interface ExternalDocsState {
   url: string;

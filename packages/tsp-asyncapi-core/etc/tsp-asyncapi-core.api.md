@@ -429,9 +429,7 @@ export interface AnypointMqMessageBindingConfig {
 // @public
 export const ASYNCAPI_VERSION = "3.1.0";
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIInfoState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIInfoState {
     // (undocumented)
     contact?: {
@@ -452,18 +450,14 @@ export interface AsyncAPIInfoState {
     version: string;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPISecuritySchemeState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPISecuritySchemeState {
     name: string;
     // Warning: (ae-forgotten-export) The symbol "SecuritySchemeObject" needs to be exported by the entry point index.d.ts
     scheme: SecuritySchemeObject;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIServerState {
     // (undocumented)
     description?: string;
@@ -483,9 +477,7 @@ export interface AsyncAPIServerState {
     variables?: Record<string, AsyncAPIServerVariableState>;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerVariableState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIServerVariableState {
     default?: string;
     description?: string;
@@ -1268,9 +1260,7 @@ export function declarationNameFor(program: Program, type: Model | Enum | Scalar
 // @public
 export const emptySchemaArtifacts: SchemaArtifactIndex;
 
-// Warning: (ae-internal-missing-underscore) The name "ExternalDocsState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface ExternalDocsState {
     // (undocumented)
     description?: string;
@@ -1304,21 +1294,15 @@ export function getCorrelationId(program: Program, target: Model): CorrelationId
 // @public
 export function getExtensions(program: Program, target: Type): ReadonlyMap<string, unknown>;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
-//
 // @public
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined;
 
 // @public
 export function getHeadersModel(program: Program, target: Model): Model | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getInfo" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
-//
 // @public
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getJsonSchemaExtensions" is marked as @public, but its signature references "JsonSchemaExtensionRecord" which is marked as @internal
-//
 // @public (undocumented)
 export function getJsonSchemaExtensions(program: Program, target: Model | ModelProperty): JsonSchemaExtensionRecord[];
 
@@ -1343,13 +1327,9 @@ export function getReplyAddress(program: Program, target: Operation): ReplyAddre
 // @public
 export function getReplyChannel(program: Program, target: Operation): ChannelTarget | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getSecuritySchemes" is marked as @public, but its signature references "AsyncAPISecuritySchemeState" which is marked as @internal
-//
 // @public
 export function getSecuritySchemes(program: Program): AsyncAPISecuritySchemeState[];
 
-// Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
-//
 // @public
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
 
@@ -1469,9 +1449,7 @@ export const JSON_SCHEMA_TYPE: {
     readonly object: "object";
 };
 
-// Warning: (ae-internal-missing-underscore) The name "JsonSchemaExtensionRecord" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface JsonSchemaExtensionRecord {
     // (undocumented)
     key: string;
