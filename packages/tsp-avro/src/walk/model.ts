@@ -281,7 +281,7 @@ function scalarFor(
   scalar: Scalar,
   target: DiagnosticTarget,
 ): AvroSchema | undefined {
-  const size = getAvroFixedSize(context.program, scalar);
+  const size = inheritedMark(scalar, (one) => getAvroFixedSize(context.program, one));
   let base: AvroSchema | undefined;
   if (size === undefined) {
     base = avroScalarFor(context.scalars, scalar);
@@ -309,7 +309,46 @@ function scalarFor(
     }
   }
 
-  return withLogicalType(context, base, getAvroLogicalType(context.program, scalar), target);
+  return withLogicalType(
+    context,
+    base,
+    inheritedMark(scalar, (one) => getAvroLogicalType(context.program, one)),
+    target,
+  );
+}
+
+/**
+ * Reads a mark off a scalar, or off the nearest scalar it extends.
+ *
+ * A TypeSpec scalar carries what it extends, and the primitive table already
+ * matches through that chain: `scalar Age extends int32` is an `int`. A mark
+ * the author wrote is read the same way, because `scalar CreatedAt extends Ts`
+ * means what `Ts` means. Reading the leaf alone dropped the mark and wrote the
+ * type underneath it, which is the same type on the wire and a different
+ * meaning to a reader.
+ *
+ * The nearest declaration wins, so a scalar restates a mark by writing its
+ * own. The mark comes back on its own: the Avro named type a `@fixed` scalar
+ * becomes is named after the scalar being walked, the way a record is named
+ * after its model, so nothing here needs to know where the mark was written.
+ *
+ * @param scalar - The scalar being walked
+ * @param read - Reads the mark off one declaration
+ * @returns The mark, or undefined when no declaration in the chain carries one
+ */
+function inheritedMark<T>(
+  scalar: Scalar,
+  read: (declaration: Scalar) => T | undefined,
+): T | undefined {
+  let current: Scalar | undefined = scalar;
+  while (current) {
+    const mark = read(current);
+    if (mark !== undefined) {
+      return mark;
+    }
+    current = current.baseScalar;
+  }
+  return undefined;
 }
 
 /**

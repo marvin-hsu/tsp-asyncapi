@@ -204,6 +204,29 @@ describe("the Avro logical types", () => {
     });
   });
 
+  it("reads a logical type from the scalar a scalar extends", async () => {
+    // A TypeSpec scalar carries what it extends, so a project that names its
+    // own scalar over an annotated one means the annotation. Reading the leaf
+    // alone wrote a bare long, which is the same type and a different meaning.
+    expect(
+      await fieldType(
+        `@Avro.logicalType("timestamp-millis") scalar Ts extends int64; scalar CreatedAt extends Ts;`,
+        "CreatedAt",
+      ),
+    ).toEqual({ type: "long", logicalType: "timestamp-millis" });
+  });
+
+  it("reads the nearest logical type in a base chain", async () => {
+    // The nearest declaration wins, because that is the one the author wrote
+    // last about this scalar.
+    expect(
+      await fieldType(
+        `@Avro.logicalType("timestamp-millis") scalar Ts extends int64; @Avro.logicalType("timestamp-micros") scalar Precise extends Ts;`,
+        "Precise",
+      ),
+    ).toEqual({ type: "long", logicalType: "timestamp-micros" });
+  });
+
   it("annotates the branch rather than the union when the field is optional", async () => {
     // Avro annotates a type, and a union is not one. So the null branch sits
     // beside the annotated long, and the whole field is not annotated.

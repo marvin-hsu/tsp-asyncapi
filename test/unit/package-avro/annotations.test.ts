@@ -135,6 +135,40 @@ describe("the Avro annotations", () => {
     expectInstanceRoundTrip(schema);
   });
 
+  it("reads @fixed from the scalar a scalar extends", async () => {
+    // A scalar that extends a fixed scalar is a fixed type of that width, and
+    // it is named after itself, the way a record is named after its model.
+    // Reading the leaf alone wrote a bare bytes instead.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("${NAMESPACE}")
+      namespace A {
+        @Avro.fixed(16)
+        scalar Md5 extends bytes;
+
+        scalar Digest extends Md5;
+
+        @Avro.avroRecord
+        model Event { digest: Digest; sum: Md5; }
+      }
+    `);
+
+    const schema = files["com/example/a/Event.avsc"];
+    expect(schema).toEqual({
+      type: "record",
+      name: "Event",
+      namespace: NAMESPACE,
+      fields: [
+        {
+          name: "digest",
+          type: { type: "fixed", name: "Digest", namespace: NAMESPACE, size: 16 },
+        },
+        { name: "sum", type: { type: "fixed", name: "Md5", namespace: NAMESPACE, size: 16 } },
+      ],
+    });
+
+    expectInstanceRoundTrip(schema);
+  });
+
   it("writes a model marked fixed, with the aliases it carries", async () => {
     const files = await emitAvroFiles(`
       @Avro.avroNamespace("${NAMESPACE}")
