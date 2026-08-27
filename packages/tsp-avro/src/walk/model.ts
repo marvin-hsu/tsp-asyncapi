@@ -72,10 +72,10 @@ import { avroScalarFor, scalarTableFor, type AvroScalarTable } from "./scalars.j
  * can resolve to one Avro name, and a name alone cannot tell that apart from a
  * second visit to the same declaration.
  *
- * `diagnostics` holds every refusal the walk built, and it is also what says
- * the walk refused: a refusal collects a reason, and the walk keeps going
- * after one so the author sees every problem in one compile. A flag beside
- * this list would be a second answer to one question.
+ * `diagnostics` holds every refusal the walk built. It is also what says the
+ * walk refused. A refusal collects a reason, and the walk keeps going after
+ * one, so the author sees every problem in one compile. A flag beside this
+ * list would be a second answer to one question.
  *
  * Nothing here reports a diagnostic. The caller decides where they go, which
  * is what lets an emitter in another package read a reason and say it under
@@ -362,17 +362,18 @@ function scalarFor(
 /**
  * Reads a mark off a scalar, or off the nearest scalar it extends.
  *
- * A TypeSpec scalar carries what it extends, and the primitive table already
- * matches through that chain: `scalar Age extends int32` is an `int`. A mark
- * the author wrote is read the same way, because `scalar CreatedAt extends Ts`
- * means what `Ts` means. Reading the leaf alone dropped the mark and wrote the
- * type underneath it, which is the same type on the wire and a different
- * meaning to a reader.
+ * A TypeSpec scalar carries what it extends. The primitive table already
+ * matches through that chain, so `scalar Age extends int32` is an `int`. A
+ * mark the author wrote is read the same way, because `scalar CreatedAt
+ * extends Ts` means what `Ts` means. Reading the leaf alone dropped the mark
+ * and wrote the type underneath it. That type is the same on the wire and a
+ * different meaning to a reader.
  *
  * The nearest declaration wins, so a scalar restates a mark by writing its
- * own. The mark comes back on its own: the Avro named type a `@fixed` scalar
- * becomes is named after the scalar being walked, the way a record is named
- * after its model, so nothing here needs to know where the mark was written.
+ * own. The mark comes back on its own. A `@fixed` scalar becomes an Avro
+ * named type. That type is named after the scalar being walked, the way a
+ * record is named after its model. So nothing here needs to know where the
+ * mark was written.
  *
  * @param scalar - The scalar being walked
  * @param read - Reads the mark off one declaration
@@ -595,9 +596,9 @@ function namedModelFor(
  * branches, and two of them are `string`.
  *
  * A union of one branch is written as that branch. Avro spells a union of one
- * as the type itself, and folding it here rather than at the field alone is
- * what keeps the items of an array and the values of a map spelled the same
- * way: a union index the reader does not need is a byte on the wire.
+ * as the type itself. The fold is here, not at the field alone, so the items
+ * of an array and the values of a map are spelled the same way. A union index
+ * the reader does not need is a byte on the wire.
  */
 function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroSchema {
   const branches: AvroBranch[] = [];
@@ -891,7 +892,7 @@ function leadWithDefault(
  *
  * A model literal and a tuple carry no scalar, so nothing in the value says
  * which branch it is. A union of one type and null still leaves one place for
- * the default, and `["null", Inner]` is how every optional record field is
+ * the default. `["null", Inner]` is how every optional record field is
  * written, so there is no guess to make.
  *
  * @param branches - The flattened branches
