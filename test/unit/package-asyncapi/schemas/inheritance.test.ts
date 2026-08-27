@@ -527,4 +527,73 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
 
     expect(findNeverOverrideOfInheritedProperty(Derived)).toBeUndefined();
   });
+  /**
+   * `extends` over a named collection base used to build that base twice:
+   * once to ask whether it was a collection at all, and once to write the
+   * `$ref` branch. The element type of the base was built twice with it, and
+   * a second build is what promotes an inlined declaration to a component.
+   * So the same element landed inline or behind a `$ref` depending on
+   * whether some other model happened to extend the collection.
+   */
+  it("should keep a collection base's element inline when a model extends the base", async () => {
+    const { builder, M } = await compileSchemas(t.code`
+      model Box<T> { value: T; }
+      model Items is Box<{ a: string }>[];
+      model Derived extends Items {}
+      model ${t.model("M")} { target: Derived; }
+    `);
+    builder.buildSchema(M);
+
+    const components = builder.getSchemas();
+    expect(components.Items).toEqual({
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          value: {
+            type: "object",
+            properties: { a: { type: "string" } },
+            required: ["a"],
+          },
+        },
+        required: ["value"],
+      },
+    });
+    // The element has no compact name of its own, so a component for it
+    // would be keyed by the long fallback name. Nothing references it twice,
+    // so nothing should have promoted it.
+    expect(Object.keys(components)).toEqual(["Items", "Derived", "M"]);
+  });
+
+  it("should keep a record base's element inline when a model extends the base with properties", async () => {
+    const { builder, M } = await compileSchemas(t.code`
+      model Box<T> { value: T; }
+      model Bag is Record<Box<{ a: string }> | int32>;
+      model Derived extends Bag { count: int32; }
+      model ${t.model("M")} { target: Derived; }
+    `);
+    builder.buildSchema(M);
+
+    const components = builder.getSchemas();
+    expect(components.Bag).toEqual({
+      type: "object",
+      additionalProperties: {
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              value: {
+                type: "object",
+                properties: { a: { type: "string" } },
+                required: ["a"],
+              },
+            },
+            required: ["value"],
+          },
+          { type: "integer", format: "int32" },
+        ],
+      },
+    });
+    expect(Object.keys(components)).toEqual(["Bag", "Derived", "M"]);
+  });
 });

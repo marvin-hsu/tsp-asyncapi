@@ -649,22 +649,26 @@ export class SchemaBuilder {
     }
     const ownKeys = Object.keys(own);
     const ownIsEmpty = ownKeys.length === 1 && ownKeys[0] === "type";
-    const baseCollection = this.buildCollectionSchema(model.baseModel);
-    if (baseCollection !== undefined) {
-      const isAnonymous = isBuiltinCollectionInstantiation(model.baseModel);
-      if (ownIsEmpty) {
-        // See the doc comment above. `own` is guaranteed empty here. So a
-        // single-branch `allOf`, or the bare collection shape for an
-        // anonymous base, cannot produce a contradictory sibling `type`.
-        if (isAnonymous) {
-          return baseCollection;
-        }
-        return { allOf: [this.buildSchema(model.baseModel)] };
+    // Whether the base is a collection is asked of the base itself, never of
+    // a shape built from it. Building the base's collection shape builds its
+    // element type, and a second build of a declaration is what promotes it
+    // from an inline shape to a component. A base built once to answer the
+    // question and once again to write the branch below therefore moved its
+    // element into `components.schemas`, purely because some model extended
+    // the base. See `isBuiltinCollectionInstantiation` for the anonymous
+    // case, which is built exactly once here and is the shape that is used.
+    if (isBuiltinCollectionInstantiation(model.baseModel)) {
+      const baseCollection = this.buildCollectionSchema(model.baseModel);
+      if (baseCollection !== undefined) {
+        // See the doc comment above. An anonymous base has no declaration to
+        // refer to, so its collection shape is written in place. An empty
+        // `own` cannot contradict it, and a non-empty one is an object
+        // beside an object.
+        return ownIsEmpty ? baseCollection : { ...baseCollection, ...own };
       }
-      if (isAnonymous) {
-        return { ...baseCollection, ...own };
-      }
-      return { allOf: [this.buildSchema(model.baseModel), own] };
+    } else if (isArrayModelType(model.baseModel) || isRecordModelType(model.baseModel)) {
+      const named = this.buildSchema(model.baseModel);
+      return ownIsEmpty ? { allOf: [named] } : { allOf: [named, own] };
     }
     const base = this.buildSchema(model.baseModel);
     if (ownIsEmpty) {
