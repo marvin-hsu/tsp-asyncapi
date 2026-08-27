@@ -67,5 +67,9 @@ export function $externalDocs(
  * @public
  */
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined {
-  return getExternalDocsInternal(program, target);
+  // Hand out a copy. The stored state is what the emitter writes, so handing
+  // out the stored object would let a caller change the emitted document by
+  // changing what it was given.
+  const state = getExternalDocsInternal(program, target);
+  return state === undefined ? undefined : { ...state };
 }

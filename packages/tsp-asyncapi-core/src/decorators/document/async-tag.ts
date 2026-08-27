@@ -150,13 +150,20 @@ function toExternalDocs(externalDocs: AsyncTagExternalDocs): AsyncTagExternalDoc
  *
  * @param program - The program to read the state from
  * @param target - The type the decorator was applied to
- * @returns The recorded tags. The array is empty when the decorator was never
- * applied.
+ * @returns A copy of the recorded tags. The array is empty when the
+ * decorator was never applied.
  *
  * @public
  */
 export function getAsyncTags(program: Program, target: Type): AsyncTagState[] {
-  return getAsyncTagsInternal(program, target) ?? [];
+  // Copy the array and every entry. The stored array is the one the decorator
+  // pushes into, so handing it out lets a caller sort or push and change what
+  // the emitter writes. `externalDocs` is copied too, because a shallow copy
+  // of the entry would still share it.
+  return (getAsyncTagsInternal(program, target) ?? []).map((tag) => ({
+    ...tag,
+    ...(tag.externalDocs !== undefined ? { externalDocs: { ...tag.externalDocs } } : {}),
+  }));
 }
 
 /**

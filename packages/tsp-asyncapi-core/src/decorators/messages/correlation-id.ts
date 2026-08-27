@@ -102,5 +102,9 @@ export function $correlationId(
  * @public
  */
 export function getCorrelationId(program: Program, target: Model): CorrelationIdState | undefined {
-  return getCorrelationIdInternal(program, target);
+  // Hand out a copy. The stored state is what the emitter writes, so handing
+  // out the stored object would let a caller change the emitted document by
+  // changing what it was given.
+  const state = getCorrelationIdInternal(program, target);
+  return state === undefined ? undefined : { ...state };
 }

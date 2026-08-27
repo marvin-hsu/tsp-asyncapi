@@ -54,5 +54,8 @@ export function getJsonSchemaExtensions(
   program: Program,
   target: Model | ModelProperty,
 ): JsonSchemaExtensionRecord[] {
-  return getJsonSchemaExtensionsInternal(program, target) ?? [];
+  // Copy the array and every entry. The stored array is the one the decorator
+  // pushes into, so handing it out lets a caller sort or push and change what
+  // the emitter writes.
+  return (getJsonSchemaExtensionsInternal(program, target) ?? []).map((record) => ({ ...record }));
 }

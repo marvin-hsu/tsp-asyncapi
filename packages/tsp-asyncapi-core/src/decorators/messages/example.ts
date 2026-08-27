@@ -144,11 +144,15 @@ export function $messageExample(
  *
  * @param program - The program to read the state from
  * @param target - The model the decorator was applied to
- * @returns The recorded examples. The array is empty when the decorator was
- * never applied.
+ * @returns A copy of the recorded examples. The array is empty when the
+ * decorator was never applied. The example values themselves are compiler
+ * values, which are shared rather than copied.
  *
  * @public
  */
 export function getMessageExamples(program: Program, target: Model): MessageExampleState[] {
-  return getMessageExamplesInternal(program, target) ?? [];
+  // Copy the array and every entry. The stored array is the one the decorator
+  // pushes into, so handing it out lets a caller sort or push and change what
+  // the emitter writes.
+  return (getMessageExamplesInternal(program, target) ?? []).map((example) => ({ ...example }));
 }

@@ -148,13 +148,24 @@ export function $info(context: DecoratorContext, target: Namespace, info: AsyncA
 /**
  * Reads back the AsyncAPI `info` metadata set by `@info`.
  *
+ * The reader hands out a copy. The stored state is what the emitter writes,
+ * so handing out the stored object would let a caller change the emitted
+ * document by changing what it was given. `contact` and `license` are copied
+ * as well, because a shallow copy would still share them.
+ *
  * @param program - The program to read the state from
  * @param target - The namespace the decorator was applied to
- * @returns The recorded info state, or `undefined` when the decorator was
- * never applied
+ * @returns A copy of the recorded info state, or `undefined` when the
+ * decorator was never applied
  *
  * @public
  */
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined {
-  return getInfoInternal(program, target);
+  const state = getInfoInternal(program, target);
+  if (state === undefined) return undefined;
+  return {
+    ...state,
+    ...present("contact", state.contact === undefined ? undefined : { ...state.contact }),
+    ...present("license", state.license === undefined ? undefined : { ...state.license }),
+  };
 }
