@@ -1,8 +1,7 @@
 import { DecoratorContext, Operation } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
-import { toPlainValue } from "../../../marshalled-values.js";
 import { claimBinding } from "../state.js";
-import { reportBindingField, reportMissingField } from "../fields.js";
+import { listField, reportMissingField } from "../fields.js";
 import { OPERATION_QUEUE_REQUIRED, SqsOperationBindingState, readQueue } from "./config.js";
 
 /**
@@ -55,11 +54,15 @@ export function $sqsOperation(
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queues", configTarget);
     return;
   }
-  const written = toPlainValue(context.program, config.queues);
-  if (!Array.isArray(written)) {
-    reportBindingField(context, SQS_BINDING_PROTOCOL, "queues", "a list of queues", configTarget);
-    return;
-  }
+  const written = listField(
+    context,
+    SQS_BINDING_PROTOCOL,
+    "queues",
+    config.queues,
+    "a list of queues",
+    configTarget,
+  );
+  if (written === undefined) return;
 
   const read = written.map((entry, index) =>
     readQueue(context, `queues[${String(index)}]`, entry, OPERATION_QUEUE_REQUIRED, configTarget),

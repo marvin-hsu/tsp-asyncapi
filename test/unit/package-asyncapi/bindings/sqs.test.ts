@@ -365,5 +365,31 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(reported.message).toContain("queues[0].name");
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
+
+    it("reports a queue list the serializer cannot read as a list", async () => {
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
+        ${SERVICE}
+
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+
+        @channel("orders")
+        interface OrderChannel {
+          @sqsOperation(#{
+            queues: #[#{ name: "orders", tags: #{ host: Test.ipv4.fromBytes(1, 2, 3, 4) } }],
+          })
+          @send
+          op publish(event: OrderCreated): void;
+        }
+      `);
+
+      // One entry the serializer cannot represent takes the whole list with
+      // it, so the report names `queues` rather than the entry.
+      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
+      expect(reported.message).toContain("'queues'");
+      expect(reported.message).toContain("a list of queues");
+      expect(operationsOf(doc).publish.bindings).toBeUndefined();
+    });
   });
 });
