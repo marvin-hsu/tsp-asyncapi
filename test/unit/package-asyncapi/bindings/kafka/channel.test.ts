@@ -183,6 +183,36 @@ describe("Unit: the @kafkaChannel decorator", () => {
     expect(reported.message).toContain("delete or compact");
   });
 
+  it("reports a topic configuration the serializer cannot represent", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      ${SERVICE}
+
+      scalar ipv4 extends string {
+        init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+      }
+
+      @kafkaChannel(#{
+        topic: "orders",
+        topicConfiguration: #{ \`vendor.host\`: Test.ipv4.fromBytes(1, 2, 3, 4) },
+      })
+      @channel("orders.created")
+      interface OrderChannel {
+        @send
+        op publish(event: OrderCreated): void;
+      }
+    `);
+
+    // One member the serializer cannot represent fails the whole map. The
+    // field is reported and dropped, and the rest of the binding is kept.
+    const reported = findDiagnostic(diagnostics, "invalid-binding-field");
+    expect(reported.message).toContain("topicConfiguration");
+    expect(reported.message).toContain("an object");
+    expect(bindingsOf(channelsOf(doc)["orders.created"].bindings).kafka).toEqual({
+      topic: "orders",
+      bindingVersion: "0.5.0",
+    });
+  });
+
   it("keeps the rest of the topic configuration when the cleanup policy is rejected", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${SERVICE}

@@ -5,8 +5,13 @@
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
-import { toPlainValue } from "../../../marshalled-values.js";
-import { enumeratedField, reportBindingField, schemaField } from "../fields.js";
+import {
+  enumeratedField,
+  nonEmptyObject,
+  objectField,
+  reportBindingField,
+  schemaField,
+} from "../fields.js";
 import type {
   KafkaChannelBindingObject,
   KafkaMessageBindingObject,
@@ -140,10 +145,14 @@ export function kafkaSchemaField(
  * Checks the `topicConfiguration` field of the channel binding.
  *
  * The map passes through untouched, apart from the one rule the binding
- * states about a value. The declared type is `Record<unknown>`, so the value
- * is already a map by the time it arrives. AsyncAPI allows this object to carry additional
+ * states about a value. AsyncAPI allows this object to carry additional
  * properties, and its own keys hold dots, so a vendor key such as
  * `confluent.value.schema.validation` stays legal here.
+ *
+ * The declared type is `Record<unknown>`, so the checker already refused a
+ * scalar here. The map still arrives as no object at all when one member is a
+ * value the serializer cannot represent. A custom scalar with an `init` is
+ * one. That member fails the whole map, so the field is reported and dropped.
  *
  * The one rule is `cleanup.policy`. Kafka accepts `delete` and `compact`, and
  * the field is a list, so each entry is checked. A list that holds any other
@@ -165,9 +174,8 @@ export function topicConfiguration(
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value) as Record<string, unknown>;
-  if (Object.keys(plain).length === 0) return undefined;
+  const plain = objectField(context, KAFKA_BINDING_PROTOCOL, "topicConfiguration", value, target);
+  if (plain === undefined) return undefined;
   const policy = plain[CLEANUP_POLICY_KEY];
   if (policy !== undefined) {
     const entries = Array.isArray(policy) ? policy : [policy];
@@ -182,8 +190,8 @@ export function topicConfiguration(
       const kept = Object.fromEntries(
         Object.entries(plain).filter(([key]) => key !== CLEANUP_POLICY_KEY),
       );
-      return Object.keys(kept).length > 0 ? kept : undefined;
+      return nonEmptyObject(kept);
     }
   }
-  return plain;
+  return nonEmptyObject(plain);
 }
