@@ -501,6 +501,21 @@ export function reportMissingField(
  * the binding is without this object. So the reader names the outcome and the
  * decorator acts on it.
  *
+ * `dropped` costs the whole binding at three sites. The rejected field there
+ * is one the binding cannot be written without. The three are the `queue` of
+ * an SQS channel, the `queues` of an SQS operation, and the `schemaSettings`
+ * of a Google Cloud Pub/Sub channel. The report stays
+ * `invalid-binding-field`, which is a warning, so the build succeeds with the
+ * binding left out.
+ *
+ * That is deliberate. The library types all three fields, so the checker
+ * refuses a scalar or a list before the decorator runs. The only value that
+ * reaches this code and fails is one the serializer cannot represent. The
+ * author still reads the field name and what it expected. The message of
+ * `invalid-binding-field` also says the rest of the binding was kept, and
+ * that half is not true at these three sites. Give them an error code of
+ * their own if the warning ever hides a loss the author does not notice.
+ *
  * @internal
  */
 export type NestedRead<T> =
