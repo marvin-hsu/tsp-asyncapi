@@ -42,10 +42,6 @@ export interface KafkaMessageBindingConfig {
  * says none of them applies without a server-level `schemaRegistryUrl`. This
  * emitter does not check that, because the rule spans two objects.
  *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The Kafka message binding fields
- *
  * @example
  * ```typespec
  * @kafkaMessage(#{ key: #{ type: "string" }, schemaIdLocation: "payload" })

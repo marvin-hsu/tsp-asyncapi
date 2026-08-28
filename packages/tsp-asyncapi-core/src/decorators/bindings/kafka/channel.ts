@@ -39,10 +39,6 @@ export interface KafkaChannelBindingConfig {
  * this map stays open. The one value that is checked is `cleanup.policy`,
  * whose entries are `delete` and `compact`.
  *
- * @param context - The decorator context
- * @param target - The interface or namespace that carries the channel
- * @param config - The Kafka channel binding fields
- *
  * @example
  * ```typespec
  * @kafkaChannel(#{

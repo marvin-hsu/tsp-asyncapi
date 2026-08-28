@@ -30,10 +30,6 @@ export interface KafkaOperationBindingConfig {
  * the emitter writes it into the document as written. A value that is not an
  * object is reported and dropped.
  *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The Kafka operation binding fields
- *
  * @example
  * ```typespec
  * @kafkaOperation(#{ groupId: #{ type: "string", const: "order-workers" } })

@@ -113,10 +113,6 @@ export interface IbmMqServerBindingConfig {
  * IBM MQ states that `cipherSpec` applies only when the server uses TLS. This
  * emitter does not check that, because the rule spans two objects.
  *
- * @param context - The decorator context
- * @param target - The service namespace
- * @param config - The IBM MQ server binding fields
- *
  * @example
  * ```typespec
  * @ibmMqServer(#{ groupId: "PRODCLSTR1", heartBeatInterval: 300 })
@@ -189,10 +185,6 @@ export interface IbmMqChannelBindingConfig {
  * not check that pairing, the same way it leaves the AMQP one alone.
  *
  * `maxMsgLength` is from 0 to 104857600 bytes, which is 100 MB.
- *
- * @param context - The decorator context
- * @param target - The channel interface or namespace
- * @param config - The IBM MQ channel binding fields
  *
  * @example
  * ```typespec
@@ -271,10 +263,6 @@ export interface IbmMqMessageBindingConfig {
  *
  * `headers` is a comma-separated list of header names, not a Schema Object.
  * IBM MQ is the one binding in this library that states the field that way.
- *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The IBM MQ message binding fields
  *
  * @example
  * ```typespec

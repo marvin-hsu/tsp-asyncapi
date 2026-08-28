@@ -1,33 +1,22 @@
 /**
  * The field checks every protocol binding shares.
  *
- * A binding specification states rules about its own fields. Several rules
- * recur across protocols. A field must hold one of a fixed set of values or
- * numbers. A field must hold a Schema Object, a plain object or a list. A
- * number is never negative. A name is at most so many characters. A field the
- * specification requires must be there at all. Each rule is checked here, and
- * the protocol name arrives as an argument.
+ * A binding specification states rules about its own fields. Common rules
+ * recur across protocols: a fixed set of values, a Schema Object, a
+ * non-negative number, a name length limit, or a required field. Each rule
+ * is checked here. The protocol name arrives as an argument. A protocol
+ * that states a rule of its own, such as Kafka's `cleanup.policy`, keeps
+ * that check in its own directory instead.
  *
- * A protocol that states a rule of its own keeps that check in its own
- * directory. Kafka reads `cleanup.policy`, and no other binding has such a
- * field. A rule two protocols share belongs here instead, so the two cannot
- * answer the same source in different ways.
+ * Three diagnostic codes cover these checks. `invalid-binding-field` is a
+ * warning: it reports a rejected value and keeps the rest of the binding.
+ * `invalid-required-binding-field` reports the same rejection on a required
+ * field, as an error that drops the whole binding. `missing-binding-field`
+ * is also an error, reported when a required field is missing entirely.
  *
- * Three diagnostic codes cover all of them. `invalid-binding-field` carries
- * the protocol, the field and what the field expects, so a new rule adds a
- * call rather than a code. It is a warning, and the rest of the binding is
- * emitted. `invalid-required-binding-field` carries the same three, and it is
- * the code a rejected value on a required field reports. It is an error, and
- * the whole binding is dropped. The caller picks between the two with the
- * `FieldLoss` it passes.
- *
- * `missing-binding-field` is the third. It reports a required field the
- * author left out, and it is an error as well.
- *
- * Every check here follows one rule, which is why no decorator repeats it: a
- * decorator records only the fields that survived. A field the author left
- * out, or one a check rejected, is stored as absent. So nothing downstream
- * has to ask a second time whether a field is usable.
+ * Every check here follows one rule: a decorator records only the fields
+ * that survived. A field left out, or one a check rejected, is stored as
+ * absent, so nothing downstream needs to ask twice whether it is usable.
  */
 
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
@@ -280,7 +269,7 @@ export function schemaField(
  * MQTT states its quality of service as `0`, `1` or `2`, and its payload
  * format indicator as `0` or `1`. A value outside the set names a mode no
  * broker implements. The declared type is `int32`, so the value is already
- * whole by the time it arrives; only membership is checked here.
+ * whole by the time it arrives. Only membership is checked here.
  * @internal
  */
 export function numericField(
