@@ -3,11 +3,10 @@ import { isSameApplication, SourcePosition } from "#core/source-order.js";
 
 describe("Unit: isSameApplication — the identity of one application", () => {
   /**
-   * The whole domain, written out: four file names and nine offsets. The
-   * predicate reads nothing else, so thirty-six positions are every input it
-   * can distinguish, and the loops below visit all of their pairs — complete
-   * where a sampler is a lucky subset, and free of the seed that once decided
-   * whether the transitive premise was reached at all.
+   * The predicate reads only a file name and an offset, so these
+   * thirty-six positions cover every input it can distinguish. The loops
+   * below check every pair, proving transitivity by exhaustion instead of
+   * by sampling.
    */
   const FILES = ["main.tsp", "lib.tsp", "a/b.tsp", ""] as const;
   const POSITIONS: SourcePosition[] = FILES.flatMap((file) =>
@@ -33,8 +32,8 @@ describe("Unit: isSameApplication — the identity of one application", () => {
         expect(isSameApplication(left, right)).toBe(isSameApplication(right, left));
       }
     }
-    // Transitivity holds by the exhaustive check above: a relation that
-    // equals component-wise agreement is transitive by construction, and
-    // every pair was compared against that specification.
+    // Transitivity holds by construction. A relation that equals
+    // component-wise agreement is transitive, and every pair above was
+    // compared against that specification.
   });
 });
