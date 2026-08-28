@@ -95,9 +95,8 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
         }
       `);
 
-      // One member the serializer cannot represent fails the whole object.
-      // The binding needs the object, so the report is an error and it says
-      // the binding went as well.
+      // One member the serializer cannot represent fails the whole object,
+      // and the required binding goes with it.
       const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'schemaSettings'");

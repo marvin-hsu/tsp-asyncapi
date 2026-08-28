@@ -153,10 +153,8 @@ describe("Unit: the IBM MQ binding decorators", () => {
       }
     `);
 
-    // IBM MQ allows `headers` on a binary payload and on no other. Emitting
-    // both is a document the AsyncAPI parser rejects, so the field goes and
-    // the type stays: the author said what the payload is, and the headers
-    // are the part that cannot apply to it.
+    // IBM MQ allows `headers` on a binary payload and on no other, so the
+    // field goes and the declared type stays.
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain("a binary payload");

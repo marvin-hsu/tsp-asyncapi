@@ -45,16 +45,14 @@ describe("Unit: assembling a Bindings Object", () => {
     const doc = await documentFrom(runner.program);
 
     const bindings = doc.channels?.["orders.created"].bindings as Record<string, unknown>;
-    // The members read in the order the author wrote the decorators, so the
-    // emitted document is the same on every run.
+    // The members read in the order the author wrote the decorators.
     expect(Object.keys(bindings)).toEqual(["mqtt", "amqp", "kafka"]);
     expect(bindings.kafka).toEqual({
       topic: "orders.created",
       partitions: 3,
       bindingVersion: "0.5.0",
     });
-    // Only a Kafka decorator knows which version its fields come from, so the
-    // generic decorator adds none.
+    // The generic decorator adds no version, since only a protocol decorator knows one.
     expect(bindings.mqtt).toEqual({ qos: 1 });
   });
 
@@ -148,16 +146,12 @@ describe("Unit: assembling a Bindings Object", () => {
     });
   });
   /**
-   * Every renderer, driven from the source tree.
+   * Every renderer, run from the source tree, once per protocol.
    *
-   * The suites beside this one reach a renderer through the emitter, which
-   * loads the build output. So a renderer wired into the map wrongly would
-   * still pass there while the `src` copy of the map was never run. This test
-   * runs the map itself, once per protocol.
-   *
-   * A protocol added to `BindingRenderer` without an entry here leaves its
-   * renderer unexercised from source. The compile-time check on the map
-   * catches a missing entry; this catches a wrong one.
+   * The suites beside this one go through the emitter and its build output,
+   * so a renderer wired to the wrong protocol there could still pass. The
+   * compile-time check on `BindingRenderer` catches a missing entry; this
+   * catches a wrong one.
    */
   it("runs the renderer of every protocol from the source tree", async () => {
     await runner.compile(`
