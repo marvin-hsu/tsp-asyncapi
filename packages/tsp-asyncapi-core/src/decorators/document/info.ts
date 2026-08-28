@@ -1,3 +1,14 @@
+/**
+ * State recorded by `@info`, and the reader other modules use.
+ *
+ * A document carries exactly one Info Object, so this module keeps one
+ * value per namespace and guards against a second application. It trims
+ * every text field, checks the `uri`-format fields for an absolute URL, and
+ * drops a field that fails a check rather than the whole `@info` value. It
+ * does not check whether the namespace it was applied to reaches the
+ * emitted document.
+ */
+
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { DEFAULT_INFO_VERSION } from "../../constants.js";
@@ -122,7 +133,7 @@ function licenseOf(
  * alone is dropped.
  *
  * Apply this decorator only once per namespace. A document carries one Info
- * Object, so a second application is reported and discarded.
+ * Object, so a second application is reported and dropped.
  *
  * @param context - The decorator context
  * @param target - The namespace to apply this decorator to

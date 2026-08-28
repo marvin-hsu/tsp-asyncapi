@@ -1,3 +1,13 @@
+/**
+ * State recorded by `@asyncTag`, and the readers other modules use.
+ *
+ * Each application adds one Tag Object, with its name and metadata, in the
+ * order the applications ran. This module does not merge a tag with a
+ * matching `@tag` application, and it does not report a name clash between
+ * two tags on one target. Both belong to the emitter, which alone knows
+ * source order and can pick a winner.
+ */
+
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
