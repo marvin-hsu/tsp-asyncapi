@@ -780,7 +780,7 @@ One name reached `@useServer` twice on one channel. AsyncAPI requires the entrie
 
 > Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
 
-The name given to `@useServer` uses a character AsyncAPI does not allow in a key of the root `servers` map. The name is trimmed first, so a name of spaces alone is blank. The emitter does not rewrite the name, because that would change the server the author asked for.
+The name given to `@useServer` uses a character AsyncAPI does not allow in a key of the root `servers` map. The name is tested as written, the same way `@server` tests the key it declares. A space is outside the allowed set, so a padded name is rejected on both sides. The emitter does not rewrite the name, because that would change the server the author asked for.
 
 **Fix:** write the name with letters, digits, `_`, and `-` only.
 

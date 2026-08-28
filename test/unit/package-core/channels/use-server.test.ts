@@ -32,13 +32,18 @@ describe("Unit: @useServer name checks", () => {
     expect(findDiagnostic(diagnostics, "invalid-use-server-name").message).toContain("''");
   });
 
-  it("keeps a name the author padded with spaces", async () => {
+  it("drops a name the author padded with spaces and reports it", async () => {
+    // `@server` tests the key it declares as written, so a padded name is
+    // rejected there too. Both halves of one name follow the same rule, and
+    // the author writes the name the same way on each side.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(
       source(`@useServer("  primary  ")`),
     );
 
-    expect(diagnosticsWith(diagnostics, "invalid-use-server-name")).toHaveLength(0);
-    expect(doc?.channels?.["orders.created"].servers).toEqual([{ $ref: "#/servers/primary" }]);
+    expect(findDiagnostic(diagnostics, "invalid-use-server-name").message).toContain(
+      "'  primary  '",
+    );
+    expect(doc?.channels?.["orders.created"].servers).toBeUndefined();
   });
 
   it("drops a name outside the server name charset and reports it", async () => {

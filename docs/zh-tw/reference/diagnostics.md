@@ -775,7 +775,7 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 
 > Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
 
-`@useServer` 拿到的名稱用了 AsyncAPI 不允許出現在根層 `servers` map key 的字元。名稱會先去除前後空白，所以只有空白的名稱等同空字串。emitter 不會改寫名稱，因為那會換掉作者指定的 server。
+`@useServer` 拿到的名稱用了 AsyncAPI 不允許出現在根層 `servers` map key 的字元。名稱按原樣檢查，與 `@server` 檢查它宣告的 key 的方式相同。空白不在允許的字元集內，所以前後帶空白的名稱兩邊都會被拒絕。emitter 不會改寫名稱，因為那會換掉作者指定的 server。
 
 **修法：** 名稱只使用英文字母、數字、`_` 與 `-`。
 
