@@ -34,9 +34,9 @@ import { ServerNode, ServerVariableNode } from "./service.js";
  * A name no `@securityScheme` defines is reported and dropped here. The
  * reference the lower half writes would otherwise address a key the document
  * does not carry, and a parser rejects the whole document for it.
- * `@useSecurity` cannot make this check itself, since a `@securityScheme`
- * anywhere in the program can still arrive after it runs; here the full set
- * is known.
+ * `@useSecurity` cannot make this check itself. A `@securityScheme` anywhere
+ * in the program can still arrive after it runs. The full set of names is
+ * known only once the whole program is read.
  *
  * Only the names are carried. Turning a name into a reference is a document
  * detail that belongs to the lower half.
@@ -207,11 +207,10 @@ export function reportServersOutsideService(
  * nowhere to go and changes nothing, the same silent failure
  * `server-outside-service` guards against.
  *
- * Only the service namespace's servers are emitted, so a namespace that
- * merely declares a server is not enough: a `@server` elsewhere is dropped
- * and reported, and the `@useSecurity` beside it has just as little to
- * attach to. Reading the recorded state alone would call that namespace
- * served and miss the second mistake.
+ * Only the service namespace's servers are emitted. A `@server` elsewhere is
+ * not enough: it is dropped and reported. The `@useSecurity` beside it has
+ * just as little to attach to. Reading the recorded state alone would call
+ * that namespace served and miss the second mistake.
  *
  * @param program - The program to read the applications from
  * @param service - The namespace the document is emitted from, if there is one

@@ -180,9 +180,10 @@ export function markBindingsPlaced(
  * Reports every binding that reached no object.
  *
  * A binding sits on the object its target emits. Four cases have nowhere to
- * go: a `@kafkaOperation` with no action, a `@kafkaMessage` on a model with
- * no `@message`, a `@kafkaChannel` on a plain interface, and a `@kafkaServer`
- * on a namespace with no server. Each stays silent unless reported here.
+ * go. A `@kafkaOperation` can have no action. A `@kafkaMessage` can sit on a
+ * model with no `@message`. A `@kafkaChannel` can sit on a plain interface. A
+ * `@kafkaServer` can sit on a namespace with no server. Each stays silent
+ * unless reported here.
  *
  * Call it once the whole document is built, so every binding had its chance
  * to be placed. Reports come out in source order, not the state layer's

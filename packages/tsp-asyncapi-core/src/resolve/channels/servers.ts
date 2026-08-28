@@ -1,16 +1,3 @@
-/**
- * The `servers` array of one channel.
- *
- * It reads the channel's `@useServer` applications, in source order, and the
- * set of server names the document declares.
- *
- * It decides which server names the channel is available on, dropping a
- * repeat and a name no `@server` declares.
- *
- * The lower half turns each name into a Reference Object. This module
- * carries only the name.
- */
-
 import { Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { getUsedServers } from "../../decorators/index.js";

@@ -1,16 +1,3 @@
-/**
- * The messages one channel carries.
- *
- * It reads the key each message model was given in `components.messages`,
- * and asks `channelMessageModels` which models reach this channel at all.
- *
- * It decides the channel's `messages` map, and the key this channel gave
- * each model, so no other layer has to recompute either one.
- *
- * The lower half turns the map into `$ref` entries. This module never
- * writes a reference itself.
- */
-
 import { Model, Program } from "@typespec/compiler";
 import { ChannelMessageNode } from "../service.js";
 import { ChannelTarget } from "../../decorators/channels/state.js";

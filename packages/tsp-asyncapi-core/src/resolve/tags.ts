@@ -204,7 +204,7 @@ function mergeExternalDocs(
  * The fields of `externalDocs` are compared the same way. Two different
  * `url` values disagree, since a Tag Object holds one link, and so do two
  * different descriptions of that link. A description only one side carries
- * merges into the other's `url` instead.
+ * is not a disagreement.
  */
 function conflictingFields(kept: AsyncTagState, added: AsyncTagState): string[] {
   const fields: string[] = [];

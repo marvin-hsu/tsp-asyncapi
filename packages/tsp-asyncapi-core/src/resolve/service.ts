@@ -359,7 +359,7 @@ export interface ServerVariableNode {
  * The reuse is deliberate, not an exception: `SecuritySchemeObject` is one of
  * the objects the author writes directly, so it lives in `types/authored.ts`
  * with the rest of the vocabulary the decorators accept. This model refers to
- * three of those objects for a whole value; the other two are
+ * three of those objects for a whole value. The other two are
  * `MessageExampleObject` and `MultiFormatSchemaObject`.
  *
  * @internal

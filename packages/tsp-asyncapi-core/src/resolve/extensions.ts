@@ -28,7 +28,7 @@ import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source
  * namespace runs its one statement once per declaration, so an entry at the
  * winner's own position is the same application seen again, not a clash.
  *
- * The resolver below takes the winners; `reportExtensionProblems` takes the
+ * The resolver below takes the winners. `reportExtensionProblems` takes the
  * losers to report.
  */
 function pickExtensions(

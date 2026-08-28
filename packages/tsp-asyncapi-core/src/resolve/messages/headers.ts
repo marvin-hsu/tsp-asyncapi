@@ -10,10 +10,12 @@
  * headers, and which fields a `@header` mark lifts out of the payload. A
  * lifted field is inherited by every message that extends the one that lifts
  * it, so the resulting plan covers the whole program, not one message at a
- * time. It also reports every conflict the three mechanisms can produce: a
- * mark that reaches no top-level field, a content type stated twice, a lift
- * a derived message's own `@headers` overrides, and a lift a raw payload
- * cannot honour.
+ * time.
+ *
+ * It also reports every conflict the three mechanisms can produce. A mark
+ * can reach no top-level field. A content type can be stated twice. A lift
+ * can be overridden by a derived message's own `@headers`. A lift can name
+ * a field a raw payload cannot honour.
  *
  * It does not build a headers schema. The plan names the source; expanding a
  * model or a set of fields into a schema is the lower half's work.
