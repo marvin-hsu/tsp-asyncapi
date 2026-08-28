@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
@@ -79,8 +80,8 @@ describe("Property: order independence", () => {
           const b = await emitDocumentWithDiagnostics(`${head}\n${beta}\n${alpha}`);
 
           fc.pre(a.doc !== null && b.doc !== null);
-          fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
-          fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
+          fc.pre(!hasError(a.diagnostics));
+          fc.pre(!hasError(b.diagnostics));
 
           expect(normalise(a.doc)).toEqual(normalise(b.doc));
         },
@@ -175,8 +176,8 @@ describe("Property: order independence", () => {
           const b = await emitDocumentWithDiagnostics([head, ...aliases, ...rotated].join("\n"));
 
           fc.pre(a.doc !== null && b.doc !== null);
-          fc.pre(!a.diagnostics.some((d) => d.severity === "error"));
-          fc.pre(!b.diagnostics.some((d) => d.severity === "error"));
+          fc.pre(!hasError(a.diagnostics));
+          fc.pre(!hasError(b.diagnostics));
 
           const keysA = Object.keys(schemasOf(a.doc));
           const keysB = Object.keys(schemasOf(b.doc));

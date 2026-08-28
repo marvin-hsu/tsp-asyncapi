@@ -14,7 +14,7 @@
 import { describe, expect, it } from "vitest";
 import { createLibraryTester } from "../../../../utils/emitter-package.js";
 import { PACKAGE_NAME } from "#emitter/lib.js";
-import { diagnosticsWith } from "../../../../utils/diagnostics.js";
+import { diagnosticsWith, expectNoErrors } from "../../../../utils/diagnostics.js";
 
 /** A tester that compiles all three libraries and turns both features on. */
 const BothFeatures = createLibraryTester("tsp-avro", "@typespec/protobuf").emit(PACKAGE_NAME, {
@@ -97,7 +97,7 @@ describe("Unit: one model claimed by two preview features", () => {
       }
     `);
 
-    expect(diagnostics.filter((one) => one.severity === "error")).toEqual([]);
+    expectNoErrors(diagnostics);
     const outputs: Record<string, string | undefined> = result.outputs;
     const document = outputs["asyncapi.yaml"] ?? "";
     // Each provider answered for its own model, in its own format.

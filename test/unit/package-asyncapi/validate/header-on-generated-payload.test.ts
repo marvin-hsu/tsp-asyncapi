@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { expectNoErrors } from "../../../utils/diagnostics.js";
 import { createLibraryTester } from "../../../utils/emitter-package.js";
 import type { Diagnostic } from "@typespec/compiler";
 
@@ -94,7 +95,7 @@ describe("Unit: a header on a model with a generated payload", () => {
     ).replace("      @header traceId: string;\n", "");
     const diagnostics = await check(withModel);
 
-    expect(diagnostics.filter((one) => one.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((one) => one.code === CODE)).toHaveLength(0);
   });
 
@@ -103,7 +104,7 @@ describe("Unit: a header on a model with a generated payload", () => {
     const plain = AVRO.replace("    @Avro.avroRecord\n", "");
     const diagnostics = await check(plain);
 
-    expect(diagnostics.filter((one) => one.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((one) => one.code === CODE)).toHaveLength(0);
   });
 

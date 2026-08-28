@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../utils/test-host.js";
 import { resolveRef } from "../utils/json-pointer.js";
@@ -111,7 +112,7 @@ describe("Integration: emitted document properties", () => {
           // The emitter is allowed to refuse. Two of these name sets do
           // collide after sanitizing, and that is reported as an error. The
           // claim starts once the emitter has answered with a document.
-          fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+          fc.pre(doc !== null && !hasError(diagnostics));
 
           const keys = Object.keys(schemasOf(doc));
           for (const key of keys) {
@@ -210,7 +211,7 @@ describe("Integration: emitted document properties", () => {
             return;
           }
 
-          fc.pre(!diagnostics.some((d) => d.severity === "error"));
+          fc.pre(!hasError(diagnostics));
 
           // Root plus one component for each declared model.
           const keys = Object.keys(schemasOf(doc));

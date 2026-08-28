@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 
@@ -291,7 +292,7 @@ describe("Integration: Schemas — no $ref carries sibling keywords", () => {
         // The claim starts once the emitter has answered with a document.
         // A program TypeSpec refuses tests nothing. Warnings are kept: a
         // path that reports one still emits a document.
-        fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+        fc.pre(doc !== null && !hasError(diagnostics));
 
         const violations: Violation[] = [];
         walk(doc, "", violations);

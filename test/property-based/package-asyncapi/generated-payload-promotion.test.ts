@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { expectNoErrors } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { listServices, type Model, type Program } from "@typespec/compiler";
 import { AsyncAPITester } from "#emitter/testing.js";
@@ -125,7 +126,7 @@ async function documentOf(drawn: readonly Assignment[]): Promise<AsyncAPIDocumen
   const [, diagnostics] = await runner.compileAndDiagnose(sourceOf(drawn));
   // An error here means the generator built illegal TypeSpec. Fail loudly
   // rather than skipping, so the property cannot starve.
-  expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).toEqual([]);
+  expectNoErrors(diagnostics);
 
   const program = runner.program;
   const payloadFor = new Map<Model, ExternalSchemaArtifact>();

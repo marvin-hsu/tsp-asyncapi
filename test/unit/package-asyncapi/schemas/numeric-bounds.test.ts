@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { schemaOf, schemasOf } from "../../../utils/document.js";
-import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, expectNoErrors } from "../../../utils/diagnostics.js";
 
 /**
  * Which numeric bounds reach the document, and which are reported instead.
@@ -46,7 +46,7 @@ describe("Unit: numeric bounds at the safe-integer boundary", () => {
    */
   async function boundOf(decorator: "minValue" | "maxValue", literal: string) {
     const { doc, diagnostics } = await emitConstraint(decorator, literal);
-    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expectNoErrors(diagnostics);
     const schema = schemaOf(schemasOf(doc).Root).properties?.v as
       Record<string, unknown> | undefined;
     return { emitted: schema?.[KEYWORD[decorator]], diagnostics };

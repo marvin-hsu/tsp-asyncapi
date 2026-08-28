@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { countKey } from "../../utils/document.js";
@@ -375,7 +376,7 @@ describe("Property: nested depth", () => {
         // The unrepresentable cycle is reported as an error, and a document
         // the emitter has already refused says nothing about the parser. The
         // first property is the one that pins that case.
-        fc.pre(!diagnostics.some((diagnostic) => diagnostic.severity === "error"));
+        fc.pre(!hasError(diagnostics));
 
         if (depth >= 4) deep++;
         if (aux.includes("empty-union")) emptyUnion++;

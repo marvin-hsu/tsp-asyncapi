@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { expectNoErrors } from "../../../utils/diagnostics.js";
 import { createOptionsRuleLinter } from "../../../utils/linter.js";
 
 const RULE = "tsp-asyncapi/protobuf-content-type-undeclared";
@@ -56,26 +57,26 @@ describe("Unit: the protobuf-content-type-undeclared rule", () => {
    */
   it("stays quiet when the feature is off", async () => {
     const diagnostics = await lintWith(PROBE, { "preview-features": [] });
-    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet when the model carries the official decorators", async () => {
     const diagnostics = await lintWith(DECLARED, { "preview-features": ["protobuf"] });
-    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /** An author who wrote the schema has already answered the question. */
   it("stays quiet when the author wrote the payload", async () => {
     const diagnostics = await lintWith(AUTHORED, { "preview-features": ["protobuf"] });
-    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet for a content type that is not Protobuf", async () => {
     const diagnostics = await lintWith(JSON_TYPE, { "preview-features": ["protobuf"] });
-    expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
+    expectNoErrors(diagnostics);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 

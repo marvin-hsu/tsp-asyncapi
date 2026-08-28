@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { expectNoErrors } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { schemaOf, schemasOf } from "../../utils/document.js";
@@ -126,7 +127,7 @@ describe("Property: no declared constraint is erased", () => {
     `);
     // An error here means the generator built illegal TypeSpec. Fail loudly
     // instead of skipping, so the property cannot starve unnoticed.
-    expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.code)).toEqual([]);
+    expectNoErrors(diagnostics);
     // A user-declared scalar earns a `components.schemas` entry, so the
     // property may write a reference to it. The claim is about what the
     // document says, not where it says it, so the reference is followed.
@@ -305,7 +306,7 @@ describe("Property: no declared constraint is erased", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expectNoErrors(diagnostics);
     const resolved = followRefs(doc, schemaOf(schemasOf(doc).Root).properties?.v);
 
     // One level is expanded, and the reference back to `Node` is left as it
