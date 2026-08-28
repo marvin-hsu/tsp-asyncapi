@@ -130,6 +130,6 @@ channels:
 
 A channel with no `@useServer` carries no `servers` field. AsyncAPI reads an absent field and an empty array alike as "available on every server", so the emitter leaves the field out.
 
-The name is trimmed. It must use only the characters a-z, A-Z, 0-9, `_`, and `-`, which is the character set AsyncAPI allows for a key of the root `servers` map. A name outside that set is reported as [`invalid-use-server-name`](../diagnostics#invalid-use-server-name), and the application is dropped.
+The name is checked as written. It must use only the characters a-z, A-Z, 0-9, `_`, and `-`. That is the character set AsyncAPI allows for a key of the root `servers` map. A name outside that set is reported as [`invalid-use-server-name`](../diagnostics#invalid-use-server-name), and the application is dropped. A name padded with spaces is outside that set, so it is dropped too.
 
 The name must also name a server that some `@server` on the service namespace declares. A name outside that set is reported as [`undeclared-used-server`](../diagnostics#undeclared-used-server), and the entry is dropped. Two other mistakes are reported: [`duplicate-use-server`](../diagnostics#duplicate-use-server) and [`use-server-without-channel`](../diagnostics#use-server-without-channel).

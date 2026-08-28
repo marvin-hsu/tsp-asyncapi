@@ -130,6 +130,6 @@ channels:
 
 沒有任何 `@useServer` 的 channel 完全不輸出 `servers` 欄位。AsyncAPI 把「欄位缺席」與「空陣列」都讀作「在所有 server 上可用」，所以 emitter 直接省略該欄位。
 
-名稱會先去除前後空白。名稱只能使用 a-z、A-Z、0-9、`_`、`-` 這些字元，也就是 AsyncAPI 允許用在根層 `servers` map key 的字元集。超出這個字元集的名稱會回報 [`invalid-use-server-name`](../diagnostics#invalid-use-server-name)，該次套用會被丟棄。
+名稱會依照原樣檢查。名稱只能使用 a-z、A-Z、0-9、`_`、`-` 這些字元，也就是 AsyncAPI 允許用在根層 `servers` map key 的字元集。超出這個字元集的名稱會回報 [`invalid-use-server-name`](../diagnostics#invalid-use-server-name)，該次套用會被丟棄。前後帶空白的名稱也在這個字元集之外，同樣會被丟棄。
 
 名稱還必須對應到 service namespace 上某個 `@server` 宣告的 server。沒有對應的名稱會回報 [`undeclared-used-server`](../diagnostics#undeclared-used-server)，該筆項目會被丟棄。另有兩種錯誤會回報：[`duplicate-use-server`](../diagnostics#duplicate-use-server) 與 [`use-server-without-channel`](../diagnostics#use-server-without-channel)。
