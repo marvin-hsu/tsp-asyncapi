@@ -133,9 +133,9 @@ export async function collectSchemaArtifacts(
 /**
  * Merges the payload map of every index into one.
  *
- * Two providers that claim one model are a conflict, and there is no winner. Keeping the first would make the answer depend on the order
- * the registry lists them, which is not something a project states. So both
- * are dropped.
+ * Two providers that claim one model are a conflict, and there is no winner.
+ * Keeping the first would make the answer depend on the order the registry
+ * lists them, which is not something a project states. So both are dropped.
  *
  * The model is then left with the schema its TypeSpec type produces, which
  * answers the project with output that ignores its request. Reporting the
