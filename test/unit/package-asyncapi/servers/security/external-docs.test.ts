@@ -168,7 +168,7 @@ describe("Unit: server external docs", () => {
 
     // The value is trimmed and the key is not. The key pairs an entry with
     // the `scopes` list of a usage site, so trimming it would break that
-    // pairing. Only the value half of this rule was covered before.
+    // pairing.
     const flow = present(
       present(securitySchemesOf(doc).oauth.flows, "oauth flows").clientCredentials,
       "clientCredentials flow",

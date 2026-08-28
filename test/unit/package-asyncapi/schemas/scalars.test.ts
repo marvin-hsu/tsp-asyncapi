@@ -129,16 +129,15 @@ describe("Unit: Schemas — scalars", () => {
   });
 
   it("resolves a built-in with no table entry through its own @encode", async () => {
-    // `unixTimestamp32` is a real TypeSpec standard-library scalar and
-    // `SCALAR_SCHEMAS` carries no entry for it. A built-in scalar is always
-    // looked up by its own name; it never falls through to its
-    // `baseScalar`'s mapping. So the table alone yields the unconstrained
-    // `{}` shape.
+    // `unixTimestamp32` is a real standard-library scalar, but
+    // `SCALAR_SCHEMAS` carries no entry for it. A built-in scalar is
+    // always looked up by its own name, never through its `baseScalar`.
+    // So the table alone yields the unconstrained `{}` shape.
     // The standard library declares it as
     // `@encode("unixTimestamp", int32) scalar unixTimestamp32 extends
-    // utcDateTime;`. That encoding is what says the value travels as an
-    // integer, so the shape comes from the encode target instead of the
-    // table. A user scalar derived from it inherits the same shape.
+    // utcDateTime;`. That encoding says the value travels as an integer,
+    // so the shape comes from the encode target, not the table. A user
+    // scalar derived from it inherits the same shape.
     const { builder, M } = await compileSchemas(t.code`
       scalar Foo extends unixTimestamp32;
       model ${t.model("M")} {

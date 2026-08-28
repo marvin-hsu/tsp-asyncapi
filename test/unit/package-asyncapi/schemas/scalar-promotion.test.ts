@@ -6,14 +6,14 @@ import { propertiesOf } from "../../../utils/document.js";
 /**
  * Where a user-declared scalar is written.
  *
- * A scalar the author declared is a named declaration, so it earns a
- * `components.schemas` entry and every use site writes a reference. This is
- * the rule every other named declaration already follows, and the one
- * `@typespec/openapi3` follows for a scalar.
+ * A scalar the author declared is a named declaration. It earns a
+ * `components.schemas` entry, and every use site writes a reference.
+ * Every other named declaration follows this rule, and so does
+ * `@typespec/openapi3` for a scalar.
  *
- * What a scalar *says* — how a chain merges, which keyword wins — is pinned
- * in the suites beside this one, which read through `resolvedProperties` so
- * they never restate this rule.
+ * How a chain merges, and which keyword wins, is pinned in the sibling
+ * suites that read through `resolvedProperties`. This file does not
+ * restate that.
  */
 describe("Unit: promoting user scalars into components", () => {
   it("writes one component and a reference from every use site", async () => {
@@ -66,9 +66,9 @@ describe("Unit: promoting user scalars into components", () => {
   });
 
   /**
-   * A property that only constrains the value further still references: two
-   * `maxLength` on one value is an intersection, which is what `allOf`
-   * means.
+   * A property that only constrains the value further still references.
+   * Two `maxLength` constraints on one value form an intersection, which
+   * is what `allOf` means.
    */
   it("references from a property that only adds a constraint", async () => {
     const { builder } = await buildDocSchema(t.code`
@@ -88,8 +88,8 @@ describe("Unit: promoting user scalars into components", () => {
 
   /**
    * A property that says something of its own about the value writes the
-   * scalar in place. Its prose, format and encoding replace what the scalar
-   * says, and a reference cannot take the scalar's own text away.
+   * scalar in place. Its prose, format, and encoding replace what the
+   * scalar says. A reference cannot take the scalar's own text away.
    */
   it("writes the scalar in place under a property that speaks for itself", async () => {
     const { builder } = await buildDocSchema(t.code`

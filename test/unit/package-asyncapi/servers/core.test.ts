@@ -151,9 +151,8 @@ describe("Unit: servers", () => {
 
   it("applies one augment decorator once when its namespace is reopened", async () => {
     // An augment decorator runs once per declaration of its target
-    // namespace. A reopened namespace therefore runs the same `@@server`
-    // again, which used to look like a duplicate name and dropped the whole
-    // document.
+    // namespace. A reopened namespace runs the same `@@server` again, and
+    // that must not read as a duplicate name.
     const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       namespace Test {}
@@ -450,12 +449,13 @@ describe("Unit: servers", () => {
   });
 
   it("orders the servers of two files by the order the files are imported", async () => {
-    // Source position orders the servers, and two applications in different
+    // Source position orders the servers. Two applications in different
     // files compare by the rank of their file. The rank comes from
-    // `program.sourceFiles`, whose insertion order is the order the compiler
-    // reached each file. So `second.tsp`, imported first, ranks first, even
-    // though its path sorts last. Ranking by path instead would put `alpha`
-    // first and would disagree with the rest of the emitter.
+    // `program.sourceFiles`, whose insertion order is the order the
+    // compiler reached each file. So `second.tsp`, imported first, ranks
+    // first, even though its path sorts last. Ranking by path instead
+    // would put `alpha` first and would disagree with the rest of the
+    // emitter.
     const doc = await emitDocument({
       "second.tsp": `
         using AsyncAPI;
@@ -588,7 +588,7 @@ describe("Unit: servers", () => {
 
 describe("Unit: source order keys", () => {
   it("ranks a path the program never loaded before every loaded file", async () => {
-    // `fileRanking` reads `program.sourceFiles`, and a path the map does not
+    // `fileRanking` reads `program.sourceFiles`. A path the map does not
     // hold falls back to rank -1. A compiled program only ever hands this
     // comparator paths that its own map holds, so the fallback needs a
     // position built by hand. The fallback keeps the sort total, which is
@@ -673,7 +673,7 @@ describe("Unit: servers — tags", () => {
 
     // Two Tag Objects that share a name and differ elsewhere are two
     // fragments asking for one key. Neither is promoted, so both servers
-    // write the tag itself — and a shallow copy would leave both pointing at
+    // write the tag itself. A shallow copy would leave both pointing at
     // one nested object, where editing one server's tag edits the other's.
     expect(serversOf(doc).production.tags).not.toBe(serversOf(doc).failover.tags);
     expect(serversOf(doc).production.tags?.[0]).not.toBe(serversOf(doc).failover.tags?.[0]);
