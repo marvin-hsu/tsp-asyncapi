@@ -35,10 +35,6 @@ export interface AmqpMessageBindingConfig {
  * Both fields are free text. AMQP states no set of values for either one, so
  * neither is checked beyond being non-blank.
  *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The AMQP message binding fields
- *
  * @example
  * ```typespec
  * @amqpMessage(#{ contentEncoding: "gzip", messageType: "event.created" })

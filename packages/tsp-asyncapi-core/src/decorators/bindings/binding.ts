@@ -44,12 +44,6 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
  * A binding whose target emits no object at all is reported once the document
  * is built.
  *
- * @param context - The decorator context
- * @param target - The server namespace, channel, operation, or message model
- * @param protocol - The member name inside the emitted `bindings` object,
- * such as `kafka` or `mqtt`
- * @param config - The binding fields, emitted as written
- *
  * @example
  * ```typespec
  * @binding("mqtt", #{ qos: 2, retain: true })

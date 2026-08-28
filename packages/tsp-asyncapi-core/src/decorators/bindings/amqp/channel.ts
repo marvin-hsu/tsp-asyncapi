@@ -47,10 +47,6 @@ export interface AmqpChannelBindingConfig {
  * A field outside either rule is reported and dropped, and the rest of the
  * object is kept.
  *
- * @param context - The decorator context
- * @param target - The channel interface or namespace
- * @param config - The AMQP channel binding fields
- *
  * @example
  * ```typespec
  * @amqpChannel(#{

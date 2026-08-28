@@ -53,10 +53,6 @@ export interface AmqpOperationBindingConfig {
  * applies to a receive. AsyncAPI does not check which action the operation
  * carries, and this emitter does not either.
  *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The AMQP operation binding fields
- *
  * @example
  * ```typespec
  * @amqpOperation(#{ deliveryMode: 2, expiration: 60000, cc: #["events.audit"] })
