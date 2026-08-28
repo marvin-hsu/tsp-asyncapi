@@ -1,3 +1,17 @@
+/**
+ * Constants this package's other modules share.
+ *
+ * A JSON Schema type string, a JSON Pointer prefix, and a binding version
+ * number each have exactly one correct spelling. Writing that spelling out
+ * again at every call site invites drift, because the type system cannot
+ * catch a typo in a plain string. Collecting each value here turns a typo
+ * into a single-point fix.
+ *
+ * Most of the constants below are `@public`. An emitter package built on
+ * top of this one reads them directly, instead of hardcoding the same
+ * specification value a second time.
+ */
+
 import { Namespace } from "@typespec/compiler";
 
 /**
@@ -440,17 +454,20 @@ export const DEFAULT_INFO_VERSION = "0.0.0";
 /**
  * The mime type a schema's own property keys are resolved against through
  * `@encodedName`.
- * An `@example`'s object keys are resolved against it too, via the
+ *
+ * An `@example`'s object keys are resolved against it too, through the
  * compiler's own `serializeObjectValueAsJson`.
- * This value is hardcoded because 2.7 has no notion yet of a message's
- * actual wire `contentType`. A model with both
+ *
+ * This value is hardcoded. The emitter has no notion yet of a message's
+ * actual wire content type. A model with both
  * `@encodedName("application/json", ...)` and
  * `@encodedName("application/xml", ...)`, for example, always emits the
  * JSON name. It does this regardless of which content type a message
  * actually declares.
- * Phase 3 adds per-message content types. It must thread the real
- * `contentType` through to both this constant's use site and the example
- * serialization it keeps in sync with, instead of assuming JSON everywhere.
+ *
+ * A change that threads the real `contentType` through must update this
+ * constant's use site and the example serialization it keeps in sync with,
+ * together, instead of assuming JSON everywhere.
  *
  * @public
  */
