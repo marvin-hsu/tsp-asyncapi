@@ -4,7 +4,7 @@
  * This file only checks that the width is a positive number and records it.
  * It does not decide what schema shape a fixed type takes. It does not check
  * the width against any logical type placed on the same declaration either.
- * The walk makes both calls when it renders the type.
+ * The walk makes both calls when it builds the type.
  */
 
 import { DecoratorContext, Model, Program, Scalar } from "@typespec/compiler";

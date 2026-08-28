@@ -6,7 +6,7 @@
  * logical type that also carries precision and scale. This file checks the
  * shape of what an author wrote, such as a positive precision, and refuses a
  * second logical type on the same target. It does not check the logical type
- * against its underlying type; the walk refuses that pairing when it renders
+ * against its underlying type; the walk refuses that pairing when it builds
  * the schema.
  */
 

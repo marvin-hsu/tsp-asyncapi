@@ -3,7 +3,7 @@
  *
  * This file only checks that the named member exists on the enum and
  * records it. It does not decide whether a given schema needs a default
- * symbol at all. The walk makes that call when it renders the enum.
+ * symbol at all. The walk makes that call when it builds the enum.
  */
 
 import { DecoratorContext, Enum, Program } from "@typespec/compiler";
