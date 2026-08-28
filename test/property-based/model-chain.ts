@@ -4,18 +4,15 @@ import { resolveRef } from "../utils/json-pointer.js";
 /**
  * A shared generator and renderer for an `extends` chain of models.
  *
- * Two properties drive the same shape through the emitter. One asks whether
- * every declared property is still described. The other asks whether
- * declared optionality survived. Both need the same three things: a
- * generator of chains, a normalizer that throws away the chains TypeSpec
- * itself rejects, and a renderer that writes the chain out as source. They
- * kept their own copies of all three. This module holds the one copy.
+ * Two properties drive the same shape through the emitter: whether every
+ * declared property is still described, and whether declared optionality
+ * survived. Both need the same generator, normalizer, and renderer, so this
+ * module holds the one copy instead of two.
  *
- * The two properties still differ in their name pool. The optionality
- * property adds the pair `a`/`aw`, which lets two TypeSpec names claim one
- * wire name. The coverage property leaves that pair out, so its declared
- * wire names stay unique by construction. `ChainConfig` carries that
- * difference, and nothing else.
+ * The two properties differ only in their name pool. The optionality
+ * property adds the pair `a`/`aw`, letting two TypeSpec names claim one wire
+ * name. The coverage property leaves that pair out, so its wire names stay
+ * unique by construction. `ChainConfig` carries that one difference.
  */
 
 /** One property as the generator declared it, before any emitting. */

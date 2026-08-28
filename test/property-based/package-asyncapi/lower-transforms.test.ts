@@ -12,14 +12,14 @@ import { noPromotions } from "../../utils/promotions.js";
  * nodes.
  *
  * Two of them build a map keyed by a name the author wrote, and the third
- * copies a node field by field. The mistakes those shapes invite are the same
- * three every time: a section emitted empty instead of omitted, a key lost or
- * invented, and a field copied from the wrong place.
+ * copies a node field by field. Each invites the same three mistakes: a
+ * section emitted empty instead of omitted, a key lost or invented, and a
+ * field copied from the wrong place.
  *
- * The unit tests pin single programs. What no TypeSpec program reaches is the
- * key charset: a `@useServer` name and a binding protocol are bare strings
- * this emitter never checks, so `__proto__` and `/` both arrive. Those keys
- * decide whether building a map from entries was really necessary.
+ * The unit tests pin single programs. No TypeSpec program reaches the key
+ * charset directly: a `@useServer` name and a binding protocol are bare
+ * strings this emitter never checks, so `__proto__` and `/` both arrive.
+ * Those keys decide whether building a map from entries was necessary.
  */
 
 const RUNS = { numRuns: 500, seed: 20260815 };
@@ -83,16 +83,15 @@ describe("Unit: lower transforms — the key set of a built map", () => {
 /**
  * An optional text field paired with the answer it must produce.
  *
- * Reading the answer from `trimmed` would make the property compare the
- * module against the helper it is built on: `lowerInfo` calls `text`, which
- * calls `trimmed`, so an oracle that calls `trimmed` too moves whenever the
- * blank rule moves. The answer is carried alongside the input instead, so
- * nothing here states the rule.
+ * Reading the answer from `trimmed` would compare the module against the
+ * helper it is built on: `lowerInfo` calls `text`, which calls `trimmed`, so
+ * an oracle built the same way moves whenever the blank rule moves. The
+ * answer travels alongside the input instead, so nothing here states the
+ * rule.
  *
- * The rule itself is enumerated in
- * `test/unit/package-core/optional-fields.test.ts`. What this pairing is for
- * is the field wiring: that `lowerInfo` applies the rule at all, to the fields
- * it is meant to apply it to.
+ * The blank rule itself is defined elsewhere. This pairing exists only to
+ * check the field wiring: that `lowerInfo` applies the rule to the fields it
+ * is meant to.
  */
 const labelledText = fc.oneof(
   // Text that already says something: the answer is the text.
