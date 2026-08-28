@@ -46,8 +46,6 @@ function recordAction(
  * Apply this decorator only once per operation, and never together with
  * `@receive`. Both mistakes are reported.
  *
- * @param context - The decorator context
- * @param target - The operation this action describes
  * @param operationId - Overrides the key of this operation in the emitted
  * `operations` map. Without it, the key is the name of the operation.
  *
@@ -80,8 +78,6 @@ export function $send(context: DecoratorContext, target: Operation, operationId?
  * Apply this decorator only once per operation, and never together with
  * `@send`. Both mistakes are reported.
  *
- * @param context - The decorator context
- * @param target - The operation this action describes
  * @param operationId - Overrides the key of this operation in the emitted
  * `operations` map. Without it, the key is the name of the operation.
  *
@@ -119,8 +115,6 @@ function applyAction(
 /**
  * Reads back the action declared on one operation.
  *
- * @param program - The program to read the state from
- * @param target - The operation the decorator was applied to
  * @returns A copy of the recorded state, or `undefined` when neither action
  * decorator was applied, and when the declaration was dropped
  *

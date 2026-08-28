@@ -35,8 +35,6 @@ const [, setMessage, getMessageStateMap] = useStateMap<Model, MessageState>(mess
  * must wrap that scalar in a model. This keeps one shape for every message
  * payload.
  *
- * @param context - The decorator context
- * @param target - The model to mark as a message
  * @param name - Overrides the `components.messages` key. Without it, the
  * key comes from the model's own name. A `components.messages` key drops the
  * namespace prefix that a `components.schemas` key keeps. So an explicit
@@ -60,10 +58,9 @@ const [, setMessage, getMessageStateMap] = useStateMap<Model, MessageState>(mess
  * @public
  */
 export function $message(context: DecoratorContext, target: Model, name?: string) {
-  // Decorators on one declaration run bottom-up, so the application
-  // written last in the source runs first and wins. The guard records
-  // that this decorator ran, before any value is validated, so a value
-  // that fails validation still blocks a later application.
+  // Decorators on one declaration run bottom-up: the last application in
+  // source wins. The guard claims before validation, so an invalid value
+  // still blocks a later application.
   if (guard.claim(context, target) !== "first") return;
   setMessage(context.program, target, { name });
 }
@@ -83,7 +80,6 @@ export function $message(context: DecoratorContext, target: Model, name?: string
  * Sorting here matches every other program-wide list the emitter reads, such
  * as the servers, the channels, and the security schemes.
  *
- * @param program - The program to read the state from
  * @returns A map from each marked model to its recorded state, in source
  * order
  *

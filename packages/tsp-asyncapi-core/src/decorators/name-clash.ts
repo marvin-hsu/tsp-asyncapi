@@ -23,32 +23,18 @@ export interface NamedApplication extends SourcePosition {
 /**
  * Settles two applications that claim one name.
  *
- * `@server` and `@securityScheme` both write their name argument as a key of
- * a map. Two applications cannot share one key, so one of them is dropped.
- * Both decorators had the same fifteen lines for it, and a change to the
- * rule had to be made twice.
+ * `@server` and `@securityScheme` both write their name argument as a map
+ * key, so a clash needs the same rule in both places.
  *
- * Source position decides the winner, not evaluation order. The application
- * written first in the file is kept, and the other one is reported and
- * dropped. Evaluation order would make the winner depend on whether the
- * author wrote the decorator inline or as an augment decorator.
+ * Source position decides the winner, not evaluation order, so the winner
+ * does not depend on whether the author wrote the decorator inline or as an
+ * augment decorator. An augment decorator runs once per reopened `namespace`
+ * block, so the same statement can run more than once; those runs share one
+ * source position and count as one application, not a clash.
  *
- * The same statement can run more than once. An augment decorator runs once
- * per declaration of its target namespace, so one statement runs again for
- * every reopened `namespace` block and for every file that opens the
- * namespace. Those runs are one application, not a clash, and they are
- * recognised by their shared position. Two distinct statements can never
- * share a file and an offset, so a real duplicate is still reported.
+ * The winner replaces the loser in `records`, in place, so the list keeps
+ * the order names were first claimed.
  *
- * The winner is written into `records` in place, at the index the loser
- * held. That keeps the list in the order the names were first claimed.
- *
- * @param program - The program the applications belong to
- * @param records - The recorded applications, which this may change
- * @param clashIndex - Where in `records` the earlier claim to the name sits
- * @param record - The application that is running now
- * @param code - The diagnostic reported for the dropped application
- * @param name - The name both applications claim
  * @internal
  */
 export function settleNameClash<T extends NamedApplication>(
