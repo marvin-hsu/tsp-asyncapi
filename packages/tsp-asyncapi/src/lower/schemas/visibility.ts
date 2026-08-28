@@ -28,21 +28,17 @@ import {
 import { SchemaDiagnostics } from "./diagnostics.js";
 
 /**
- * Decides whether `prop` reaches the schema, reporting the case that cannot
- * be honoured.
+ * Decides whether `prop` reaches the schema, and reports the case that
+ * cannot be honoured.
  *
- * The count of active phases is compared against the visibility class's own
- * member count, rather than against a fixed list of phase names. A phase added
- * to the standard library later is then counted too, instead of making every
- * property look restricted.
+ * The active phase count is compared against the visibility class's own
+ * member count, not a fixed list of phase names. A phase the standard
+ * library adds later is then counted too, instead of marking every
+ * property restricted.
  *
- * The warning is reported once per property. One property is one decision by
- * the author, and a model reachable from two messages is built twice.
+ * The warning is reported once per property, since a model reachable from
+ * two messages is built twice.
  *
- * @param program - The program the property belongs to
- * @param prop - The property whose visibility is read
- * @param diagnostics - Where the restricted-visibility warning is reported
- * @returns True when the property should be emitted, false when it is omitted
  * @internal
  */
 export function shouldEmitProperty(

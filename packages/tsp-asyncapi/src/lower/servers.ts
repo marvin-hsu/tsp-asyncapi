@@ -30,9 +30,8 @@ function lowerServerVariables(
       shared(promoted.serverVariables, "serverVariables", lowerServerVariable(node), name),
     ]);
   }
-  // A variable name is written by the author, so it is built as an entry
-  // rather than assigned. A plain assignment of a name such as `__proto__`
-  // would write the prototype and lose the entry.
+  // Built as an entry: a plain assignment of a name such as `__proto__`
+  // would write the prototype and lose the variable.
   return Object.fromEntries(entries);
 }
 
@@ -48,10 +47,8 @@ function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObje
   if (node.variables !== undefined)
     server.variables = lowerServerVariables(node.variables, promoted);
 
-  // Each server gets its own objects, so a later change to one server cannot
-  // reach another. `security` is a list of references, and a reference is
-  // flat, so a fresh object per entry is enough. The three fragments below
-  // come from the namespace, so one resolved value serves every server.
+  // Each server gets its own security list, so editing one server cannot
+  // reach another. The three fragments below come from the namespace;
   // `sharedSiteFields` hands each server a reference or a deep copy.
   if (node.security.length > 0) {
     const security: ReferenceObject[] = node.security.map((name) => ({
@@ -80,8 +77,7 @@ export function lowerServers(
   promoted: DocumentPromotions,
 ): Record<string, ServerObject> | undefined {
   if (nodes.length === 0) return undefined;
-  // The map is built from entries. A name such as `__proto__` is a legal
-  // AsyncAPI key, and this way it becomes an own key instead of a write to
-  // the prototype. A plain assignment would drop such a server.
+  // Built from entries: a name such as `__proto__` is a legal AsyncAPI key,
+  // and a plain assignment would write the prototype and drop the server.
   return Object.fromEntries(nodes.map((node) => [node.name, lowerServer(node, promoted)]));
 }
