@@ -18,9 +18,7 @@
  * describe one wire format are equal for every consumer of the document.
  */
 
-import { getDirectoryPath, normalizePath } from "@typespec/compiler";
-import { createTester } from "@typespec/compiler/testing";
-import { fileURLToPath } from "node:url";
+import { createLibraryTester } from "./emitter-package.js";
 import { parse as parseProto, Root as ProtoRoot } from "protobufjs";
 import { expect } from "vitest";
 import type { Diagnostic, Model, Program } from "@typespec/compiler";
@@ -29,25 +27,10 @@ import { renderProtoFile } from "#emitter/schema-artifacts/protobuf/render.js";
 import { listProtobufMessageModels } from "#core/protobuf-state.js";
 
 /**
- * The emitter package root, which is where the testers resolve libraries
- * from. `@typespec/protobuf` is a development dependency of that package, so
- * the resolution has to start there and not at the workspace root.
- */
-const EMITTER_PACKAGE_ROOT = normalizePath(
-  getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))) +
-    "/packages/tsp-asyncapi",
-);
-
-/** The libraries every parity case compiles against. */
-const LIBRARIES = ["tsp-asyncapi", "@typespec/protobuf"];
-
-/**
  * The tester of the run time path. It loads the official library so the
  * decorators exist, and it runs no emitter at all.
  */
-const StateTester = createTester(EMITTER_PACKAGE_ROOT, { libraries: LIBRARIES })
-  .importLibraries()
-  .using("AsyncAPI");
+const StateTester = createLibraryTester("@typespec/protobuf");
 
 /** The tester of the judge. Same source, and the official emitter runs. */
 const OfficialTester = StateTester.emit("@typespec/protobuf");

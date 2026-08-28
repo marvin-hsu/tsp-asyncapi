@@ -14,82 +14,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import type { Diagnostic } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
-import type { AsyncAPIDocument } from "#emitter/types/index.js";
+import { createArtifactEmitter, payloadOf } from "../../../../utils/artifacts.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 import { resolveRef } from "../../../../utils/json-pointer.js";
 import { referencesIn } from "../../../../utils/references.js";
-import yaml from "yaml";
 
-/** The root of the emitter package, which holds the Avro library beside it. */
-const PACKAGE_ROOT = fileURLToPath(
-  new URL("../../../../../packages/tsp-asyncapi", import.meta.url),
-);
+/** The emitter of this suite: the Avro library loaded, the feature on. */
+const { emit, emitClean } = createArtifactEmitter("tsp-avro", "avro");
 
 /** The AsyncAPI schema format of an Avro schema. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";
-
-/** The file the emitter writes with the default options. */
-const OUTPUT_FILE = "asyncapi.yaml";
-
-/** A tester that compiles both libraries and runs this emitter with the feature on. */
-const AvroEmitTester = createTester(PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "tsp-avro"],
-})
-  .importLibraries()
-  .using("AsyncAPI")
-  .emit(PACKAGE_NAME, { "preview-features": ["avro"] });
-
-/** What one compilation produced. */
-interface Emitted {
-  /** The parsed document, or null when the emitter wrote nothing. */
-  readonly doc: AsyncAPIDocument | null;
-  /** Every diagnostic the compilation reported. */
-  readonly diagnostics: readonly Diagnostic[];
-}
-
-/**
- * Compiles one source with the preview feature on and parses the output.
- *
- * @param code - The TypeSpec source of the case
- * @returns The document the emitter wrote, and every diagnostic
- */
-async function emit(code: string): Promise<Emitted> {
-  const [result, diagnostics] = await AvroEmitTester.compileAndDiagnose(code);
-  const outputs: Record<string, string | undefined> = result.outputs;
-  const content = outputs[OUTPUT_FILE];
-  if (content === undefined) return { doc: null, diagnostics };
-  return { doc: yaml.parse(content) as AsyncAPIDocument, diagnostics };
-}
-
-/**
- * Reads the document of a case that is meant to compile clean.
- *
- * @param code - The TypeSpec source of the case
- * @returns The document the emitter wrote
- */
-async function emitClean(code: string): Promise<AsyncAPIDocument> {
-  const { doc, diagnostics } = await emit(code);
-  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === "error");
-  expect(errors.map((diagnostic) => diagnostic.message)).toEqual([]);
-  if (doc === null) throw new Error("The emitter wrote no document for a clean compilation.");
-  return doc;
-}
-
-/**
- * Reads the payload of one message of the document.
- *
- * @param doc - The emitted document
- * @param name - The name of the message component
- * @returns The multi format payload of that message
- */
-function payloadOf(doc: AsyncAPIDocument, name: string): { schemaFormat: string; schema: unknown } {
-  const payload = doc.components?.messages?.[name].payload;
-  return payload as { schemaFormat: string; schema: unknown };
-}
 
 /** Two messages of one Avro namespace, and a model only one of them reaches. */
 const TWO_MESSAGES = `

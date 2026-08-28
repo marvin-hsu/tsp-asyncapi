@@ -19,73 +19,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import type { Diagnostic } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
-import type { AsyncAPIDocument } from "#emitter/types/index.js";
+import { createArtifactEmitter, textPayloadOf } from "../../../../utils/artifacts.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 import { resolveRef } from "../../../../utils/json-pointer.js";
 import { referencesIn } from "../../../../utils/references.js";
-import yaml from "yaml";
 
-/** The root of the emitter package, which holds the official library as a dependency. */
-const PACKAGE_ROOT = fileURLToPath(
-  new URL("../../../../../packages/tsp-asyncapi", import.meta.url),
-);
+/** The emitter of this suite: the official library loaded, the feature on. */
+const { emit, emitClean } = createArtifactEmitter("@typespec/protobuf", "protobuf");
 
 /** The AsyncAPI schema format of proto3 text. */
 const PROTOBUF = "application/vnd.google.protobuf;version=3";
-
-/** The file the emitter writes with the default options. */
-const OUTPUT_FILE = "asyncapi.yaml";
-
-/**
- * A tester that compiles both libraries and runs this emitter with the
- * feature on.
- */
-const ProtobufEmitTester = createTester(PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "@typespec/protobuf"],
-})
-  .importLibraries()
-  .using("AsyncAPI")
-  .emit(PACKAGE_NAME, { "preview-features": ["protobuf"] });
-
-/** What one compilation produced. */
-interface Emitted {
-  /** The parsed document, or null when the emitter wrote nothing. */
-  readonly doc: AsyncAPIDocument | null;
-  /** Every diagnostic the compilation reported. */
-  readonly diagnostics: readonly Diagnostic[];
-}
-
-/**
- * Compiles one source with the preview feature on and parses the output.
- *
- * @param code - The TypeSpec source of the case
- * @returns The document the emitter wrote, and every diagnostic
- */
-async function emit(code: string): Promise<Emitted> {
-  const [result, diagnostics] = await ProtobufEmitTester.compileAndDiagnose(code);
-  const outputs: Record<string, string | undefined> = result.outputs;
-  const content = outputs[OUTPUT_FILE];
-  if (content === undefined) return { doc: null, diagnostics };
-  return { doc: yaml.parse(content) as AsyncAPIDocument, diagnostics };
-}
-
-/**
- * Reads the document of a case that is meant to compile clean.
- *
- * @param code - The TypeSpec source of the case
- * @returns The document the emitter wrote
- */
-async function emitClean(code: string): Promise<AsyncAPIDocument> {
-  const { doc, diagnostics } = await emit(code);
-  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === "error");
-  expect(errors.map((diagnostic) => diagnostic.message)).toEqual([]);
-  if (doc === null) throw new Error("The emitter wrote no document for a clean compilation.");
-  return doc;
-}
 
 /** Two messages of one package, and one message of a package of its own. */
 const TWO_PACKAGES = `
@@ -137,18 +80,6 @@ const TWO_PACKAGES = `
     op issued(event: Test.Billing.InvoiceIssued): void;
   }
 `;
-
-/**
- * Reads the payload of one message of the document.
- *
- * @param doc - The emitted document
- * @param name - The name of the message component
- * @returns The multi format payload of that message
- */
-function payloadOf(doc: AsyncAPIDocument, name: string): { schemaFormat: string; schema: string } {
-  const payload = doc.components?.messages?.[name].payload;
-  return payload as { schemaFormat: string; schema: string };
-}
 
 /** One message that reaches another model through a field, and one that does not. */
 const FIELD_ONLY = `
@@ -305,13 +236,13 @@ describe("Unit: Protobuf generated payloads", () => {
   it("carries a field-only model inside the payload that reaches it", async () => {
     const doc = await emitClean(FIELD_ONLY);
 
-    const placed = payloadOf(doc, "OrderPlaced");
+    const placed = textPayloadOf(doc, "OrderPlaced");
     expect(placed.schema).toContain("message OrderPlaced {");
     expect(placed.schema).toContain("message Money {");
     expect(placed.schema).toContain("  Money total = 2;");
 
     // `OrderShipped` names no `Money` field, so its payload declares none.
-    const shipped = payloadOf(doc, "OrderShipped");
+    const shipped = textPayloadOf(doc, "OrderShipped");
     expect(shipped.schema).toContain("message OrderShipped {");
     expect(shipped.schema).not.toContain("Money");
 

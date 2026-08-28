@@ -3,7 +3,8 @@
  *
  * The rule reads `preview-features`, and the rule tester cannot carry emitter
  * options: it builds its own compiler options. So every case here runs a
- * normal compilation and enables the rule by id through `linterRuleSet`.
+ * normal compilation and enables the rule by id, through the linter helper
+ * that both option reading rules share.
  *
  * The Avro decorators are written qualified.
  *
@@ -14,34 +15,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import { getDirectoryPath, normalizePath, type Diagnostic } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
-
-const EMITTER_PACKAGE_ROOT = normalizePath(
-  getDirectoryPath(
-    getDirectoryPath(
-      getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))),
-    ),
-  ) + "/packages/tsp-asyncapi",
-);
+import { createOptionsRuleLinter } from "../../../utils/linter.js";
 
 const RULE = "tsp-asyncapi/avro-content-type-undeclared";
 
-const Base = createTester(EMITTER_PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "tsp-avro"],
-})
-  .importLibraries()
-  .using("AsyncAPI");
-
-async function lint(code: string, features: string[]): Promise<readonly Diagnostic[]> {
-  const runner = await Base.emit(PACKAGE_NAME, { "preview-features": features }).createInstance();
-  const [, diagnostics] = await runner.compileAndDiagnose(code, {
-    compilerOptions: { linterRuleSet: { enable: { [RULE]: true } } },
-  });
-  return diagnostics;
-}
+const lintWith = createOptionsRuleLinter(RULE, "tsp-avro");
 
 const PROBE = `
   @service(#{ title: "Orders" })
@@ -85,7 +63,9 @@ const JSON_TYPE = PROBE.replace("application/vnd.apache.avro", "application/json
 
 describe("Unit: the avro-content-type-undeclared rule", () => {
   it("reports an Avro content type with no Avro payload", async () => {
-    const found = (await lint(PROBE, ["avro"])).filter((d) => d.code === RULE);
+    const found = (await lintWith(PROBE, { "preview-features": ["avro"] })).filter(
+      (d) => d.code === RULE,
+    );
     expect(found).toHaveLength(1);
     expect(found[0]?.message).toContain("OrderPlaced");
   });
@@ -96,26 +76,26 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
    * that does not work yet.
    */
   it("stays quiet when the feature is off", async () => {
-    const diagnostics = await lint(PROBE, []);
+    const diagnostics = await lintWith(PROBE, { "preview-features": [] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet when the model carries the Avro decorator", async () => {
-    const diagnostics = await lint(DECLARED, ["avro"]);
+    const diagnostics = await lintWith(DECLARED, { "preview-features": ["avro"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /** An author who wrote the schema has already answered the question. */
   it("stays quiet when the author wrote the payload", async () => {
-    const diagnostics = await lint(AUTHORED, ["avro"]);
+    const diagnostics = await lintWith(AUTHORED, { "preview-features": ["avro"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet for a content type that is not Avro", async () => {
-    const diagnostics = await lint(JSON_TYPE, ["avro"]);
+    const diagnostics = await lintWith(JSON_TYPE, { "preview-features": ["avro"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
@@ -129,7 +109,11 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
       "application/vnd.apache.avro",
       "application/vnd.apache.avro;version=1.9.0",
     );
-    expect((await lint(withParameter, ["avro"])).filter((d) => d.code === RULE)).toHaveLength(1);
+    expect(
+      (await lintWith(withParameter, { "preview-features": ["avro"] })).filter(
+        (d) => d.code === RULE,
+      ),
+    ).toHaveLength(1);
   });
 
   /** The JSON and YAML variants name Avro just as the bare type does. */
@@ -139,7 +123,9 @@ describe("Unit: the avro-content-type-undeclared rule", () => {
       "application/vnd.apache.avro+yaml",
     ]) {
       const variant = PROBE.replace("application/vnd.apache.avro", mediaType);
-      expect((await lint(variant, ["avro"])).filter((d) => d.code === RULE)).toHaveLength(1);
+      expect(
+        (await lintWith(variant, { "preview-features": ["avro"] })).filter((d) => d.code === RULE),
+      ).toHaveLength(1);
     }
   });
 });

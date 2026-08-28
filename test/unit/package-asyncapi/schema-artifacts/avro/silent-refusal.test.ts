@@ -13,24 +13,13 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
+import { createLibraryTester } from "../../../../utils/emitter-package.js";
 import { createAvroProvider, type AvroLoader } from "#emitter/schema-artifacts/avro.js";
 import { collectSchemaArtifacts } from "#emitter/schema-artifacts/provider.js";
 import { diagnosticsWith } from "../../../../utils/diagnostics.js";
 
-/** The root of the emitter package, which holds the Avro library beside it. */
-const PACKAGE_ROOT = fileURLToPath(
-  new URL("../../../../../packages/tsp-asyncapi", import.meta.url),
-);
-
 /** A tester that compiles both libraries and runs no emitter. */
-const BothLibraries = createTester(PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "tsp-avro"],
-})
-  .importLibraries()
-  .using("AsyncAPI");
+const BothLibraries = createLibraryTester("tsp-avro");
 
 /** One message model the real walk answers without complaint. */
 const SOURCE = `

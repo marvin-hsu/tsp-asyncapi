@@ -1,32 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import { getDirectoryPath, normalizePath, type Diagnostic } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
-
-const EMITTER_PACKAGE_ROOT = normalizePath(
-  getDirectoryPath(
-    getDirectoryPath(
-      getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))),
-    ),
-  ) + "/packages/tsp-asyncapi",
-);
+import { createOptionsRuleLinter } from "../../../utils/linter.js";
 
 const RULE = "tsp-asyncapi/protobuf-content-type-undeclared";
 
-const Base = createTester(EMITTER_PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "@typespec/protobuf"],
-})
-  .importLibraries()
-  .using("AsyncAPI");
-
-async function lint(code: string, features: string[]): Promise<readonly Diagnostic[]> {
-  const runner = await Base.emit(PACKAGE_NAME, { "preview-features": features }).createInstance();
-  const [, diagnostics] = await runner.compileAndDiagnose(code, {
-    compilerOptions: { linterRuleSet: { enable: { [RULE]: true } } },
-  });
-  return diagnostics;
-}
+const lintWith = createOptionsRuleLinter(RULE, "@typespec/protobuf");
 
 const PROBE = `
   @service(#{ title: "Orders" })
@@ -65,7 +42,9 @@ const JSON_TYPE = PROBE.replace("application/vnd.google.protobuf", "application/
 
 describe("Unit: the protobuf-content-type-undeclared rule", () => {
   it("reports a Protobuf content type with no Protobuf payload", async () => {
-    const found = (await lint(PROBE, ["protobuf"])).filter((d) => d.code === RULE);
+    const found = (await lintWith(PROBE, { "preview-features": ["protobuf"] })).filter(
+      (d) => d.code === RULE,
+    );
     expect(found).toHaveLength(1);
     expect(found[0]?.message).toContain("OrderPlaced");
   });
@@ -76,26 +55,26 @@ describe("Unit: the protobuf-content-type-undeclared rule", () => {
    * remedy that does not work yet.
    */
   it("stays quiet when the feature is off", async () => {
-    const diagnostics = await lint(PROBE, []);
+    const diagnostics = await lintWith(PROBE, { "preview-features": [] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet when the model carries the official decorators", async () => {
-    const diagnostics = await lint(DECLARED, ["protobuf"]);
+    const diagnostics = await lintWith(DECLARED, { "preview-features": ["protobuf"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   /** An author who wrote the schema has already answered the question. */
   it("stays quiet when the author wrote the payload", async () => {
-    const diagnostics = await lint(AUTHORED, ["protobuf"]);
+    const diagnostics = await lintWith(AUTHORED, { "preview-features": ["protobuf"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
 
   it("stays quiet for a content type that is not Protobuf", async () => {
-    const diagnostics = await lint(JSON_TYPE, ["protobuf"]);
+    const diagnostics = await lintWith(JSON_TYPE, { "preview-features": ["protobuf"] });
     expect(diagnostics.filter((d) => d.severity === "error")).toStrictEqual([]);
     expect(diagnostics.filter((d) => d.code === RULE)).toHaveLength(0);
   });
@@ -109,8 +88,10 @@ describe("Unit: the protobuf-content-type-undeclared rule", () => {
       "application/vnd.google.protobuf",
       "application/vnd.google.protobuf;version=3",
     );
-    expect((await lint(withParameter, ["protobuf"])).filter((d) => d.code === RULE)).toHaveLength(
-      1,
-    );
+    expect(
+      (await lintWith(withParameter, { "preview-features": ["protobuf"] })).filter(
+        (d) => d.code === RULE,
+      ),
+    ).toHaveLength(1);
   });
 });

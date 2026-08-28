@@ -10,26 +10,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import { getDirectoryPath, normalizePath, type Diagnostic } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
-
-const EMITTER_PACKAGE_ROOT = normalizePath(
-  getDirectoryPath(
-    getDirectoryPath(
-      getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))),
-    ),
-  ) + "/packages/tsp-asyncapi",
-);
+import { createLibraryTester } from "../../../utils/emitter-package.js";
+import type { Diagnostic } from "@typespec/compiler";
 
 const CODE = "tsp-asyncapi/header-on-generated-payload";
 
-const Base = createTester(EMITTER_PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "@typespec/protobuf", "tsp-avro"],
-})
-  .importLibraries()
-  .using("AsyncAPI");
+const Base = createLibraryTester("@typespec/protobuf", "tsp-avro");
 
 /**
  * Compiles one source with no emitter and returns what it reported.
