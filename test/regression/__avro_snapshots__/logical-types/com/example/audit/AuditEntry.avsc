@@ -1,0 +1,69 @@
+{
+  "type": "record",
+  "name": "AuditEntry",
+  "namespace": "com.example.audit",
+  "doc": "One decision, as it was recorded.",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      },
+      "doc": "The identifier of the entry."
+    },
+    {
+      "name": "at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "When the decision was taken."
+    },
+    {
+      "name": "outcome",
+      "type": {
+        "type": "enum",
+        "name": "Outcome",
+        "namespace": "com.example.audit",
+        "doc": "What a reader does with an entry it does not recognise.",
+        "symbols": [
+          "Unknown",
+          "Allowed",
+          "Denied"
+        ],
+        "default": "Unknown"
+      },
+      "doc": "What was decided."
+    },
+    {
+      "name": "fingerprint",
+      "type": {
+        "type": "fixed",
+        "name": "Digest",
+        "namespace": "com.example.audit",
+        "size": 16
+      },
+      "doc": "The digest of the request the decision was taken over."
+    },
+    {
+      "name": "cost",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 12,
+        "scale": 2
+      },
+      "doc": "What the decision cost, in the currency of the account."
+    },
+    {
+      "name": "accountId",
+      "type": "string",
+      "doc": "The account the decision was taken for.",
+      "aliases": [
+        "tenantId",
+        "customerId"
+      ]
+    }
+  ]
+}
