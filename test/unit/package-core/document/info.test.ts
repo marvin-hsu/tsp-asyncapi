@@ -103,6 +103,26 @@ describe("Unit: @info field checks", () => {
     expect(getInfo(runner.program, Test)?.version).toBe("1.0.0");
   });
 
+  it("checks the fields of one augment @@info once when its namespace is reopened", async () => {
+    // A repeat run of one augment decorator is one application, so the
+    // field checks below it must not run again. Each problem in the value
+    // belongs to one statement, and reporting it once per declaration of
+    // the namespace tells the author of a mistake they made once.
+    const runner = await AsyncAPITester.createInstance();
+    const [, diagnostics] = await runner.compileAndDiagnose(t.code`
+      @service(#{ title: "Orders" })
+      namespace ${t.namespace("Test")} {}
+      namespace Test {}
+      namespace Test {}
+
+      @@info(Test, #{ version: "  ", termsOfService: "/terms", license: #{ name: "  " } });
+    `);
+
+    expect(diagnosticsWith(diagnostics, "invalid-url")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "empty-info-version")).toHaveLength(1);
+    expect(diagnosticsWith(diagnostics, "empty-license-name")).toHaveLength(1);
+  });
+
   it("trims the license name", async () => {
     const { state, diagnostics } = await compile(
       `@info(#{ version: "1.0.0", license: #{ name: "  MIT  " } })`,

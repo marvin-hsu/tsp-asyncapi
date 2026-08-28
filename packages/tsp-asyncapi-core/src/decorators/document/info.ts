@@ -146,7 +146,11 @@ export function $info(context: DecoratorContext, target: Namespace, info: AsyncA
   // last in the source runs first and wins. The guard records that this
   // decorator ran, before any value is checked, so a value that fails a
   // check still blocks a later application.
-  if (!guard.claim(context, target)) return;
+  //
+  // Only a first claim runs the checks below. An augment `@@info` runs once
+  // per declaration of its target namespace, and a reopened namespace would
+  // otherwise report each field problem once per declaration.
+  if (guard.claim(context, target) !== "first") return;
   // Report on the info argument. Every field problem below points here.
   const infoTarget = context.getArgumentTarget(0) ?? target;
 

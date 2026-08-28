@@ -64,7 +64,7 @@ export function $replyChannel(
   channel: Interface | Namespace,
 ) {
   const channelTarget = context.getArgumentTarget(0) ?? target;
-  if (!replyChannelGuard.claim(context, target)) return;
+  if (replyChannelGuard.claim(context, target) !== "first") return;
   setReplyChannel(context.program, target, { channel, target: channelTarget });
 }
 
@@ -111,7 +111,7 @@ export function $replyAddress(
   description?: string,
 ) {
   const locationTarget = context.getArgumentTarget(0) ?? target;
-  if (!replyAddressGuard.claim(context, target)) return;
+  if (replyAddressGuard.claim(context, target) !== "first") return;
 
   if (!isRuntimeExpression(location)) {
     reportDiagnostic(context.program, {
