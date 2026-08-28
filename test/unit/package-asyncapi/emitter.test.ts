@@ -34,9 +34,12 @@ describe("Unit: $onEmit", () => {
 
     // The write is captured with a spy rather than an assignment. A spy
     // records the call, so the arguments are read off it instead of out of
-    // two variables the replacement had to fill. It also restores the
-    // original, which the assignment had to remember to do at the end, and
-    // would have skipped on a failure.
+    // two variables the replacement had to fill. The avro emitter case
+    // captures its own write the same way.
+    //
+    // Nothing restores the spy. The suite sets no `restoreMocks`, and
+    // `createInstance` builds a fresh host for each case. The replaced
+    // method reaches no other case.
     const writeFile = vi.spyOn(runner.program.host, "writeFile").mockResolvedValue(undefined);
 
     await $onEmit(

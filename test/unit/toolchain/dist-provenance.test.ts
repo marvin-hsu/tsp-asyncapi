@@ -130,9 +130,13 @@ describe("Unit: the provenance of the build output", () => {
   });
 
   /**
-   * `pnpm clean` runs pnpm's own command, not the script of that name. The
-   * script is reached with `pnpm run clean`, and the removal is silently
-   * skipped without the `run`.
+   * pnpm has a `clean` command of its own, and `pnpm -r clean` reaches that
+   * command rather than the script of the same name. The command takes no
+   * `--recursive`, so it exits 1 with `Unknown option: 'recursive'` and
+   * removes nothing.
+   *
+   * `pnpm run -r clean` reaches the script of every package. The `run` is
+   * what tells pnpm to look at the scripts.
    */
   it("reaches the clean script of every package from the root", async () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
