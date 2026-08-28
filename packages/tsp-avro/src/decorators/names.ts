@@ -17,6 +17,8 @@ const AVRO_NAME = /^[A-Za-z_]\w*$/;
 /**
  * Tells whether the text is a legal Avro name.
  *
+ * @param name - The name to use
+ *
  * @internal
  */
 export function isAvroName(name: string): boolean {
@@ -46,6 +48,8 @@ export const AVRO_RESERVED_NAME_LIST = AVRO_RESERVED_NAMES.join(", ");
 /**
  * Tells whether Avro keeps the name for a type of its own.
  *
+ * @param name - The name to use
+ *
  * @internal
  */
 export function isAvroReservedName(name: string): boolean {
@@ -57,6 +61,8 @@ export function isAvroReservedName(name: string): boolean {
  *
  * The empty namespace is written by leaving the field out, not by an empty
  * string, so this rejects an empty text.
+ *
+ * @param name - The name to use
  *
  * @internal
  */

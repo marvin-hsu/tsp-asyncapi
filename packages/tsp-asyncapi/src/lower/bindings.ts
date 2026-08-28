@@ -81,6 +81,8 @@ const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
  *
  * The version goes last, matching the field order every AsyncAPI binding
  * example uses.
+ *
+ * @param node - The resolved node being lowered
  */
 function render(node: BindingNode): BindingObject {
   // Copied, not handed over: the resolved model stays read only, and the

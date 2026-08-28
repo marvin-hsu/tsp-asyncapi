@@ -56,6 +56,8 @@ export function createProtobufProvider(): SchemaArtifactProvider {
  * Renders a payload for every message model the official decorators mark.
  *
  * `refused` is set when any model the document asks about went unanswered.
+ *
+ * @param program - The compiled program
  */
 function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
   const asked = listMessages(program);
@@ -89,6 +91,9 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
  * Never reaches the document; it only tells two artifacts apart. Two
  * messages can share a name but differ by package, so the package is
  * included whenever it declares one.
+ *
+ * @param packageName - The package name, if the package declares one
+ * @param rootName - The name of the message the payload describes
  */
 function qualifiedName(packageName: string | undefined, rootName: string): string {
   return packageName === undefined ? rootName : `${packageName}.${rootName}`;

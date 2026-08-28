@@ -34,6 +34,9 @@ import type { AvroRecord } from "./types.js";
  *
  * The namespace becomes directories, which is how the Avro tools and the
  * Java code generator lay a schema tree out.
+ *
+ * @param outputDir - The output dir
+ * @param schema - The schema object under construction
  */
 function pathOf(outputDir: string, schema: AvroRecord): string {
   const segments = schema.namespace === undefined ? [] : schema.namespace.split(".");

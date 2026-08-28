@@ -262,6 +262,8 @@ export function resolvesInDocument(root: unknown, ref: string): boolean {
  * This lives on the emitter side because a `$ref` is a detail of the document,
  * not of what the author declared. It sits next to `componentsSchemaRef`, which
  * spells the pointer it carries.
+ *
+ * @param key - The map key
  */
 export function refFor(key: string): ReferenceObject {
   return { $ref: componentsSchemaRef(key) };

@@ -18,7 +18,12 @@ import { lowerServerVariable } from "./servers/variables.js";
 import type { DocumentPromotions } from "./components/survey.js";
 import { shared, sharedSiteFields } from "./components/survey.js";
 
-/** Turns the resolved variables of one server into Server Variable Objects. */
+/**
+ *  Turns the resolved variables of one server into Server Variable Objects.
+ *
+ * @param variables - The recorded server variables
+ * @param promoted - The fields already lifted into `components`
+ */
 function lowerServerVariables(
   variables: ReadonlyMap<string, ServerVariableNode>,
   promoted: DocumentPromotions,
@@ -35,7 +40,12 @@ function lowerServerVariables(
   return Object.fromEntries(entries);
 }
 
-/** Turns one resolved server into a Server Object. */
+/**
+ *  Turns one resolved server into a Server Object.
+ *
+ * @param node - The resolved node being lowered
+ * @param promoted - The fields already lifted into `components`
+ */
 function lowerServer(node: ServerNode, promoted: DocumentPromotions): ServerObject {
   const server: ServerObject = { host: node.host, protocol: node.protocol };
   // The field order follows the Server Object table of the specification.

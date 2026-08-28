@@ -23,6 +23,8 @@ const [getEnumDefaultInternal, setEnumDefaultInternal] = useStateMap<Enum, strin
  * one instead. Without it, that reader fails. So this is what lets a writer
  * add a symbol without breaking every reader that has not been updated.
  *
+ * @param context - The decorator context
+ * @param target - The enum the symbol belongs to
  * @param member - The name of a member this enum declares
  *
  * @example
@@ -49,6 +51,9 @@ export function $enumDefault(context: DecoratorContext, target: Enum, member: st
 
 /**
  * Reads the fallback symbol declared on an enum.
+ *
+ * @param program - The program to read the state from
+ * @param target - The enum to read
  *
  * @returns The symbol, or undefined when the enum declares none
  *
