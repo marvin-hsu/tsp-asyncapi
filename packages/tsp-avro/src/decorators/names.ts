@@ -1,3 +1,5 @@
+import { AVRO_PRIMITIVE_NAMES } from "../types.js";
+
 /**
  * The Avro name rules.
  *
@@ -32,16 +34,7 @@ export function isAvroName(name: string): boolean {
  * by its keyword alone. A record named `map` or `union` is therefore a name
  * nothing else answers to, and Avro takes it.
  */
-const AVRO_RESERVED_NAMES: readonly string[] = [
-  "null",
-  "boolean",
-  "int",
-  "long",
-  "float",
-  "double",
-  "bytes",
-  "string",
-];
+const AVRO_RESERVED_NAMES: readonly string[] = AVRO_PRIMITIVE_NAMES;
 
 /**
  * The names a named type may not take, as a message lists them.

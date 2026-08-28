@@ -112,6 +112,9 @@ export function $order(context: DecoratorContext_2, target: ModelProperty, mode:
 export function $record(context: DecoratorContext_2, target: Model): void;
 
 // @public
+export const AVRO_PRIMITIVE_NAMES: readonly ["null", "boolean", "int", "long", "float", "double", "bytes", "string"];
+
+// @public
 export type AvroAliasTarget = Model | ModelProperty | Enum | Scalar;
 
 // @public
@@ -189,7 +192,7 @@ export interface AvroMap {
 }
 
 // @public
-export type AvroPrimitiveName = "null" | "boolean" | "int" | "long" | "float" | "double" | "bytes" | "string";
+export type AvroPrimitiveName = (typeof AVRO_PRIMITIVE_NAMES)[number];
 
 // @public
 export interface AvroRecord {

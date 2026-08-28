@@ -20,6 +20,7 @@ import type { AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
 import { createDiagnostic } from "../lib.js";
 import { avroFullName } from "./full-names.js";
 import {
+  AVRO_PRIMITIVE_NAMES,
   isAvroLogical,
   isAvroUnion,
   type AvroFixed,
@@ -60,16 +61,7 @@ const LOGICAL_TYPES: ReadonlyMap<string, readonly string[]> = new Map([
  * A schema spelled as a string is either one of these or a reference to a
  * named type declared earlier in the same file. Nothing else is a string.
  */
-const AVRO_PRIMITIVES: ReadonlySet<string> = new Set([
-  "null",
-  "boolean",
-  "int",
-  "long",
-  "float",
-  "double",
-  "bytes",
-  "string",
-]);
+const AVRO_PRIMITIVES: ReadonlySet<string> = new Set(AVRO_PRIMITIVE_NAMES);
 
 /**
  * Writes a logical type onto a schema, or refuses the pair.
