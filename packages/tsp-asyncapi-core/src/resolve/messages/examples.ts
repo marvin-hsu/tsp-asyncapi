@@ -77,7 +77,7 @@ function buildMessageExample(
     // malformed `duration.fromISO(...)` value that it never validates.
     // The drop still surfaces as a diagnostic, rather than happening in
     // total silence. It points at this application, not at the model, so the
-    // user sees which of several examples was dropped.
+    // author sees which of several examples was dropped.
     reportDiagnostic(program, { code: "unserializable-message-example", target: example.node });
     return undefined;
   }
@@ -90,7 +90,7 @@ function buildMessageExample(
  * schema. An example is free-form: `headers` and `payload` are declared
  * `unknown` on the decorator, and the emitter does not check the content
  * against the message. Serializing against `unknown` keeps every property
- * the user wrote, and it still resolves each scalar through its own type. So
+ * the author wrote, and it still resolves each scalar through its own type. So
  * a `utcDateTime` reaches the document as an ISO string rather than as the
  * compiler's internal value object.
  */

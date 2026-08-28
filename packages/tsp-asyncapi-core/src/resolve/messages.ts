@@ -77,23 +77,23 @@ export interface ResolvedMessages {
  *
  * The chosen name goes through `sanitizeDeclarationName`, so a character
  * outside the AsyncAPI Components Object key charset never reaches the
- * output. Every rewrite of free-form user text is reported through
+ * output. Every rewrite of free-form author text is reported through
  * `sanitized-message-key`. Three routes reach one: an explicit decorator
  * argument, a backtick-quoted model name, and a `@friendlyName` outside the
- * charset. All three are text the user typed, and a topic-style name is
+ * charset. All three are text the author typed, and a topic-style name is
  * idiomatic in AsyncAPI, so emitting different text in silence would leave
- * the user with a key they never asked for.
+ * the author with a key they never asked for.
  *
  * A plain TypeSpec identifier is already inside the charset, so an ordinary
  * model reports nothing. The derived segments of a template instantiation
- * report nothing either: the user did not write that text.
+ * report nothing either, because the author did not write that text.
  */
 function messageKeyFor(program: Program, model: Model, state: MessageState): string {
   if (state.name === undefined) {
     return derivedMessageKey(program, model);
   }
   if (state.name.length === 0) {
-    // An empty key is not a legal member name. The user typed the empty
+    // An empty key is not a legal member name. The author typed the empty
     // string on purpose, so the fallback must not be silent.
     const emitted = derivedMessageKey(program, model);
     reportDiagnostic(program, {
