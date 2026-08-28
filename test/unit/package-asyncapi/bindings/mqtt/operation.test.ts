@@ -45,8 +45,7 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    // Zero is at most once delivery, which is a real mode. A truthiness check
-    // would drop it and leave the document claiming the default instead.
+    // Zero is at most once delivery, a real mode, not an absent field.
     expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt).toEqual({
       qos: 0,
       bindingVersion: "0.2.0",
@@ -65,8 +64,7 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    // `false` says the broker must not retain. That is the opposite of saying
-    // nothing, so it has to reach the document.
+    // `false` says the broker must not retain, the opposite of an absent field.
     expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt).toEqual({
       retain: false,
       bindingVersion: "0.2.0",
@@ -109,8 +107,7 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    // MQTT 5 types the field as a number or a Schema Object. A schema says
-    // what the value may be rather than what it is.
+    // MQTT 5 types this field as a number or a Schema Object.
     expect(bindingsOf(operationsOf(doc).publish.bindings).mqtt.messageExpiryInterval).toEqual({
       type: "integer",
       minimum: 60,
@@ -145,8 +142,6 @@ describe("Unit: the @mqttOperation decorator", () => {
       }
     `);
 
-    // The binding reaches no part of the document. Dropping it in silence
-    // would leave the author believing the delivery mode was set.
     const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("mqtt");
   });

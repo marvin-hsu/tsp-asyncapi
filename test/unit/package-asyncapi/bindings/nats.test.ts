@@ -64,8 +64,7 @@ describe("Unit: the @natsOperation decorator", () => {
       }
     `);
 
-    // The limit is inclusive. An off-by-one check would reject a name NATS
-    // accepts.
+    // The limit is inclusive. A 255-character name must not be rejected.
     expect(bindingsOf(operationsOf(doc).onReading.bindings).nats.queue).toBe(name);
   });
 
@@ -81,8 +80,7 @@ describe("Unit: the @natsOperation decorator", () => {
       }
     `);
 
-    // The author asked for the binding, so the member is emitted. NATS states
-    // no required field.
+    // NATS states no required field, but the member is still emitted.
     expect(bindingsOf(operationsOf(doc).onReading.bindings).nats).toEqual({
       bindingVersion: "0.1.0",
     });

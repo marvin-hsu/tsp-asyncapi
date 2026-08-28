@@ -61,8 +61,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    // Zero says the payload is unspecified bytes. That is one of the two
-    // formats MQTT 5 defines, not an absent field.
+    // Zero means unspecified bytes, one of the two formats MQTT 5 defines.
     expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt).toEqual({
       payloadFormatIndicator: 0,
       bindingVersion: "0.2.0",
@@ -104,8 +103,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    // MQTT types the field as a topic name or a Schema Object. Kafka has no
-    // field shaped this way, so the check is its own.
+    // MQTT types this field as a topic name or a Schema Object.
     expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt.responseTopic).toEqual({
       type: "string",
       pattern: "^sensors/",
@@ -143,8 +141,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    // A blank topic names nothing. Emitting it would send replies to a topic
-    // whose name is spaces.
+    // A blank topic names nothing. Emitting it sends replies to spaces.
     expect(bindingsOf(messagesOf(doc).Reading.bindings).mqtt).toEqual({
       contentType: "application/json",
       bindingVersion: "0.2.0",
@@ -164,8 +161,7 @@ describe("Unit: the @mqttMessage decorator", () => {
       ${CHANNEL}
     `);
 
-    // MQTT types this one as a schema only. A bare string is not one, and
-    // accepting it would write a document the parser rejects.
+    // MQTT types this field as a schema only. A bare string is not one.
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("correlationData");
     expect(reported.message).toContain("a schema object");

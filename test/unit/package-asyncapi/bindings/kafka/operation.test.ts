@@ -73,8 +73,6 @@ describe("Unit: the @kafkaOperation decorator", () => {
     expect(reported.message).toContain("groupId");
     expect(reported.message).toContain("a schema object");
     // The squiggle sits on the config literal, not on the whole operation.
-    // The channel and message levels both pin this and the operation level
-    // did not: dropping the argument target left the suite green.
     expect(targetText(reported)).toBe(
       '#{ groupId: "order-workers", clientId: #{ type: "string" } }',
     );

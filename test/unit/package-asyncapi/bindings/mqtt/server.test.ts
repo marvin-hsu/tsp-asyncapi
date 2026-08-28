@@ -59,9 +59,8 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    // `@server` is repeatable and keyed by name, so no decorator target can
-    // single one server out. Both therefore carry the binding, which makes it
-    // one shared component and a reference from each.
+    // `@server` is repeatable and keyed by name, so no target singles one out.
+    // Both carry the binding as one shared component, referenced from each.
     expect(
       bindingsOf(doc.components?.serverBindings?.Test, "the shared mqtt bindings").mqtt.clientId,
     ).toBe("sensor-gateway");
@@ -85,9 +84,7 @@ describe("Unit: the @mqttServer decorator", () => {
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("lastWill.qos");
     expect(reported.message).toContain("0, 1, 2");
-    // The rejected field goes on its own. The rest of the will still says
-    // which topic the broker posts to, and losing that as well would take
-    // away something the author wrote correctly.
+    // Only the rejected field is dropped. The rest of the will stays intact.
     expect(bindingsOf(serversOf(doc).prod.bindings).mqtt.lastWill).toEqual({
       topic: "sensors/status",
       message: "offline",
@@ -120,8 +117,7 @@ describe("Unit: the @mqttServer decorator", () => {
       ${BODY}
     `);
 
-    // The only field the will carried was rejected. An empty object states no
-    // will at all, so emitting it would claim the client configured one.
+    // An empty object states no will, so a fully rejected will is dropped.
     findDiagnostic(diagnostics, "invalid-binding-field");
     expect(bindingsOf(serversOf(doc).prod.bindings).mqtt).toEqual({
       clientId: "gateway",
