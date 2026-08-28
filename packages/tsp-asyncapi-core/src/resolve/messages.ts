@@ -20,7 +20,7 @@ import {
   listMessages,
 } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
-import { present } from "../optional-fields.js";
+import { present, text } from "../optional-fields.js";
 import {
   MessageHeaderPlan,
   liftedOf,
@@ -301,9 +301,9 @@ export function resolveMessages(
     messages.push({
       target: model,
       key,
-      ...textField("title", getSummary(program, model)),
-      ...textField("description", getDoc(program, model)),
-      ...textField("contentType", getContentType(program, model)),
+      ...text("title", getSummary(program, model)),
+      ...text("description", getDoc(program, model)),
+      ...text("contentType", getContentType(program, model)),
       headers: resolveHeaders(plan, model),
       payload: resolvePayload(program, plan, model, artifacts),
       ...present("correlationId", getCorrelationId(program, model)),
@@ -316,12 +316,4 @@ export function resolveMessages(
   }
 
   return { messages, keys, extensionCarriers };
-}
-
-/** Includes a text field only when it holds one. */
-function textField<K extends string>(
-  name: K,
-  value: string | undefined,
-): Record<K, string> | Record<string, never> {
-  return value !== undefined && value.length > 0 ? ({ [name]: value } as Record<K, string>) : {};
 }

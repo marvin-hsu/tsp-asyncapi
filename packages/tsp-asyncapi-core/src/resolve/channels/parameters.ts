@@ -357,6 +357,11 @@ function defaultOf(property: ModelProperty): string | undefined {
  * as strings, so a value that serializes to anything else is left out. An
  * example that cannot be serialized at all is dropped with the warning the
  * schema layer already uses for that.
+ *
+ * Neither drop is silent. A parameter reaches the document only when its
+ * type is a string type, and the compiler rejects an example the parameter
+ * type does not accept. A parameter of any other type is reported as
+ * `non-string-channel-param` and is left out along with its examples.
  */
 function buildParameterExamples(program: Program, property: ModelProperty): string[] | undefined {
   // An example that carries no usable value is dropped rather than left to
