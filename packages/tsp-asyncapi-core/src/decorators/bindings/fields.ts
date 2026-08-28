@@ -152,7 +152,7 @@ export function nonEmptyObject<T extends object>(value: T | undefined): T | unde
  * priority. None of them is ever negative. Zero is a valid value on all of
  * them, because it turns the delay, the retention or the timeout off. Only
  * a negative value is reported. `measure` names the unit, such as
- * `seconds`, for the diagnostic; pass `undefined` where the binding states
+ * `seconds`, for the diagnostic. Pass `undefined` where the binding states
  * no unit.
  * @internal
  */
