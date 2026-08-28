@@ -235,7 +235,9 @@ A scalar you declare is matched through the scalar it extends. `scalar Age exten
 
 Avro has no unsigned integer. `uint32` and `uint64` are refused, because widening them would change what you wrote.
 
-The table is the whole of it. `utcDateTime`, `offsetDateTime`, `plainDate`, `plainTime`, `duration` and `decimal` are refused as well: Avro carries each of them as a number or as bytes, and which one it is comes from a logical type rather than from the scalar. Declare the field as the type Avro carries, and write the meaning with `@Avro.logicalType`: a timestamp is an `int64` that carries `timestamp-millis`, a date is an `int32` that carries `date`, and a decimal is `bytes` under `@Avro.decimal`. The next section names every pair.
+The table is the whole of it. `utcDateTime`, `offsetDateTime`, `plainDate`, `plainTime`, `duration` and `decimal` are refused as well. Avro carries each of them as a number or as bytes. A logical type says which one it is, not the scalar.
+
+Declare the field as the type Avro carries. Write the meaning with `@Avro.logicalType`. A timestamp is an `int64` that carries `timestamp-millis`. A date is an `int32` that carries `date`. A decimal is `bytes` under `@Avro.decimal`. The next section names every pair.
 
 ## Logical types
 

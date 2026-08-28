@@ -235,7 +235,9 @@ TypeSpec enum 變成 Avro enum。Avro 的 enum 只有符號，所以帶著自己
 
 Avro 沒有無號整數。`uint32` 與 `uint64` 會被拒絕，因為放寬型別會改變作者寫下的意思。
 
-對照表就是全部。`utcDateTime`、`offsetDateTime`、`plainDate`、`plainTime`、`duration` 與 `decimal` 同樣會被拒絕：Avro 用數字或位元組承載這幾種值，是哪一種由 logical type 決定，而不是由 scalar 決定。請把欄位宣告成 Avro 承載的型別，再用 `@Avro.logicalType` 寫出它的意思：時間戳是帶著 `timestamp-millis` 的 `int64`，日期是帶著 `date` 的 `int32`，decimal 則是搭配 `@Avro.decimal` 的 `bytes`。下一節列出所有配對。
+對照表就是全部。`utcDateTime`、`offsetDateTime`、`plainDate`、`plainTime`、`duration` 與 `decimal` 同樣會被拒絕。Avro 用數字或位元組承載這幾種值。是哪一種由 logical type 決定，不是由 scalar 決定。
+
+把欄位宣告成 Avro 承載的型別。再用 `@Avro.logicalType` 寫出它的意思。時間戳是帶著 `timestamp-millis` 的 `int64`。日期是帶著 `date` 的 `int32`。decimal 則是搭配 `@Avro.decimal` 的 `bytes`。下一節列出所有配對。
 
 ## Logical type
 
