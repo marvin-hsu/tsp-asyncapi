@@ -268,16 +268,17 @@ export type DiscriminatorResolution =
  * Resolves `@discriminator` on `model` without changing anything.
  *
  * Two callers ask this question. One writes the keyword onto a schema and
- * queues the model's subtypes. The other only needs the answer: a payload
- * that lifts `@header` fields cannot carry the keyword, and it has to tell a
- * dropped keyword apart from one that never applied. Answering through a
+ * queues the model's subtypes. The other only needs the answer. It builds
+ * a payload that lifts `@header` fields, which cannot carry the keyword.
+ * That caller still has to tell a dropped keyword apart from one that never
+ * applied. Answering through a
  * function that builds and queues nothing is what lets the second caller ask
  * without moving the walk along behind its back.
  *
  * `@discriminator("x")` names the property by its TypeSpec declaration name,
  * before any `@encodedName` remap, so the lookup goes by that name. The walk
- * covers the whole `baseModel` chain, because the assembled schema of a
- * derived model refers to its base and the property may be declared there.
+ * covers the whole `baseModel` chain. The assembled schema of a derived
+ * model refers to its base, and the property may be declared there.
  *
  * @param program - The program the model belongs to
  * @param model - The model whose decorator is read
@@ -374,9 +375,9 @@ export function declareDiscriminatedHierarchy(walk: InheritanceWalk, model: Mode
  * true, *and* `own` contributes nothing beyond the empty
  * `{ type: "object" }` shape, `own` is dropped entirely. It is not paired
  * with the base's actual `array`/`object`-with-`additionalProperties`
- * shape. An `own` that is always the bare `{type:"object"}` sibling would
- * otherwise sit next to a `type:"array"` branch under `allOf`'s implicit
- * AND, making the schema unsatisfiable by any value.
+ * shape. An `own` kept as the bare `{type:"object"}` sibling would
+ * otherwise sit next to a `type:"array"` branch. `allOf` means an implicit
+ * AND, so no value could then satisfy the schema.
  * For an *anonymous* base, `Array<T>`/`Record<T>` at the use site, the
  * base's collection shape is then returned directly with no `allOf`
  * wrapper at all. There is no declaration to register or `$ref`.
@@ -420,11 +421,11 @@ export function applyExtends(walk: InheritanceWalk, model: Model, own: SchemaObj
   const ownIsEmpty = ownKeys.length === 1 && ownKeys[0] === "type";
   // Whether the base is a collection is asked of the base itself, never of
   // a shape built from it. Building the base's collection shape builds its
-  // element type, and a second build of a declaration is what promotes it
-  // from an inline shape to a component. A base built once to answer the
-  // question and once again to write the branch below therefore moved its
-  // element into `components.schemas`, purely because some model extended
-  // the base. See `isBuiltinCollectionInstantiation` for the anonymous
+  // element type. A second build of a declaration is what promotes it from
+  // an inline shape to a component. A base built once to answer the question
+  // and once again to write the branch below therefore moved its element
+  // into `components.schemas`. That happened purely because some model
+  // extended the base. See `isBuiltinCollectionInstantiation` for the anonymous
   // case, which is built exactly once here and is the shape that is used.
   if (isBuiltinCollectionInstantiation(model.baseModel)) {
     const baseCollection = walk.buildCollectionSchema(model.baseModel);
@@ -506,7 +507,7 @@ export function reportInheritanceConflicts(walk: InheritanceWalk, model: Model):
  * A model with lifted `@header` fields is built twice. Its payload
  * component and its own component both resolve the same decorators on the
  * same model. A diagnostic about the model is one mistake either way, and
- * the message names no component, so a second report would put the same
+ * the message names no component. So a second report would put the same
  * text on the same squiggle.
  *
  * The record lives in `diagnostics`, so it is scoped to one builder and
@@ -532,8 +533,8 @@ function reportModelDiagnosticOnce(
  * `resolveDiscriminator` decides; this adds the report. AsyncAPI 3.x, via
  * draft-07, requires the discriminating property to be defined on the
  * schema and to be required. A `discriminator` naming a property no reader
- * could find is worse than no `discriminator` at all, so the keyword is
- * dropped and the reason is reported rather than silently swallowed. The
+ * could find is worse than no `discriminator` at all. So the keyword is
+ * dropped, and the reason is reported rather than silently swallowed. The
  * compiler itself never validates this.
  *
  * The report is deduped per model, so both callers can ask without the
@@ -575,10 +576,9 @@ function discriminatingProperty(walk: InheritanceWalk, model: Model): ModelPrope
  *
  * This uses a deliberate lenient interpretation. When the
  * discriminating property is found only on an ancestor (`Base` above),
- * `discriminator` is still written onto `schema`, even though
- * `schema` itself, as opposed to the assembled
- * `{ allOf: [{ $ref: Base }, own] }`, has no own `properties`/`required`
- * naming it.
+ * `discriminator` is still written onto `schema`. `schema` itself has no
+ * own `properties`/`required` naming the property. Only the assembled
+ * `{ allOf: [{ $ref: Base }, own] }` names it.
  * AsyncAPI 3.x's Schema Object text says the property "MUST be defined at
  * this schema and ... in the required property list". Read literally,
  * that would require copying the ancestor's property definition into
@@ -588,8 +588,8 @@ function discriminatingProperty(walk: InheritanceWalk, model: Model): ModelPrope
  * checked against does so. So a property defined in an `allOf` branch
  * reachable via `$ref` is, in practice, "defined at this schema".
  * Copying it into every subtype's `own` would duplicate the property's
- * definition, in the base and every subtype, kept in sync by hand, for
- * no behavioral gain. It would also fight the same omit-duplication
+ * definition. The base and every subtype would then hold it, kept in sync
+ * by hand, for no behavioral gain. It would also fight the same omit-duplication
  * principle `applyExtends` already follows: `own` excludes inherited
  * members precisely so they are not double-counted against the base's
  * `$ref`.
@@ -626,9 +626,9 @@ export function applyDiscriminator(
  * `applyExtends` uses this as the fallback when
  * `findEncodedNameOverrideConflict` finds an override whose
  * `@encodedName` differs from its ancestor's. The normal
- * `{ allOf: [{ $ref: Base }, own] }` shape would then key the base branch
- * and the own branch by two different wire names for the same conceptual
- * property. That would make the assembled schema reject every valid
+ * `{ allOf: [{ $ref: Base }, own] }` shape would then key the two branches
+ * by two different wire names. Both names would stand for the same
+ * conceptual property. The assembled schema would reject every valid
  * payload.
  * `buildPayloadShape` uses it for the payload component of a message that
  * lifts `@header` fields, and hands in those fields as `omitted`. That

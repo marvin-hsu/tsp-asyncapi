@@ -50,7 +50,7 @@ describe("Unit: Schemas — annotations", () => {
       `);
 
       // `@secret` on the property is a format the property states for
-      // itself, so it stands in place of the scalar's, the same way an
+      // itself. It stands in place of the scalar's format, the same way an
       // explicit `@format` on the property does. Layering it over a
       // reference would say the value is a uuid and a password at once.
       expect(props.id).toEqual({ type: "string", format: "password" });

@@ -181,10 +181,10 @@ export function propertyStatesItsOwnShape(program: Program, prop: ModelProperty)
   return (
     getEncode(program, prop) !== undefined ||
     getFormat(program, prop) !== undefined ||
-    // `@secret` is a format too: it is what `password` is written from
-    // (see `buildValidationKeywords`). A property that carries it says
-    // this value is a password, which stands in place of whatever format
-    // the scalar states, exactly as an explicit `@format` does.
+    // `@secret` is a format too. It is what `password` is written from
+    // (see `buildValidationKeywords`). A property that carries it says the
+    // value is a password. That stands in place of whatever format the
+    // scalar states, exactly as an explicit `@format` does.
     isSecret(program, prop) ||
     getDoc(program, prop) !== undefined ||
     getSummary(program, prop) !== undefined ||

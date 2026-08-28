@@ -222,7 +222,7 @@ describe("Unit: Schemas — @encode", () => {
   /**
    * A nullable value is a union, and only one of its variants is the value
    * the encoding describes. Writing the encoded `type` on the union itself
-   * puts `type: "integer"` beside an `anyOf` of a string and a null, and no
+   * puts `type: "integer"` beside an `anyOf` of a string and a null. No
    * value satisfies all three at once.
    */
   describe("a union-typed property", () => {

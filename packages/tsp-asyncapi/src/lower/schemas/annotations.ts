@@ -447,9 +447,9 @@ function withoutFormat(schema: SchemaObject): SchemaObject {
  * level's `format`, if any, wins over the base's. It wins outright: the
  * base's is removed from the branch, and from any `allOf` nested inside it,
  * rather than left there beside it.
- * `format` is a draft-07 annotation, not a keyword `allOf` intersects, so a
- * branch saying `uuid` under a wrapper saying `email` is a contradiction
- * rather than two constraints that both hold. A base format this level says
+ * `format` is a draft-07 annotation, not a keyword `allOf` intersects. A
+ * branch saying `uuid` under a wrapper saying `email` is a contradiction. It
+ * is not two constraints that both hold. A base format this level says
  * nothing about stays in the branch, where it already describes the value.
  */
 function hoistAnnotationsAboveAllOf(

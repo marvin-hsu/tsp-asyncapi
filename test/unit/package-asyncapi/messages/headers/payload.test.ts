@@ -491,9 +491,9 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     const doc = await documentFrom(runner.program);
 
     // Nothing reads `Inner` itself, so it emits no component of its own.
-    // Holding its key anyway would leave `Other` reported as a duplicate of
-    // a schema that is never written, and `Outer` referring to a key with
-    // nothing behind it.
+    // Holding its key anyway would report `Other` as a duplicate of a
+    // schema that is never written. It would also leave `Outer` referring
+    // to a key with nothing behind it.
     expect(diagnosticsWith(runner.program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
     expect(doc.components?.schemas?.Inner).toEqual({
       type: "object",
