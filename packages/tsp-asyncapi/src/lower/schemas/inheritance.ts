@@ -1,15 +1,15 @@
 /**
  * What an `extends` chain does to a schema.
  *
- * A model that extends another states part of its shape somewhere else, and
- * every rule about that lives here: composing the base into `allOf`, the two
- * conflicts that force the shape flat instead, flattening it, and
- * `@discriminator`, which is the one decorator that reads a hierarchy rather
- * than a single type.
+ * A model that extends another states part of its shape somewhere else.
+ * Every rule about that lives here. The base is composed into `allOf`.
+ * Two conflicts force the shape flat instead, and the flattening lives
+ * here as well. So does `@discriminator`. That is the one decorator that
+ * reads a hierarchy rather than a single type.
  *
  * These rules reach back into the walk that owns them through
- * `InheritanceWalk`. They build referenced types and assemble objects, and
- * neither is theirs to define.
+ * `InheritanceWalk`. They build referenced types and they assemble
+ * objects. Neither is theirs to define.
  */
 
 import {
@@ -32,12 +32,12 @@ import { DeclarationRegistry } from "./declarations.js";
 /**
  * What the inheritance rules need from the walk that owns them.
  *
- * These rules read a model's `extends` chain and write the shape it lands
- * in, so they have to reach back into the walk for the parts they do not
- * own: building a referenced type, assembling an object out of properties,
- * and the registry that keys a declaration. Naming that reach as an
- * interface is what keeps `schemas.ts` from having to hold these rules to
- * stay reachable.
+ * These rules read a model's `extends` chain. They write the shape it
+ * lands in. So they have to reach back into the walk for the parts they
+ * do not own. Those parts are building a referenced type, assembling an
+ * object out of properties, and the registry that keys a declaration.
+ * Naming that reach as an interface is what keeps `schemas.ts` from
+ * having to hold these rules to stay reachable.
  */
 export interface InheritanceWalk {
   readonly program: Program;
@@ -332,11 +332,11 @@ export function declareDiscriminatedHierarchy(walk: InheritanceWalk, model: Mode
   }
   // A missing or optional discriminating property drops the keyword too,
   // and that is not this conflict. So whether the keyword applies at all
-  // is what tells the two apart. It is asked through
-  // `discriminatingProperty`, which builds nothing and queues nothing:
-  // asking `applyDiscriminator` would queue this model's subtypes here as
-  // well as at the model's own component, on the strength of a schema
-  // built only to be thrown away.
+  // is what tells the two apart. The question goes to
+  // `discriminatingProperty`, which builds nothing and queues nothing.
+  // `applyDiscriminator` would queue this model's subtypes twice, here and
+  // at the model's own component. It would do so on the strength of a
+  // schema built only to be thrown away.
   if (discriminatingProperty(walk, model) === undefined) {
     return;
   }

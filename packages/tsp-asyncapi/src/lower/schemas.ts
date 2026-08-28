@@ -157,13 +157,15 @@ export class SchemaBuilder {
     }
 
     // The key the model would claim, not a claim on it. The model's own
-    // component is often never built: nothing but this message reads the
+    // component is often never built. Nothing but this message reads the
     // model, and this message describes its payload instead. Claiming the
-    // key here would then reserve a key no schema is ever written under, so
-    // another type that computes the same key would be reported as a
-    // duplicate of a component that does not exist, and every reference to
-    // it would dangle. A reader that does build the model's own component
-    // claims the key then.
+    // key here would then reserve a key no schema is ever written under.
+    // Another type that computes the same key would be reported as a
+    // duplicate of a component that does not exist. Every reference to
+    // that component would dangle.
+    //
+    // A reader that does build the model's own component claims the key
+    // then.
     const baseKey = this.declarations.keyCandidate(model);
     const payloadKey = `${baseKey}Payload`;
     if (!this.declarations.claimDerived(payloadKey, model)) {
