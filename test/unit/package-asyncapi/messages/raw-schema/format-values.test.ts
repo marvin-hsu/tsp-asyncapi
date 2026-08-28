@@ -6,8 +6,8 @@ import {
   MULTI_FORMAT_SCHEMA_FORMATS,
   NON_JSON_SCHEMA_FORMATS,
 } from "#core/constants.js";
-import { diagnosticsWith, findDiagnostic, targetText } from "../../../utils/diagnostics.js";
-import { documentFrom } from "../../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic, targetText } from "../../../../utils/diagnostics.js";
+import { documentFrom } from "../../../../utils/test-host.js";
 
 /** The Avro format identifier AsyncAPI recommends. */
 const AVRO = "application/vnd.apache.avro;version=1.9.0";

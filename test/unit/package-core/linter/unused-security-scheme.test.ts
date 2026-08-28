@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { unusedSecuritySchemeRule } from "#core/linter/unused-security-scheme.rule.js";
-import { createRuleTester } from "../../utils/linter.js";
+import { createRuleTester } from "../../../utils/linter.js";
 
 /**
  * Unit tests of `tsp-asyncapi/unused-security-scheme`.

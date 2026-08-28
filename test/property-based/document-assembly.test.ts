@@ -249,8 +249,8 @@ describe("Integration: document assembly — the options that reach the head", (
    *
    * Two of the three states an option can be in are single points -- absent,
    * and blank in each of its spellings -- and both are written out in
-   * `test/unit/lower/document.test.ts`, which owns them. What is left for a
-   * property, and reachable only here, is arbitrary text.
+   * `test/unit/package-asyncapi/lower/document.test.ts`, which owns them. What
+   * is left for a property, and reachable only here, is arbitrary text.
    */
   const optionDraw = fc.oneof(
     { arbitrary: fc.constant<OptionDraw>({ input: undefined, expected: undefined }), weight: 2 },

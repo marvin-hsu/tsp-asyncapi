@@ -7,10 +7,10 @@ import { lowerInfo } from "#emitter/lower/info.js";
 import { buildTags } from "#core/resolve/tags.js";
 import { buildExternalDocs } from "#core/external-docs.js";
 import { buildAsyncAPIDocument } from "#emitter/pipeline.js";
-import { diagnosticsWith } from "../../utils/diagnostics.js";
-import { documentFrom } from "../../utils/test-host.js";
-import { noPromotions } from "../../utils/promotions.js";
-import { externalDocsOf } from "../../utils/document.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { documentFrom } from "../../../utils/test-host.js";
+import { noPromotions } from "../../../utils/promotions.js";
+import { externalDocsOf } from "../../../utils/document.js";
 
 describe("Unit: Builders (Phase 1)", () => {
   let runner: TesterInstance;

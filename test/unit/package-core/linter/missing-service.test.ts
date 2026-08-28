@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { missingServiceRule } from "#core/linter/missing-service.rule.js";
-import { createMultiFileRuleTester, createRuleTester } from "../../utils/linter.js";
+import { createMultiFileRuleTester, createRuleTester } from "../../../utils/linter.js";
 
 /**
  * Unit tests of `tsp-asyncapi/missing-service`.

@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { emitDocument, emitDocumentWithDiagnostics } from "../../utils/test-host.js";
-import { findDiagnostic, targetText } from "../../utils/diagnostics.js";
+import { emitDocument, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
+import { findDiagnostic, targetText } from "../../../utils/diagnostics.js";
 import { listAllBindings } from "#core/decorators/bindings/state.js";
-import { channelsOf, messagesOf, operationsOf, present, serversOf } from "../../utils/document.js";
-import { KAFKA_SERVICE } from "../../utils/source.js";
-import { bindingsOf } from "../../utils/document.js";
+import {
+  channelsOf,
+  messagesOf,
+  operationsOf,
+  present,
+  serversOf,
+} from "../../../utils/document.js";
+import { KAFKA_SERVICE } from "../../../utils/source.js";
+import { bindingsOf } from "../../../utils/document.js";
 
 describe("Unit: the generic @binding decorator", () => {
   it("emits the config verbatim on a channel, and adds no bindingVersion", async () => {

@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { operationWithoutMessageRule } from "#core/linter/operation-without-message.rule.js";
-import { createRuleTester } from "../../utils/linter.js";
+import { createRuleTester } from "../../../utils/linter.js";
 
 const SERVICE = `
   @service(#{ title: "Orders" })

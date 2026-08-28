@@ -3,10 +3,10 @@ import { AsyncAPITester } from "#emitter/testing.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import type { Model, Program } from "@typespec/compiler";
 import { reportUnresolvedRawSchemaRefs } from "#emitter/lower/raw-schema-refs.js";
-import { namespaceOf } from "../../../utils/namespace.js";
+import { namespaceOf } from "../../../../utils/namespace.js";
 import { ASYNCAPI_VERSION } from "#core/constants.js";
-import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
-import { documentFrom } from "../../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic } from "../../../../utils/diagnostics.js";
+import { documentFrom } from "../../../../utils/test-host.js";
 
 /** The AsyncAPI Schema Object format, in its JSON flavour. */
 const NATIVE = `application/vnd.aai.asyncapi+json;version=${ASYNCAPI_VERSION}`;

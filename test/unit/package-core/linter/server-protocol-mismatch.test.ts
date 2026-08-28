@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { serverProtocolMismatchRule } from "#core/linter/server-protocol-mismatch.rule.js";
-import { createRuleTester } from "../../utils/linter.js";
+import { createRuleTester } from "../../../utils/linter.js";
 
 /**
  * Unit tests of `tsp-asyncapi/server-protocol-mismatch`.

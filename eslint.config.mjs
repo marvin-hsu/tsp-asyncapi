@@ -181,7 +181,7 @@ export default tseslint.config(
   // Inlining the cases would defeat the point: one file listing every walk
   // that holds the shared contract is what makes a missing walk visible.
   {
-    files: ["test/unit/walk-conformance.test.ts"],
+    files: ["test/unit/package-asyncapi/walk-conformance.test.ts"],
     rules: {
       "sonarjs/no-empty-test-file": "off",
     },
@@ -254,8 +254,8 @@ export default tseslint.config(
   // `definition.test.ts` asserts on the linter definition with plain
   // `expect`, so it keeps the guard.
   {
-    files: ["test/unit/linter/**/*.test.ts"],
-    ignores: ["test/unit/linter/definition.test.ts"],
+    files: ["test/unit/package-core/linter/**/*.test.ts"],
+    ignores: ["test/unit/package-core/linter/definition.test.ts"],
     rules: { "sonarjs/assertions-in-tests": "off" },
   },
   {

@@ -1,12 +1,12 @@
 import { buildPayloadModel } from "#emitter/schema-artifacts/protobuf/model.js";
 import { buildAvroRecordWithDiagnostics } from "#avro/unstable.js";
-import { compileWithProtobuf, messageModelNamed } from "../utils/protobuf-parity.js";
-import { compileAvro, avroModelNamed } from "../utils/avro.js";
+import { compileWithProtobuf, messageModelNamed } from "../../utils/protobuf-parity.js";
+import { compileAvro, avroModelNamed } from "../../utils/avro.js";
 import {
   describeWalkConformance,
   type ConformanceCase,
   type WalkOutcome,
-} from "../utils/walk-conformance.js";
+} from "../../utils/walk-conformance.js";
 
 /**
  * The shared contract, run against both schema walks.

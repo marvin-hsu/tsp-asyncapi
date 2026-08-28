@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { expectDiagnosticEmpty, t } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
-import { builtSecuritySchemes } from "../../../../utils/security-schemes.js";
+import { builtSecuritySchemes } from "../../../../../utils/security-schemes.js";
 import { getSecuritySchemes } from "#core/decorators/index.js";
-import { emitDocument } from "../../../../utils/test-host.js";
+import { emitDocument } from "../../../../../utils/test-host.js";
 import {
   componentsOf,
   messagesOf,
   schemasOf,
   securitySchemesOf,
-} from "../../../../utils/document.js";
+} from "../../../../../utils/document.js";
 
 describe("Unit: security schemes — what reaches the document", () => {
   it("omits a description that is absent or blank", async () => {

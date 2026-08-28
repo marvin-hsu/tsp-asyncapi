@@ -21,7 +21,9 @@ import { PACKAGE_NAME } from "#emitter/lib.js";
 
 const EMITTER_PACKAGE_ROOT = normalizePath(
   getDirectoryPath(
-    getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))),
+    getDirectoryPath(
+      getDirectoryPath(getDirectoryPath(getDirectoryPath(fileURLToPath(import.meta.url)))),
+    ),
   ) + "/packages/tsp-asyncapi",
 );
 
