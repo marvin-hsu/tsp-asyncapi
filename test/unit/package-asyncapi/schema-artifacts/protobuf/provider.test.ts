@@ -39,12 +39,7 @@ const SOURCE = `
   }
 `;
 
-/**
- * Runs the provider over one source and reads the identity of each artifact.
- *
- * @param source - The TypeSpec source of the case
- * @returns The identity of every artifact, by the name of its model
- */
+/** Runs the provider over one source and reads the identity of each artifact, by model name. */
 async function identitiesOf(source: string): Promise<Map<string, string>> {
   const program = await compileWithProtobuf(source);
   const collected = await createProtobufProvider().collect(program);
