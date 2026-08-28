@@ -617,7 +617,7 @@ export function withPropertyDocs(
   // inlined rather than referenced.
   const encoded =
     prop.kind === "ModelProperty" && !("$ref" in schema)
-      ? applyEncoding(program, prop, schema)
+      ? applyEncoding(program, prop, schema, diagnostics)
       : schema;
   // The example is serialized against `prop`, not `prop.type`, so the compiler
   // applies the same `@encode` to it. An example encoded differently from the

@@ -254,6 +254,26 @@ describe("Unit: Schemas — @encode", () => {
       });
     });
 
+    it("keeps a named scalar variant's own documentation", async () => {
+      const props = await holderProperties(`
+        @doc("Seconds since the epoch.")
+        scalar Epoch extends utcDateTime;
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The reference is replaced, so the component's own prose has to be
+      // written in its place. The non-union path already keeps it.
+      expect(props.ts).toEqual({
+        anyOf: [
+          { type: "integer", format: "unixtime", description: "Seconds since the epoch." },
+          { type: "null" },
+        ],
+      });
+    });
+
     it("leaves a variant the encoding says nothing about alone", async () => {
       const props = await holderProperties(`
         model Holder {

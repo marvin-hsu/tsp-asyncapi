@@ -18,7 +18,8 @@ import {
 } from "@typespec/compiler";
 import { ReferenceObject, SchemaObject } from "../../types/index.js";
 import { SCHEMA_FORMAT } from "tsp-asyncapi-core";
-import { SCALAR_SCHEMAS, isBuiltinScalar } from "./scalars.js";
+import { SCALAR_SCHEMAS, buildScalarShapeWithDocs, isBuiltinScalar } from "./scalars.js";
+import { SchemaDiagnostics } from "./diagnostics.js";
 
 /**
  * The `format` an encoded value ends up with.
@@ -221,13 +222,25 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  * where a property carrying `@encode` writes the scalar in place instead of
  * referring to it.
  *
+ * The replacement is built from the variant's own shape, not from an empty
+ * one. The component the reference pointed at holds the scalar's `@doc`,
+ * its `@summary`, and its validation keywords. Dropping the reference must
+ * not drop those as well. `buildPropertyTypeSchema` keeps them on the
+ * non-union path, and this keeps the two paths alike.
+ *
  * A schema whose branches do not line up with the union's variants is
  * returned untouched. That is a string-literal union collapsed to one `enum`,
  * or a `@discriminated` envelope: neither has a branch per variant to encode,
  * and the compiler's own `invalid-encode` already rejects an encoding on
  * either.
  */
-function encodeUnion(union: Union, schema: SchemaObject, encodeData: EncodeData): SchemaObject {
+function encodeUnion(
+  program: Program,
+  union: Union,
+  schema: SchemaObject,
+  encodeData: EncodeData,
+  diagnostics: SchemaDiagnostics,
+): SchemaObject {
   const variants = [...union.variants.values()];
   for (const keyword of UNION_KEYWORDS) {
     const branches = schema[keyword];
@@ -239,7 +252,9 @@ function encodeUnion(union: Union, schema: SchemaObject, encodeData: EncodeData)
       if (variant.kind !== "Scalar" || !encodingDescribes(encodeData, variant)) {
         return branch;
       }
-      return encodeShape("$ref" in branch ? {} : branch, encodeData, variant);
+      const shape =
+        "$ref" in branch ? buildScalarShapeWithDocs(program, diagnostics, variant) : branch;
+      return encodeShape(shape, encodeData, variant);
     });
     return { ...schema, [keyword]: encoded };
   }
@@ -258,6 +273,7 @@ function encodeUnion(union: Union, schema: SchemaObject, encodeData: EncodeData)
  * @param program - The program the target belongs to
  * @param target - The scalar declaration or property whose `@encode` is read
  * @param schema - The schema already built from the declared type
+ * @param diagnostics - The ledger a replaced union branch reports through
  * @returns The schema with the encoding applied
  * @internal
  */
@@ -265,13 +281,14 @@ export function applyEncoding(
   program: Program,
   target: Scalar | ModelProperty,
   schema: SchemaObject,
+  diagnostics: SchemaDiagnostics,
 ): SchemaObject {
   const encodeData = getEncode(program, target);
   if (encodeData === undefined) return schema;
 
   const declared = declaredTypeOf(target);
   if (declared.kind === "Union") {
-    return encodeUnion(declared, schema, encodeData);
+    return encodeUnion(program, declared, schema, encodeData, diagnostics);
   }
   return encodeShape(schema, encodeData, declared.kind === "Scalar" ? declared : undefined);
 }

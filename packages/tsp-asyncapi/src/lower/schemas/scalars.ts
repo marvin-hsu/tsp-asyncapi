@@ -259,7 +259,7 @@ export function buildScalarShapeWithDocs(
     // explicit `@format` merged in afterwards still wins over the format
     // the encoding resolved to.
     return {
-      ...applyEncoding(program, scalar, shape),
+      ...applyEncoding(program, scalar, shape, diagnostics),
       ...buildValidationKeywords(program, scalar, diagnostics),
     };
   }
@@ -287,6 +287,7 @@ export function buildScalarShapeWithDocs(
     program,
     scalar,
     scalar.baseScalar ? buildScalarShapeWithDocs(program, diagnostics, scalar.baseScalar) : {},
+    diagnostics,
   );
   return withDocs(program, scalar, base, diagnostics);
 }
