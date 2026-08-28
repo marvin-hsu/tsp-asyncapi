@@ -26,16 +26,9 @@ type ServerConfigArgument = Omit<AsyncAPIServerState, "name" | "variables"> & {
 /**
  * Turns the `config` argument of `@server` into the state to store.
  * Every string field is trimmed. A required field that is blank after the
- * trim makes the whole server invalid. The function then reports the field
- * and returns `undefined`, so the caller drops the server.
+ * trim makes the whole server invalid, so it is reported and dropped.
  * An optional field that is blank after the trim carries no value. It is
  * left absent, the same as a field the author left out.
- *
- * @param context - The decorator context
- * @param name - The name argument of the decorator
- * @param config - The config argument of the decorator
- * @param configTarget - The node to report a field problem on
- * @returns The state to store, or `undefined` when a required field is blank
  */
 function normalizeServerConfig(
   context: DecoratorContext,
@@ -107,11 +100,6 @@ function normalizeServerConfig(
  * there needs an entry in `variables`. A name with no entry is reported, and
  * the server is still emitted with the template text unchanged.
  *
- * @param context - The decorator context
- * @param target - The namespace to apply this decorator to
- * @param name - The key for this server in the emitted `servers` map
- * @param config - The server fields matching the AsyncAPIServer shape
- *
  * @example
  * ```typespec
  * @server("production", #{ host: "kafka.example.com:9092", protocol: "kafka" })
@@ -169,14 +157,11 @@ export function $server(
 }
 
 /**
- * Reads back the servers declared by `@server`.
+ * Reads back the servers declared by `@server`, in source order. The list
+ * is empty when the decorator was never applied.
  *
- * @param program - The program to read the state from
- * @param target - The namespace the decorator was applied to
- * @returns A copy of the recorded servers, in source order. The list is
- * empty when the decorator was never applied. The caller may change the
- * returned objects. The change stays with the caller. The copy reaches the
- * variables as well, because they are a nested graph that a shallow copy
+ * The returned servers are a copy the caller may freely change. The copy
+ * reaches the variables too, since they are a nested graph a shallow copy
  * would still share.
  *
  * @public

@@ -48,11 +48,6 @@ export type { UseSecurityTarget } from "./use-security-state.js";
  * The check runs while the document is built, because a `@securityScheme`
  * anywhere in the program can still arrive after this decorator runs.
  *
- * @param context - The decorator context
- * @param target - The namespace whose servers require this scheme, or the
- * operation that requires it
- * @param schemeName - The name given to a `@securityScheme`
- *
  * @example
  * ```typespec
  * @securityScheme("kafka-scram", #{ type: "scramSha512" })
@@ -103,15 +98,11 @@ export function $useSecurity(
 }
 
 /**
- * Reads back the scheme names required by `@useSecurity`.
+ * Reads back the scheme names required by `@useSecurity`, in source order.
+ * The list is empty when the decorator was never applied.
  *
  * A name given more than once yields one entry. AsyncAPI reads the
  * `security` array as OR, so a repeated name adds nothing.
- *
- * @param program - The program to read the state from
- * @param target - The namespace or operation the decorator was applied to
- * @returns The scheme names, in source order. The list is empty when the
- * decorator was never applied.
  *
  * @public
  */

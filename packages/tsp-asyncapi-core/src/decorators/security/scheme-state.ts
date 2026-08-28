@@ -7,10 +7,8 @@ const securitySchemeStateKey = Symbol.for("tsp-asyncapi.securityScheme");
 
 /**
  * One security scheme declared by `@securityScheme`.
- * The scheme holds the fields of the AsyncAPI Security Scheme Object. The
- * name is the key it takes in `components.securitySchemes`.
- * It is the element type `getSecuritySchemes` returns, so it is part of the
- * public surface.
+ * The name is its key in `components.securitySchemes`. This is the
+ * element type `getSecuritySchemes` returns.
  * @public
  */
 export interface AsyncAPISecuritySchemeState {
@@ -44,10 +42,7 @@ export { getSecuritySchemesInternal, setSecuritySchemes };
 
 /**
  * Lists every security scheme the program declares, in source order.
- *
- * @param program - The program to read the state from
- * @returns The declared schemes. The list is empty when the program
- * declares none.
+ * The list is empty when the program declares none.
  */
 export function listSecuritySchemes(program: Program): AsyncAPISecuritySchemeState[] {
   return listSecuritySchemeRecords(program).map((record) => record.state);
@@ -58,10 +53,8 @@ export function listSecuritySchemes(program: Program): AsyncAPISecuritySchemeSta
  * on, in source order.
  *
  * The resolver needs the target as well as the scheme. Everything else only
- * needs the scheme, so `listSecuritySchemes` drops it.
- *
- * @param program - The program to read the state from
- * @returns The records. The list is empty when the program declares none.
+ * needs the scheme, so `listSecuritySchemes` drops it. The list is empty
+ * when the program declares none.
  * @internal
  */
 export function listSecuritySchemeRecords(program: Program): SecuritySchemeRecord[] {
@@ -90,11 +83,8 @@ export interface SecuritySchemeSlot {
  * Finds the scheme that already claims one name, anywhere in the program.
  *
  * The name is the key of a document-wide registry, so two schemes with one
- * name clash even when they sit on different namespaces.
- *
- * @param program - The program to read the state from
- * @param name - The name to look for
- * @returns Where that scheme sits, or `undefined` when the name is free
+ * name clash even when they sit on different namespaces. Returns where that
+ * scheme sits, or `undefined` when the name is free.
  */
 export function findSecuritySchemeByName(
   program: Program,

@@ -44,10 +44,6 @@ export { getUseSecurityInternal, setUseSecurity };
  * This is the one place the order and the deduplication are decided. The
  * public name reader and the server builder both read it, so both see the
  * same list.
- *
- * @param program - The program to read the state from
- * @param target - The namespace or operation the decorator was applied to
- * @returns The applications to emit, in source order
  */
 export function listUsedSecuritySchemes(
   program: Program,
@@ -83,10 +79,6 @@ export interface StraySecurityUseRecord {
  * The emitter writes the `security` array onto a server. A namespace with
  * no `@server` therefore has nowhere to put it, and the application does
  * nothing. Dropping it in silence hides an author mistake.
- *
- * @param program - The program to read the state from
- * @param hasServers - Answers whether a namespace declares a server
- * @returns The stray applications, in source order
  */
 export function listSecurityUsesWithoutServer(
   program: Program,
