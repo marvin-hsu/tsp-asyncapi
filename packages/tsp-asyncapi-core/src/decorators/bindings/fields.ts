@@ -30,6 +30,20 @@ import { trimmed } from "../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
 
 /**
+ * What a rejected field costs the author.
+ *
+ * A field the binding states as optional takes only itself away. The rest of
+ * the binding is emitted, and the report is a warning.
+ *
+ * A field the binding requires takes the whole binding with it, because the
+ * binding cannot be written without the field. The report is an error there,
+ * and it says the binding is gone. The two cost different amounts, so they
+ * carry different codes.
+ * @internal
+ */
+export type FieldLoss = "field" | "binding";
+
+/**
  * Reports one field of a binding that carries a value the binding
  * specification forbids.
  *
@@ -38,6 +52,8 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
  * @param field - The field name
  * @param expected - What the field expects, in the author's words
  * @param target - Where the problem is reported
+ * @param loss - What the rejected field costs. It is the field alone unless
+ * the caller says otherwise.
  * @internal
  */
 export function reportBindingField(
@@ -46,9 +62,10 @@ export function reportBindingField(
   field: string,
   expected: string,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): void {
   reportDiagnostic(context.program, {
-    code: "invalid-binding-field",
+    code: loss === "binding" ? "invalid-required-binding-field" : "invalid-binding-field",
     format: { protocol, field, expected },
     target,
   });
@@ -104,6 +121,8 @@ export function enumeratedField<T extends string>(
  * @param field - The field name
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ * @param loss - What a rejected object costs. Pass `binding` where the
+ * binding requires the object.
  * @returns The plain JSON object, or `undefined` when it was absent or
  * rejected
  * @internal
@@ -114,11 +133,12 @@ export function objectField(
   field: string,
   value: unknown,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): Record<string, unknown> | undefined {
   if (value === undefined) return undefined;
   const plain = toPlainValue(context.program, value);
   if (!isPlainObject(plain)) {
-    reportBindingField(context, protocol, field, "an object", target);
+    reportBindingField(context, protocol, field, "an object", target, loss);
     return undefined;
   }
   return plain;
@@ -195,6 +215,8 @@ export function nonNegativeField(
  * @param value - The field as the author wrote it, still marshalled
  * @param expected - What the list holds, in the author's words
  * @param target - Where a problem is reported
+ * @param loss - What a rejected list costs. Pass `binding` where the binding
+ * requires the list.
  * @returns The entries, or `undefined` when the field was absent or rejected
  * @internal
  */
@@ -205,11 +227,12 @@ export function listField(
   value: unknown,
   expected: string,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): unknown[] | undefined {
   if (value === undefined) return undefined;
   const plain = toPlainValue(context.program, value);
   if (!Array.isArray(plain)) {
-    reportBindingField(context, protocol, field, expected, target);
+    reportBindingField(context, protocol, field, expected, target, loss);
     return undefined;
   }
   // `Array.isArray` narrows an `unknown` to `any[]`, and the entries are
@@ -491,11 +514,9 @@ export function reportMissingField(
  * What one read of a nested binding object produced.
  *
  * A nested object fails in two ways, and the two cost different amounts. A
- * field outside what the specification allows is reported as
- * `invalid-binding-field`, which is a warning, and it takes only itself away.
- * A required field the author left out is reported as
- * `missing-binding-field`, which is an error, and the whole binding goes with
- * it.
+ * field outside what the specification allows takes only itself away. A
+ * required field the author left out is reported as `missing-binding-field`,
+ * which is an error, and the whole binding goes with it.
  *
  * The reader cannot make that call on its own. Only the decorator knows what
  * the binding is without this object. So the reader names the outcome and the
@@ -504,17 +525,9 @@ export function reportMissingField(
  * `dropped` costs the whole binding at three sites. The rejected field there
  * is one the binding cannot be written without. The three are the `queue` of
  * an SQS channel, the `queues` of an SQS operation, and the `schemaSettings`
- * of a Google Cloud Pub/Sub channel. The report stays
- * `invalid-binding-field`, which is a warning, so the build succeeds with the
- * binding left out.
- *
- * That is deliberate. The library types all three fields, so the checker
- * refuses a scalar or a list before the decorator runs. The only value that
- * reaches this code and fails is one the serializer cannot represent. The
- * author still reads the field name and what it expected. The message of
- * `invalid-binding-field` also says the rest of the binding was kept, and
- * that half is not true at these three sites. Give them an error code of
- * their own if the warning ever hides a loss the author does not notice.
+ * of a Google Cloud Pub/Sub channel. Each of the three passes `binding` as
+ * its `FieldLoss`, so the report is `invalid-required-binding-field`. That
+ * code is an error, and it says the whole binding was dropped.
  *
  * @internal
  */

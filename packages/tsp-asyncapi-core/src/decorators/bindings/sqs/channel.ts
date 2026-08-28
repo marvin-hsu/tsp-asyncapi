@@ -60,7 +60,14 @@ export function $sqsChannel(
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queue", configTarget);
     return;
   }
-  const queue = readQueue(context, "queue", config.queue, CHANNEL_QUEUE_REQUIRED, configTarget);
+  const queue = readQueue(
+    context,
+    "queue",
+    config.queue,
+    CHANNEL_QUEUE_REQUIRED,
+    configTarget,
+    "binding",
+  );
   // `readQueue` reported whatever was wrong. The binding cannot be written
   // without the queue, so it goes whole.
   if (queue.outcome !== "read") return;

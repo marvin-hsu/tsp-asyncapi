@@ -209,10 +209,13 @@ describe("Unit: the Amazon SQS binding decorators", () => {
 
       // One member the serializer cannot represent fails the whole queue, not
       // the one field that holds it. So the report names the queue, and the
-      // binding cannot be written without it.
-      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
+      // binding cannot be written without it. The code says the binding went
+      // with the field, and it is an error, because nothing was emitted.
+      const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
+      expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'queue'");
       expect(reported.message).toContain("an object");
+      expect(reported.message).toContain("the whole binding was dropped");
       expect(channelsOf(doc).orders.bindings).toBeUndefined();
     });
 
@@ -385,10 +388,13 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       `);
 
       // One entry the serializer cannot represent takes the whole list with
-      // it, so the report names `queues` rather than the entry.
-      const reported = findDiagnostic(diagnostics, "invalid-binding-field");
+      // it, so the report names `queues` rather than the entry. The binding
+      // needs the list, so the code is the error one.
+      const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
+      expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'queues'");
       expect(reported.message).toContain("a list of queues");
+      expect(reported.message).toContain("the whole binding was dropped");
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
   });

@@ -502,7 +502,7 @@ The runtime expression is outside the grammar. It must start with `$message.head
 
 **Fix:** write the expression in that form, such as `$message.header#/replyTo`.
 
-The four codes below come from the protocol bindings, and two more appear under Warnings. See [Protocol Bindings](/reference/bindings/) for the decorators that report them.
+The five codes below come from the protocol bindings, and two more appear under Warnings. See [Protocol Bindings](/reference/bindings/) for the decorators that report them.
 
 ### `duplicate-binding`
 
@@ -527,6 +527,16 @@ The protocol name becomes a key in the emitted document. A blank key names nothi
 AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
 
 **Fix:** write the config as an object value.
+
+### `invalid-required-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. AsyncAPI requires the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+
+One field carries a value the binding specification forbids, and the binding requires that field. The binding cannot be written without it, so the whole binding is dropped rather than the field alone. That is the difference from [`invalid-binding-field`](#invalid-binding-field), which is a warning and keeps the rest of the binding.
+
+Three fields report it. They are the `queue` of an Amazon SQS channel, the `queues` of an SQS operation, and the `schemaSettings` of a Google Cloud Pub/Sub channel.
+
+**Fix:** write the field as the message names.
 
 ### `missing-binding-field`
 
@@ -1025,6 +1035,8 @@ A binding sits on the object its target emits. A target that emits no object car
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
 One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+
+The rest of the binding is emitted. A field the binding requires costs more, and it reports [`invalid-required-binding-field`](#invalid-required-binding-field) instead.
 
 **Fix:** give the field a value the message names.
 

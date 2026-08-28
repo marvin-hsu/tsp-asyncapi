@@ -18,6 +18,7 @@ import type {
   GooglePubSubStoragePolicyObject,
 } from "../../../types/index.js";
 import {
+  FieldLoss,
   NestedRead,
   nonEmptyObject,
   objectField,
@@ -52,8 +53,9 @@ function pubSubObject(
   field: string,
   value: unknown,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): Record<string, unknown> | undefined {
-  return objectField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, value, target);
+  return objectField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, value, target, loss);
 }
 
 /**
@@ -75,7 +77,7 @@ export function schemaSettings(
   value: unknown,
   target: DiagnosticTarget,
 ): NestedRead<GooglePubSubSchemaSettingsObject> {
-  const plain = pubSubObject(context, "schemaSettings", value, target);
+  const plain = pubSubObject(context, "schemaSettings", value, target, "binding");
   if (plain === undefined) return { outcome: "dropped" };
 
   const path = "schemaSettings";

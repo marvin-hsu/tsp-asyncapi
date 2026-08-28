@@ -2,6 +2,7 @@ import { DecoratorContext, Operation } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
 import { claimBinding } from "../state.js";
 import { listField, reportMissingField } from "../fields.js";
+import type { SqsQueueObject } from "../../../types/index.js";
 import { OPERATION_QUEUE_REQUIRED, SqsOperationBindingState, readQueue } from "./config.js";
 
 /**
@@ -61,22 +62,35 @@ export function $sqsOperation(
     config.queues,
     "a list of queues",
     configTarget,
+    "binding",
   );
   if (written === undefined) return;
 
+  // The reader is told the queue costs the binding, so an entry that is no
+  // object is reported as an error rather than as a warning about one field.
   const read = written.map((entry, index) =>
-    readQueue(context, `queues[${String(index)}]`, entry, OPERATION_QUEUE_REQUIRED, configTarget),
+    readQueue(
+      context,
+      `queues[${String(index)}]`,
+      entry,
+      OPERATION_QUEUE_REQUIRED,
+      configTarget,
+      "binding",
+    ),
   );
 
-  // One entry short of a required field is an error, and the error says the
-  // binding was dropped. A list with that entry left out would describe fewer
-  // queues than the author declared, which is worse than no binding at all.
-  if (read.some((queue) => queue.outcome === "incomplete")) return;
+  const queues: SqsQueueObject[] = [];
+  for (const queue of read) {
+    // One entry the reader refused is an error, and the error says the binding
+    // was dropped. A list with that entry left out would describe fewer queues
+    // than the author declared, which is worse than no binding at all. Both
+    // refusals cost the same, so both leave here.
+    if (queue.outcome !== "read") return;
+    queues.push(queue.value);
+  }
 
-  const queues = read.filter((queue) => queue.outcome === "read").map((queue) => queue.value);
-
-  // Every entry was rejected, or the author wrote an empty list. Either way
-  // the emitted binding would carry no queue, which AsyncAPI refuses.
+  // The author wrote an empty list. The emitted binding would carry no queue,
+  // which AsyncAPI refuses.
   if (queues.length === 0) {
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queues", configTarget);
     return;

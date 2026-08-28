@@ -502,7 +502,7 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 
 **修法：** 照該格式撰寫，例如 `$message.header#/replyTo`。
 
-以下四個代碼來自通訊協定 binding，另有兩個列在「警告」章節。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings/)。
+以下五個代碼來自通訊協定 binding，另有兩個列在「警告」章節。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings/)。
 
 ### `duplicate-binding`
 
@@ -527,6 +527,16 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
 
 **修法：** 把設定寫成物件值。
+
+### `invalid-required-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. AsyncAPI requires the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+
+某個欄位的值違反 binding 規格，而該欄位又是這個 binding 必填的。少了它就寫不出這個 binding，所以丟掉的是整個 binding，不是單一欄位。這一點與 [`invalid-binding-field`](#invalid-binding-field) 不同，那個代碼是警告，而且會保留 binding 的其餘部分。
+
+有三個欄位會回報它：Amazon SQS channel 的 `queue`、SQS operation 的 `queues`，以及 Google Cloud Pub/Sub channel 的 `schemaSettings`。
+
+**修法：** 依訊息指出的範圍填值。
 
 ### `missing-binding-field`
 
@@ -1020,6 +1030,8 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
 某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+
+binding 的其餘部分照樣輸出。必填欄位的代價更高，它改為回報 [`invalid-required-binding-field`](#invalid-required-binding-field)。
 
 **修法：** 依訊息指出的範圍填值。
 

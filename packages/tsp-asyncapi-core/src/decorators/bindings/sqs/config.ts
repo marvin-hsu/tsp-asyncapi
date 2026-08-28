@@ -21,6 +21,7 @@ import type {
 } from "../../../types/index.js";
 import {
   enumeratedField,
+  FieldLoss,
   NestedRead,
   nonEmptyObject,
   nonNegativeField,
@@ -70,6 +71,8 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * @param value - The queue as the author wrote it, still marshalled
  * @param required - The fields this level requires
  * @param target - Where a problem is reported
+ * @param loss - What a rejected queue costs. Pass `binding` where the binding
+ * requires the queue.
  * @returns The queue, `dropped` when it was not an object, or `incomplete`
  * when a required field is absent
  * @internal
@@ -80,8 +83,9 @@ export function readQueue(
   value: unknown,
   required: readonly string[],
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): NestedRead<SqsQueueObject> {
-  const plain = objectField(context, SQS_BINDING_PROTOCOL, field, value, target);
+  const plain = objectField(context, SQS_BINDING_PROTOCOL, field, value, target, loss);
   if (plain === undefined) return { outcome: "dropped" };
 
   if (!requiredFields(context, SQS_BINDING_PROTOCOL, field, plain, required, target)) {

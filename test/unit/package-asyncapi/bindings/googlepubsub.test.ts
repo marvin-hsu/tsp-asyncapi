@@ -74,6 +74,37 @@ describe("Unit: the Google Cloud Pub/Sub binding decorators", () => {
       expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
     });
 
+    it("reports schema settings with a member the serializer cannot represent", async () => {
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
+        ${SERVICE}
+
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+
+        @googlePubSubChannel(#{
+          schemaSettings: #{
+            encoding: "json",
+            name: "projects/p/schemas/order",
+            firstRevisionId: Test.ipv4.fromBytes(1, 2, 3, 4),
+          },
+        })
+        @channel("orders-created")
+        interface OrderChannel {
+          ${PUBLISH_ORDER_CREATED}
+        }
+      `);
+
+      // One member the serializer cannot represent fails the whole object.
+      // The binding needs the object, so the report is an error and it says
+      // the binding went as well.
+      const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
+      expect(reported.severity).toBe("error");
+      expect(reported.message).toContain("'schemaSettings'");
+      expect(reported.message).toContain("the whole binding was dropped");
+      expect(doc.channels?.["orders-created"].bindings).toBeUndefined();
+    });
+
     it("names both fields the schema settings require when neither is given", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}

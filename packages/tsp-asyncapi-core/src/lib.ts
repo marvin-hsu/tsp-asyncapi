@@ -769,6 +769,16 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that, so the field was dropped and the rest of the binding was kept.`,
       },
     },
+    // The same rejected value, on a field the binding requires. There is no
+    // recovery to state here. The binding cannot be written without the
+    // field, so the whole binding goes and nothing survives to inspect. That
+    // is what makes this one an error, like the codes above it.
+    "invalid-required-binding-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that. AsyncAPI requires the field, so the whole binding was dropped. Write '${"field"}' as ${"expected"}.`,
+      },
+    },
 
     // This one is an error, for the reason stated above the code before it.
     // A binding whose required field is absent cannot be written as a valid
