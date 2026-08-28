@@ -135,6 +135,33 @@ describe("the Avro annotations", () => {
     expectInstanceRoundTrip(schema);
   });
 
+  it("writes a scalar marked fixed that extends nothing", async () => {
+    // `@Avro.fixed` says the whole of what the type is. A scalar that extends
+    // nothing wrote nothing else, so nothing is dropped by writing the fixed
+    // type. The rule that a fixed scalar extends `bytes` is there to keep a
+    // written base from being ignored, and there is no base here.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("${NAMESPACE}")
+      namespace A {
+        @Avro.fixed(16)
+        scalar Md5;
+
+        @Avro.avroRecord
+        model Event { sum: Md5; }
+      }
+    `);
+
+    const schema = files["com/example/a/Event.avsc"];
+    expect(fieldNamed(schema, "sum").type).toEqual({
+      type: "fixed",
+      name: "Md5",
+      namespace: NAMESPACE,
+      size: 16,
+    });
+
+    expectInstanceRoundTrip(schema);
+  });
+
   it("reads @fixed from the scalar a scalar extends", async () => {
     // A scalar that extends a fixed scalar is a fixed type of that width, and
     // it is named after itself, the way a record is named after its model.

@@ -318,22 +318,13 @@ function scalarFor(
     }
   } else {
     // An Avro fixed type is a width of bytes. A scalar that carries @fixed and
-    // extends anything else says two things at once, and writing the fixed
+    // extends another Avro type says two things at once, and writing the fixed
     // type would drop what the author wrote about the type underneath.
+    //
+    // A scalar that reaches no Avro type wrote nothing to drop. `@fixed` says
+    // the whole of what that type is, so the fixed type stands on its own.
     const underlying = avroScalarFor(context.scalars, scalar);
-    if (underlying === undefined) {
-      refuse(
-        context,
-        createDiagnostic({
-          code: "unsupported-type",
-          messageId: "scalar",
-          format: { name: scalar.name },
-          target,
-        }),
-      );
-      return undefined;
-    }
-    if (underlying !== "bytes") {
+    if (underlying !== undefined && underlying !== "bytes") {
       refuse(
         context,
         createDiagnostic({

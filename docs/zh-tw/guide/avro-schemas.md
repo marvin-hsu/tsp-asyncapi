@@ -283,23 +283,23 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 
 半份 schema 仍然是合法的 schema。registry 會照收，而 reader 會把資料解成作者從來沒寫過的形狀。
 
-| 代碼                              | 何時發生                                                                |
-| --------------------------------- | ----------------------------------------------------------------------- |
-| `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                                        |
-| `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則，或是 Avro 保留給自身型別的名稱。            |
-| `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                                                    |
-| `tsp-avro/aliases-target`         | `@Avro.aliases` 標在會寫成 Avro 原始型別的 scalar 上。                  |
-| `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。                             |
-| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或指不出 union 的哪一個分支。                     |
-| `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。                          |
-| `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數，或標在沒有繼承 `bytes` 的 scalar 上。 |
-| `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。                      |
-| `tsp-avro/unknown-logical-type`   | logical type 不是規格定義的那幾個。                                     |
-| `tsp-avro/logical-type-mismatch`  | logical type 寫在規格不允許的型別上。                                   |
-| `tsp-avro/duplicate-logical-type` | 一個宣告帶了兩個 logical type。                                         |
-| `tsp-avro/enum-default`           | `@Avro.enumDefault` 指定的成員不在該 enum 裡。                          |
-| `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                                            |
-| `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                                                 |
+| 代碼                              | 何時發生                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                                                    |
+| `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則，或是 Avro 保留給自身型別的名稱。                        |
+| `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                                                                |
+| `tsp-avro/aliases-target`         | `@Avro.aliases` 標在會寫成 Avro 原始型別的 scalar 上。                              |
+| `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。                                         |
+| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或指不出 union 的哪一個分支。                                 |
+| `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。                                      |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數，或標在繼承了 `bytes` 以外 Avro 型別的 scalar 上。 |
+| `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。                                  |
+| `tsp-avro/unknown-logical-type`   | logical type 不是規格定義的那幾個。                                                 |
+| `tsp-avro/logical-type-mismatch`  | logical type 寫在規格不允許的型別上。                                               |
+| `tsp-avro/duplicate-logical-type` | 一個宣告帶了兩個 logical type。                                                     |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` 指定的成員不在該 enum 裡。                                      |
+| `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                                                        |
+| `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                                                             |
 
 ## 錯誤情境
 
@@ -309,7 +309,7 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 - 同時帶索引簽章與欄位的 model。
 - 上面對照表以外的 scalar。
 - 標在沒有 `@Avro.fixed` 的 scalar 上的 `@Avro.aliases`。alias 代表的是名稱，而原始型別沒有名稱。
-- 帶著 `@Avro.fixed` 但沒有繼承 `bytes` 的 scalar。Avro fixed 型別承載的是位元組。
+- 帶著 `@Avro.fixed` 且繼承了 `bytes` 以外 Avro 型別的 scalar。Avro fixed 型別承載的是位元組。沒有繼承任何型別的 scalar 會寫成 fixed 型別，因為它沒有多說別的。
 - 同一個型別出現兩次的 union，例如 `string[] | int32[]`。
 - 兩個宣告對應到同一個 Avro 完整名稱。
 - 用 Avro 原始型別名稱命名的 record、enum 或 fixed 型別：`null`、`boolean`、`int`、`long`、`float`、`double`、`bytes` 與 `string`。schema 只用名稱本身表示原始型別，所以叫這些名稱的型別會被讀成原始型別。`record`、`map` 這類名稱可以使用，因為 Avro 用物件表示複合型別，不是只用關鍵字。
