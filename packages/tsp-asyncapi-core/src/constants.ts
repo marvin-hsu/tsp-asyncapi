@@ -362,8 +362,8 @@ export const SOLACE_BINDING_PROTOCOL = "solace";
  * The version of the Solace binding specification this library emits.
  *
  * AsyncAPI 3.0 accepts `0.2.0`, `0.3.0` and `0.4.0`. This library emits
- * `0.4.0`, which is the latest. It is also the first to spell the server
- * field `msgVpn`; the `0.2.0` schema spells it `msvVpn`.
+ * `0.4.0`, which is the latest. The `0.2.0` schema misspells the server
+ * field `msvVpn`; `0.3.0` onward spells it `msgVpn`.
  *
  * @public
  */
@@ -461,9 +461,9 @@ export const DEFAULT_INFO_VERSION = "0.0.0";
  * JSON name. It does this regardless of which content type a message
  * actually declares.
  *
- * A change that threads the real `contentType` through must update this
- * constant's use site and the example serialization it keeps in sync with,
- * together, instead of assuming JSON everywhere.
+ * `example-serialization.ts` does not read this constant. It assumes
+ * `application/json` on its own. The two are not a shared contract yet, so
+ * a change to either assumption must update both by hand.
  *
  * @public
  */
