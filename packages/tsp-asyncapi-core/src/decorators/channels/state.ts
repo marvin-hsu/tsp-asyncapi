@@ -1,3 +1,13 @@
+/**
+ * State recorded by `@channel` and `@dynamicChannel`, and the checks that
+ * guard against duplicate or conflicting applications.
+ *
+ * `channel.ts` calls into `claimChannel` before it records anything, so the
+ * guard sees every application whether its address is usable or not. This
+ * module does not check the address itself; that check lives in
+ * `address-template.js`. It does not order channels against operations or
+ * servers either; that decision belongs to the emitter.
+ */
 import {
   DecoratorContext,
   DiagnosticTarget,
@@ -84,7 +94,7 @@ export { getChannelInternal, setChannel };
  * only the winner would report the conflict again for each extra `@channel`,
  * and would never mention the duplicate at all.
  *
- * The claim runs before the address is validated, the same rule
+ * The claim runs before the address is checked, the same rule
  * `singleApplication` follows. An application whose address is rejected
  * still blocks a later one, so an author who wrote the decorator twice is
  * told about it whatever the addresses say.

@@ -1,3 +1,12 @@
+/**
+ * The `@channel` and `@dynamicChannel` decorators, and the readers other
+ * modules use to see what they recorded.
+ *
+ * Both decorators share `recordChannel` for everything after the address is
+ * settled. The claim and conflict rules live in `state.js`, and the address
+ * grammar lives in `address-template.js`, so this module wires the two
+ * together and turns their findings into diagnostics.
+ */
 import { DecoratorContext, DiagnosticTarget, Program } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
 import { sourcePositionOf } from "../../source-order.js";

@@ -1,3 +1,12 @@
+/**
+ * The `@parameterLocation` decorator, and the state it records for one
+ * channel parameter.
+ *
+ * `@correlationId` shares the runtime expression check with this decorator,
+ * through `runtime-expression.js`, so the two never judge the grammar
+ * differently. This module does not check that the expression names a field
+ * the payload or headers schema declares.
+ */
 import { DecoratorContext, ModelProperty, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../../lib.js";
@@ -30,7 +39,7 @@ const [getParameterLocationInternal, setParameterLocation] = useStateMap<ModelPr
  *
  * Apply this decorator only once per property. A second application is an
  * error. Only one of the applied locations could ever reach the output, and
- * the user has no way to tell which one won.
+ * the author has no way to tell which one won.
  *
  * @param context - The decorator context
  * @param target - The operation parameter that declares a channel parameter
@@ -53,8 +62,8 @@ export function $parameterLocation(
 ) {
   // Decorators on one declaration run bottom-up, so the application written
   // last in the source runs first and wins. The guard records that this
-  // decorator ran, before any value is validated, so a value that fails
-  // validation still blocks a later application.
+  // decorator ran, before any value is checked, so a value that fails the
+  // check still blocks a later application.
   if (guard.claim(context, target) !== "first") return;
   if (!isRuntimeExpression(location)) {
     // Nothing is recorded, so no `location` reaches the document. An
