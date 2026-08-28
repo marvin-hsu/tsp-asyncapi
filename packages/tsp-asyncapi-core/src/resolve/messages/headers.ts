@@ -1,3 +1,24 @@
+/**
+ * What one message takes its headers from, and the lifting that follows.
+ *
+ * It reads three decorator states across every message model: a field-level
+ * `@header` mark, a model-level `@headers`, and a model-level `@rawHeaders`.
+ * A message names at most one of the three; a message that names more than
+ * one gets none of them, reported as `duplicate-message-headers`.
+ *
+ * It decides, for every message, which of the three sources describes its
+ * headers, and which fields a `@header` mark lifts out of the payload. A
+ * lifted field is inherited by every message that extends the one that lifts
+ * it, so the resulting plan covers the whole program, not one message at a
+ * time. It also reports every conflict the three mechanisms can produce: a
+ * mark that reaches no top-level field, a content type stated twice, a lift
+ * a derived message's own `@headers` overrides, and a lift a raw payload
+ * cannot honour.
+ *
+ * It does not build a headers schema. The plan names the source; expanding a
+ * model or a set of fields into a schema is the lower half's work.
+ */
+
 import {
   isArrayModelType,
   Model,

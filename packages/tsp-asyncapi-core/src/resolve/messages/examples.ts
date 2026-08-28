@@ -1,3 +1,13 @@
+/**
+ * Builds the `examples` array of one message from its `@messageExample` state.
+ *
+ * It reads every `@messageExample` application recorded against a message
+ * model and serializes each entry's `headers` and `payload` into plain JSON.
+ *
+ * It does not check an example against the message schema. AsyncAPI treats
+ * an example as free-form, and expanding a schema is the lower half's work.
+ */
+
 import { Model, Program, serializeValueAsJson, Value } from "@typespec/compiler";
 import { $ } from "@typespec/compiler/typekit";
 import { getMessageExamples, MessageExampleState } from "../../decorators/index.js";
