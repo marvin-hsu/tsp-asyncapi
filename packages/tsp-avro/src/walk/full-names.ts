@@ -1,24 +1,22 @@
 /**
  * How an Avro full name goes together, and how it comes apart.
  *
- * Avro names a record, an enum and a fixed type by a namespace and a name with
- * a dot between them. A definition writes the two halves apart, and every
- * reference to it writes them joined, so the walk does both, in more than one
- * place. The rule is here so those places cannot drift.
+ * A named type (record, enum, fixed) has a namespace and a name joined by a
+ * dot. A definition writes the two halves apart, and every reference joins
+ * them, so the walk needs both directions in more than one place. Centralizing
+ * the rule here keeps those places from drifting apart.
  */
 
 /**
  * Joins a namespace and a name into an Avro full name.
  *
- * A type with no namespace is named by its name alone. Nothing this package
- * writes is in that position, because a record with no Avro namespace above it
- * is refused. The rule is here all the same, because the schema type says the
- * namespace is optional. An `"undefined.Name"` would be a name a reader looks
- * up and never finds.
+ * A type with no namespace is named by its name alone. This package never
+ * writes that case, because a record with no Avro namespace is refused. The
+ * rule still lives here, because the schema type allows an empty namespace,
+ * and the alternative is a name like `"undefined.Name"` no reader can find.
  *
- * The empty namespace is no namespace as well, because that is the answer
- * {@link avroNamespaceOf} gives for a name that carries none. The two read one
- * rule in two directions, so what one splits off the other joins back.
+ * {@link avroNamespaceOf} treats an empty namespace the same way, so the two
+ * functions invert each other.
  *
  * @param namespace - The Avro namespace, or undefined or empty when the type
  *   has none
@@ -32,7 +30,7 @@ export function avroFullName(namespace: string | undefined, name: string): strin
 }
 
 /**
- * Splits the namespace back off a full name.
+ * Splits the namespace back off a full name built by {@link avroFullName}.
  *
  * @param fullName - A full name {@link avroFullName} built
  * @returns The namespace, which is empty when the full name carries none
