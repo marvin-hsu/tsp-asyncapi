@@ -1,6 +1,6 @@
 {
   "name": "tsp-avro",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Experimental. A TypeSpec library and emitter that writes Apache Avro schema files. The public surface may change in any release.",
   "main": "dist/src/index.js",

@@ -159,7 +159,7 @@ const ENCODING_TARGETS: Record<string, readonly string[]> = {
 };
 
 /** The schema types `@encode(string)` accepts, being numeric and boolean. */
-const PLAIN_ENCODE_TYPES: readonly string[] = ["integer", "number", "boolean"];
+const PLAIN_ENCODE_TYPES: ReadonlySet<string> = new Set(["integer", "number", "boolean"]);
 
 /**
  * Returns the name of the built-in `scalar` is declared as.
@@ -190,7 +190,7 @@ function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
   const { encoding } = encodeData;
   if (encoding === undefined) {
     const type = naturalScalarShape(variant).type;
-    return typeof type === "string" && PLAIN_ENCODE_TYPES.includes(type);
+    return typeof type === "string" && PLAIN_ENCODE_TYPES.has(type);
   }
   if (!Object.hasOwn(ENCODING_TARGETS, encoding)) {
     return true;

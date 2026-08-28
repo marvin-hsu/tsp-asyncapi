@@ -369,11 +369,12 @@ export class DeclarationRegistry {
    * type graph itself.
    */
   public nextPendingSubtype(): Model | undefined {
-    for (const subtype of this.pendingSubtypes) {
-      this.pendingSubtypes.delete(subtype);
-      return subtype;
+    const next = this.pendingSubtypes.values().next();
+    if (next.done) {
+      return undefined;
     }
-    return undefined;
+    this.pendingSubtypes.delete(next.value);
+    return next.value;
   }
 
   /** Queues every subtype of one model, direct and indirect. */
