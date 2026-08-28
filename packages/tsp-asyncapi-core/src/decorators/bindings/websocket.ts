@@ -21,9 +21,8 @@ import { claimBinding } from "./state.js";
 /**
  * What `@websocketChannel` records.
  *
- * It is the emitted object without `bindingVersion`. That field is appended
- * when the document is built. Deriving the shape rather than writing it out again keeps the two
- * from drifting.
+ * It is the emitted object without `bindingVersion`, added when the document
+ * is built. Deriving this from the emitted type keeps the two from drifting.
  */
 type WebSocketChannelBindingState = Omit<WebSocketChannelBindingObject, "bindingVersion">;
 
@@ -58,13 +57,6 @@ export interface WebSocketChannelBindingConfig {
  * `query` and `headers` are Schema Objects. Write each one as an object
  * literal of type `object` with a `properties` key. The emitter writes it
  * into the document as written.
- *
- * The WebSocket binding has no server, operation or message object. Its own
- * text says those three must carry no property.
- *
- * @param context - The decorator context
- * @param target - The channel interface or namespace
- * @param config - The WebSocket channel binding fields
  *
  * @example
  * ```typespec

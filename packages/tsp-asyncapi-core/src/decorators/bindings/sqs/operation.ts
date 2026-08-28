@@ -31,10 +31,6 @@ export interface SqsOperationBindingConfig {
  * `fifoQueue` as well, which is the difference AsyncAPI states between the
  * two levels.
  *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The Amazon SQS operation binding fields
- *
  * @example
  * ```typespec
  * @sqsOperation(#{ queues: #[#{ name: "orders", fifoQueue: false }] })
@@ -68,8 +64,8 @@ export function $sqsOperation(
 
   const queues: SqsQueueObject[] = [];
   for (const [index, entry] of written.entries()) {
-    // The reader gets `binding` as the loss. An entry that is no object then
-    // reports an error, not a warning about one field.
+    // The loss is `binding`: a non-object entry reports an error, not a
+    // single-field warning.
     const queue = readQueue(
       context,
       `queues[${String(index)}]`,
@@ -78,19 +74,16 @@ export function $sqsOperation(
       configTarget,
       "binding",
     );
-    // One entry the reader refused is an error, and the error says the binding
-    // was dropped. A list with that entry left out would describe fewer queues
-    // than the author declared, which is worse than no binding at all. Both
-    // refusals cost the same, so both leave here.
+    // A refused entry drops the whole binding, not just that entry. Skipping
+    // it would emit fewer queues than the author declared, which is worse
+    // than no binding.
     //
-    // The entries after it are never read. Reading one reports its own fields,
-    // and a field of a binding nothing emits would be reported as kept.
+    // Later entries are never read. Reading one would report its fields as
+    // kept for a binding that is never emitted.
     if (queue.outcome !== "read") return;
     queues.push(queue.value);
   }
 
-  // The author wrote an empty list. The emitted binding would carry no queue,
-  // which AsyncAPI refuses.
   if (queues.length === 0) {
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queues", configTarget);
     return;
