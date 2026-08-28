@@ -56,7 +56,7 @@ extern dec solaceOperation(target: Operation, config: valueof AsyncAPISolaceOper
 
 Apply it to an operation that carries `@send` or `@receive`.
 
-Each entry of `destinations` may carry a `deliveryMode` of `direct` or `persistent`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the entry is emitted as written.
+Each entry of `destinations` may carry a `deliveryMode` of `direct` or `persistent`. Any other value is reported through `invalid-binding-field`. The field is dropped and the rest of the entry is emitted as written. An entry left with no field is dropped. A `destinations` left with no entry is dropped as well.
 
 `priority` is zero or more.
 

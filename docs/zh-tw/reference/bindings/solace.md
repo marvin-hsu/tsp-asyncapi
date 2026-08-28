@@ -56,7 +56,7 @@ extern dec solaceOperation(target: Operation, config: valueof AsyncAPISolaceOper
 
 套用在帶有 `@send` 或 `@receive` 的 operation 上。
 
-`destinations` 的每一筆可以帶 `deliveryMode`，值為 `direct` 或 `persistent`。其他值會被回報並從該筆丟棄，該筆的其餘欄位保留。一筆的其餘欄位原樣輸出。
+`destinations` 的每一筆可以帶 `deliveryMode`，值為 `direct` 或 `persistent`。其他值會透過 `invalid-binding-field` 回報。該欄位會被丟棄，該筆的其餘欄位原樣輸出。沒有剩下任何欄位的一筆會被丟棄。沒有剩下任何一筆的 `destinations` 也會被丟棄。
 
 `priority` 是零或以上。
 
