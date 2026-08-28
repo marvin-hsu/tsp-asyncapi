@@ -33,5 +33,12 @@ raised a `TypeError` out of the decorator. The field now goes through the
 shared object check, so the value is reported and dropped and the rest of the
 Kafka binding is kept.
 
-A project that wrote one of these bindings incompletely gets the same errors it
-got before, and the emitted document no longer carries the partial binding.
+A project that left a required binding field out gets the same errors it got
+before. The emitted document no longer carries the partial binding.
+
+A build can fail where it succeeded before. The `queue` of an SQS channel, the
+`queues` of an SQS operation and the `schemaSettings` of a Google Cloud
+Pub/Sub channel reported `invalid-binding-field`, which is a warning. They
+report `invalid-required-binding-field` now, which is an error. A project that
+wrote a rejected value on one of those three fields built with a warning
+before this release. That build fails now.
