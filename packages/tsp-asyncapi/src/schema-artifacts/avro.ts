@@ -1,7 +1,7 @@
 /**
  * The Avro provider, as the registry holds it.
  *
- * `tsp-avro` walks a model into an Avro schema and renders it as JSON; this
+ * `tsp-avro` walks a model into an Avro schema and renders it as JSON. This
  * file only calls it. Unlike the Protobuf provider next door, it never
  * re-implements that walk, since `tsp-avro` already owns one.
  *
@@ -55,7 +55,7 @@ export function createAvroProvider(load: AvroLoader = loadAvro): SchemaArtifactP
 /**
  * How the provider reaches the Avro library.
  *
- * Rejects when the library is not installed; the caller turns that into a
+ * Rejects when the library is not installed. The caller turns that into a
  * diagnostic, so a test can state the failure alone.
  *
  * @internal
@@ -67,7 +67,7 @@ export type AvroLoader = () => Promise<AvroLibrary>;
  *
  * Types come from the loader, not from a copy written here, so the two
  * cannot drift apart. `typeof import(...)` names a module without loading
- * it; the only load in this file is inside {@link loadAvro}.
+ * it. The only load in this file is inside {@link loadAvro}.
  */
 interface AvroLibrary {
   /** The main entry point, which lists the models the author marked. */
@@ -165,7 +165,7 @@ function firstReason(diagnostics: readonly Diagnostic[]): string {
 /**
  * The name an Avro reader knows this record by.
  *
- * Never reaches the document; it only tells two artifacts apart. Two
+ * Never reaches the document. It only tells two artifacts apart. Two
  * records can share a name but differ by namespace, so the namespace is
  * included whenever the record declares one.
  */

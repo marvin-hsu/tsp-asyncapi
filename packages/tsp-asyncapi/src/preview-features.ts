@@ -4,7 +4,7 @@
  * A name is reserved in `emitter-options.ts` before its provider exists.
  * So a project that writes `protobuf` gets an answer about the feature,
  * not a schema error about an unknown value. The registry of providers
- * decides which names currently work; this file is handed that set.
+ * decides which names currently work. This file is handed that set.
  *
  * An unavailable feature is an error, not a warning. A project that asks for
  * a feature expects the output to change, and a diagnostic alone does not
@@ -34,7 +34,7 @@ import type { AsyncAPIEmitterOptions, PreviewFeature } from "./emitter-options.j
  * @param program - The program, to report against
  * @param options - The emitter options as the compiler validated them
  * @param available - The features the registry of providers can honor
- * @returns Whether any feature was refused; the caller writes no file when so.
+ * @returns Whether any feature was refused. The caller writes no file when so.
  * @internal
  */
 export function reportUnavailablePreviewFeatures(

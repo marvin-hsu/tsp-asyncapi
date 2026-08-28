@@ -33,7 +33,7 @@ export type PreviewFeature = "protobuf" | "avro";
  *
  * `satisfies Record<PreviewFeature, true>` requires one entry per member of
  * {@link PreviewFeature} and rejects any extra key, so the list and the type
- * stay in sync. `Object.keys` returns `string[]`; that constraint is what
+ * stay in sync. `Object.keys` returns `string[]`. That constraint is what
  * makes the cast back to `PreviewFeature[]` safe.
  */
 const PREVIEW_FEATURE_NAMES = Object.keys({

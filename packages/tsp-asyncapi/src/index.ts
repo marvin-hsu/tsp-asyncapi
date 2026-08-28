@@ -17,7 +17,7 @@ export { $lib, PACKAGE_NAME } from "./lib.js";
 
 // The linter the compiler runs. Rules live in `tsp-asyncapi-core`, since a
 // rule reads decorator state that package owns. The compiler builds each
-// rule id from the specifier a user loads, so `$linter` must be exported
+// rule id from the specifier a user loads. So `$linter` must be exported
 // here for the ids to read `tsp-asyncapi/<rule>`, not `tsp-asyncapi-core/<rule>`.
 export { asyncAPILinter as $linter } from "tsp-asyncapi-core/unstable";
 

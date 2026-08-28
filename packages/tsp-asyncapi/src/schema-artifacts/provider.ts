@@ -100,7 +100,7 @@ export interface CollectedSchemaArtifacts {
 /**
  * Runs each enabled provider and merges what they produced.
  *
- * `providers` is the registry to select from; a test passes its own.
+ * `providers` is the registry to select from. A test passes its own.
  *
  * @internal
  */

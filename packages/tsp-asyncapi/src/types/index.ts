@@ -1,7 +1,7 @@
 /**
  * The AsyncAPI document object tree.
  *
- * `document.ts` holds the objects the lower stage writes; the rest re-export
+ * `document.ts` holds the objects the lower stage writes. The rest re-export
  * from `tsp-asyncapi-core`.
  *
  * This package's public API describes the emitted document in full. A caller

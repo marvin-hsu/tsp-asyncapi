@@ -95,7 +95,7 @@ function renderReservations(message: ProtoMessage): string[] {
 /**
  * The label a field carries, with the trailing space it needs.
  *
- * A repeated field never also takes `optional`; the walk already applies
+ * A repeated field never also takes `optional`. The walk already applies
  * that rule, so this only writes down what the field says.
  */
 function labelOf(field: ProtoField): string {
