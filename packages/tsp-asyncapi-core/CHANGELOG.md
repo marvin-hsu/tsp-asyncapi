@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.1
+
+### Patch Changes
+
+- Show decorator documentation on hover in the TypeSpec editor.
+
+  The language service reads `/** */` on declarations in `lib/main.tsp`. It
+  ignores TypeScript JSDoc, and it ignores `//` comments next to `extern dec`.
+  Every decorator now has a doc comment, with `@param` on each argument, so
+  hovering `@server` or `@avroRecord` shows what the decorator takes.
+
+  Comments in the TypeScript sources follow the same short-sentence style.
+  Behaviour is unchanged.
+
 ## 0.4.0
 
 ### Minor Changes
