@@ -32,13 +32,17 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
 /**
  * What a rejected field costs the author.
  *
- * A field the binding states as optional takes only itself away. The rest of
- * the binding is emitted, and the report is a warning.
+ * `field` takes only the field away. The rest of the binding is emitted, and
+ * the report is a warning.
  *
- * A field the binding requires takes the whole binding with it, because the
- * binding cannot be written without the field. The report is an error there,
- * and it says the binding is gone. The two cost different amounts, so they
- * carry different codes.
+ * `binding` takes the whole binding with it, and the report is an error. Two
+ * kinds of field cost that much. One is a field the binding requires. The
+ * other is an optional object the author declared and the emitter cannot
+ * read. A binding emitted without such an object describes less than the
+ * source does.
+ *
+ * The caller names the loss. Only the caller knows what the binding is worth
+ * without the field.
  * @internal
  */
 export type FieldLoss = "field" | "binding";
@@ -522,12 +526,12 @@ export function reportMissingField(
  * the binding is without this object. So the reader names the outcome and the
  * decorator acts on it.
  *
- * `dropped` costs the whole binding at three sites. The rejected field there
- * is one the binding cannot be written without. The three are the `queue` of
- * an SQS channel, the `queues` of an SQS operation, and the `schemaSettings`
- * of a Google Cloud Pub/Sub channel. Each of the three passes `binding` as
- * its `FieldLoss`, so the report is `invalid-required-binding-field`. That
- * code is an error, and it says the whole binding was dropped.
+ * `dropped` costs the whole binding at four sites. Two of them are the
+ * `queue` and the `deadLetterQueue` of an SQS channel. The other two are the
+ * `queues` of an SQS operation and the `schemaSettings` of a Google Cloud
+ * Pub/Sub channel. Each site passes `binding` as its `FieldLoss`. The report
+ * is then `invalid-required-binding-field`. That code is an error, and it
+ * says the whole binding was dropped.
  *
  * @internal
  */

@@ -534,7 +534,7 @@ AsyncAPI defines every member of a Bindings Object as an object. A string, a num
 
 One field carries a value the binding specification forbids, and the binding requires that field. The binding cannot be written without it, so the whole binding is dropped rather than the field alone. That is the difference from [`invalid-binding-field`](#invalid-binding-field), which is a warning and keeps the rest of the binding.
 
-Three fields report it. They are the `queue` of an Amazon SQS channel, the `queues` of an SQS operation, and the `schemaSettings` of a Google Cloud Pub/Sub channel.
+Four fields report it. Two are the `queue` and the `deadLetterQueue` of an Amazon SQS channel. The other two are the `queues` of an SQS operation and the `schemaSettings` of a Google Cloud Pub/Sub channel. A `deadLetterQueue` is optional, and it still costs the binding. The author declared a queue, so a binding written without it describes less than the source does.
 
 **Fix:** write the field as the message names.
 

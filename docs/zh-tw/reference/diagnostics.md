@@ -534,7 +534,7 @@ AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與
 
 某個欄位的值違反 binding 規格，而該欄位又是這個 binding 必填的。少了它就寫不出這個 binding，所以丟掉的是整個 binding，不是單一欄位。這一點與 [`invalid-binding-field`](#invalid-binding-field) 不同，那個代碼是警告，而且會保留 binding 的其餘部分。
 
-有三個欄位會回報它：Amazon SQS channel 的 `queue`、SQS operation 的 `queues`，以及 Google Cloud Pub/Sub channel 的 `schemaSettings`。
+有四個欄位會回報它：Amazon SQS channel 的 `queue` 與 `deadLetterQueue`、SQS operation 的 `queues`，以及 Google Cloud Pub/Sub channel 的 `schemaSettings`。`deadLetterQueue` 雖然是選填，代價一樣是整個 binding。作者既然寫了這個佇列，少了它的 binding 就比原始碼描述得更少。
 
 **修法：** 依訊息指出的範圍填值。
 

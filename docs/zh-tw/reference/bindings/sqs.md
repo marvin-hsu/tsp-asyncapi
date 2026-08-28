@@ -25,7 +25,7 @@ extern dec sqsChannel(
 
 `queue` 是必填，在這一層它自己又要求 `name` 與 `fifoQueue`。缺這些時，binding 會透過 `missing-binding-field` 回報並整個丟棄。
 
-`deadLetterQueue` 是選填，形狀相同。寫了卻缺它自己的必填欄位時，binding 會透過 `missing-binding-field` 回報並整個丟棄。
+`deadLetterQueue` 是選填，形狀相同。寫了卻缺它自己的必填欄位時，binding 會透過 `missing-binding-field` 回報並整個丟棄。emitter 讀不成物件時，則透過 `invalid-required-binding-field` 回報，代價一樣是整個 binding。
 
 `deduplicationScope` 是 `queue` 或 `messageGroup`。`fifoThroughputLimit` 是 `perQueue` 或 `perMessageGroupId`。四個時間欄位都是秒數，是零或以上。
 

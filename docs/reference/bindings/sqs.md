@@ -25,7 +25,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `queue` is required, and on this level it requires a `name` and a `fifoQueue` of its own. A binding without them is reported through `missing-binding-field` and dropped whole.
 
-`deadLetterQueue` is optional and has the same shape. One that is written without a required field of its own is reported through `missing-binding-field` and dropped whole.
+`deadLetterQueue` is optional and has the same shape. One that is written without a required field of its own is reported through `missing-binding-field` and dropped whole. One the emitter cannot read as an object is reported through `invalid-required-binding-field` and costs the binding the same way.
 
 `deduplicationScope` is `queue` or `messageGroup`. `fifoThroughputLimit` is `perQueue` or `perMessageGroupId`. The four time fields are numbers of seconds and are zero or more.
 

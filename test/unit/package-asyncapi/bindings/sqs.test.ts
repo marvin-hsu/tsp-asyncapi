@@ -219,6 +219,38 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(channelsOf(doc).orders.bindings).toBeUndefined();
     });
 
+    it("reports a dead letter queue with a member the serializer cannot represent", async () => {
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
+        ${SERVICE}
+
+        scalar ipv4 extends string {
+          init fromBytes(a: uint8, b: uint8, c: uint8, d: uint8);
+        }
+
+        @sqsChannel(#{
+          queue: #{ name: "orders", fifoQueue: false },
+          deadLetterQueue: #{
+            name: "orders-dlq",
+            fifoQueue: false,
+            tags: #{ host: Test.ipv4.fromBytes(1, 2, 3, 4) },
+          },
+        })
+        @channel("orders")
+        interface OrderChannel {
+          ${PUBLISH_ORDER_CREATED}
+        }
+      `);
+
+      // The dead letter queue costs the binding whichever way it fails. A
+      // queue short of a required field already takes the binding, so a queue
+      // the serializer cannot read at all takes it too.
+      const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
+      expect(reported.severity).toBe("error");
+      expect(reported.message).toContain("'deadLetterQueue'");
+      expect(reported.message).toContain("the whole binding was dropped");
+      expect(channelsOf(doc).orders.bindings).toBeUndefined();
+    });
+
     it("drops an empty pass-through object rather than emitting one", async () => {
       const doc = await emitDocument(`
         ${SERVICE}

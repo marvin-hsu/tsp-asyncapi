@@ -17,8 +17,11 @@ The new `invalid-required-binding-field` error covers the other half of the
 same rule. `invalid-binding-field` is a warning that keeps the rest of the
 binding, and it stays that way. A rejected value on a field the binding cannot
 be written without costs the whole binding, so it reports the new code instead.
-The `queue` of an SQS channel, the `queues` of an SQS operation and the
-`schemaSettings` of a Google Cloud Pub/Sub channel report it.
+The `queue` and the `deadLetterQueue` of an SQS channel, the `queues` of an SQS
+operation and the `schemaSettings` of a Google Cloud Pub/Sub channel report it.
+A `deadLetterQueue` is optional, and it costs the binding all the same. The
+author declared a queue there, and a binding written without it describes less
+than the source does.
 
 An empty nested object is now dropped in the two bindings that emitted one.
 `redrivePolicy`, `policy` and `tags` of an SQS queue emitted `{}`, and so did a
@@ -36,9 +39,10 @@ Kafka binding is kept.
 A project that left a required binding field out gets the same errors it got
 before. The emitted document no longer carries the partial binding.
 
-A build can fail where it succeeded before. The `queue` of an SQS channel, the
-`queues` of an SQS operation and the `schemaSettings` of a Google Cloud
-Pub/Sub channel reported `invalid-binding-field`, which is a warning. They
-report `invalid-required-binding-field` now, which is an error. A project that
-wrote a rejected value on one of those three fields built with a warning
-before this release. That build fails now.
+A build can fail where it succeeded before. The `queue` and the
+`deadLetterQueue` of an SQS channel, the `queues` of an SQS operation and the
+`schemaSettings` of a Google Cloud Pub/Sub channel reported
+`invalid-binding-field`, which is a warning. They report
+`invalid-required-binding-field` now, which is an error. A project that wrote a
+rejected value on one of those four fields built with a warning before this
+release. That build fails now.
