@@ -13,9 +13,8 @@ import {
  * A promoted fragment still says what its site said.
  *
  * The suites beside this one ask whether a `$ref` resolves. That is the
- * weaker half. A key claimed by two fragments resolves too, and points the
- * site at the wrong one — which is the shape of the defect this phase
- * actually shipped and then fixed.
+ * weaker half. A key claimed by two fragments resolves too, and can point
+ * the site at the wrong fragment.
  *
  * So the claim here is fidelity, not resolvability: after every reference is
  * followed, each site carries the fragment the source gave it. The generator

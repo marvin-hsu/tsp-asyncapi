@@ -19,13 +19,12 @@ import { createChainHarness, resolveSchema, winners, wireOf } from "../model-cha
  * Each path can lose a property in its own way. A lost property means a
  * producer omits a field every consumer needs.
  *
- * This property states the rule against the generator's own declaration
- * records. It does not consult the compiler's types. It builds a chain of 2
- * to 4 models. It then computes the wire names it declared: the
- * most-derived same-named property wins, `never` drops the name, and
- * `@encodedName` remaps it. It resolves the emitted component through
- * `allOf` branches and `$ref` links, then asserts the two sets are equal.
- * No extra key, no missing key.
+ * This property checks the rule against the generator's own declaration
+ * records, not the compiler's types. It builds a chain of 2 to 4 models and
+ * computes the wire names declared: the most-derived same-named property
+ * wins, `never` drops the name, and `@encodedName` remaps it. It resolves
+ * the emitted component through `allOf` branches and `$ref` links, then
+ * asserts the two sets are equal: no extra key, no missing key.
  *
  * Both fallbacks are entered through warning-level diagnostics, so the
  * document is still produced. A test that only filters errors would never
@@ -57,24 +56,15 @@ const harness = createChainHarness({
 
 describe("Integration: Schemas — declared property coverage", () => {
   /**
-   * What this property is instrumented for. The counters say it reaches what
-   * it targets, and that the resolution walk does real work rather than
-   * restating a top-level key list.
+   * `fc.pre` rejections do not count toward `numRuns`, so the two shape
+   * counters below partition only the finished runs. The generator's
+   * refusals are all `override-property-mismatch`.
    *
-   * `fc.pre` rejections do not count toward `numRuns`. The runner keeps
-   * drawing until it has that many executions that finished, so the two
-   * shape counters partition the finished runs and the refused programs are
-   * extra draws on top of them. The refusals the generator provokes are all
-   * `override-property-mismatch`.
-   *
-   * Three counters are asserted below: the `allOf` shape, the flattened
-   * shape, and the one that carries the weight here — a document where the
-   * component's own top-level `properties` alone is not the declared set. A
-   * check reading only `schema.properties` gives the wrong answer on most
-   * drawn documents, so the `allOf`/`$ref` walk is load-bearing.
-   *
-   * Asserting them rather than recording them is the point: a number in a
-   * comment goes stale, and a number in an `expect` fails.
+   * Three counters are asserted: the `allOf` shape, the flattened shape, and
+   * a document where the component's own top-level `properties` alone is
+   * not the declared set. Checking only `schema.properties` gives the wrong
+   * answer on most drawn documents, so the `allOf`/`$ref` walk is
+   * load-bearing.
    */
   it("describes every declared property, through allOf and $ref", async () => {
     let allOfShape = 0;

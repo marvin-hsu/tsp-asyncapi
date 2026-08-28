@@ -22,10 +22,9 @@ import { stubModel, stubTarget } from "../utils/ir-stubs.js";
 /**
  * Generators of hand-written semantic model nodes.
  *
- * The architecture buys one thing first: the lower stage reads
- * `AsyncAPIService` and nothing else, so it can be driven without compiling
- * TypeSpec. This module is the first user of that slot. Two property files
- * share it, so the node shapes have one owner.
+ * The lower stage reads `AsyncAPIService` and nothing else, so it can be
+ * driven without compiling TypeSpec. Two property files share this module,
+ * so the node shapes have one owner.
  *
  * Every node here obeys the model's own rules. A list with no member is an
  * empty array, a single value with no answer is absent rather than
@@ -33,11 +32,10 @@ import { stubModel, stubTarget } from "../utils/ir-stubs.js";
  * section. A generator that broke one of those would test an input resolve
  * cannot produce.
  *
- * What the generators do reach, and a TypeSpec program does not, is the key
- * charset. A `@useServer` name and a binding protocol are bare strings the
- * emitter never checks, so `__proto__`, `~`, and `/` all arrive. Those are
- * exactly the keys where building a map and writing a pointer decide the
- * answer.
+ * The generators reach a key charset a TypeSpec program does not. A
+ * `@useServer` name and a binding protocol are bare strings the emitter
+ * never checks, so `__proto__`, `~`, and `/` all arrive. Those are exactly
+ * the keys where building a map and writing a pointer decide the answer.
  */
 
 /** Spreads a field only when it has an answer, the way resolve builds a node. */

@@ -38,25 +38,23 @@ describe("Property: order independence", () => {
    * Swapping two messages leaves the document unchanged.
    *
    * A shape with no name of its own is inlined at the site that reaches it
-   * first, and promoted to a component when a second site reaches it. The
-   * promotion used to add the component and point the second site at it,
-   * while leaving the copy already written into the first site alone:
+   * first, and promoted to a component when a second site reaches it. For
+   * example:
    *
    *   model Env<T> { data: T; }
    *   alias E2 = Env<{ p2: string }>;
    *   @AsyncAPI.message model Alpha { f2: E2; }
    *   @AsyncAPI.message model Beta  { f2: E2; }
    *
-   * Whichever message came first carried the whole shape inline and the
-   * other carried a reference, so one body was emitted twice and reordering
-   * two declarations rewrote the output. Promotion now rewrites that first
-   * copy into a reference as well, which it can do because the copy and the
-   * component are one object.
+   * Promotion rewrites both the first site's inline copy and the second
+   * site's use into a reference, because the copy and the promoted
+   * component are one object. Reordering the two messages must not change
+   * which site is first, so the output must not change either.
    *
    * A plain named model is always registered, so it never meets the
    * promotion rule. The alias is what makes both messages reach one
-   * instantiation, and writing the instantiation out twice would instead
-   * create two separate types.
+   * instantiation; writing the instantiation out twice would instead create
+   * two separate types.
    */
   it("emits the same document when the two messages swap places", async () => {
     await fc.assert(
@@ -94,46 +92,34 @@ describe("Property: order independence", () => {
    * Rotating the message declarations must not change the document, once
    * key order is normalised away.
    *
-   * The property above swaps two messages that share a shape, and it is red.
-   * This one rotates three messages whose payload shapes are disjoint, so
-   * the promote-on-second-use asymmetry the swap property records cannot
-   * fire. Every shape is used twice inside one message, so the builder still
-   * runs its promote path. The promotion is then symmetric under the
-   * rotation, because both uses move together.
+   * The property above swaps two messages that share one shape. This one
+   * rotates three messages whose payload shapes are disjoint, so the
+   * promote-on-second-use asymmetry the swap property records cannot fire.
+   * Every shape is used twice inside its own message, so the builder still
+   * runs its promote path, and the promotion stays symmetric under rotation
+   * because both uses move together.
    *
    * A message declaration is the unit the emitter traverses, so moving one
-   * really does change the order the builder meets shapes in. An iteration
-   * order taken from object identity, or a component name taken from a
-   * counter over creation order, would show up here as a content
-   * difference. Content is what the comparison looks at.
+   * changes the order the builder meets shapes in. An iteration order taken
+   * from object identity, or a component name taken from a creation-order
+   * counter, would show up here as a content difference, which is what the
+   * comparison checks.
    *
    * The comparison sorts keys first. Key order in `components.schemas`
-   * follows declaration order and is expected to move. That movement is the
-   * evidence the emitter saw a different traversal, so it is counted rather
-   * than asserted on.
+   * follows declaration order and is expected to move; that movement is
+   * counted as evidence of a different traversal, not asserted on.
    *
-   * An earlier version of this test rotated the `alias` lines instead. It
-   * was deleted. An `alias` declares no type. The `Env<...>` instantiation
-   * happens at the use site inside the messages, and those did not move, so
-   * every rotation gave byte-identical output. Measured here: three alias
-   * rotations, and all three aliases moved after both messages, all four
-   * produce a byte-identical document. That version had no reachable
-   * failure mode.
+   * The source keeps the alias-to-instantiation shape the property above
+   * uses, not plain named models. A named model is always registered as a
+   * component, so a plain-model generator would never reach the
+   * promote-on-second-use rule.
    *
-   * The source shape stays the alias-to-instantiation shape the property
-   * above uses, not a set of plain named models. A named model is always
-   * registered as a component, so a plain-model generator never reaches the
-   * promote-on-second-use rule, and any state that rule keeps would go
-   * unwatched.
-   *
-   * Reachability. Three counters: runs whose rotation really moved a
+   * Three counters below check reachability: runs whose rotation moved a
    * declaration, runs whose `components.schemas` key order moved, and runs
-   * carrying a promoted `Env...` component.
-   *
-   * A run drawing an offset that is a multiple of three moves nothing and
-   * compares a document with itself. All three counters are asserted below.
-   * A generator that stopped moving declarations, or an emitter that stopped
-   * promoting, fails instead of passing quietly.
+   * carrying a promoted `Env...` component. An offset that is a multiple of
+   * three moves nothing and compares a document with itself, so all three
+   * counters guard against a generator or emitter that silently stopped
+   * doing its job.
    */
   it("emits the same document when the message declarations rotate", async () => {
     let permuted = 0;

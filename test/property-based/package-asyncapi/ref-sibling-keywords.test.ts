@@ -6,75 +6,34 @@ import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 /**
  * No `$ref` carries a sibling keyword.
  *
- * AsyncAPI 3.x schemas default to JSON Schema draft-07. In that dialect a
- * `$ref` replaces the whole object it sits in. A reader ignores every
- * other key next to it. A sibling `description`, `minLength`, or `x-`
- * extension is then silently discarded by the consumer. It still looks
- * present in the document, so nobody notices. A sibling `discriminator`
- * or `type` is worse. It reads as if it constrains the referenced schema,
- * and it constrains nothing.
+ * AsyncAPI 3.x schemas default to JSON Schema draft-07. There, a `$ref`
+ * replaces the whole object around it, so a reader ignores every other key
+ * beside it. A sibling `description` or `minLength` is silently discarded.
+ * A sibling `discriminator` or `type` is worse: it looks like a constraint
+ * on the referenced schema, but constrains nothing.
  *
  * Four code paths each decide separately whether to wrap a `$ref` before
- * putting anything beside it. `withPropertyDocs` wraps a property's
- * `$ref` in `allOf` when the property carries its own `@doc`, `@summary`,
- * `@example`, use-site validation, or `@jsonSchemaExtension`.
- * `hoistAnnotationsAboveAllOf` lifts annotations above that wrap.
- * `applyExtends` puts a base model's `$ref` into an `allOf` branch.
- * `applyDiscriminator` adds `discriminator` to the wrapper object, not to
- * the branch. Each of them can regress alone. So the rule is stated over
- * the whole emitted document, not over one function.
+ * adding a sibling. `withPropertyDocs` wraps a property's `$ref` in `allOf`
+ * when the property carries `@doc`, `@summary`, `@example`, use-site
+ * validation, or `@jsonSchemaExtension`. `hoistAnnotationsAboveAllOf` lifts
+ * annotations above that wrap. `applyExtends` puts a base model's `$ref`
+ * into an `allOf` branch. `applyDiscriminator` adds `discriminator` to the
+ * wrapper object, not the branch. Each can regress alone, so the rule is
+ * checked over the whole document, not one function.
  *
  * The walk covers the whole document, not only `components.schemas`. An
  * AsyncAPI reference object forbids siblings for the same reason.
  *
- * REACHABILITY.
+ * The official AsyncAPI parser accepts a sibling beside a `$ref` without
+ * complaint, so nothing else in this suite guards this rule.
  *
- * A probe first scanned a set of hand-written programs with this same walk,
- * and found no `$ref` object carrying a sibling key anywhere.
- *
- * The programs that wrap reach all four paths: `@doc`, `@summary`,
- * `@example`, and `@jsonSchemaExtension` on a model-typed property;
- * `extends`; an empty derived model; `@discriminator` over a two-level
- * and a three-level chain; a self-referencing model; an `@oneOf` union
- * and an enum behind a documented property; a union variant's own `@doc`.
- *
- * The programs that do not wrap matter as much. They reach the same
- * document region by a different route, so a regression there would not
- * show up in a wrapper count. Their shapes, for `@doc("x")
- * @minItems(1) @maxItems(3) i: Inner[]`:
- *
- *   { type: "array", items: { $ref }, description, minItems, maxItems }
- *
- * `Record<Inner>` merges the same way next to `additionalProperties`.
- * `@doc @summary n?: Inner | null` produces
- * `{ anyOf: [{ $ref }, { type: "null" }], title, description }`, so the
- * ref sits in a branch. A `@minLength` on a property of an
- * already-constrained scalar takes the collision branch of
- * `withPropertyDocs` instead of the `$ref` branch.
- *
- * The generator below is instrumented for two shapes: a drawn property
- * holding a bare-`$ref` wrapper, and a drawn property that buries a `$ref`.
- * Both counters are scoped to the drawn properties `p0` to `p4`, and both
- * are asserted after the search.
- *
- * The scoping is the point. An earlier version counted wrappers anywhere in
- * the document, and that count was constant-true: `render` always writes
- * `model Derived extends Inner` and `d: Derived`, and `applyExtends` turns
- * that pair into a bare-`$ref` `allOf` wrapper on every draw, so even the
- * smallest program the generator can produce already has one. The old guard
- * fired on the hardcoded lines alone and watched none of the drawn
- * dimensions.
- *
- * The official AsyncAPI parser was run over a hand-made document whose
- * message payload is
- * `{ $ref: "#/components/schemas/Inner", description: "sibling" }`. It
- * reports no error, only an informational note about the document version.
- * So neither the parser nor anything else in this suite guards this rule.
- *
- * The two final assertions keep that reachability claim alive at run time.
- * If the generator or the emitter drifts so that no drawn property reaches
- * a wrapper, or none buries a `$ref`, the property would pass without
- * touching what it is about. An assertion fails instead.
+ * The generator draws properties that reach both routes into this region: a
+ * bare-`$ref` wrapper, and a `$ref` buried under `items`,
+ * `additionalProperties`, `anyOf`, or `oneOf`. Two counters, scoped to the
+ * drawn properties, confirm both routes are reached. Counting wrappers
+ * anywhere in the document would not do this: `model Derived extends Inner`
+ * always produces one, so an unscoped counter would pass without ever
+ * watching the drawn dimensions.
  */
 
 /** One property of the generated `Root` message, before rendering. */
@@ -90,19 +49,17 @@ interface PropDecl {
 /**
  * The property types the generator draws from.
  *
- * `validation` names the use-site validation decorator that is legal on
- * the type, or `null` when none is. TypeSpec rejects `@minItems` on a
- * non-array and `@minLength` on a non-string. Such a program never
- * reaches the emitter, so it would test nothing.
+ * `validation` names the use-site validation decorator legal on the type,
+ * or `null` when none is. TypeSpec rejects `@minItems` on a non-array and
+ * `@minLength` on a non-string, so a mismatched pair never reaches the
+ * emitter.
  *
- * `objectExample` marks a type an `@example(#{ a: "x" })` is valid for.
- * That is the one literal the generator writes, so only `Inner` and the
- * types that hold an `Inner` shape accept it.
+ * `objectExample` marks a type that `@example(#{ a: "x" })` accepts: only
+ * `Inner` and the types built from it.
  *
- * The list mixes types that build to a bare `$ref` with types that bury
- * a `$ref` under `items`, `additionalProperties`, or `anyOf`. Both
- * groups are needed. Only the first reaches the wrap branch. Only the
- * second reaches the merge-beside-a-container branch.
+ * The list mixes types that build to a bare `$ref` with types that bury one
+ * under `items`, `additionalProperties`, or `anyOf`. The first group reaches
+ * the wrap branch; the second reaches the merge-beside-a-container branch.
  */
 const PROP_KINDS: readonly {
   type: string;
@@ -233,19 +190,19 @@ interface PropReach {
 /**
  * Scans the schema of one drawn property.
  *
- * `wrapped` marks the wrap branch: an `allOf` holding a bare `$ref`. That
- * is the shape `withPropertyDocs`, `applyExtends`, and `applyDiscriminator`
- * build before they put anything beside a reference.
+ * `wrapped` marks an `allOf` holding a bare `$ref`: the shape
+ * `withPropertyDocs`, `applyExtends`, and `applyDiscriminator` build before
+ * adding anything beside a reference.
  *
- * `buried` marks the other route into the same document region. The `$ref`
- * sits under `items`, `additionalProperties`, `anyOf`, or `oneOf`, and the
- * annotations merge onto the container instead. A regression there never
- * changes a wrapper count, so it is counted on its own.
+ * `buried` marks the other route: the `$ref` sits under `items`,
+ * `additionalProperties`, `anyOf`, or `oneOf`, and annotations merge onto
+ * the container instead. It is counted separately, since a regression here
+ * never changes a wrapper count.
  *
- * The scan starts at the property's own schema, not at the whole document.
- * The document always holds the wrapper that `model Derived extends Inner`
- * produces, and that line is hardcoded. A document-wide count would
- * therefore be constant-true and would watch none of the drawn dimensions.
+ * The scan starts at the property's own schema, not the whole document. The
+ * document always holds the hardcoded wrapper from
+ * `model Derived extends Inner`, so a document-wide count would be
+ * constant-true and would watch none of the drawn dimensions.
  */
 function scanProperty(node: unknown, reach: PropReach): void {
   if (node === null || typeof node !== "object") {

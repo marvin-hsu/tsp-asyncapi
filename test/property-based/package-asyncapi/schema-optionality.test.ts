@@ -10,42 +10,33 @@ import { schemaOf, schemasOf } from "../../utils/document.js";
  * Optionality survives, and `required` never names an undescribed key.
  *
  * `buildObjectSchemaFromProperties` decides `required` from `prop.optional`.
- * It is called twice over, from two different assembly paths.
- * `buildObjectSchema` hands it one model's own declared properties.
- * `buildFlattenedObjectSchema` hands it the whole `walkPropertiesInherited`
- * set. So the required set is rebuilt from scratch in the fallback path. A
- * mistake in either path rewrites the contract without a word. An optional
- * field turns mandatory, or a mandatory field turns optional.
+ * Two assembly paths call it: `buildObjectSchema` hands it one model's own
+ * declared properties, and the `buildFlattenedObjectSchema` fallback hands
+ * it the whole `walkPropertiesInherited` set. A mistake in either path
+ * rewrites the contract silently, turning an optional field mandatory or a
+ * mandatory field optional.
  *
- * This property makes two main claims about the most-derived model's
- * schema, after resolving `allOf` branches and `$ref` links.
+ * This property checks two claims about the most-derived model's schema,
+ * after resolving `allOf` branches and `$ref` links, against the
+ * generator's own declaration records rather than the compiler's types.
  *
- * 1. The union of every `required` array equals the set of wire names the
- *    generator declared without `?`. This is stated against the generator's
- *    own declaration records, never against the compiler's types.
+ * 1. The union of every `required` array equals the wire names declared
+ *    without `?`.
  * 2. No single `required` array holds a duplicate entry.
  *
- * Claim 1 is asserted only when the declared set has no wire-name
- * collision. When two distinct TypeSpec names resolve to one wire name, one
- * of the two is dropped on purpose by the `claimedWireNames` guard. Which
- * one survives then decides the wire name's optionality, so the declared
- * set no longer names one answer. Claim 2 still applies to those documents.
- * It is the claim the guard exists to keep true.
+ * Claim 1 only holds when the declared set has no wire-name collision. When
+ * two distinct TypeSpec names resolve to one wire name, the
+ * `claimedWireNames` guard drops one on purpose, so the declared set no
+ * longer names a single answer. Claim 2 still holds for those documents;
+ * it is the claim the guard exists to keep true.
  *
- * A third, weaker claim covers the documents claim 1 skips: every
- * `required` entry is also described under `properties` somewhere in the
- * same resolution. A schema that demands a key it never describes tells a
- * producer nothing about what to send. Read it as a guard for the
- * wire-collision documents, not as a third equal claim. On a document with
- * no collision it follows from the other two properties: claim 1 already
- * pins the required union to the declared non-optional set, and the
- * coverage property beside this one pins the described set to the declared
- * set. Only a slice of the drawn documents reaches the collision guard, so
- * this claim is what covers that slice. A counter below asserts the slice is
- * never empty.
+ * A third, weaker claim covers what claim 1 skips: every `required` entry
+ * is also described under `properties` in the same resolution. A schema
+ * that demands an undescribed key tells a producer nothing to send. This
+ * claim only carries new information on the wire-collision documents.
  *
- * The chain generator and renderer live in `./model-chain.js`. The coverage
- * property drives the same shape and shares them.
+ * The chain generator and renderer live in `./model-chain.js`, shared with
+ * the coverage property beside this one.
  */
 
 /**
@@ -95,57 +86,22 @@ function expectedRequired(props: readonly PropDecl[]): string[] {
 
 describe("Integration: Schemas — optionality and required", () => {
   /**
-   * What this property is instrumented for, and what the probes established.
+   * `fc.pre` rejections do not count toward `numRuns`, so the shape counters
+   * below partition only the finished runs.
    *
-   * `fc.pre` rejections do not count toward `numRuns`. The runner keeps
-   * drawing until it has that many executions that finished, so the shape
-   * counters below partition the finished runs and the refused programs are
-   * extra draws on top of them.
+   * The counters cover both component shapes (`allOf` and flattened),
+   * resolutions with more than one `required` array, documents where the
+   * component's own top-level `required` is not the whole union, and
+   * documents that reach the `claimedWireNames` guard. Checking only the
+   * top-level `required` gives the wrong answer on most drawn documents,
+   * which is why that counter is asserted rather than assumed.
    *
-   * The counters cover the two component shapes (`allOf` and flattened),
-   * resolutions holding more than one `required` array, documents where the
-   * component's own top-level `required` is not the whole union, flattened
-   * documents whose `required` holds a wire name the most-derived level does
-   * not declare, and documents reaching the `claimedWireNames` guard. They
-   * are asserted, not recorded here, because a number in a comment goes stale
-   * and a number in an `expect` does not.
+   * This generator can never produce an override that relaxes an inherited
+   * required property to optional: TypeSpec rejects that with
+   * `override-property-mismatch`, so no document is emitted.
    *
-   * The union form is the one that matters. A check reading only the
-   * component's own `required` gives the wrong answer on most drawn
-   * documents, which is why the counter for it is asserted. Probes also
-   * showed `required` really does split
-   * across `allOf` branches. For `model A { a1: string; @encodedName(...,
-   * "a2w") a2: string; }` and `model C extends A { c1: string; c2?: string;
-   * }`, `A` requires `["a1","a2w"]` and `C`'s own branch requires only
-   * `["c1"]`.
-   *
-   * The guard was probed on its own, because the generator reaches it on
-   * only a small slice of documents. For
-   * `model D0 { aw: int32; x: string; }` and `model D1 extends D0
-   * { @encodedName("application/json", "aw") a: string; x: never; }` the
-   * emitter reports `tsp-asyncapi/encoded-name-override-conflict` at
-   * warning severity, flattens, and produces
-   * `{"type":"object","properties":{"aw":{"type":"string"}},
-   * "required":["aw"]}`. The guard is what makes that observable. Without
-   * it, `D0`'s `aw` would overwrite the entry with `{"type":"integer"...}`
-   * and push a second `"aw"` onto `required`.
-   *
-   * One shape this generator can never produce: an override that relaxes an
-   * inherited required property to optional. TypeSpec rejects it with
-   * `override-property-mismatch`, so no document is emitted. Probed with
-   * `model E0 { e: string; }` and `model E1 extends E0 { e?: string; }`.
-   *
-   * Two mutations of `buildObjectSchemaFromProperties` confirmed the claims
-   * bite, and were reverted. Removing the `claimedWireNames` guard failed
-   * claim 2. Pushing every wire name onto `required`, ignoring
-   * `prop.optional`, failed claim 1 with `['m0','m1']` against `['m0']`.
-   *
-   * Note that the test host compiles against the built `dist/`, not `src/`.
-   * Run `pnpm build` before judging a source change by this property.
-   *
-   * Every claim above that depends on the generator reaching a shape has a
-   * counter asserted below. That keeps this record honest when the generator
-   * or the emitter moves.
+   * The test host compiles against the built `dist/`, not `src/`. Run
+   * `pnpm build` before judging a source change by this property.
    */
   it("keeps declared optionality and requires only described keys", async () => {
     let allOfShape = 0;

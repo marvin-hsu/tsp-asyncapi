@@ -10,22 +10,20 @@ import { compileWithProtobuf, descriptorOf, renderNamed } from "../../utils/prot
  * comes too. Everything else stays out, so the text describes one payload
  * rather than a whole package.
  *
- * The example cases pin three shapes: one reference, a message that reaches
- * itself, and two that reach each other. Those are the shapes a person thinks
- * of. The ones that break a closure are the shapes nobody enumerates: a
- * diamond where two paths meet at one message, a node reachable only through
- * three hops, a cycle entered from outside it. A generator finds those.
+ * Hand-written cases pin the shapes a person thinks of: one reference, a
+ * self-reaching message, and two that reach each other. The shapes that
+ * break a closure walk are the ones nobody enumerates: a diamond where two
+ * paths meet, a node reachable only three hops away, a cycle entered from
+ * outside it. A generator finds those.
  *
- * The oracle is reachability computed here, over the graph the generator drew
- * rather than over anything the emitter produced. So the property compares
- * two independent answers to one question.
+ * The oracle is reachability computed here, over the graph the generator
+ * drew, not over anything the emitter produced. So the property compares two
+ * independent answers to one question.
  *
- * The work is split in two, because a counter over random draws is only as
- * reliable as the draw. A diamond appears in about one generated graph in
- * twenty, so a run of forty would sometimes hold none, and a counter
- * asserting otherwise would fail on nobody's mistake. The shapes that break a
- * closure walk are therefore written down and checked every time. The
- * generator explores what nobody wrote down.
+ * The hand-written shapes are checked every run, since a diamond appears in
+ * only about one generated graph in twenty; a counter over forty runs could
+ * miss one by chance and fail on nobody's mistake. The generator instead
+ * searches for shapes nobody wrote down.
  */
 
 /** How many models one generated program declares. */
@@ -94,10 +92,6 @@ function sourceOf(graph: Graph): string {
  *
  * This is the answer the payload has to match. It is computed from the graph
  * the generator drew, so nothing the emitter decides can influence it.
- *
- * @param graph - The graph of the run
- * @param root - The index the walk starts from
- * @returns The names of every model reachable from the root
  */
 function reachableFrom(graph: Graph, root: number): Set<string> {
   const seen = new Set<number>();
@@ -150,11 +144,7 @@ const SHAPES: Record<string, Graph> = {
   island: [["scalar"], ["scalar"]],
 };
 
-/**
- * Asserts the payload of every model of one graph.
- *
- * @param graph - The graph to compile and render
- */
+/** Asserts the payload of every model of one graph. */
 async function expectClosure(graph: Graph): Promise<void> {
   const program = await compileWithProtobuf(sourceOf(graph));
   for (const root of graph.keys()) {
