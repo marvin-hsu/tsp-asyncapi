@@ -12,9 +12,6 @@ const [isOneOfInternal, markOneOf] = useStateSet<Union>(oneOfStateKey);
  * `@typespec/json-schema`'s own `$oneOf` decorator shape. It carries no
  * value of its own to look up.
  *
- * @param context - The decorator context
- * @param target - The union to mark
- *
  * @example
  * ```typespec
  * @oneOf
@@ -30,8 +27,6 @@ export function $oneOf(context: DecoratorContext, target: Union) {
 /**
  * Tells whether `@oneOf` marks this union.
  *
- * @param program - The program to read the state from
- * @param target - The union to test
  * @returns True when the decorator was applied to `target`
  *
  * @public

@@ -1,11 +1,9 @@
 /**
  * The AsyncAPI runtime expression two decorators share.
  *
- * `@correlationId` uses one to say where the correlation value sits inside a
- * message. `@parameterLocation` uses one to say where a channel parameter
- * value sits inside a message. AsyncAPI gives the two fields the same
- * grammar, so they share one check here rather than keep two copies that
- * could drift.
+ * `@correlationId` and `@parameterLocation` each use one to locate a value
+ * inside a message. AsyncAPI gives both fields the same grammar, so they
+ * share one check here instead of two copies that could drift.
  */
 
 /**
@@ -46,7 +44,6 @@ const RUNTIME_EXPRESSION_PATTERN = /^\$message\.(?:header|payload)#(?:\/[\s\S]*)
  * schemas never define. A check would reject documents the specification
  * allows.
  *
- * @param expression - The text the author wrote
  * @returns True when the expression is one an AsyncAPI tool can follow
  */
 export function isRuntimeExpression(expression: string): boolean {

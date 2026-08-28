@@ -26,8 +26,6 @@ const [getJsonSchemaExtensionsInternal, setJsonSchemaExtensions] = useStateMap<
  * more than once on the same target accumulates every pair, matching
  * `@typespec/json-schema`'s own `@extension` decorator.
  *
- * @param context - The decorator context
- * @param target - The model or property to attach the extension to
  * @param key - The schema keyword name, e.g. `"unevaluatedProperties"`
  * @param value - The value for that keyword
  *
