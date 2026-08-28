@@ -3,8 +3,9 @@
  *
  * A Parameter Object carries no name of its own: the author wrote it as the
  * key of the `parameters` map. So the key is the name, and a parameter is
- * shared through `components.parameters` on its first use — a set of
- * channels addressing one `{userId}` is the ordinary shape of an event API.
+ * shared through `components.parameters` on its first use. A set of
+ * channels addressing one `{userId}` shares that parameter this way, and
+ * that is the ordinary shape of an event API.
  *
  * Only the builder lives here, not the map. The survey in
  * `components/survey.ts` takes a fragment's identity from the lowered

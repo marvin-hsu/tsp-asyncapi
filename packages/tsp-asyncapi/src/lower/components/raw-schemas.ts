@@ -3,13 +3,13 @@
  *
  * `@rawPayload` and `@rawHeaders` carry a schema the author wrote, in a
  * format the author named: Avro, Protobuf, or anything else AsyncAPI lists.
- * The emitter never reads inside one. Until now it also never shared one, so
- * two messages carrying the same Protobuf definition wrote it twice.
+ * The emitter never reads inside one. This file shares one when two
+ * messages carry the same text, instead of writing it twice.
  *
- * That is about to matter more than it does today. `@typespec/protobuf`
- * writes one `.proto` per package, holding every message in that package. A
- * document whose payloads come from one package would repeat the whole
- * package text once per message.
+ * `@typespec/protobuf` writes one `.proto` file per package, holding every
+ * message in that package. A document whose payloads come from one package
+ * can carry the same package text on every message that uses it, so sharing
+ * it here saves the most in that case.
  *
  * ## Why the second use decides
  *

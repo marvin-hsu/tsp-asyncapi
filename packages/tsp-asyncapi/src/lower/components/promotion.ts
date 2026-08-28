@@ -8,10 +8,9 @@
  *
  * ## Two policies, split by whether the author named the thing
  *
- * `plan/09-advanced.md` settled the rule this project follows: a named
- * TypeSpec declaration is hoisted and referenced, and something written
- * inline is expanded in place. `SchemaBuilder` has run that rule since
- * Phase 2, and `@typespec/openapi3` runs the same one.
+ * A named TypeSpec declaration is promoted and referenced. Something
+ * written inline stays inlined. `SchemaBuilder` runs that rule, and
+ * `@typespec/openapi3` runs the same one.
  *
  * A tag has a name the author wrote. So does a channel parameter, a server
  * variable, and a scalar. Those are `"named"`: one use is enough.
@@ -47,7 +46,7 @@ export interface PromotionPolicy<T> {
    * two tags of different names are already two fragments.
    *
    * `"keyed"` also promotes on the first use, but the name is *not* inside
-   * the fragment — the author wrote it as the key of the map the fragment
+   * the fragment. The author wrote it as the key of the map the fragment
    * sits in. A Parameter Object with no fields is `{}` whatever it is
    * called, so the key joins the identity here. Without that, a channel's
    * `{tenant}` would point at a component named after some other channel's

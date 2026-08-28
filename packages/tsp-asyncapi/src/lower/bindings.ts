@@ -20,8 +20,8 @@
  * `serverBindingsObject.json` gives `properties.jms` a `properties` and an
  * `allOf` and no `oneOf Reference`. So `$ref` is legal at `server.bindings`
  * and rejected at `server.bindings.jms`. That is why the unit this emitter
- * shares through `components` is the whole Bindings Object — see
- * `lower/components/survey.ts`.
+ * shares through `components` is the whole Bindings Object. See
+ * `lower/components/survey.ts` for how it decides which ones to share.
  *
  * That is why this file holds a table of versions rather than a table of
  * functions. Twelve protocols each had a renderer that spread the recorded
