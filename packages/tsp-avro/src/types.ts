@@ -69,15 +69,20 @@ export type AvroFieldOrder = "ascending" | "descending" | "ignore";
  * @public
  */
 export interface AvroField {
+  /** The field name. */
   readonly name: string;
+  /** The field's schema. */
   readonly type: AvroSchema;
+  /** The field's documentation. */
   readonly doc?: string;
   /**
    * Avro allows null as a default, and undefined here means the field has
    * none. So the two are apart: `null` is written, `undefined` disappears.
    */
   readonly default?: AvroDefault;
+  /** Other names a reader may know this field by. */
   readonly aliases?: readonly string[];
+  /** How a reader sorts records by this field. */
   readonly order?: AvroFieldOrder;
 }
 
@@ -87,10 +92,15 @@ export interface AvroField {
  * @public
  */
 export interface AvroRecord {
+  /** The Avro type keyword. */
   readonly type: "record";
+  /** The record's unqualified name. */
   readonly name: string;
+  /** The namespace that qualifies the name. */
   readonly namespace?: string;
+  /** The record's documentation. */
   readonly doc?: string;
+  /** Other full names a reader may know this record by. */
   readonly aliases?: readonly string[];
   /** In declaration order. */
   readonly fields: readonly AvroField[];
@@ -102,10 +112,15 @@ export interface AvroRecord {
  * @public
  */
 export interface AvroEnum {
+  /** The Avro type keyword. */
   readonly type: "enum";
+  /** The enum's unqualified name. */
   readonly name: string;
+  /** The namespace that qualifies the name. */
   readonly namespace?: string;
+  /** The enum's documentation. */
   readonly doc?: string;
+  /** Other full names a reader may know this enum by. */
   readonly aliases?: readonly string[];
   /** In declaration order. */
   readonly symbols: readonly string[];
@@ -119,9 +134,13 @@ export interface AvroEnum {
  * @public
  */
 export interface AvroFixed {
+  /** The Avro type keyword. */
   readonly type: "fixed";
+  /** The type's unqualified name. */
   readonly name: string;
+  /** The namespace that qualifies the name. */
   readonly namespace?: string;
+  /** Other full names a reader may know this type by. */
   readonly aliases?: readonly string[];
   /** Width, in bytes. */
   readonly size: number;
@@ -152,6 +171,7 @@ export interface AvroFixed {
 export interface AvroLogical {
   /** The type that is on the wire. */
   readonly type: AvroPrimitiveName;
+  /** The meaning a reader takes from it. */
   readonly logicalType: string;
   /** How many digits a decimal holds. */
   readonly precision?: number;
@@ -165,7 +185,9 @@ export interface AvroLogical {
  * @public
  */
 export interface AvroArray {
+  /** The Avro type keyword. */
   readonly type: "array";
+  /** The schema every item holds. */
   readonly items: AvroSchema;
 }
 
@@ -175,7 +197,9 @@ export interface AvroArray {
  * @public
  */
 export interface AvroMap {
+  /** The Avro type keyword. */
   readonly type: "map";
+  /** The schema every value holds. */
   readonly values: AvroSchema;
 }
 
