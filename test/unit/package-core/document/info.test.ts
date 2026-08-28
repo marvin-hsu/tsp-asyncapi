@@ -5,10 +5,9 @@ import { getInfo } from "#core/decorators/index.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 
 /**
- * `@info` writes the one object every AsyncAPI document carries, and it used
- * to check none of its fields. Three fields carry the `uri` format, and the
- * official parser rejects a document whose value there is not an absolute
- * URL.
+ * `@info` writes the one object every AsyncAPI document carries. Three
+ * fields carry the `uri` format, and the official parser rejects a document
+ * whose value there is not an absolute URL.
  */
 describe("Unit: @info field checks", () => {
   const compile = async (info: string) => {
