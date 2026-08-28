@@ -1,3 +1,8 @@
+/**
+ * This suite locks that every protocol and binding shape an end-to-end
+ * compile produces passes the official parser.
+ */
+
 import { describe, it, expect } from "vitest";
 import { emitDocument } from "../utils/test-host.js";
 import {
@@ -14,8 +19,8 @@ import { bindingFor, bindingsOf } from "../utils/document.js";
 
 describe("AsyncAPI emitted document", () => {
   it("should describe a service with a send and a receive operation end to end", async () => {
-    // This is the Phase 5 milestone case. It carries a service, a server, a
-    // channel, a message, and both actions.
+    // The minimal shape covering a service, a server, a channel, a message,
+    // and both actions.
     const doc = await emitDocument(`
       @service(#{ title: "Order Service" })
       @info(#{ version: "1.0.0" })
