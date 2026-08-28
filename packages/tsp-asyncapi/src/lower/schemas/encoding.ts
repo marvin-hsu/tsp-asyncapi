@@ -193,6 +193,38 @@ function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
   return builtin !== undefined && ENCODING_TARGETS[encoding].includes(builtin);
 }
 
+/**
+ * Returns the union variants an encoding on `prop` writes over.
+ *
+ * A named scalar variant this names has to be built in place rather than
+ * referenced. The component a reference points at describes the un-encoded
+ * scalar, and encoding it here would leave that component with nothing
+ * pointing at it. The caller that builds the union asks this first, so the
+ * reference is never made. See `encodeUnion` for what is then written.
+ *
+ * The answer is empty for a property with no `@encode`, and for one whose
+ * declared type is not a union.
+ *
+ * @param program - The program the property belongs to
+ * @param prop - The property whose `@encode` and declared type are read
+ * @returns The variant types the encoding describes
+ * @internal
+ */
+export function encodedUnionVariants(program: Program, prop: ModelProperty): ReadonlySet<Type> {
+  const described = new Set<Type>();
+  const encodeData = getEncode(program, prop);
+  if (encodeData === undefined || prop.type.kind !== "Union") {
+    return described;
+  }
+  for (const variant of prop.type.variants.values()) {
+    const { type } = variant;
+    if (type.kind === "Scalar" && encodingDescribes(encodeData, type)) {
+      described.add(type);
+    }
+  }
+  return described;
+}
+
 /** The keywords a union's variant schemas are written under. */
 const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
 
@@ -218,15 +250,13 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  *
  * A branch that is a reference is replaced rather than wrapped. The component
  * it points at describes the un-encoded scalar, and `allOf` would then ask
- * for a string and an integer at once. This mirrors the plain scalar case,
- * where a property carrying `@encode` writes the scalar in place instead of
- * referring to it.
+ * for a string and an integer at once. The replacement is built from the
+ * variant's own shape, so the scalar's `@doc`, its `@summary`, and its
+ * validation keywords survive the dropped reference.
  *
- * The replacement is built from the variant's own shape, not from an empty
- * one. The component the reference pointed at holds the scalar's `@doc`,
- * its `@summary`, and its validation keywords. Dropping the reference must
- * not drop those as well. `buildPropertyTypeSchema` keeps them on the
- * non-union path, and this keeps the two paths alike.
+ * A caller that asks `encodedUnionVariants` first builds such a variant in
+ * place, so no branch reaching here is a reference. The replacement stays as
+ * the answer for a caller that does not ask.
  *
  * A schema whose branches do not line up with the union's variants is
  * returned untouched. That is a string-literal union collapsed to one `enum`,

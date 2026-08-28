@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { holderProperties } from "../../../utils/schema-host.js";
+import { t } from "@typespec/compiler/testing";
+import { buildDocSchema, holderProperties } from "../../../utils/schema-host.js";
 
 /**
  * `@encode` says how a value travels, which is a separate question from what
@@ -272,6 +273,21 @@ describe("Unit: Schemas — @encode", () => {
           { type: "null" },
         ],
       });
+    });
+
+    it("writes no component for a variant it replaced", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        scalar Epoch extends utcDateTime;
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The encoded branch is written in place, so nothing refers to a
+      // component for `Epoch`. A component nothing points at describes a
+      // shape the document never uses.
+      expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
     });
 
     it("leaves a variant the encoding says nothing about alone", async () => {

@@ -4,6 +4,7 @@ import {
   ModelProperty,
   Enum,
   Union,
+  UnionVariant,
   Program,
   StringLiteral,
   isArrayModelType,
@@ -44,6 +45,13 @@ import {
   propertyStatesItsOwnShape,
 } from "./schemas/scalars.js";
 import { shouldEmitProperty } from "./schemas/visibility.js";
+import { encodedUnionVariants } from "./schemas/encoding.js";
+
+/**
+ * The answer for a union whose variants are all referenced as usual. Only a
+ * property carrying `@encode` names a variant to write in place.
+ */
+const NO_INLINED_VARIANTS: ReadonlySet<Type> = new Set();
 
 /**
  * Builder for converting TypeSpec types to AsyncAPI Schema Objects.
@@ -411,12 +419,15 @@ export class SchemaBuilder {
     );
   }
 
-  private buildUnionSchema(type: Union): SchemaObject | ReferenceObject {
+  private buildUnionSchema(
+    type: Union,
+    inlined: ReadonlySet<Type> = NO_INLINED_VARIANTS,
+  ): SchemaObject | ReferenceObject {
     if (isUninstantiatedTemplateDeclaration(type)) {
       return {};
     }
     const build = () =>
-      withDocs(this.program, type, this.buildUnionSchemaBody(type), this.diagnostics);
+      withDocs(this.program, type, this.buildUnionSchemaBody(type, inlined), this.diagnostics);
     if (type.name === undefined) {
       return this.declarations.guardAnonymous(type, build);
     }
@@ -452,7 +463,7 @@ export class SchemaBuilder {
    * discards individual variants in favor of one shared `enum`, so there is
    * no single variant left to hang per-branch documentation off of.
    */
-  private buildUnionSchemaBody(type: Union): SchemaObject {
+  private buildUnionSchemaBody(type: Union, inlined: ReadonlySet<Type>): SchemaObject {
     const discriminated = this.buildDiscriminatedUnionBody(type);
     if (discriminated !== undefined) {
       return discriminated;
@@ -468,7 +479,12 @@ export class SchemaBuilder {
       };
     }
     const variantSchemas = variants.map((variant) =>
-      withPropertyDocs(this.program, variant, this.buildSchema(variant.type), this.diagnostics),
+      withPropertyDocs(
+        this.program,
+        variant,
+        this.buildVariantSchema(variant, inlined),
+        this.diagnostics,
+      ),
     );
     return isOneOf(this.program, type) ? { oneOf: variantSchemas } : { anyOf: variantSchemas };
   }
@@ -675,6 +691,32 @@ export class SchemaBuilder {
     ) {
       return buildScalarShapeWithDocs(this.program, this.diagnostics, prop.type);
     }
+    if (prop.type.kind === "Union" && prop.type.name === undefined) {
+      return this.buildUnionSchema(prop.type, encodedUnionVariants(this.program, prop));
+    }
     return this.buildSchema(prop.type);
+  }
+
+  /**
+   * The schema of one union variant, referenced or written in place.
+   *
+   * A variant the caller named as encoded is written in place, for the same
+   * reason a property carrying `@encode` writes its scalar in place. The
+   * component holds the un-encoded shape, so the encoded value cannot refer
+   * to it. Building the reference and then dropping it would leave a
+   * component nothing points at.
+   *
+   * A built-in scalar has no component either way, so it takes the ordinary
+   * path.
+   */
+  private buildVariantSchema(
+    variant: UnionVariant,
+    inlined: ReadonlySet<Type>,
+  ): SchemaObject | ReferenceObject {
+    const { type } = variant;
+    if (type.kind === "Scalar" && !isBuiltinScalar(type) && inlined.has(type)) {
+      return buildScalarShapeWithDocs(this.program, this.diagnostics, type);
+    }
+    return this.buildSchema(type);
   }
 }
