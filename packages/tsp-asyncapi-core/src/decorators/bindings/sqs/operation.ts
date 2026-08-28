@@ -66,25 +66,25 @@ export function $sqsOperation(
   );
   if (written === undefined) return;
 
-  // The reader gets `binding` as the loss. An entry that is no object then
-  // reports an error, not a warning about one field.
-  const read = written.map((entry, index) =>
-    readQueue(
+  const queues: SqsQueueObject[] = [];
+  for (const [index, entry] of written.entries()) {
+    // The reader gets `binding` as the loss. An entry that is no object then
+    // reports an error, not a warning about one field.
+    const queue = readQueue(
       context,
       `queues[${String(index)}]`,
       entry,
       OPERATION_QUEUE_REQUIRED,
       configTarget,
       "binding",
-    ),
-  );
-
-  const queues: SqsQueueObject[] = [];
-  for (const queue of read) {
+    );
     // One entry the reader refused is an error, and the error says the binding
     // was dropped. A list with that entry left out would describe fewer queues
     // than the author declared, which is worse than no binding at all. Both
     // refusals cost the same, so both leave here.
+    //
+    // The entries after it are never read. Reading one reports its own fields,
+    // and a field of a binding nothing emits would be reported as kept.
     if (queue.outcome !== "read") return;
     queues.push(queue.value);
   }

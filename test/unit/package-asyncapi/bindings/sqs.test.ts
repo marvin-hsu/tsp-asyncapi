@@ -401,6 +401,33 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(operationsOf(doc).publish.bindings).toBeUndefined();
     });
 
+    it("reports no keep-rest warning for a binding it drops whole", async () => {
+      const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
+        ${SERVICE}
+
+        @channel("orders")
+        interface OrderChannel {
+          @sqsOperation(#{
+            queues: #[
+              #{ fifoQueue: false },
+              #{ name: "orders-dlq", deduplicationScope: "bogus" },
+            ],
+          })
+          @send
+          op publish(event: OrderCreated): void;
+        }
+      `);
+
+      // The first entry costs the whole binding. Reading the entries after it
+      // would report fields of a binding nothing emits, and the author would
+      // read "the rest of the binding was kept" beside "the whole binding was
+      // dropped".
+      const reported = findDiagnostic(diagnostics, "missing-binding-field");
+      expect(reported.message).toContain("queues[0].name");
+      expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
+      expect(operationsOf(doc).publish.bindings).toBeUndefined();
+    });
+
     it("reports a queue list the serializer cannot read as a list", async () => {
       const { doc, diagnostics } = await buildAsyncAPIWithDiagnostics(`
         ${SERVICE}
