@@ -51,8 +51,9 @@ fi
 # `pre-commit`, which stays fast enough to run on every commit. CI runs them
 # again, but a CI round trip costs about 2.5 minutes.
 #
-# `typecheck` covers the tests as well as `src`. The build inside `test`
-# covers `src` alone, so neither one makes the other redundant.
+# `typecheck` covers the tests as well as `src`. Its first half is the same
+# build that `pretest` runs, so that build finds nothing new after this step.
+# It stays because `pnpm test` must also work when it is run on its own.
 #
 # It is the workspace script rather than a bare `tsc --noEmit`. The root
 # project references the three packages, and a referenced project whose
