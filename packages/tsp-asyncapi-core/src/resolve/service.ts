@@ -37,7 +37,7 @@ import type {
 /**
  * The semantic model of one AsyncAPI service.
  *
- * This is the only product of the resolve stage. The lower stage turns it
+ * This is the only product of the resolve half. The lower half turns it
  * into an `AsyncAPIDocument`, and needs nothing else except `program` for
  * schema expansion and type lookup.
  *
@@ -54,12 +54,12 @@ import type {
  * 5. A payload holds a `Model` reference. It never holds an expanded schema.
  *
  * Every node carries its own `target`. That target is the only source
- * location the lower stage may report an expansion-time diagnostic
+ * location the lower half may report an expansion-time diagnostic
  * against.
  *
  * Two conventions apply to absent values, and they are used everywhere in
  * this file. A list that has no members is an empty array, never
- * `undefined`. The lower stage omits the output field when the array is
+ * `undefined`. The lower half omits the output field when the array is
  * empty. A single value that has no answer is `undefined`.
  *
  * This type is not part of the public API. The shape of the model will
@@ -108,7 +108,7 @@ export interface AsyncAPIService {
   // and a build that then fails gives it back.
   //
   // So the key set is an output of expansion, not an input to it. The schema
-  // builder owns it end to end, and the lower stage is where it lives.
+  // builder owns it end to end, and the lower half is where it lives.
   // Keys that a single declaration fixes, such as a message key or a channel
   // parameter key, are different and are assigned here.
 }
@@ -118,7 +118,7 @@ export interface AsyncAPIService {
  *
  * A marshalled decorator value is converted once, in resolve. Every config
  * and extension value in the model has passed that conversion, so the
- * lower stage never marshals anything.
+ * lower half never marshals anything.
  *
  * @internal
  */
@@ -129,7 +129,7 @@ export type JsonObject = Readonly<Record<string, unknown>>;
  *
  * The AsyncAPI External Documentation Object allows an absent `url`. The
  * decorator rejects that case, so the model states `url` as required and the
- * lower stage needs no check.
+ * lower half needs no check.
  *
  * @internal
  */
@@ -144,7 +144,7 @@ interface ExternalDocsNode {
  * One tag, after `@tag` and `@asyncTag` were merged.
  *
  * Resolve merges the two sources, removes the repeats, applies source order,
- * and reports the metadata conflicts. The lower stage only shapes the
+ * and reports the metadata conflicts. The lower half only shapes the
  * optional fields. Every section that carries tags carries this same node.
  *
  * @internal
@@ -163,7 +163,7 @@ interface TagNode {
  *
  * Resolve reads the binding state, merges the level of the object with the
  * `any` level, applies source order, and drops the repeated protocol. The
- * lower stage renders the surviving entries and reports nothing.
+ * lower half renders the surviving entries and reports nothing.
  *
  * The node does not name its level. The position of the array in the model
  * already states it.
@@ -208,7 +208,7 @@ export interface BindingNode {
 /**
  * The document head.
  *
- * Resolve applies the title and version defaults, so the lower stage has
+ * Resolve applies the title and version defaults, so the lower half has
  * no fallback of its own. The default was written in two places before the
  * split, because one copy covered a program with no service. Resolve always
  * produces this node, so one copy is now enough.
@@ -300,16 +300,12 @@ export interface ServerNode {
   /** What the server does. CommonMark is allowed. */
   readonly description?: string;
   /**
-   * The variables of the address, keyed by name.
-   *
-   * A `Map` is used instead of a plain object for two reasons. It keeps the
-   * declaration order, and a name such as `__proto__` stays an own key.
-   * Every variable is already normalized. The enum repeats are gone, the
-   * blanks are gone, and the default was checked against the enum.
-   */
-  /**
    * The `{var}` templates of `host` and `pathname`, keyed by the name inside
    * the braces.
+   *
+   * A `Map` keeps declaration order and lets a name such as `__proto__` stay
+   * an own key. Every variable is already normalized: the enum repeats and
+   * the blanks are gone, and the default was checked against the enum.
    *
    * Absent and empty are different. The author who writes no variables gets
    * no field, and the author who writes an empty set gets an empty one.
@@ -319,13 +315,12 @@ export interface ServerNode {
    * The security schemes this server requires, in source order.
    *
    * The names are already deduplicated. They are also already filtered to
-   * the schemes `components.securitySchemes` declares, so the lower stage
+   * the schemes `components.securitySchemes` declares, so the lower half
    * builds a `$ref` that always resolves.
    */
   readonly security: readonly string[];
   /** Further reading about the server. */
   readonly externalDocs?: ExternalDocsNode;
-  /** The protocol bindings of the server, in source order. */
   /**
    * The tags of this server, in source order.
    *
@@ -334,6 +329,7 @@ export interface ServerNode {
    * the same set.
    */
   readonly tags: readonly TagNode[];
+  /** The protocol bindings of the server, in source order. */
   readonly bindings: readonly BindingNode[];
 }
 
@@ -360,11 +356,11 @@ export interface ServerVariableNode {
  * object in the state map. A mirror type here would repeat thirteen scheme
  * kinds and the OAuth flow table for no behavior change.
  *
- * The reuse is deliberate. It is not an exception either: `SecuritySchemeObject`
- * is one of the objects the author writes directly, so it lives in
- * `types/authored.ts` with the rest of the vocabulary the decorators accept.
- * This model refers to three of those objects for a whole value, and the other
- * two are `MessageExampleObject` and `MultiFormatSchemaObject`.
+ * The reuse is deliberate, not an exception: `SecuritySchemeObject` is one of
+ * the objects the author writes directly, so it lives in `types/authored.ts`
+ * with the rest of the vocabulary the decorators accept. This model refers to
+ * three of those objects for a whole value; the other two are
+ * `MessageExampleObject` and `MultiFormatSchemaObject`.
  *
  * @internal
  */
@@ -380,8 +376,8 @@ export interface SecuritySchemeNode {
 /**
  * One entry of `components.messages`.
  *
- * The node holds the message model, never an expanded schema. The project
- * stage expands the payload and the headers.
+ * The node holds the message model, never an expanded schema. The lower
+ * half expands the payload and the headers.
  *
  * @internal
  */
@@ -389,8 +385,8 @@ export interface MessageNode {
   /**
    * The message model.
    *
-   * It is the payload source the lower stage expands. It is also the
-   * target of every message diagnostic the lower stage still reports.
+   * It is the payload source the lower half expands. It is also the
+   * target of every message diagnostic the lower half still reports.
    */
   readonly target: Model;
   /** The key of this message in `components.messages`. Already sanitized. */
@@ -424,7 +420,7 @@ export interface MessageNode {
  *
  * The four cases are the resolved answer to the header question. Resolve
  * counts the header sources, reports the conflicts, and adopts the fields a
- * base message lifts. The lower stage switches on `kind` and reads no
+ * base message lifts. The lower half switches on `kind` and reads no
  * state.
  *
  * @internal
@@ -438,8 +434,8 @@ export type MessageHeadersNode =
 /**
  * How the payload of one message is described.
  *
- * The model case carries the fields the header plan lifted out. The project
- * stage omits them while it flattens the payload.
+ * The model case carries the fields the header plan lifted out. The lower
+ * half omits them while it flattens the payload.
  *
  * @internal
  */
@@ -473,7 +469,7 @@ export interface ChannelNode {
    * The parameters of the address, in the order they appear in it.
    *
    * The list covers the whole address. A declaration resolve found unusable
-   * still produces a node, with every field absent. The lower stage
+   * still produces a node, with every field absent. The lower half
    * therefore needs no usable flag and never parses the address again.
    */
   readonly parameters: readonly ChannelParameterNode[];
@@ -513,7 +509,7 @@ export interface ChannelMessageNode {
  * One parameter of a channel address.
  *
  * Every field comes from the declaration that wins in source order. The
- * values are already strings, so the lower stage serializes nothing.
+ * values are already strings, so the lower half serializes nothing.
  *
  * @internal
  */
@@ -543,7 +539,7 @@ export interface ChannelParameterNode {
  * One entry of the root `operations` map.
  *
  * The node names its messages by key pair, not by model. That is what lets
- * the operations half of the lower stage work without `program`.
+ * the operations part of the lower half work without `program`.
  *
  * @internal
  */
@@ -626,9 +622,9 @@ export interface OperationReplyNode {
  * Resolves one program into the semantic model the rest of the pipeline
  * reads.
  *
- * This is the whole of stage one. Every decorator state read, every source
+ * This is the whole of the resolve half. Every decorator state read, every source
  * ordering, and every semantic diagnostic happens inside this call. What it
- * returns is immutable and complete, so the lower stage needs the program
+ * returns is immutable and complete, so the lower half needs the program
  * only to expand schemas.
  *
  * The order inside matters, and it is the order of what depends on what.
@@ -639,7 +635,7 @@ export interface OperationReplyNode {
  * operations for the same reason.
  *
  * The unattached-binding report runs last, together with the unreached
- * extension report. Every stage that places a binding or carries an
+ * extension report. Every step that places a binding or carries an
  * extension runs before them, so whatever they still do not hold reached
  * nothing.
  *
