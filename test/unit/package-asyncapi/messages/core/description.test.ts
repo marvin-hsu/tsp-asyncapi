@@ -75,7 +75,8 @@ describe("Unit: Messages — description fields", () => {
     expect(reported[0]?.severity).toBe("error");
 
     // Decorators run bottom-up, so the one written last runs first and
-    // keeps the message. @message, @headers, and @correlationId keep the same winner.
+    // keeps the message. @message, @headers, and @correlationId keep the
+    // same winner.
     const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.contentType).toBe("application/avro");
   });
@@ -96,8 +97,8 @@ describe("Unit: Messages — description fields", () => {
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
-    // The message falls back to the document `defaultContentType`. The user
-    // typed the empty string, so that fallback must not be silent.
+    // The message falls back to the document `defaultContentType`. The
+    // author typed the empty string, so that fallback must not be silent.
     const doc = await documentFrom(runner.program);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "contentType")).toBe(false);
   });
