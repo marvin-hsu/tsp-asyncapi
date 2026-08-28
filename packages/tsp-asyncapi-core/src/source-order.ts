@@ -91,15 +91,12 @@ export function bySourcePosition(
  * `recorded`, one node per entry. The caller supplies it, because how an
  * entry maps back to its application differs per decorator.
  *
- * The recorded list is in the order the applications *ran*, which is not the
- * order they appear in source.
  * Inline decorators execute bottom-up: the last-listed one executes first.
  * Augment decorators are spliced in *before* the inline ones by the checker
- * (see `checkDecorators` in `@typespec/compiler`'s `checker.js`).
- * So a blanket reverse would be correct for inline-only applications, but it
- * inverts the relative order of augment applications instead. Sorting by
- * each application's source position recovers true source order. This works
- * for inline decorators, augment decorators, and any mix of the two.
+ * (see `checkDecorators` in `@typespec/compiler`'s `checker.js`). A blanket
+ * reverse would work for inline-only applications, but it inverts augment
+ * applications instead. Sorting by source position recovers true source
+ * order for any mix of the two.
  *
  * The sort key is the source position, and `bySourcePosition` above defines
  * how two of them compare.

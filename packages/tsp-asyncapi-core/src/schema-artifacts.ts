@@ -61,9 +61,8 @@ export interface SchemaArtifactIndex {
 /**
  * The index of a build that ran no provider.
  *
- * This is the default everywhere an index is optional. A build that reaches
- * resolve with this index behaves as it did before providers existed, because
- * every lookup misses.
+ * This is the default everywhere an index is optional. Every lookup misses,
+ * so a build with no provider sees no artifacts at all.
  *
  * @public
  */
