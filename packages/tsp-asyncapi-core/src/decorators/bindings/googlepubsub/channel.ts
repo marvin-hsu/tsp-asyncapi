@@ -11,6 +11,12 @@ import {
 } from "./config.js";
 
 /**
+ * `@googlePubSubChannel`, which fills the channel-level Google Cloud
+ * Pub/Sub Bindings Object. The field checks live in `config.ts`, and the
+ * slot is claimed here.
+ */
+
+/**
  * The `config` argument of `@googlePubSubChannel`, as the author wrote it.
  * @public
  */
@@ -40,10 +46,6 @@ export interface GooglePubSubChannelBindingConfig {
  *
  * `labels` is an open map. Pub/Sub puts no rule on its keys or values, so it
  * is emitted as written.
- *
- * @param context - The decorator context
- * @param target - The channel interface or namespace
- * @param config - The Google Cloud Pub/Sub channel binding fields
  *
  * @example
  * ```typespec

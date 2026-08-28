@@ -5,6 +5,12 @@ import { claimBinding } from "../state.js";
 import { GooglePubSubMessageBindingState, messageSchema, openMap } from "./config.js";
 
 /**
+ * `@googlePubSubMessage`, which fills the message-level Google Cloud
+ * Pub/Sub Bindings Object. The field checks live in `config.ts`, and the
+ * slot is claimed here.
+ */
+
+/**
  * The `config` argument of `@googlePubSubMessage`, as the author wrote it.
  * @public
  */
@@ -30,10 +36,6 @@ export interface GooglePubSubMessageBindingConfig {
  * No field of this binding is required. `schema` is optional, but a `schema`
  * written without a `name` names no schema. That is reported as an error, and
  * the whole binding goes with it.
- *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The Google Cloud Pub/Sub message binding fields
  *
  * @example
  * ```typespec

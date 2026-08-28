@@ -64,12 +64,6 @@ function pubSubObject(
  * The object is required, and it requires an encoding and a name of its own.
  * A missing one is reported and the whole object is refused, because a schema
  * setting without a name names no schema.
- *
- * @param context - The decorator context
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The schema settings, `dropped` when the object was not an object,
- * or `incomplete` when a required field is absent
  * @internal
  */
 export function schemaSettings(
@@ -110,11 +104,6 @@ export function schemaSettings(
  *
  * A policy with no region left in it is dropped. An empty policy states no
  * restriction, which is what an absent field already says.
- *
- * @param context - The decorator context
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The storage policy, or `undefined` when it was absent or empty
  * @internal
  */
 export function messageStoragePolicy(
@@ -141,13 +130,6 @@ export function messageStoragePolicy(
  *
  * Pub/Sub puts no rule on the keys or the values, so the map passes through
  * as written. An empty map is dropped, because it states nothing.
- *
- * @param context - The decorator context
- * @param field - The field name, for the diagnostic
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The map, or `undefined` when it was absent, empty, or not an
- * object
  * @internal
  */
 export function openMap(
@@ -164,12 +146,6 @@ export function openMap(
  *
  * The object requires a name. Unlike `schemaSettings` the object itself is
  * optional, so an absent one is not reported.
- *
- * @param context - The decorator context
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The schema, `dropped` when it was absent or not an object, or
- * `incomplete` when it has no name
  * @internal
  */
 export function messageSchema(

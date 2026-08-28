@@ -6,6 +6,10 @@ import { namedValuesSchemaField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
 /**
+ * `@httpMessage`, which fills the message-level HTTP Bindings Object.
+ */
+
+/**
  * What `@httpMessage` records.
  *
  * It is the emitted object without `bindingVersion`. That field is appended
@@ -43,10 +47,6 @@ export interface HttpMessageBindingConfig {
  * AsyncAPI states that it only applies to a message named by an Operation
  * Reply Object. This emitter does not check that rule, because it spans two
  * objects of the document.
- *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The HTTP message binding fields
  *
  * @example
  * ```typespec

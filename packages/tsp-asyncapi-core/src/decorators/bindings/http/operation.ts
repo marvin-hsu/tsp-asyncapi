@@ -6,6 +6,10 @@ import { enumeratedField, namedValuesSchemaField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
 /**
+ * `@httpOperation`, which fills the operation-level HTTP Bindings Object.
+ */
+
+/**
  * What `@httpOperation` records.
  *
  * It is the emitted object without `bindingVersion`. That field is appended
@@ -50,10 +54,6 @@ export interface HttpOperationBindingConfig {
  *
  * `query` is a Schema Object. Write it as an object literal of type `object`
  * with a `properties` key. AsyncAPI states both requirements.
- *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The HTTP operation binding fields
  *
  * @example
  * ```typespec
