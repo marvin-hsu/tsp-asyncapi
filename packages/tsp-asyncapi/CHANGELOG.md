@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.2
 
 ### Patch Changes
 
@@ -18,7 +18,7 @@
   `unknown-oauth-scope`. The name still reaches the document.
 
 - Updated dependencies
-  - tsp-asyncapi-core
+  - tsp-asyncapi-core@0.4.2
 
 ## 0.7.1
 
