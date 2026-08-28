@@ -51,6 +51,8 @@ info:
 
 所有文字欄位都會去除前後空白。留白的欄位視同沒給。`version` 留白會回報 [`empty-info-version`](../diagnostics#empty-info-version)，版本後備為 `0.0.0`。
 
+`license.name` 是必填欄位。留白會回報 [`empty-license-name`](../diagnostics#empty-license-name)，整個 license 會被丟掉。`contact` 的每個欄位都留白時，整個 contact 不會輸出，而不是輸出空物件。
+
 `termsOfService`、`contact.url` 與 `license.url` 都必須是絕對 URL。AsyncAPI 對這些欄位標了 `uri` 格式。不合格的值會回報 [`invalid-url`](../diagnostics#invalid-url)，只有該欄位被丟棄。
 
 ## `@externalDocs`

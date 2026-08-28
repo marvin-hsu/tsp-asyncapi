@@ -612,6 +612,16 @@ URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，
 
 **修法：** 給 `@info` 一個版本，例如 `1.0.0`。
 
+### `empty-license-name`
+
+> @info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.
+
+`@info` 拿到的 `license` 帶了空白的 `name`。值會先去除前後空白，所以只有空白的值等同空字串。AsyncAPI 規定這個欄位必填，沒有名稱的 License Object 指不到任何授權條款。
+
+整個 license 會被丟掉，`license.url` 也一起丟掉。`@info` 的其餘部分保留。
+
+**修法：** 給授權條款一個名稱，例如 `MIT`。
+
 ### `duplicate-info-decorator`
 
 > @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.

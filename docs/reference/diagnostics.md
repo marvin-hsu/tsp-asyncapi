@@ -612,6 +612,16 @@ The `version` given to `@info` is blank. The value is trimmed first, so a value 
 
 **Fix:** give `@info` a version, such as `1.0.0`.
 
+### `empty-license-name`
+
+> @info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.
+
+The `license` given to `@info` holds a blank `name`. The value is trimmed first, so a value of spaces alone is blank. AsyncAPI requires the field, so a License Object without it names no license.
+
+The whole license is dropped, `license.url` included. The rest of `@info` is kept.
+
+**Fix:** give the license a name, such as `MIT`.
+
 ### `duplicate-info-decorator`
 
 > @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.

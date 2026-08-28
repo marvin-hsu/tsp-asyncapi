@@ -62,29 +62,47 @@ function urlField(
   return undefined;
 }
 
-/** Keeps the `contact` object, with its URL checked. */
+/**
+ * Keeps the `contact` object, with its URL checked.
+ *
+ * A contact whose every field is blank is left out altogether. An empty
+ * Contact Object names nobody, and a reader cannot tell it from a contact
+ * the author meant to leave blank.
+ */
 function contactOf(
   context: DecoratorContext,
   contact: AsyncAPIInfoState["contact"],
   target: DiagnosticTarget,
 ): AsyncAPIInfoState["contact"] {
   if (contact === undefined) return undefined;
-  return {
+  const kept = {
     ...present("name", trimmed(contact.name)),
     ...present("url", urlField(context, contact.url, "contact.url", target)),
     ...present("email", trimmed(contact.email)),
   };
+  return Object.keys(kept).length > 0 ? kept : undefined;
 }
 
-/** Keeps the `license` object, with its URL checked. */
+/**
+ * Keeps the `license` object, with its name and its URL checked.
+ *
+ * `name` is the one required field of a License Object. A blank one names no
+ * license, so it is reported and the whole object is dropped. The URL is not
+ * checked in that case, because the license it would point at is gone.
+ */
 function licenseOf(
   context: DecoratorContext,
   license: AsyncAPIInfoState["license"],
   target: DiagnosticTarget,
 ): AsyncAPIInfoState["license"] {
   if (license === undefined) return undefined;
+  const name = trimmed(license.name);
+  if (name === undefined) {
+    reportDiagnostic(context.program, { code: "empty-license-name", target });
+    return undefined;
+  }
   return {
-    name: license.name,
+    name,
     ...present("url", urlField(context, license.url, "license.url", target)),
   };
 }
@@ -94,7 +112,10 @@ function licenseOf(
  *
  * Every text field is trimmed, and a field left blank is stored as absent.
  * A blank `version` is reported, because the field is required. The version
- * then falls back to the document default.
+ * then falls back to the document default. A blank `license.name` is
+ * reported too, and the whole license is dropped, because a License Object
+ * without a name names no license. A `contact` whose every field is blank is
+ * left out rather than emitted empty.
  *
  * `termsOfService`, `contact.url` and `license.url` each carry the `uri`
  * format. A value that is not an absolute URL is reported, and that field

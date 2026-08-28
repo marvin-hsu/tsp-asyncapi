@@ -655,6 +655,13 @@ export const $lib = createTypeSpecLibrary({
           "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.",
       },
     },
+    "empty-license-name": {
+      severity: "error",
+      messages: {
+        default:
+          "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.",
+      },
+    },
     "duplicate-info-decorator": {
       severity: "error",
       messages: {

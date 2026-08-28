@@ -102,4 +102,28 @@ describe("Unit: @info field checks", () => {
     expect(diagnosticsWith(diagnostics, "duplicate-info-decorator")).toHaveLength(0);
     expect(getInfo(runner.program, Test)?.version).toBe("1.0.0");
   });
+
+  it("trims the license name", async () => {
+    const { state, diagnostics } = await compile(
+      `@info(#{ version: "1.0.0", license: #{ name: "  MIT  " } })`,
+    );
+
+    expect(diagnosticsWith(diagnostics, "empty-license-name")).toHaveLength(0);
+    expect(state).toEqual({ version: "1.0.0", license: { name: "MIT" } });
+  });
+
+  it("reports a blank license name and drops the license", async () => {
+    const { state, diagnostics } = await compile(
+      `@info(#{ version: "1.0.0", license: #{ name: "  ", url: "https://example.com/mit" } })`,
+    );
+
+    expect(findDiagnostic(diagnostics, "empty-license-name").severity).toBe("error");
+    expect(state).toEqual({ version: "1.0.0" });
+  });
+
+  it("leaves out a contact whose every field is blank", async () => {
+    const { state } = await compile(`@info(#{ version: "1.0.0", contact: #{ name: "  " } })`);
+
+    expect(state).toEqual({ version: "1.0.0" });
+  });
 });

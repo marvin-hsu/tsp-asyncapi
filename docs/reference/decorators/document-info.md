@@ -51,6 +51,8 @@ Apply `@info` once per namespace. A second application is reported as [`duplicat
 
 Every text field is trimmed. A field left blank is treated as absent. A blank `version` is reported as [`empty-info-version`](../diagnostics#empty-info-version), and the version then falls back to `0.0.0`.
 
+`license.name` is required. A blank one is reported as [`empty-license-name`](../diagnostics#empty-license-name), and the whole license is dropped. A `contact` whose every field is blank is left out rather than emitted empty.
+
 `termsOfService`, `contact.url`, and `license.url` must each hold an absolute URL. AsyncAPI marks these fields with the `uri` format. A value outside it is reported as [`invalid-url`](../diagnostics#invalid-url), and that field alone is dropped.
 
 ## `@externalDocs`
