@@ -1,3 +1,12 @@
+/**
+ * The `@order` decorator and its reader.
+ *
+ * A field carries at most one Avro order: `ascending`, `descending`, or
+ * `ignore`. This file records that mark and validates it against the three
+ * orders the Avro specification names. The walk reads the result when it
+ * renders a field. A field with no mark renders with no explicit order.
+ */
+
 import { DecoratorContext, ModelProperty, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

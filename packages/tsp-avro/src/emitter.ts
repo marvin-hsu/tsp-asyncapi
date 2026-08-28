@@ -8,9 +8,10 @@
  * and there is no index: an Avro schema stands alone, so a file is either the
  * whole schema or it is nothing.
  *
- * Every schema is built before any file is written. A record the walk refuses
- * reports a diagnostic, which is an error, and an error stops every write. So
- * a compile either writes the schemas the author asked for or it writes none.
+ * Every schema is built before any file is written. A record the walk
+ * refuses reports a diagnostic. Every diagnostic here is an error, and an
+ * error stops every write. So a compile either writes the schemas the author
+ * asked for or it writes none.
  * A partial output would be worse than none: each file that did land would
  * look complete, and a schema registry would take it.
  *

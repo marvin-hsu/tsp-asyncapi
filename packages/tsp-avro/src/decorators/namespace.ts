@@ -1,3 +1,12 @@
+/**
+ * The `@namespace` decorator and its readers.
+ *
+ * A TypeSpec namespace carries at most one Avro namespace. This file records
+ * that mark and finds the nearest ancestor that carries one. The walk reads
+ * the result when it builds a named type's full name. Refusing a type with
+ * no covering namespace is the walk's decision, not this file's.
+ */
+
 import { DecoratorContext, Model, Enum, Namespace, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

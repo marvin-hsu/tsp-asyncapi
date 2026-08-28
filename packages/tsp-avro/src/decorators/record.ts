@@ -1,3 +1,12 @@
+/**
+ * The `@record` decorator and its readers.
+ *
+ * Marking a model here is what makes the emitter write it as one `.avsc`
+ * file. This file only records the mark and lists the marked models in
+ * source order. The emitter decides the file path, and the walk decides
+ * whether the model translates.
+ */
+
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateSet } from "@typespec/compiler/utils";
 
