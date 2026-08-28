@@ -53,6 +53,8 @@ const tables = new WeakMap<Program, AvroScalarTable>();
 /**
  * The table for one program, built the first time it is asked for.
  *
+ * @param program - The compiled program
+ *
  * @internal
  */
 export function scalarTableFor(program: Program): AvroScalarTable {
@@ -71,6 +73,8 @@ export function scalarTableFor(program: Program): AvroScalarTable {
  *
  * A reference that fails to resolve is a defect in this file, not in the
  * program being compiled, so it throws instead of reporting a diagnostic.
+ *
+ * @param program - The compiled program
  */
 function createScalarTable(program: Program): AvroScalarTable {
   const table = new Map<Type, AvroPrimitiveName>();

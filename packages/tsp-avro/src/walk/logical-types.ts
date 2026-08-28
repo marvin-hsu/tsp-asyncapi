@@ -212,6 +212,8 @@ function maxPrecisionOf(size: number): number {
 /**
  * What a schema is, as the table above compares it.
  *
+ * @param schema - The schema object under construction
+ *
  * @returns The primitive name, or `fixed`, or undefined when nothing here takes an annotation
  */
 function underlyingOf(schema: AvroSchema): string | undefined {
@@ -226,6 +228,9 @@ function underlyingOf(schema: AvroSchema): string | undefined {
 
 /**
  * Names the underlying type in a refusal, so the message says what was found.
+ *
+ * @param schema - The schema object under construction
+ * @param underlying - The underlying
  */
 function describe(schema: AvroSchema, underlying: string | undefined): string {
   if (underlying !== undefined) {

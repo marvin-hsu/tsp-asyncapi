@@ -69,6 +69,8 @@ export function shippedProviders(): readonly SchemaArtifactProvider[] {
 /**
  * The preview features a registry can honor: the id of every provider in it.
  *
+ * @param providers - The registry to read
+ *
  * @internal
  */
 export function availableFeatures(
@@ -101,6 +103,10 @@ export interface CollectedSchemaArtifacts {
  * Runs each enabled provider and merges what they produced.
  *
  * `providers` is the registry to select from. A test passes its own.
+ *
+ * @param program - The compiled program
+ * @param features - The preview features the project turned on
+ * @param providers - The registry to select from. A test passes its own.
  *
  * @internal
  */
@@ -136,6 +142,9 @@ export async function collectSchemaArtifacts(
  * error does not stop that on its own, because the emitter writes the file
  * whatever the diagnostics say. So the conflict is returned to the caller
  * too, and the caller writes nothing.
+ *
+ * @param program - The program, to report against
+ * @param maps - What each enabled provider produced
  *
  * @returns The artifacts no other provider also claimed, and whether any
  * conflict was found

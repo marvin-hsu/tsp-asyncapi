@@ -17,13 +17,21 @@ import { OperationObject, OperationReplyObject, ReferenceObject } from "../types
 import type { DocumentPromotions } from "./components/survey.js";
 import { sharedSiteFields } from "./components/survey.js";
 
-/** Turns resolved message keys into references into a channel's `messages`. */
+/**
+ *  Turns resolved message keys into references into a channel's `messages`.
+ *
+ * @param nodes - The resolved nodes, in source order
+ */
 function lowerMessageRefs(nodes: readonly MessageRefNode[]): ReferenceObject[] | undefined {
   if (nodes.length === 0) return undefined;
   return nodes.map((node) => ({ $ref: channelMessageRef(node.channelKey, node.messageKey) }));
 }
 
-/** Turns one resolved reply into an Operation Reply Object. */
+/**
+ *  Turns one resolved reply into an Operation Reply Object.
+ *
+ * @param node - The resolved node being lowered
+ */
 function lowerReply(node: OperationReplyNode): OperationReplyObject {
   return {
     ...present("address", node.address ? { ...node.address } : undefined),
@@ -36,6 +44,9 @@ function lowerReply(node: OperationReplyNode): OperationReplyObject {
  * Builds one Operation Object.
  *
  * The field order follows the Operation Object table of the specification.
+ *
+ * @param node - The resolved node being lowered
+ * @param promoted - The fields already lifted into `components`
  */
 function lowerOperation(node: OperationNode, promoted: DocumentPromotions): OperationObject {
   const site = sharedSiteFields(promoted, "operationBindings", node);

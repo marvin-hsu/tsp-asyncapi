@@ -46,6 +46,8 @@ const PROVIDER_ID = "avro";
  * between emits. `load` is a parameter so a test can supply one that
  * fails, exercising a broken install without touching the shipped default.
  *
+ * @param load - How to reach the Avro library
+ *
  * @internal
  */
 export function createAvroProvider(load: AvroLoader = loadAvro): SchemaArtifactProvider {
@@ -97,6 +99,9 @@ async function loadAvro(): Promise<AvroLibrary> {
  * Renders a payload for every message model `@Avro.record` marks.
  *
  * `refused` is set when any model the document asks about went unanswered.
+ *
+ * @param program - The compiled program
+ * @param load - How to reach the Avro library
  */
 async function collectAvroArtifacts(
   program: Program,
@@ -156,6 +161,8 @@ async function collectAvroArtifacts(
  * the rest by running the Avro emitter directly. The fallback text guards
  * against a walk that breaks its promise of at least one diagnostic. It
  * keeps the reason from going missing from the middle of a sentence.
+ *
+ * @param diagnostics - What the walk collected
  */
 function firstReason(diagnostics: readonly Diagnostic[]): string {
   const first = diagnostics.length === 0 ? "" : diagnostics[0].message;
@@ -168,12 +175,18 @@ function firstReason(diagnostics: readonly Diagnostic[]): string {
  * Never reaches the document. It only tells two artifacts apart. Two
  * records can share a name but differ by namespace, so the namespace is
  * included whenever the record declares one.
+ *
+ * @param record - The record the walk built
  */
 function fullNameOf(record: AvroFullName): string {
   return record.namespace === undefined ? record.name : `${record.namespace}.${record.name}`;
 }
 
-/** The text of whatever a failed load threw. */
+/**
+ *  The text of whatever a failed load threw.
+ *
+ * @param error - What the import rejected with
+ */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

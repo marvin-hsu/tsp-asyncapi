@@ -238,6 +238,10 @@ function refuseScalarOnce(context: WalkContext, scalar: Scalar, build: () => Dia
 
 /**
  * Translates one type into a schema.
+ *
+ * @param context - The walk context
+ * @param type - The type to inspect
+ * @param target - Where a problem is reported
  */
 function typeFor(
   context: WalkContext,
@@ -286,6 +290,10 @@ function typeFor(
  * A scalar is an Avro primitive, unless `@fixed` makes it a named type of a
  * stated width. Either way `@logicalType` or `@decimal` may then say what a
  * reader takes it to mean.
+ *
+ * @param context - The walk context
+ * @param scalar - The scalar to inspect
+ * @param target - Where a problem is reported
  */
 function scalarFor(
   context: WalkContext,
@@ -401,6 +409,11 @@ function inheritedMark<T>(
  *
  * A fixed type is a named Avro type, so it takes part in the first occurrence
  * rule that every other named type does.
+ *
+ * @param context - The walk context
+ * @param declaration - The declaration
+ * @param size - The size
+ * @param target - Where a problem is reported
  */
 function fixedFor(
   context: WalkContext,
@@ -457,6 +470,11 @@ function fixedAliasesOf(
  * dropped with it. Nothing is emitted unannotated instead: the annotation is
  * what the author said the bytes mean, and dropping it writes a schema that
  * means something else.
+ *
+ * @param context - The walk context
+ * @param schema - The schema object under construction
+ * @param annotation - The annotation
+ * @param target - Where a problem is reported
  */
 function withLogicalType(
   context: WalkContext,
@@ -479,6 +497,10 @@ function withLogicalType(
  * TypeSpec spells an array as `T[]` and a map as `Record<T>`, and both are
  * models. Avro spells them as types of their own, and neither is named, so
  * neither takes part in the first occurrence rule.
+ *
+ * @param context - The walk context
+ * @param model - The model to inspect
+ * @param target - Where a problem is reported
  */
 function modelFor(
   context: WalkContext,
@@ -505,6 +527,10 @@ function modelFor(
 
 /**
  * Translates a named model into a record, or into a reference to one.
+ *
+ * @param context - The walk context
+ * @param model - The model to inspect
+ * @param target - Where a problem is reported
  */
 function namedModelFor(
   context: WalkContext,
@@ -617,6 +643,10 @@ function namedModelFor(
  * A union of one branch is written as that branch, because Avro spells a
  * union of one as the type itself. The fold happens here, not at the field
  * alone, so an array's items and a map's values are spelled the same way.
+ *
+ * @param context - The walk context
+ * @param union - The union to inspect
+ * @param target - Where a problem is reported
  */
 function unionFor(
   context: WalkContext,
@@ -654,6 +684,12 @@ function unionFor(
 
 /**
  * Adds one translated variant to a union, flattening it and refusing a repeat.
+ *
+ * @param context - The walk context
+ * @param branches - The flattened union branches
+ * @param keys - The keys
+ * @param schema - The schema object under construction
+ * @param target - Where a problem is reported
  */
 function addBranch(
   context: WalkContext,
@@ -693,6 +729,8 @@ function addBranch(
  * full name, and everything else by its type name: Avro holds one array and
  * one map in a union, whatever they carry, because a reader tells the branches
  * apart by type alone.
+ *
+ * @param schema - The schema object under construction
  */
 function branchKey(schema: AvroBranch): string {
   if (typeof schema === "string") {
@@ -733,6 +771,9 @@ function branchKey(schema: AvroBranch): string {
  * A field with no default orders nothing. Nothing has to lead there, and the
  * position of a branch is its index on the wire, so the order the author wrote
  * stands.
+ *
+ * @param context - The walk context
+ * @param property - The property to inspect
  */
 function fieldFor(context: WalkContext, property: ModelProperty): AvroField | undefined {
   if (!isAvroName(property.name)) {
@@ -827,6 +868,10 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
  * where a numeric fits no double. Neither is a default, and null is not a
  * stand-in for either: null is itself a legal Avro default.
  *
+ * @param context - The walk context
+ * @param property - The property to inspect
+ * @param written - The default the author wrote
+ *
  * @returns The value in a wrapper, so a default of null is not the refusal,
  *   or undefined when the default was refused
  */
@@ -884,6 +929,10 @@ function serializationTargetOf(property: ModelProperty): Type | ModelProperty {
 
 /**
  * Reports a default the emitter cannot write, and refuses the record.
+ *
+ * @param context - The walk context
+ * @param property - The property to inspect
+ * @param detail - The detail
  */
 function refuseDefault(context: WalkContext, property: ModelProperty, detail: string): void {
   refuse(
@@ -906,9 +955,12 @@ function refuseDefault(context: WalkContext, property: ModelProperty, detail: st
  * place to sit, and leading with any other branch would describe a default
  * the author never wrote.
  *
+ * @param context - The walk context
+ * @param property - The property to inspect
  * @param branches - The flattened branches
- * @param written - The default the author wrote, or undefined when the field
- *   is optional and defaults to null
+ * @param written - The default the author wrote, or undefined when the field is
+ * optional and defaults to null
+ *
  * @returns The branches in that order, or undefined when the default was
  *   refused
  */
@@ -972,6 +1024,9 @@ function soleBranchBesideNull(branches: AvroBranch[]): number {
  * branches are both candidates and nothing tells them apart. That is undefined
  * here, and the caller refuses it.
  *
+ * @param context - The walk context
+ * @param written - The default the author wrote
+ *
  * @returns The key, or undefined when the value names no one branch
  */
 function defaultBranchKey(context: WalkContext, written: Value): string | undefined {
@@ -995,6 +1050,9 @@ function defaultBranchKey(context: WalkContext, written: Value): string | undefi
 
 /**
  * Finds the full name a declaration took in the file being built.
+ *
+ * @param context - The walk context
+ * @param declaration - The declaration
  */
 function definedNameOf(context: WalkContext, declaration: AvroDeclaration): string | undefined {
   for (const [fullName, owner] of context.defined) {
@@ -1009,6 +1067,8 @@ function definedNameOf(context: WalkContext, declaration: AvroDeclaration): stri
  * Writes a list of branches as a schema.
  *
  * Avro spells a union of one as the type itself, not as an array of one.
+ *
+ * @param branches - The flattened union branches
  */
 function schemaOf(branches: AvroBranch[]): AvroSchema {
   return branches.length === 1 ? branches[0] : branches;
@@ -1019,6 +1079,10 @@ function schemaOf(branches: AvroBranch[]): AvroSchema {
  *
  * An Avro enum holds symbols and nothing else. A TypeSpec member that carries
  * a value of its own is refused, because that value has nowhere to go.
+ *
+ * @param context - The walk context
+ * @param target - The type this applies to
+ * @param source - The source
  */
 function enumFor(
   context: WalkContext,
@@ -1088,6 +1152,11 @@ function enumFor(
  * namespaces may carry the same Avro namespace, so this needs no template to
  * happen.
  *
+ * @param context - The walk context
+ * @param fullName - The fully qualified Avro name
+ * @param declaration - The declaration
+ * @param target - Where a problem is reported
+ *
  * @returns "first" to write the definition, "again" to write the name, or
  *   false when the name belongs to another declaration
  */
@@ -1125,6 +1194,11 @@ function defineName(
 /**
  * Builds the Avro full name of a named type, and refuses what Avro cannot
  * name.
+ *
+ * @param context - The walk context
+ * @param type - The type to inspect
+ * @param name - The name to use
+ * @param target - Where a problem is reported
  */
 function fullNameOf(
   context: WalkContext,

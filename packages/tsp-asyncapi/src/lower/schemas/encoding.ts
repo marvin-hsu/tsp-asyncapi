@@ -36,6 +36,10 @@ import { SchemaDiagnostics } from "./diagnostics.js";
  *
  * These rules match `@typespec/openapi3`'s `mergeFormatAndEncoding`, so a
  * value encoded one way is described the same way by both emitters.
+ *
+ * @param format - The format keyword, if any
+ * @param encoding - The `@encode` data, if any
+ * @param encodeAsFormat - Whether the encoding is itself a format
  */
 function mergeFormatAndEncoding(
   format: string | undefined,
@@ -74,6 +78,8 @@ function mergeFormatAndEncoding(
  * own name, so a user scalar that happens to share a built-in's name cannot
  * borrow that mapping; a user-declared scalar walks its `baseScalar` chain
  * until a built-in is found, or yields `{}` when none is.
+ *
+ * @param scalar - The scalar to inspect
  */
 function naturalScalarShape(scalar: Scalar): SchemaObject {
   if (isBuiltinScalar(scalar)) {
@@ -87,6 +93,8 @@ function naturalScalarShape(scalar: Scalar): SchemaObject {
  *
  * For a scalar declaration that is the scalar itself. For a property it is
  * the property's declared type.
+ *
+ * @param target - The type this applies to
  */
 function declaredTypeOf(target: Scalar | ModelProperty): Type {
   return target.kind === "Scalar" ? target : target.type;
@@ -102,6 +110,10 @@ function declaredTypeOf(target: Scalar | ModelProperty): Type {
  * `declared` is the scalar the encoded value was declared as, which decides
  * the format the encoding resolves to. A value declared as anything else
  * takes the encoding's own format instead.
+ *
+ * @param schema - The schema object under construction
+ * @param encodeData - The `@encode` data
+ * @param declared - The declared type
  */
 function encodeShape(
   schema: SchemaObject,
@@ -161,6 +173,8 @@ const PLAIN_ENCODE_TYPES: ReadonlySet<string> = new Set(["integer", "number", "b
  * A built-in answers with its own name. A user scalar walks its `baseScalar`
  * chain to the first built-in. A chain that reaches no built-in answers
  * `undefined`, so no encoding rule can select it.
+ *
+ * @param scalar - The scalar to inspect
  */
 function builtinBaseName(scalar: Scalar): string | undefined {
   if (isBuiltinScalar(scalar)) {
@@ -178,6 +192,9 @@ function builtinBaseName(scalar: Scalar): string | undefined {
  * A custom encoding has no rule to select a variant by, so every scalar
  * variant is treated as one it describes. This keeps a custom encoding
  * reaching the document.
+ *
+ * @param encodeData - The `@encode` data
+ * @param variant - The encoding variant
  */
 function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
   const { encoding } = encodeData;
@@ -274,6 +291,12 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  * every variant is a model, so nothing there is a scalar to encode; the
  * compiler's own `invalid-encode` already rejects an encoding on either
  * union.
+ *
+ * @param program - The compiled program
+ * @param union - The union to inspect
+ * @param schema - The schema object under construction
+ * @param encodeData - The `@encode` data
+ * @param diagnostics - The diagnostic sink for this build
  */
 function encodeUnion(
   program: Program,

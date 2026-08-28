@@ -215,6 +215,9 @@ interface Walk {
 /**
  * Builds the payload of one model, or reports why there is none.
  *
+ * @param program - The compiled program
+ * @param root - A model that carries `@Protobuf.message`
+ *
  * @internal
  */
 export function buildPayloadModel(program: Program, root: Model): ProtoPayloadModel | undefined {
@@ -269,6 +272,10 @@ export function buildPayloadModel(program: Program, root: Model): ProtoPayloadMo
  *
  * The caller answers `undefined` after calling this, so a reader sees both
  * the report and the end of the walk as separate steps.
+ *
+ * @param walk - The walk in progress
+ * @param target - The type to point the diagnostic at
+ * @param construct - What the walk reached, named for the reader
  */
 function refuse(walk: Walk, target: Type, construct: string): void {
   reportDiagnostic(walk.program, {
@@ -285,6 +292,9 @@ function refuse(walk: Walk, target: Type, construct: string): void {
  * The name is recorded before the fields are walked. A model that reaches
  * itself, directly or through another model, finds the name already there
  * and stops. That is what makes the closure finite without a visited set.
+ *
+ * @param walk - The walk in progress
+ * @param model - The model to add
  */
 function visitModel(walk: Walk, model: Model): string | undefined {
   if (model.name === "") {
@@ -338,6 +348,10 @@ interface Reservations {
  * Every entry is checked, and any entry of an unrecognized shape ends the
  * walk. Skipping it would drop a reservation, letting a later author reuse
  * a number a released message already spent.
+ *
+ * @param walk - The walk in progress
+ * @param model - The model to read the reservations of
+ * @param name - The rendered message name, which a report names
  */
 function reservationsOf(walk: Walk, model: Model, name: string): Reservations | undefined {
   const stored = protobufReservationsOf(walk.program, model);
@@ -376,13 +390,19 @@ const MAX_FIELD_NUMBER = 2 ** 29 - 1;
  *
  * proto3 numbers a field from one, so zero is no field number. A number
  * above {@link MAX_FIELD_NUMBER} has no line either.
+ *
+ * @param value - The value to judge
  */
 function isFieldNumber(value: unknown): value is number {
   if (typeof value !== "number" || !Number.isInteger(value)) return false;
   return value >= 1 && value <= MAX_FIELD_NUMBER;
 }
 
-/** Whether a value is an inclusive range of field numbers, lower one first. */
+/**
+ *  Whether a value is an inclusive range of field numbers, lower one first.
+ *
+ * @param value - The value to judge
+ */
 function isFieldRange(value: unknown): value is [number, number] {
   if (!Array.isArray(value) || value.length !== 2) return false;
   const range = value as unknown[];
@@ -398,6 +418,11 @@ function isFieldRange(value: unknown): value is [number, number] {
  * name that resolves to nothing. Packages are compared by the namespace
  * that declares them, not by name, since two namespaces can declare one
  * name and still be two packages.
+ *
+ * @param walk - The walk in progress
+ * @param type - The declaration the walk reached
+ * @param kind - What to call it in a report, `model` or `enum`
+ * @param name - The name the source gives it
  */
 function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string): boolean {
   const found = resolveProtobufPackage(walk.program, type);
@@ -417,6 +442,10 @@ function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string
  * package can still render to one name. Two sub-namespaces may each declare
  * `Foo`. Or a model and an enum may converge once the model name is
  * capitalized. Writing either pair would describe two declarations as one.
+ *
+ * @param walk - The walk in progress
+ * @param type - The declaration asking for the name
+ * @param name - The rendered name it asks for
  */
 function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
   const holder = walk.claimed.get(name);
@@ -428,7 +457,12 @@ function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
   return true;
 }
 
-/** Builds one field, or reports why the model has no payload. */
+/**
+ *  Builds one field, or reports why the model has no payload.
+ *
+ * @param walk - The walk in progress
+ * @param property - The model property to convert
+ */
 function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
   const index = protobufFieldIndexOf(walk.program, property);
   if (!isFieldNumber(index)) {
@@ -462,6 +496,11 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
  * proto3 gives a map field no label. It cannot be repeated, optional, a
  * list element, or a map value. So a map is read here, at the top of a
  * field, and refused everywhere else.
+ *
+ * @param walk - The walk in progress
+ * @param target - The type of the field, with any array already unwrapped
+ * @param property - The property, which a diagnostic points at
+ * @param repeated - Whether the field already takes the `repeated` label
  */
 function fieldTypeOf(
   walk: Walk,
@@ -490,6 +529,10 @@ function fieldTypeOf(
  * way any other field type does, so a message value joins the closure. An
  * array value is refused here rather than passed on, since proto3 gives a
  * map value no label of its own.
+ *
+ * @param walk - The walk in progress
+ * @param map - A `Protobuf.Map` instantiation
+ * @param property - The property, which a diagnostic points at
  */
 function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | undefined {
   const args = map.templateMapper?.args ?? [];
@@ -522,7 +565,13 @@ function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | un
   return `map<${keyName}, ${valueName}>`;
 }
 
-/** The type name to write for one field, adding what it reaches to the closure. */
+/**
+ *  The type name to write for one field, adding what it reaches to the closure.
+ *
+ * @param walk - The walk in progress
+ * @param type - The type of the field, with any array already unwrapped
+ * @param property - The property, which a diagnostic points at
+ */
 function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | undefined {
   if (isProtobufExternRef(walk.program, type)) {
     refuse(walk, property, `property '${property.name}' of an @Protobuf.externRef type`);
@@ -563,6 +612,9 @@ function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | u
  * A scalar outside the table is looked up again through the scalar it
  * extends, which is how a custom scalar reaches a proto3 type. A chain that
  * ends outside the table has no type to write.
+ *
+ * @param walk - The walk in progress
+ * @param scalar - The scalar to name
  */
 function scalarNameOf(walk: Walk, scalar: Scalar): string | undefined {
   let current: Scalar | undefined = scalar;
@@ -585,6 +637,9 @@ function scalarNameOf(walk: Walk, scalar: Scalar): string | undefined {
  *
  * proto3 numbers its variants and requires the first one to be zero. An
  * enum that breaks either rule is refused, matching the official emitter.
+ *
+ * @param walk - The walk in progress
+ * @param target - The enum to add
  */
 function visitEnum(walk: Walk, target: Enum): string | undefined {
   const name = target.name;
@@ -624,6 +679,9 @@ function visitEnum(walk: Walk, target: Enum): string | undefined {
  * a scalar or an enum takes the label. A repeated field never does, and
  * neither does a message field, since proto3 already tracks whether one is
  * set.
+ *
+ * @param property - The property to judge
+ * @param repeated - Whether the field already takes the `repeated` label
  */
 function takesOptionalLabel(property: ModelProperty, repeated: boolean): boolean {
   if (!property.optional || repeated) return false;
@@ -635,12 +693,18 @@ function takesOptionalLabel(property: ModelProperty, repeated: boolean): boolean
  *
  * The answer narrows the type, so a caller asking for the element needs no
  * cast to say what the check already established.
+ *
+ * @param type - The type to judge
  */
 function isArrayInstance(type: Type): type is Model {
   return type.kind === "Model" && type.name === "Array" && type.namespace?.name === "TypeSpec";
 }
 
-/** The element type of an array instantiation. */
+/**
+ *  The element type of an array instantiation.
+ *
+ * @param array - An `Array<T>` instantiation
+ */
 function elementOf(array: Model): Type | undefined {
   const argument = array.templateMapper?.args[0];
   return argument !== undefined && "kind" in argument ? argument : undefined;
@@ -652,6 +716,8 @@ function elementOf(array: Model): Type | undefined {
  * `getTypeName` shortens a name that needs no qualification, so it cannot
  * key a lookup table. This one always spells the whole path, matching how
  * the scalar table is keyed.
+ *
+ * @param scalar - The scalar to name
  */
 function qualifiedNameOf(scalar: Scalar): string {
   const parts = [scalar.name];

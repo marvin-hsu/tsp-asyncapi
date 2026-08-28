@@ -62,6 +62,9 @@ export interface InheritanceWalk {
  * presence check in agreement with the schema it actually checks.
  * `never`-typed properties are skipped and treated as not found, matching
  * how `buildObjectSchema` never emits them.
+ *
+ * @param model - The model to inspect
+ * @param name - The name to use
  */
 function findDiscriminatingProperty(model: Model, name: string): ModelProperty | undefined {
   for (let current: Model | undefined = model; current !== undefined; current = current.baseModel) {
@@ -115,6 +118,9 @@ interface EncodedNameOverrideConflict {
  * Collects every ancestor property's wire name reachable through `model`'s
  * `baseModel` chain. The first, most-derived match wins for a given wire
  * name, the same precedence `walkPropertiesInherited` gives an override.
+ *
+ * @param program - The compiled program
+ * @param baseModel - The base model in the hierarchy
  */
 function collectAncestorWireNames(program: Program, baseModel: Model): Map<string, ModelProperty> {
   const ancestorWireNames = new Map<string, ModelProperty>();
@@ -141,6 +147,11 @@ function collectAncestorWireNames(program: Program, baseModel: Model): Map<strin
  * `findEncodedNameOverrideConflict`'s doc comment). Splitting this into its
  * own function lets each case use an early return, keeping the
  * per-property branching out of the caller's own loop.
+ *
+ * @param program - The compiled program
+ * @param baseModel - The base model in the hierarchy
+ * @param prop - The property to inspect
+ * @param ancestorWireNames - The wire names already claimed by ancestors
  */
 function checkPropertyEncodedNameConflict(
   program: Program,
@@ -217,6 +228,8 @@ function findEncodedNameOverrideConflict(
  * `applyExtends` uses this function to route such a model through the same
  * flattened fallback instead (`buildFlattenedObjectSchema`), so the
  * overridden property is dropped rather than silently still required.
+ *
+ * @param model - The model to inspect
  */
 export function findNeverOverrideOfInheritedProperty(model: Model): ModelProperty | undefined {
   if (model.baseModel === undefined) {
@@ -300,6 +313,9 @@ export function resolveDiscriminator(program: Program, model: Model): Discrimina
  * reachable only through the `extends` link (see `flushPendingSubtypes`),
  * so that ancestor's sibling subtypes would otherwise be missing from the
  * document.
+ *
+ * @param walk - The walk that is building schemas
+ * @param model - The model to inspect
  */
 export function declareDiscriminatedHierarchy(walk: InheritanceWalk, model: Model): void {
   for (
@@ -372,6 +388,10 @@ export function declareDiscriminatedHierarchy(walk: InheritanceWalk, model: Mode
  * `{ type: "object", additionalProperties: ... }` object, so it merges
  * directly with `own` into one flat schema instead of a needless
  * single-level-deeper `allOf`.
+ *
+ * @param walk - The walk that is building schemas
+ * @param model - The model to inspect
+ * @param own - The schema of the model's own properties
  */
 export function applyExtends(walk: InheritanceWalk, model: Model, own: SchemaObject): SchemaObject {
   if (model.baseModel === undefined) {
@@ -437,7 +457,9 @@ export function applyExtends(walk: InheritanceWalk, model: Model, own: SchemaObj
  * array base can never have a conflicting property, since TypeSpec's own
  * `no-array-properties` rule forbids declaring properties on top of one.
  *
+ * @param walk - The walk that is building schemas
  * @param model - The model to check
+ *
  * @returns True when the caller must flatten instead of composing
  */
 export function reportInheritanceConflicts(walk: InheritanceWalk, model: Model): boolean {
@@ -471,6 +493,11 @@ export function reportInheritanceConflicts(walk: InheritanceWalk, model: Model):
  * mistake either way, so a second report would put the same text on the
  * same squiggle. The record lives in `diagnostics`, scoped to one builder
  * and one emit.
+ *
+ * @param walk - The walk that is building schemas
+ * @param model - The model to inspect
+ * @param code - The diagnostic code
+ * @param format - The format keyword, if any
  */
 function reportModelDiagnosticOnce(
   walk: InheritanceWalk,
@@ -496,6 +523,9 @@ function reportModelDiagnosticOnce(
  * and the reason reported instead of silently swallowed; the compiler
  * itself never validates this. The report is deduped per model, so both
  * callers can ask without the author seeing one mistake twice.
+ *
+ * @param walk - The walk that is building schemas
+ * @param model - The model to inspect
  */
 function discriminatingProperty(walk: InheritanceWalk, model: Model): ModelProperty | undefined {
   const resolution = resolveDiscriminator(walk.program, model);
@@ -542,6 +572,10 @@ function discriminatingProperty(walk: InheritanceWalk, model: Model): ModelPrope
  * sync by hand for no behavioral gain, and would fight the same
  * omit-duplication principle `applyExtends` already follows. Do not "fix"
  * this by re-declaring the property in `own`.
+ *
+ * @param walk - The walk that is building schemas
+ * @param model - The model to inspect
+ * @param schema - The schema object under construction
  */
 export function applyDiscriminator(
   walk: InheritanceWalk,
@@ -582,6 +616,7 @@ export function applyDiscriminator(
  * lifted field can be inherited and an `allOf` branch to the base would
  * bring it back.
  *
+ * @param walk - The walk that is building schemas
  * @param model - The model to flatten
  * @param omitted - Properties to leave out of the result
  */
