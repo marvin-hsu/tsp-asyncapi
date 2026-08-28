@@ -44,16 +44,8 @@ const guard = singleApplication(
  *
  * Three fields of the Info Object carry the `uri` format. The official
  * parser checks that format, and it rejects the whole document when a value
- * fails it. A relative reference such as `/terms` fails it.
- *
- * Only the field is dropped. The rest of `@info` names the application, and
- * none of it is at fault.
- *
- * @param context - The decorator context
- * @param value - The value the author wrote
- * @param field - The name to report, such as `license.url`
- * @param target - Where to report a problem about this field
- * @returns The trimmed URL, or `undefined` when there is none to keep
+ * fails it. A relative reference such as `/terms` fails it, so only that
+ * field is dropped; the rest of `@info` is not at fault.
  */
 function urlField(
   context: DecoratorContext,
@@ -154,11 +146,9 @@ function licenseOf(
  */
 export function $info(context: DecoratorContext, target: Namespace, info: AsyncAPIInfoState) {
   // Decorators on one declaration run bottom-up, so the application written
-  // last in the source runs first and wins. The guard records that this
-  // decorator ran, before any value is checked, so a value that fails a
-  // check still blocks a later application.
-  //
-  // Only a first claim runs the checks below. An augment `@@info` runs once
+  // last in the source runs first and wins. The guard claims before any
+  // value is checked, so a failing check still blocks a later application.
+  // Only a first claim runs the checks below: an augment `@@info` runs once
   // per declaration of its target namespace, and a reopened namespace would
   // otherwise report each field problem once per declaration.
   if (guard.claim(context, target) !== "first") return;
