@@ -2,33 +2,25 @@
  * The intermediate structure of one generated Protobuf payload, and the walk
  * that builds it.
  *
- * A payload describes one model. Its proto3 text has to carry every message
- * and enum that model reaches, because the text stands alone in the document
- * and a reader resolves no imports. So the walk collects a closure: it starts
- * at the root model, follows every field, and records each declaration it
- * reaches.
+ * A payload's proto3 text carries every message and enum its root model
+ * reaches, because the text stands alone and a reader resolves no imports.
+ * The walk builds this closure: starting at the root, it follows every
+ * field and records each declaration it reaches. A declaration enters the
+ * map before its own fields are walked. A model that reaches itself finds
+ * its name already there and stops. Nothing here needs a second pass to
+ * prune or check.
  *
- * The closure holds by construction. A declaration enters the map before its
- * fields are walked, so a model that reaches itself finds its own name and
- * stops. Nothing here needs a second pass to prune or to check.
- *
- * The root of a payload is the model the caller asks for, and this file takes
- * it as an argument. A reader of the finished text has no such argument, so
- * the official AsyncAPI Protobuf parser infers the root by reference: it
- * takes the declaration no other declaration references, and it ignores a
- * self reference while doing so. Two messages that reference each other leave
- * that parser no such declaration, and it cannot root them. Both payloads are
- * still correct proto3, and both carry both declarations. Nothing here works
- * around that limit, because working around it would mean dropping a
- * declaration the text needs.
+ * The root is the model the caller asks for. A reader of the finished text
+ * has no such argument. The official AsyncAPI Protobuf parser infers the
+ * root instead, as the declaration nothing else references. It ignores a
+ * self reference while doing so. Two messages that reference each other
+ * leave that parser no such declaration to pick. Both payloads stay correct
+ * proto3 regardless, each carrying both declarations.
  *
  * The structure below is the smallest one the printer needs. Every field it
- * does not have is a field a later release can add. Every field it has is one
- * the printer reads.
- *
- * Nothing in this file guesses. Where proto3 has no honest form for what the
- * walk reached, the walk reports `protobuf-artifact-unavailable` and ends.
- * The caller then writes no artifact for that model at all.
+ * has is one the printer reads. Where proto3 has no honest form for what the
+ * walk reached, the walk reports `protobuf-artifact-unavailable` and the
+ * caller writes no artifact for that model.
  */
 
 import {
@@ -223,9 +215,6 @@ interface Walk {
 /**
  * Builds the payload of one model, or reports why there is none.
  *
- * @param program - The compiled program
- * @param root - A model that carries `@Protobuf.message`
- * @returns The payload, or `undefined` when the walk refused something
  * @internal
  */
 export function buildPayloadModel(program: Program, root: Model): ProtoPayloadModel | undefined {
@@ -278,12 +267,8 @@ export function buildPayloadModel(program: Program, root: Model): ProtoPayloadMo
 /**
  * Reports that the walk reached something with no proto3 form.
  *
- * The caller answers `undefined` after calling this. The two steps stay
- * apart, so a reader sees both the report and the end of the walk.
- *
- * @param walk - The walk in progress
- * @param target - The type to point the diagnostic at
- * @param construct - What the walk reached, named for the reader
+ * The caller answers `undefined` after calling this, so a reader sees both
+ * the report and the end of the walk as separate steps.
  */
 function refuse(walk: Walk, target: Type, construct: string): void {
   reportDiagnostic(walk.program, {
@@ -297,14 +282,9 @@ function refuse(walk: Walk, target: Type, construct: string): void {
 /**
  * Adds one model to the closure and returns the name to refer to it by.
  *
- * The name is recorded before the fields are walked. So a model that reaches
- * itself, directly or through another model, finds the name already there and
- * stops. That is what makes the closure finite without a visited set of its
- * own.
- *
- * @param walk - The walk in progress
- * @param model - The model to add
- * @returns The message name, or `undefined` when a field was refused
+ * The name is recorded before the fields are walked. A model that reaches
+ * itself, directly or through another model, finds the name already there
+ * and stops. That is what makes the closure finite without a visited set.
  */
 function visitModel(walk: Walk, model: Model): string | undefined {
   if (model.name === "") {
@@ -353,17 +333,11 @@ interface Reservations {
 /**
  * Reads what a model reserves, or reports that the state is unreadable.
  *
- * `@Protobuf.reserve` stores a list of field numbers, inclusive ranges, and
- * field names. The list belongs to the other library, which promises nothing
- * about its shape. So every entry is checked, and an entry of any other shape
- * ends the walk. Skipping such an entry would drop a reservation, and a
- * dropped reservation lets a later author re-use a number that a released
- * message already spent.
- *
- * @param walk - The walk in progress
- * @param model - The model to read the reservations of
- * @param name - The rendered message name, which a report names
- * @returns The reservations, or `undefined` when the state is unreadable
+ * `@Protobuf.reserve` stores field numbers, ranges, and names in a list
+ * that belongs to another library, which promises nothing about its shape.
+ * Every entry is checked, and any entry of an unrecognized shape ends the
+ * walk. Skipping it would drop a reservation, letting a later author reuse
+ * a number a released message already spent.
  */
 function reservationsOf(walk: Walk, model: Model, name: string): Reservations | undefined {
   const stored = protobufReservationsOf(walk.program, model);
@@ -400,23 +374,15 @@ const MAX_FIELD_NUMBER = 2 ** 29 - 1;
 /**
  * Whether a value is a field number proto3 can write.
  *
- * proto3 numbers a field from one, so zero is no field number. It also stops
- * at a maximum, and a number above that has no line either.
- *
- * @param value - The value to judge
- * @returns Whether it is a whole number in the range proto3 numbers with
+ * proto3 numbers a field from one, so zero is no field number. A number
+ * above {@link MAX_FIELD_NUMBER} has no line either.
  */
 function isFieldNumber(value: unknown): value is number {
   if (typeof value !== "number" || !Number.isInteger(value)) return false;
   return value >= 1 && value <= MAX_FIELD_NUMBER;
 }
 
-/**
- * Whether a value is an inclusive range of field numbers.
- *
- * @param value - The value to judge
- * @returns Whether it is two field numbers, the lower one first
- */
+/** Whether a value is an inclusive range of field numbers, lower one first. */
 function isFieldRange(value: unknown): value is [number, number] {
   if (!Array.isArray(value) || value.length !== 2) return false;
   const range = value as unknown[];
@@ -427,22 +393,11 @@ function isFieldRange(value: unknown): value is [number, number] {
  * Checks that a declaration the walk reached lives in the package of the
  * root, and reports why it does not.
  *
- * A declaration of another package goes into that package's own file, and a
- * field pointing at it needs an `import` line. One payload carries no
- * imports, so this emitter refuses rather than writing a name that resolves
- * to nothing. A declaration under no package at all has no file to be
- * imported from either, and it is named apart, because the author who reads
- * the report wrote no second package.
- *
- * The two packages are compared by the namespace that declares them, not by
- * the name that namespace gives. Two namespaces may declare one name, and
- * they are still two packages.
- *
- * @param walk - The walk in progress
- * @param type - The declaration the walk reached
- * @param kind - What to call it in a report, `model` or `enum`
- * @param name - The name the source gives it
- * @returns Whether it belongs to the package of the root
+ * A declaration of another package needs an `import` line to reach. One
+ * payload carries no imports, so this emitter refuses rather than writing a
+ * name that resolves to nothing. Packages are compared by the namespace
+ * that declares them, not by name, since two namespaces can declare one
+ * name and still be two packages.
  */
 function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string): boolean {
   const found = resolveProtobufPackage(walk.program, type);
@@ -459,14 +414,9 @@ function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string
  * Takes a rendered name for one declaration, or reports that it is taken.
  *
  * proto3 gives one file one name per declaration. Two declarations of one
- * package can still render to one name: two sub namespaces may each declare
- * `Foo`, and a model and an enum may converge once the model name is
+ * package can still render to one name. Two sub-namespaces may each declare
+ * `Foo`. Or a model and an enum may converge once the model name is
  * capitalized. Writing either pair would describe two declarations as one.
- *
- * @param walk - The walk in progress
- * @param type - The declaration asking for the name
- * @param name - The rendered name it asks for
- * @returns Whether the name is now its own
  */
 function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
   const holder = walk.claimed.get(name);
@@ -478,13 +428,7 @@ function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
   return true;
 }
 
-/**
- * Builds one field, or reports why the model has no payload.
- *
- * @param walk - The walk in progress
- * @param property - The model property to convert
- * @returns The field, or `undefined` when something was refused
- */
+/** Builds one field, or reports why the model has no payload. */
 function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
   const index = protobufFieldIndexOf(walk.program, property);
   if (!isFieldNumber(index)) {
@@ -515,15 +459,9 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
 /**
  * The type to write for one field, which is the one place a map may appear.
  *
- * proto3 gives a map field no label. It is neither repeated nor optional, and
- * it cannot be the element of a list or the value of another map. So a map is
- * read here, at the top of a field, and refused everywhere else.
- *
- * @param walk - The walk in progress
- * @param target - The type of the field, with any array already unwrapped
- * @param property - The property, which a diagnostic points at
- * @param repeated - Whether the field already takes the `repeated` label
- * @returns The type to write, or `undefined` when the field was refused
+ * proto3 gives a map field no label. It cannot be repeated, optional, a
+ * list element, or a map value. So a map is read here, at the top of a
+ * field, and refused everywhere else.
  */
 function fieldTypeOf(
   walk: Walk,
@@ -547,16 +485,11 @@ function fieldTypeOf(
 /**
  * The `map<K, V>` type of one map field, adding the value to the closure.
  *
- * The key resolves through the same scalar table every other field uses, and
- * it then has to be a type proto3 accepts as a key. The value resolves the
- * same way any other field type does, so a message value joins the closure.
- * An array value is read here rather than passed on, because proto3 gives a
- * map value no label and the author should hear about the map.
- *
- * @param walk - The walk in progress
- * @param map - A `Protobuf.Map` instantiation
- * @param property - The property, which a diagnostic points at
- * @returns The map type, or `undefined` when the map was refused
+ * The key resolves through the same scalar table every other field uses,
+ * then must be a type proto3 accepts as a key. The value resolves the same
+ * way any other field type does, so a message value joins the closure. An
+ * array value is refused here rather than passed on, since proto3 gives a
+ * map value no label of its own.
  */
 function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | undefined {
   const args = map.templateMapper?.args ?? [];
@@ -589,14 +522,7 @@ function mapTypeOf(walk: Walk, map: Model, property: ModelProperty): string | un
   return `map<${keyName}, ${valueName}>`;
 }
 
-/**
- * The type name to write for one field, adding what it reaches to the closure.
- *
- * @param walk - The walk in progress
- * @param type - The type of the field, with any array already unwrapped
- * @param property - The property, which a diagnostic points at
- * @returns The name to write, or `undefined` when the type was refused
- */
+/** The type name to write for one field, adding what it reaches to the closure. */
 function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | undefined {
   if (isProtobufExternRef(walk.program, type)) {
     refuse(walk, property, `property '${property.name}' of an @Protobuf.externRef type`);
@@ -637,10 +563,6 @@ function typeNameOf(walk: Walk, type: Type, property: ModelProperty): string | u
  * A scalar outside the table is looked up again through the scalar it
  * extends, which is how a custom scalar reaches a proto3 type. A chain that
  * ends outside the table has no type to write.
- *
- * @param walk - The walk in progress
- * @param scalar - The scalar to name
- * @returns The proto3 scalar name, or `undefined` when there is none
  */
 function scalarNameOf(walk: Walk, scalar: Scalar): string | undefined {
   let current: Scalar | undefined = scalar;
@@ -661,13 +583,8 @@ function scalarNameOf(walk: Walk, scalar: Scalar): string | undefined {
 /**
  * Adds one enum to the closure and returns the name to refer to it by.
  *
- * proto3 numbers its variants, and it numbers the first one zero. An enum
- * that breaks either rule is refused, which is what the official emitter
- * reports too.
- *
- * @param walk - The walk in progress
- * @param target - The enum to add
- * @returns The enum name, or `undefined` when the enum was refused
+ * proto3 numbers its variants and requires the first one to be zero. An
+ * enum that breaks either rule is refused, matching the official emitter.
  */
 function visitEnum(walk: Walk, target: Enum): string | undefined {
   const name = target.name;
@@ -703,13 +620,10 @@ function visitEnum(walk: Walk, target: Enum): string | undefined {
 /**
  * Whether a field takes the proto3 `optional` label.
  *
- * This mirrors the rule of the pinned version. Only an optional property of a
- * scalar or an enum takes the label. A repeated field never does, and neither
- * does a message field, because proto3 already tracks whether one is set.
- *
- * @param property - The property to judge
- * @param repeated - Whether the field already takes the `repeated` label
- * @returns Whether to write `optional`
+ * This mirrors the rule of the pinned version. Only an optional property of
+ * a scalar or an enum takes the label. A repeated field never does, and
+ * neither does a message field, since proto3 already tracks whether one is
+ * set.
  */
 function takesOptionalLabel(property: ModelProperty, repeated: boolean): boolean {
   if (!property.optional || repeated) return false;
@@ -719,22 +633,14 @@ function takesOptionalLabel(property: ModelProperty, repeated: boolean): boolean
 /**
  * Whether a type is an instantiation of the built in `Array`.
  *
- * The answer narrows the type, so a caller that then asks for the element
- * needs no cast to say what the check already established.
- *
- * @param type - The type to judge
- * @returns Whether it is `TypeSpec.Array<T>`
+ * The answer narrows the type, so a caller asking for the element needs no
+ * cast to say what the check already established.
  */
 function isArrayInstance(type: Type): type is Model {
   return type.kind === "Model" && type.name === "Array" && type.namespace?.name === "TypeSpec";
 }
 
-/**
- * The element type of an array instantiation.
- *
- * @param array - An `Array<T>` instantiation
- * @returns `T`, or `undefined` when the argument is not a type
- */
+/** The element type of an array instantiation. */
 function elementOf(array: Model): Type | undefined {
   const argument = array.templateMapper?.args[0];
   return argument !== undefined && "kind" in argument ? argument : undefined;
@@ -743,12 +649,9 @@ function elementOf(array: Model): Type | undefined {
 /**
  * The name of a type with every namespace above it, joined by dots.
  *
- * `getTypeName` shortens a name that needs no qualification, so it cannot key
- * a lookup table. This one always spells the whole path, which is what the
- * scalar table is keyed by.
- *
- * @param scalar - The scalar to name
- * @returns The qualified name, such as `TypeSpec.Protobuf.sint32`
+ * `getTypeName` shortens a name that needs no qualification, so it cannot
+ * key a lookup table. This one always spells the whole path, matching how
+ * the scalar table is keyed.
  */
 function qualifiedNameOf(scalar: Scalar): string {
   const parts = [scalar.name];

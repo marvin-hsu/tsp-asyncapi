@@ -1,3 +1,14 @@
+/**
+ * The resolve half of tag metadata (`@tag` and `@asyncTag`).
+ *
+ * It reads both decorators on one type, merges them into one Tag Object per
+ * name, and reports every conflict between two `@asyncTag` applications of
+ * the same name.
+ *
+ * What it produces is the `tags` array of one object, in source order. The
+ * lower half emits that array as-is and does no merging itself.
+ */
+
 import { DiagnosticTarget, Program, Type, getTags } from "@typespec/compiler";
 import type { TagObject } from "../types/index.js";
 import { AsyncTagExternalDocs, AsyncTagState, getAsyncTags } from "../decorators/index.js";
@@ -22,20 +33,18 @@ interface MergedTags {
 /**
  * Reports every `@asyncTag` metadata conflict, once per type.
  *
- * The merge itself is silent, and this is the only place that reports. The
- * two were one function before, which meant the report came out once per
- * caller rather than once per mistake: a service namespace is read again for
- * its servers, and again when it carries a channel, so one disagreement was
- * reported two or three times depending on which other roles that namespace
- * happened to play.
+ * The merge itself is silent, and this is the only place that reports. A
+ * service namespace can be read again for its servers, and again when it
+ * carries a channel. Reporting here instead of at the merge keeps one
+ * disagreement from being reported once per caller.
  *
  * Every type that carries the decorator is walked, not only the ones that
  * reached the document. A type whose declaration was dropped still holds a
- * mistake worth reporting, and this is what keeps that report alive without
- * the dropping site having to ask for it.
+ * mistake worth reporting.
  *
- * The reports come out in source order. The state layer hands the types over
- * in the order the decorators ran, which is not the order the author reads.
+ * The reports come out in source order, restored here because the state
+ * layer hands types over in decorator-run order, not the order the author
+ * reads.
  *
  * @param program - The program to read the state from
  * @internal
@@ -63,20 +72,16 @@ export function reportTagConflicts(program: Program): void {
  *
  * Two decorators feed this array. The built-in `@tag` carries a name and
  * nothing else. This library's `@asyncTag` carries a name plus the metadata
- * an AsyncAPI Tag Object holds.
- *
- * A name that both decorators declare on one type produces one Tag Object,
- * not two. AsyncAPI names each tag once per object, and the built-in `@tag`
- * carries nothing that could disagree with the metadata. So the merge is the
- * two decorators stating one fact together, not an ambiguity to report.
+ * an AsyncAPI Tag Object holds. A name both decorators declare on one type
+ * produces one Tag Object, not two: AsyncAPI names each tag once per object,
+ * and `@tag` carries nothing that could disagree with the metadata.
  *
  * The built-in tags come first, in the order the compiler records them. Each
- * remaining `@asyncTag` name follows, in source order.
+ * remaining `@asyncTag` name follows, in source order. A name appears once,
+ * since AsyncAPI requires the names in one `tags` array to be unique.
  *
- * A name appears once. AsyncAPI requires the names in one `tags` array to be
- * unique, so a name repeated by two applications still emits one entry. Two
- * applications of the built-in `@tag` with one name therefore emit one entry
- * as well, where earlier versions of this emitter emitted two.
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 export function buildTags(program: Program, target: Type): TagObject[] | undefined {
   const merged = mergeAsyncTags(program, target).merged;
@@ -101,6 +106,9 @@ export function buildTags(program: Program, target: Type): TagObject[] | undefin
  * Builds one Tag Object.
  * A field the tag does not declare is left out. An empty string would claim
  * the tag has a blank description rather than none.
+ *
+ * @param name - The name to use
+ * @param metadata - The tag metadata the author wrote
  */
 function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObject {
   return {
@@ -122,25 +130,21 @@ function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObje
  * reports each conflict between two of them.
  *
  * The applications are put back in source order first. Order decides the
- * outcome of a merge, so it has to be the order the reader sees, not the
+ * outcome of a merge, and it has to match what the reader sees, not the
  * bottom-up order the decorators ran in.
  *
- * Two applications of one name merge field by field. A field only one of them
- * sets is taken from that one. This is the same rule the built-in `@tag`
- * merge follows: an application that says nothing about a field cannot
- * disagree about it. So `@asyncTag("orders")` next to
- * `@asyncTag("orders", #{ description: "..." })` keeps the description,
- * exactly as `@tag("orders")` next to the same `@asyncTag` would.
+ * Two applications of one name merge field by field: a field only one of
+ * them sets is taken from that one, the same rule the built-in `@tag` merge
+ * follows. A field set to two different values is a conflict. AsyncAPI
+ * emits one Tag Object per name, so one value would have to be dropped. The
+ * emitter reports the conflict instead of choosing. It keeps the first
+ * application's field so the rest of the document stays readable.
  *
- * A field that two applications set to two different values is a conflict.
- * AsyncAPI emits one Tag Object per name, so one of the two values would have
- * to be dropped. The emitter reports the conflict instead of choosing. The
- * first application in source order keeps the field, so the rest of the
- * document stays readable while the error is unresolved.
+ * A tag of the same name on a *different* type is not a conflict. AsyncAPI
+ * gives every object its own `tags` array, and those arrays are independent.
  *
- * A tag of the same name on a *different* type is not a conflict and is not
- * reported. AsyncAPI gives every object its own `tags` array, and those
- * arrays are independent.
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 function mergeAsyncTags(program: Program, target: Type): MergedTags {
   const clashes: TagClash[] = [];
@@ -185,6 +189,9 @@ function mergeAsyncTags(program: Program, target: Type): MergedTags {
  * The caller has already established that they agree, so the two `url` values
  * are the same. A `description` that only one of them carries is taken from
  * that one, the same rule the tag's own fields follow.
+ *
+ * @param kept - The values already collected, in source order
+ * @param added - The values this pass is adding
  */
 function mergeExternalDocs(
   kept: AsyncTagExternalDocs | undefined,
@@ -202,16 +209,17 @@ function mergeExternalDocs(
 
 /**
  * Names every field that two applications of one tag name disagree about.
- * The list is empty when they agree about every field.
- * A field that only one of the two sets is not a disagreement.
- * Each field is named on its own, so the caller can keep the first value of
- * that one field and still merge the rest.
- * The fields of `externalDocs` are compared one by one, the same way the tag's
- * own fields are. Two different `url` values disagree, because a Tag Object
- * holds one link. Two different descriptions of that one link disagree as
- * well. A description that only one of the two carries is not a disagreement,
- * so an application that adds a description to a url another one already
- * named merges into it.
+ * A field only one of the two sets is not a disagreement. Each disagreeing
+ * field is named on its own, so the caller can keep the first value of that
+ * field and still merge the rest.
+ *
+ * The fields of `externalDocs` are compared the same way. Two different
+ * `url` values disagree, since a Tag Object holds one link, and so do two
+ * different descriptions of that link. A description only one side carries
+ * is not a disagreement.
+ *
+ * @param kept - The values already collected, in source order
+ * @param added - The values this pass is adding
  */
 function conflictingFields(kept: AsyncTagState, added: AsyncTagState): string[] {
   const fields: string[] = [];

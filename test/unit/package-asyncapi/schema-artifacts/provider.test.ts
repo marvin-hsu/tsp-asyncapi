@@ -45,9 +45,9 @@ function artifactOf(provider: string): ExternalSchemaArtifact {
 /**
  * A provider that answers with what the test handed it.
  *
- * No external tool runs here. What this proves is the seam: an index built
- * outside the pipeline reaches the payload of a message, and two indexes that
- * disagree are reported rather than resolved by order.
+ * No external tool runs here. This proves the seam: an index built outside
+ * the pipeline still reaches a message's payload. Two indexes that disagree
+ * are reported, not resolved by declaration order.
  */
 function fakeProvider(id: SchemaArtifactProvider["id"], model: Model): SchemaArtifactProvider {
   return {

@@ -1,3 +1,8 @@
+/**
+ * This suite locks that every protocol and binding shape an end-to-end
+ * compile produces passes the official parser.
+ */
+
 import { describe, it, expect } from "vitest";
 import { emitDocument } from "../utils/test-host.js";
 import {
@@ -14,8 +19,8 @@ import { bindingFor, bindingsOf } from "../utils/document.js";
 
 describe("AsyncAPI emitted document", () => {
   it("should describe a service with a send and a receive operation end to end", async () => {
-    // This is the Phase 5 milestone case. It carries a service, a server, a
-    // channel, a message, and both actions.
+    // The minimal shape covering a service, a server, a channel, a message,
+    // and both actions.
     const doc = await emitDocument(`
       @service(#{ title: "Order Service" })
       @info(#{ version: "1.0.0" })
@@ -776,13 +781,12 @@ describe("AsyncAPI spec validation helper", () => {
   });
 
   /**
-   * The Avro payload of a message reaches the Avro schema parser.
+   * An Avro payload reaches the Avro schema parser. Without it, a payload
+   * only gets a structural check, which any object passes.
    *
-   * Without that parser an Avro payload gets a structural check alone, and any
-   * object at all passes one. The two cases below are the proof that the
-   * parser is registered and that it reads what it is given: the same document
-   * is valid with a legal record in it and invalid with a record that has no
-   * name.
+   * These two cases prove the parser is registered and reads the payload:
+   * the same document is valid with a legal record and invalid with one
+   * that has no name.
    */
   const documentWithAvroPayload = (schema: unknown): unknown => ({
     asyncapi: "3.1.0",

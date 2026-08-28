@@ -149,9 +149,8 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
 
     const reported = diagnosticsWith(diagnostics, "use-server-without-channel");
 
-    // Each application names the server the author meant, so two stray
-    // applications are two mistakes and get two reports. A single-application
-    // test cannot tell that apart from reporting the target once.
+    // Each application names its own server, so two stray applications are
+    // two mistakes and get two reports, not one report for the target.
     expect(reported).toHaveLength(2);
     expect(reported.map((d) => d.message).join(" ")).toMatch(/kafka-prod/);
     expect(reported.map((d) => d.message).join(" ")).toMatch(/kafka-dr/);
@@ -197,9 +196,8 @@ describe("Unit: Channel servers (Phase 4.6)", () => {
     expect(resolveParameters(doc, doc?.channels?.["orders.{region}.created"].parameters)).toEqual({
       region: { enum: ["eu", "us"], location: "$message.payload#/region" },
     });
-    // The checker splices augment applications in before the inline ones, so
-    // the recorded order starts with the two augments. Sorting by source
-    // position puts the inline application back in front of them.
+    // The checker splices augment applications in before the inline ones.
+    // Sorting by source position puts the inline application back in front.
     expect(doc?.channels?.["orders.{region}.created"].servers).toEqual([
       { $ref: "#/servers/inline-a" },
       { $ref: "#/servers/augment-b" },

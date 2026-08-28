@@ -9,30 +9,20 @@
  * applications reach one object, and which of two claims on one protocol
  * wins, were both settled in resolve.
  *
- * Rendering a binding is one step: write the version of the specification
- * its fields follow. Every decorator records its fields under the names the
- * document uses, and drops a field that carried nothing or failed a check.
- * So what a decorator stored is what the document carries, apart from
- * `bindingVersion`.
+ * Rendering a binding writes the version its fields follow, then keeps every
+ * field the decorator recorded. `serverBindingsObject.json` allows `$ref`
+ * only on the whole Bindings Object, never on one protocol member. So this
+ * emitter shares the whole object through `components` rather than one
+ * protocol at a time; see `lower/components/survey.ts` for how it picks
+ * which ones to share.
  *
- * ## A reference goes on the whole object, never on one protocol
- *
- * `serverBindingsObject.json` gives `properties.jms` a `properties` and an
- * `allOf` and no `oneOf Reference`. So `$ref` is legal at `server.bindings`
- * and rejected at `server.bindings.jms`. That is why the unit this emitter
- * shares through `components` is the whole Bindings Object — see
- * `lower/components/survey.ts`.
- *
- * That is why this file holds a table of versions rather than a table of
- * functions. Twelve protocols each had a renderer that spread the recorded
- * config and appended one constant. Twelve copies of one decision meant
- * twelve places to look when the decision changed.
+ * This file holds a table of versions rather than a table of per-protocol
+ * render functions, to avoid repeating the same append-one-constant logic
+ * twelve times.
  */
 
-// A type, never a state read. The lower half names the protocol the state
-// layer recorded, so a name added to the union without an entry below is a
-// compile error. `import type` keeps it a type: this half cannot call into
-// the state layer even by accident.
+// A type-only import, so this half cannot read the state layer even by
+// accident.
 import type { BindingNode } from "tsp-asyncapi-core/unstable";
 import {
   type BindingRenderer,
@@ -55,20 +45,18 @@ import { BindingObject, BindingsObject } from "../types/index.js";
 /**
  * The specification version each protocol's fields follow.
  *
- * The decorators record a protocol name rather than a version, so the state
- * layer never imports this table. That keeps raising a version to one edit
- * here, whatever number of levels the protocol covers. One entry serves all
- * four Kafka levels, because each Kafka decorator already records its fields
- * under the names the document uses.
+ * The decorators record a protocol name rather than a version, so raising a
+ * version is one edit here, whatever number of levels the protocol covers.
+ * One entry serves all four Kafka levels, because each Kafka decorator
+ * already records its fields under the names the document uses.
  *
- * `verbatim` is `null` rather than a version. The generic `@binding` holds
- * plain JSON and is emitted as written, because it never reads the shape of
- * what it was given. A version it did not ask for would be a claim about
- * fields this emitter never checked.
+ * `verbatim` maps to `null`. The generic `@binding` holds plain JSON and is
+ * emitted as written, since it never reads the shape of what it was given,
+ * so no version applies to it.
  *
- * The key type is the `BindingRenderer` union itself. So a protocol added to
- * the union and forgotten here fails the build, rather than reaching `render`
- * as an undefined value and emitting a binding with no version.
+ * The key type is `BindingRenderer`, so a protocol added to that union and
+ * forgotten here fails the build instead of reaching `render` as an
+ * undefined value.
  */
 const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
   verbatim: null,
@@ -91,14 +79,12 @@ const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
 /**
  * Renders one binding.
  *
- * The version is appended rather than prepended, so it is the last key of the
- * emitted member. That is the order the specification lists it in, and the
- * order every example in the AsyncAPI binding repository shows.
+ * The version goes last, matching the field order every AsyncAPI binding
+ * example uses.
  */
 function render(node: BindingNode): BindingObject {
-  // The config is copied rather than handed over. It belongs to the resolved
-  // model, which every stage after resolve treats as read only. The copy is
-  // also what gives the document types the mutable value they declare.
+  // Copied, not handed over: the resolved model stays read only, and the
+  // document types need a mutable object anyway.
   const version = BINDING_VERSIONS[node.renderer];
   if (version === null) return { ...node.config };
   return { ...node.config, bindingVersion: version };
@@ -107,13 +93,11 @@ function render(node: BindingNode): BindingObject {
 /**
  * The Bindings Object of each site, rendered once per document.
  *
- * Two stages need it. The survey renders every site to decide which objects
- * are shared, and each site renders again to write what it carries. The
- * second render answered a question the first one had already answered.
- *
- * The key is the node list itself, which the resolved model holds one of per
- * site. So one site is one entry, and the table lives exactly as long as the
- * build that made it.
+ * The survey renders every site to decide what to share, then each site
+ * renders again to write what it carries. Caching here means the second
+ * render only answers a question the first one already asked. The map keys
+ * on the node list itself, since the resolved model holds one per site, and
+ * it lives only as long as this build.
  *
  * @internal
  */
@@ -127,8 +111,8 @@ export class BindingsRenderer {
    * @returns What {@link lowerBindings} writes for them, rendered once
    */
   public render(nodes: readonly BindingNode[]): BindingsObject | undefined {
-    // `has` rather than a truthy check: a site with no node renders to
-    // `undefined`, and that answer is worth keeping too.
+    // `has`, not a truthy check: a site with no bindings still caches its
+    // `undefined` answer.
     if (this.#rendered.has(nodes)) return this.#rendered.get(nodes);
     const rendered = lowerBindings(nodes);
     this.#rendered.set(nodes, rendered);
@@ -147,8 +131,7 @@ export class BindingsRenderer {
  */
 export function lowerBindings(nodes: readonly BindingNode[]): BindingsObject | undefined {
   if (nodes.length === 0) return undefined;
-  // The object is built from entries. A protocol name is written by the
-  // author, so a name such as `__proto__` becomes an own key instead of a
-  // write to the prototype.
+  // Built from entries, so a protocol named `__proto__` becomes an own key
+  // instead of a write to the prototype.
   return Object.fromEntries(nodes.map((node) => [node.protocol, render(node)]));
 }

@@ -164,11 +164,11 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
       }
     `);
 
-    // The property says nothing of its own about the value, only constrains
-    // it further, so it references the scalar's component. The hoist can
-    // only carry what the `allOf` branch holds, and the branch is a
-    // reference, so the scalar's own prose stays in its component rather
-    // than being copied to the property.
+    // The property says nothing of its own about the value. It only
+    // constrains it further, so it references the scalar's component.
+    // The hoist can only carry what the `allOf` branch holds. That
+    // branch is a reference, so the scalar's own prose stays in its
+    // component instead of being copied to the property.
     const props = resolvedProperties(builder, "M");
     expect(props.u).toEqual({
       allOf: [{ type: "string", minLength: 5, description: "A username" }],
@@ -178,15 +178,15 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
 
   it("should hoist title, examples and format above the allOf when a validation keyword collides", async () => {
     // The hoist carries every annotation above the `allOf`, not only the
-    // description. `@summary` becomes `title` and `@example` becomes
+    // description. `@summary` becomes `title`, and `@example` becomes
     // `examples`. The other collision tests carry a description alone, so
-    // the title, examples and format sides of the hoist never ran. This
-    // input does not pin the order the wrapper merges `format` in. Only a
-    // base that carries its own `format` can tell that order apart, and
-    // this one does not. `@minLength` on the property collides with the
-    // scalar's own `@minLength`, which is what routes this through the
-    // hoist at all. The property's own `format` stays at the top level,
-    // above the `allOf`, rather than being left inside the branch.
+    // the title, examples, and format sides of the hoist never ran there.
+    // This case does not pin the order the wrapper merges `format` in,
+    // because the base here carries no `format` of its own. `@minLength`
+    // on the property collides with the scalar's own `@minLength`, which
+    // is what routes this case through the hoist. The property's own
+    // `format` stays at the top level, above the `allOf`, instead of
+    // being left inside the branch.
     const { builder } = await buildDocSchema(t.code`
       @minLength(5)
       scalar Key extends string;
@@ -210,10 +210,10 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
   });
 
   it("should drop the base's format from the allOf branch when this level states one of its own", async () => {
-    // Two formats on one value contradict each other; `format` is an
-    // annotation, not a keyword that intersects. Leaving the base's inside
-    // the branch while writing this level's above it says the value is a
-    // uuid and an email at once.
+    // Two formats on one value contradict each other. `format` is an
+    // annotation, not a keyword that intersects. Leaving the base's
+    // format inside the branch while writing this level's above it
+    // would say the value is a uuid and an email at once.
     const { builder } = await buildDocSchema(t.code`
       @format("uuid")
       @minLength(5)

@@ -257,15 +257,14 @@ describe("Unit: Schemas — enums and unions", () => {
   });
 
   it("reports a diagnostic error when a model and an enum of a different kind share a bare name in the same namespace (registry is not scoped per-kind)", async () => {
-    // Default namespace-qualified naming (see `declarationNameFor`) means
-    // two same-named declarations only collide when they resolve to the
-    // *same* candidate. Two distinctly-named declarations, one a model
-    // and one an enum, are forced to the same candidate here via
-    // `@friendlyName`. An explicit friendly name is taken verbatim, with
-    // no namespace qualification, so both resolve to the bare "Color".
-    // `SchemaKeyRegistry` shares one key namespace across every declared
-    // kind (model/enum/union), so this is a genuine collision, not two
-    // "separate registry slots" for the two kinds.
+    // Default namespace-qualified naming (see `declarationNameFor`) means two
+    // same-named declarations only collide when they resolve to the *same*
+    // candidate. `@friendlyName` forces that here for a model and an enum
+    // that are otherwise distinctly named. An explicit friendly name is
+    // taken verbatim, with no namespace qualification. Both resolve to the
+    // bare "Color". `SchemaKeyRegistry` shares one key namespace across
+    // every declared kind, so this is a genuine collision, not two separate
+    // registry slots for the two kinds.
     const { builder, program, M } = await compileSchemas(t.code`
       namespace NS {
         @friendlyName("Color")

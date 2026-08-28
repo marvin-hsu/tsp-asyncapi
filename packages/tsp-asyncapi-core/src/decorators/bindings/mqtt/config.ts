@@ -22,8 +22,8 @@ import { nonEmptyObject, numericField, objectField } from "../fields.js";
  * What one MQTT decorator records, for each of the three levels.
  *
  * Each one is the emitted object without `bindingVersion`. That field is
- * appended when the document is built. Deriving these rather than writing them out again keeps the
- * recorded shape and the emitted shape from drifting.
+ * appended when the document is built. Deriving these types keeps the
+ * recorded shape and the emitted shape from drifting apart.
  *
  * There is no channel level. The MQTT binding defines a channel object that
  * its own text says must carry no property.
@@ -54,7 +54,9 @@ const PAYLOAD_FORMAT_VALUES = [0, 1];
  * @param field - The field name, for the diagnostic
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function qos(
@@ -75,7 +77,9 @@ export function qos(
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function payloadFormatIndicator(
@@ -110,8 +114,10 @@ export function payloadFormatIndicator(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The Last Will object, or `undefined` when it was absent, empty, or
  * not an object
+ *
  * @internal
  */
 export function lastWill(

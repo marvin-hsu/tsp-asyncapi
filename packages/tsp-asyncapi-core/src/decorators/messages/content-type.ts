@@ -8,9 +8,9 @@ const contentTypeStateKey = Symbol.for("tsp-asyncapi.contentType");
 
 const [getContentTypeInternal, setContentType] = useStateMap<Model, string>(contentTypeStateKey);
 
-// Every model the decorator ran on, including the applications whose value was
-// rejected. A rejected value writes nothing to the map above, so the map alone
-// cannot tell a second application from a first one.
+// Tracks every model the decorator ran on, including rejected applications.
+// A rejected value writes nothing to the map above, so the map alone cannot
+// tell a second application from a first one.
 
 const contentTypeAppliedKey = Symbol.for("tsp-asyncapi.contentType.applied");
 const guard = singleApplication(contentTypeAppliedKey, "duplicate-content-type-decorator");
@@ -18,20 +18,15 @@ const guard = singleApplication(contentTypeAppliedKey, "duplicate-content-type-d
 /**
  * Sets the `contentType` of a message.
  *
- * The emitter leaves the field out when the decorator is absent. AsyncAPI
- * then applies the document's `defaultContentType`, so writing the same
- * value onto every message would only repeat what the document already
- * says.
+ * The emitter omits the field when the decorator is absent, and AsyncAPI
+ * falls back to the document's `defaultContentType`.
  *
- * Apply this decorator only once per model. A second application is an
- * error, the same rule `@message`, `@headers`, and `@correlationId` follow.
- * A message carries one content type, so only one of the applied values could
- * ever reach the output, and the user has no way to tell which one won.
+ * Apply this decorator only once per model, the same rule `@message`,
+ * `@headers`, and `@correlationId` follow. A message carries one content
+ * type, so a second application leaves no way to tell which value won.
  *
- * The media type must not be empty. A blank media type names no format, and
- * the emitter cannot write it into the document. An empty value is reported
- * and dropped, so the fallback to the document `defaultContentType` is
- * explicit rather than silent.
+ * The media type must not be empty. A blank value is reported and dropped,
+ * so the fallback to `defaultContentType` stays explicit rather than silent.
  *
  * @param context - The decorator context
  * @param target - The message model
@@ -50,13 +45,10 @@ const guard = singleApplication(contentTypeAppliedKey, "duplicate-content-type-d
  * @public
  */
 export function $contentType(context: DecoratorContext, target: Model, contentType: string) {
-  // Decorators on one declaration run bottom-up, so the application
-  // written last in the source runs first and wins. The guard records
-  // that this decorator ran, before any value is validated, so a value
-  // that fails validation still blocks a later application.
+  // Bottom-up: the last application in source runs first. The guard claims
+  // before validation, so a rejected value still blocks a later one.
   if (guard.claim(context, target) !== "first") return;
-  // The media type is trimmed first. A value of spaces alone names no
-  // format, and a length check would let it through.
+  // Trim first: a value of spaces alone names no format.
   const mediaType = trimmed(contentType);
   if (mediaType === undefined) {
     reportDiagnostic(context.program, {

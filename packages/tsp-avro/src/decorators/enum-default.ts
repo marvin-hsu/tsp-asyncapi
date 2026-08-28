@@ -1,3 +1,11 @@
+/**
+ * The `@enumDefault` decorator and its reader, `getAvroEnumDefault`.
+ *
+ * This file only checks that the named member exists on the enum and
+ * records it. It does not decide whether a given schema needs a default
+ * symbol at all. The walk makes that call when it builds the enum.
+ */
+
 import { DecoratorContext, Enum, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
@@ -15,8 +23,6 @@ const [getEnumDefaultInternal, setEnumDefaultInternal] = useStateMap<Enum, strin
  * one instead. Without it, that reader fails. So this is what lets a writer
  * add a symbol without breaking every reader that has not been updated.
  *
- * @param context - The decorator context
- * @param target - The enum the symbol belongs to
  * @param member - The name of a member this enum declares
  *
  * @example
@@ -44,8 +50,6 @@ export function $enumDefault(context: DecoratorContext, target: Enum, member: st
 /**
  * Reads the fallback symbol declared on an enum.
  *
- * @param program - The program to read the state from
- * @param target - The enum to read
  * @returns The symbol, or undefined when the enum declares none
  *
  * @public

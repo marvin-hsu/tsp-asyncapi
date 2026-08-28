@@ -47,6 +47,7 @@ export { getUseSecurityInternal, setUseSecurity };
  *
  * @param program - The program to read the state from
  * @param target - The namespace or operation the decorator was applied to
+ *
  * @returns The applications to emit, in source order
  */
 export function listUsedSecuritySchemes(
@@ -86,6 +87,7 @@ export interface StraySecurityUseRecord {
  *
  * @param program - The program to read the state from
  * @param hasServers - Answers whether a namespace declares a server
+ *
  * @returns The stray applications, in source order
  */
 export function listSecurityUsesWithoutServer(

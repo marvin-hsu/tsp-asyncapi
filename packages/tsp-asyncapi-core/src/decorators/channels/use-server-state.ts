@@ -1,3 +1,11 @@
+/**
+ * State recorded by `@useServer`, one entry per application on a channel.
+ *
+ * The emitter reads this list to resolve which servers a channel uses, and
+ * to find an application that reaches no channel at all. This module does
+ * not resolve the name against the declared servers. That lookup belongs to
+ * the emitter, and so does the order it reads the list in.
+ */
 import { Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
@@ -33,9 +41,8 @@ export { getUsedServersInternal, setUsedServers };
 /**
  * Lists every target that carries at least one `@useServer`.
  *
- * The emitter needs this to find an application that reaches no channel. A
- * `@useServer` on a target with no channel has nowhere to go, so it is
- * reported rather than dropped in silence.
+ * The emitter uses this to find a stray application: one on a target with
+ * no channel, which is reported rather than dropped in silence.
  *
  * @param program - The program to read the state from
  * @returns The state map itself, keyed by target

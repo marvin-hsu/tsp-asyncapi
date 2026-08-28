@@ -103,13 +103,15 @@ export function $useSecurity(
 }
 
 /**
- * Reads back the scheme names required by `@useSecurity`.
+ * Reads back the scheme names required by `@useSecurity`, in source order.
+ * The list is empty when the decorator was never applied.
  *
  * A name given more than once yields one entry. AsyncAPI reads the
  * `security` array as OR, so a repeated name adds nothing.
  *
  * @param program - The program to read the state from
  * @param target - The namespace or operation the decorator was applied to
+ *
  * @returns The scheme names, in source order. The list is empty when the
  * decorator was never applied.
  *

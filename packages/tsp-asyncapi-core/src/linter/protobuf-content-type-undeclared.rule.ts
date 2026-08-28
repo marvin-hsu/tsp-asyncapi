@@ -1,9 +1,9 @@
 /**
- * A message that says it carries Protobuf, and carries JSON Schema.
+ * Warns when a message declares a Protobuf content type but has no Protobuf payload.
  *
  * `@contentType` states how the bytes on the wire are encoded. It does not
- * produce them. So a message can declare a Protobuf media type while its
- * payload is still lowered from the TypeSpec model, and the document then
+ * produce them, so a message can declare a Protobuf media type while its
+ * payload is still lowered from the TypeSpec model. The document then
  * contradicts itself: a consumer told to decode Protobuf would validate
  * those bytes against a JSON Schema.
  *
@@ -15,10 +15,10 @@
  * ## Why the rule waits for the preview feature
  *
  * The remedy differs without it. A project with the feature off cannot reach
- * a generated payload at all, so the only answer there is `@rawPayload`, and
- * a project may be waiting for the feature on purpose. With the feature on,
+ * a generated payload at all, so the only answer is `@rawPayload`, and the
+ * project may be waiting for the feature on purpose. With the feature on,
  * `@Protobuf.message` is the answer the project asked for, and its absence
- * is an oversight rather than a choice.
+ * is an oversight, not a choice.
  */
 
 import { createRule, paramMessage, type Model } from "@typespec/compiler";

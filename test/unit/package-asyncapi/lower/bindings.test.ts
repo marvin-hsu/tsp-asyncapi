@@ -10,18 +10,16 @@ import { present } from "../../../utils/document.js";
 
 describe("Unit: lowering the bindings of one object", () => {
   it("omits the section when there is no node", () => {
-    // An empty Bindings Object states nothing, so the field is omitted. "No
-    // node" is a single point, so it is stated rather than drawn; the
-    // non-empty half — every key arrives, none invented — is the keying
-    // property in `test/property-based/lower-transforms.test.ts`.
+    // An empty Bindings Object states nothing, so the field is omitted.
+    // The property test in `test/property-based/lower-transforms.test.ts`
+    // covers the non-empty case: every key arrives, none are invented.
     expect(lowerBindings([])).toBeUndefined();
   });
 
   it("keeps the prototype of the built map untouched", () => {
-    // `__proto__` and `constructor` are the two member names whose plain
-    // assignment does something other than adding a member. They are the
-    // whole input space of this claim, plus one ordinary name to show the
-    // map still carries normal members.
+    // `__proto__` and `constructor` are the only member names where plain
+    // assignment does not add a member. `orders` is an ordinary name, added
+    // to confirm normal members still work.
     const names = ["__proto__", "constructor", "orders"];
 
     const bindings = lowerBindings(
@@ -35,25 +33,18 @@ describe("Unit: lowering the bindings of one object", () => {
   });
 
   /**
-   * One case per renderer, enumerated from the table itself. A property once
-   * drew renderers at random and then asserted it had seen every one — which
-   * is a `for` loop written as sampling plus a counter.
+   * One case per renderer, taken from the table itself, not sampled at
+   * random.
    *
-   * The version table itself is not asserted against. Thirteen unit files
-   * already pin their protocol's version literal, and a test comparing the
-   * output with the same table the code reads would assert that a lookup
-   * equals itself. What is stated here is the shape of the rendering:
-   * `verbatim` adds nothing, every other renderer appends exactly one field,
-   * and the recorded config reaches the document unchanged.
+   * The version table is not asserted against; other unit files already pin
+   * each protocol's version literal. This checks only the shape: `verbatim`
+   * adds nothing, every other renderer appends exactly one field, and the
+   * recorded config reaches the document unchanged.
    *
-   * The config is fixed per shape, and deliberately so. A protocol config
-   * never carries a `bindingVersion` of its own, because no protocol
-   * decorator accepts one, so giving it one here would test an input resolve
-   * cannot produce. The generic `@binding` takes plain JSON, so its config
-   * carries one on purpose: that is the case where copying through and
-   * appending give different answers. Field copying over open configs stays
-   * a property, the verbatim one in
-   * `test/property-based/lower-transforms.test.ts`.
+   * A protocol config never carries its own `bindingVersion`, since no
+   * protocol decorator accepts one, so this test gives it none. The generic
+   * `@binding` config takes plain JSON and does carry one, which is the case
+   * where copying through and appending give different answers.
    */
   it.each(RENDERERS)(
     "appends the version last for %s, or passes plain JSON through",

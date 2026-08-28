@@ -44,11 +44,9 @@ export { getActionInternal, setAction };
 
 /**
  * The single-application guard of each action decorator.
- *
- * The two decorators guard themselves the way every other decorator here
- * does. They also have to see each other, because `@send` and `@receive`
- * state opposite directions on one operation. So each guard is asked whether
- * the other one already ran.
+ * They also see each other, since `@send` and `@receive` state opposite
+ * directions on one operation. Each guard checks whether the other one
+ * already ran.
  */
 const actionGuards: Record<OperationAction, ApplicationGuard> = {
   send: singleApplication(Symbol.for("tsp-asyncapi.send.applied"), "duplicate-send-decorator"),
@@ -59,28 +57,25 @@ const actionGuards: Record<OperationAction, ApplicationGuard> = {
 };
 
 /**
- * Records that one of the two action decorators ran on an operation, and
- * tells the caller whether it may proceed.
+ * Records that one of the two action decorators ran, and tells the caller
+ * whether it may proceed.
  *
- * Two mistakes end here. The same decorator applied twice keeps one action
- * and one id, and the author cannot tell which. The two different decorators
- * applied together state that this application sends the message and that it
- * receives one, and nothing picks a winner. So the first is reported per
- * decorator, and the second drops the operation outright.
+ * Two mistakes end here: the same decorator applied twice, and both
+ * decorators applied to one operation. The first is reported once per
+ * decorator. The second drops the operation's action outright, since
+ * neither declaration can be shown to win.
  *
- * Each decorator keeps its own guard, so the guard answers "did this
- * decorator run" and not "did any action decorator run". The two mistakes
- * are two questions, and one flag cannot answer both. An operation that
- * carries `@send` twice and `@receive` once has to hear about the duplicate
- * and about the conflict.
+ * Each decorator keeps its own guard, so an operation with two `@send` and
+ * one `@receive` is told about both the duplicate and the conflict.
  *
- * The claim runs before the id is validated, because `singleApplication`
- * records the application before the caller validates anything. An
- * application whose id is rejected still blocks a later one.
+ * The claim runs before the id is validated, since `singleApplication`
+ * records the application first. An application whose id gets rejected
+ * still blocks a later one.
  *
  * @param context - The decorator context
  * @param target - The operation the decorator was applied to
  * @param action - Which of the two decorators is running
+ *
  * @returns True when the caller may record its action
  */
 export function claimAction(
@@ -92,11 +87,9 @@ export function claimAction(
   const otherApplied = other.isApplied(context.program, target);
   if (actionGuards[action].claim(context, target) !== "first") return false;
   if (otherApplied) {
-    // Both decorators reached this operation. The one that ran first may
-    // have recorded an action already, so that record is taken back out.
-    // Neither declaration can be shown to win, so the operation gets no
-    // action at all. This decorator claimed first, so a third application of
-    // either decorator is still reported as the duplicate it is.
+    // Neither declaration wins, so drop any action already recorded. This
+    // decorator claimed first, so a further application of either one is
+    // still reported as a duplicate.
     getActionStateMap(context.program).delete(target);
     reportDiagnostic(context.program, { code: "conflicting-operation-actions", target });
     return false;
@@ -107,11 +100,11 @@ export function claimAction(
 /**
  * Lists every operation the program marks with an action, in source order.
  *
- * The order is global, not per channel. The operation keys clash across the
- * whole document, so "the first one in source order keeps the key" has to
- * mean one thing for the whole program.
+ * The order is global, not per channel, since operation keys can clash
+ * across the whole document.
  *
  * @param program - The program to read the state from
+ *
  * @returns The marked operations, each with its record, in source order
  */
 export function listOperationActions(

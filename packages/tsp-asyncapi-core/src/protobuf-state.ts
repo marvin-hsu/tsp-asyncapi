@@ -2,24 +2,22 @@
  * Reading the decorator state of the official Protobuf library.
  *
  * The author writes the official decorators, and this emitter renders the
- * proto3 text itself. So it has to know which package a model belongs to and
- * which message name that model takes. The decorator state answers both
- * exactly, and this file is where the emitter reads it.
+ * proto3 text itself. It needs the package and the message name each model
+ * takes, and the decorator state holds both.
  *
- * This is the ONLY place that reads that state. Two callers need it: the
- * emitter renders payloads from it, and a linter rule asks whether a message
- * carries the official decorators at all. So it sits here, in the package
- * that owns the input language, rather than beside one of them.
+ * This is the only place that reads that state. The emitter renders payloads
+ * from it, and a linter rule asks whether a message carries the official
+ * decorators at all. It sits here, in the package that owns the input
+ * language, rather than beside either caller.
  *
  * The state belongs to `@typespec/protobuf` and is not part of its public
- * interface. The library keeps its state symbols in a module the package
- * exports map does not open. The symbols are still reachable, because the
- * compiler builds every state symbol with `Symbol.for`, from the library name
- * and the key. So the same symbol comes back from the global registry.
+ * interface. The library keeps its state symbols in a module its exports map
+ * does not open, but every symbol comes from `Symbol.for` with the library
+ * name and the key, so the global registry still returns it.
  *
- * Neither the key names nor the shape behind them is covered by any
- * compatibility promise of that library. This file is the only place that
- * reads them, so an upgrade has one place to check.
+ * Neither the key names nor their shape carries any compatibility promise
+ * from that library. This file is the only place that reads them, so an
+ * upgrade has one place to check.
  */
 
 import {
@@ -85,7 +83,9 @@ export interface UnreadableProtobufPackage {
  * of its own to describe.
  *
  * @param program - The compiled program
+ *
  * @returns Every model that carries the official decorator
+ *
  * @internal
  */
 export function listProtobufMessageModels(program: Program): Model[] {
@@ -109,10 +109,11 @@ const UNREADABLE = Symbol("unreadable package details");
  *
  * @param program - The compiled program
  * @param type - A declaration the walk reached. An enum belongs to a package
- *   the same way a model does, so both are read here.
- * @returns The nearest package, that package marked unreadable when its
- *   details have an unknown shape, or `undefined` when no namespace declares
- *   one
+ * the same way a model does, so both are read here.
+ *
+ * @returns The nearest package, that package marked unreadable when its details
+ * have an unknown shape, or `undefined` when no namespace declares one
+ *
  * @internal
  */
 export function resolveProtobufPackage(
@@ -145,7 +146,7 @@ export function resolveProtobufPackage(
  *
  * @param details - The value the decorator stored, if it stored one
  * @returns The declared name, `undefined` when the author declared none, or
- *   `UNREADABLE` when the shape is one this reader does not know
+ * `UNREADABLE` when the shape is one this reader does not know
  */
 function packageNameOf(details: unknown): string | undefined | typeof UNREADABLE {
   if (details === undefined) return undefined;
@@ -171,7 +172,9 @@ function packageNameOf(details: unknown): string | undefined | typeof UNREADABLE
  *
  * @param program - The compiled program
  * @param model - A model that carries `@Protobuf.message`
+ *
  * @returns The message name, or `undefined` for a template instantiation
+ *
  * @internal
  */
 export function protoMessageNameOf(program: Program, model: Model): string | undefined {
@@ -201,7 +204,9 @@ const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
  *
  * @param program - The compiled program
  * @param property - The property to read
+ *
  * @returns What the decorator stored, or `undefined` when it carries none
+ *
  * @internal
  */
 export function protobufFieldIndexOf(program: Program, property: ModelProperty): unknown {
@@ -214,7 +219,9 @@ export function protobufFieldIndexOf(program: Program, property: ModelProperty):
  *
  * @param program - The compiled program
  * @param type - The type to ask about
+ *
  * @returns Whether the decorator marked it
+ *
  * @internal
  */
 export function isProtobufExternRef(program: Program, type: Type): boolean {
@@ -226,7 +233,9 @@ export function isProtobufExternRef(program: Program, type: Type): boolean {
  *
  * @param program - The compiled program
  * @param type - The type to ask about
+ *
  * @returns Whether the library marked it
+ *
  * @internal
  */
 export function isProtobufMap(program: Program, type: Type): boolean {
@@ -241,7 +250,9 @@ export function isProtobufMap(program: Program, type: Type): boolean {
  *
  * @param program - The compiled program
  * @param model - The model to read
+ *
  * @returns What the decorator stored, or `undefined` when it carries none
+ *
  * @internal
  */
 export function protobufReservationsOf(program: Program, model: Model): unknown {

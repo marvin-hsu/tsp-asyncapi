@@ -105,19 +105,16 @@ describe("Unit: absolute URL — scheme", () => {
   });
 });
 
-/** The source half of a runtime expression. */
 const source = fc.constantFrom("header", "payload");
 
 /**
  * The body of the JSON Pointer half.
  *
  * The pool holds the characters RFC 6901 escaping and JSON Pointer syntax
- * both care about. A body of plain letters would never reach the edge of the
- * pattern. The empty string is the pointer that names the whole object.
- *
- * The line terminators are in the pool because the pattern once refused
- * them. Holding them out here would leave that fix guarded by hand-written
- * cases alone, and a regression would pass.
+ * both care about; plain letters would never reach the edge of the pattern.
+ * The empty string is the pointer that names the whole object. The line
+ * terminators are in the pool because the pattern once refused them, and
+ * leaving them out would guard that fix only by hand-written cases.
  */
 const pointerBody = fc.oneof(
   fc.constant(""),
@@ -133,7 +130,6 @@ const pointerBody = fc.oneof(
     .map((pieces) => pieces.join("")),
 );
 
-/** The line terminators a reference token may hold. */
 const LINE_TERMINATORS = /[\n\r\u2028\u2029]/;
 
 describe("Unit: runtime expression — the grammar accepts what it builds", () => {

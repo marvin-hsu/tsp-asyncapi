@@ -135,10 +135,9 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // The field is optional, but the author wrote it. A required field of
-      // it is absent, which is an error, so the whole binding goes. Emitting
-      // the rest would hand the author a document beside an error that says
-      // the binding was dropped.
+      // deadLetterQueue is optional, but once written it must carry its own
+      // required field. Missing that field is an error, so the whole binding
+      // drops instead of emitting a partial queue beside that error.
       const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("deadLetterQueue.name");
       expect(reported.severity).toBe("error");
@@ -207,10 +206,9 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // One member the serializer cannot represent fails the whole queue, not
-      // the one field that holds it. So the report names the queue, and the
-      // binding cannot be written without it. The code says the binding went
-      // with the field, and it is an error, because nothing was emitted.
+      // A member the serializer cannot represent fails the whole queue, not
+      // just that field, so the report names `queue`. The binding cannot be
+      // written without it, hence the error code.
       const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'queue'");
@@ -290,10 +288,9 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // Zero turns the delay off, which is a setting rather than an absent
-      // field.
-      // See the note in the AMQP suite: a binding is an untyped record in the
-      // document type, so the test names the shape it expects.
+      // Zero turns the delay off, a setting rather than an absent field. As in
+      // the AMQP suite, a binding is an untyped record in the document type,
+      // so the test names the shape it expects.
       const sqs = bindingFor(channelsOf(doc).orders.bindings, "sqs") as
         SqsChannelBindingObject | undefined;
       expect(present(sqs, "sqs binding").queue.deliveryDelay).toBe(0);
@@ -423,10 +420,9 @@ describe("Unit: the Amazon SQS binding decorators", () => {
         }
       `);
 
-      // The first entry costs the whole binding. Reading the entries after it
-      // would report fields of a binding nothing emits, and the author would
-      // read "the rest of the binding was kept" beside "the whole binding was
-      // dropped".
+      // The first entry costs the whole binding, so later entries go unchecked.
+      // Otherwise the author would read "kept the rest" beside "dropped the
+      // whole binding" for the same one.
       const reported = findDiagnostic(diagnostics, "missing-binding-field");
       expect(reported.message).toContain("queues[0].name");
       expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);

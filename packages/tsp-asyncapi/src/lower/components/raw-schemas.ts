@@ -1,42 +1,26 @@
 /**
- * Sharing a schema that is written in another language.
+ * Sharing a schema written in another language.
  *
  * `@rawPayload` and `@rawHeaders` carry a schema the author wrote, in a
  * format the author named: Avro, Protobuf, or anything else AsyncAPI lists.
- * The emitter never reads inside one. Until now it also never shared one, so
- * two messages carrying the same Protobuf definition wrote it twice.
+ * This emitter never reads inside one; this file only shares one when two
+ * messages carry the same text, instead of writing it twice. Sharing pays
+ * off most for `@typespec/protobuf`, which writes one `.proto` file per
+ * package and repeats it verbatim on every message that uses that package.
  *
- * That is about to matter more than it does today. `@typespec/protobuf`
- * writes one `.proto` per package, holding every message in that package. A
- * document whose payloads come from one package would repeat the whole
- * package text once per message.
- *
- * ## Why the second use decides
- *
- * A raw schema has no name of its own. The author wrote the text, not a
- * label for it, so nothing here can promote on a name the way a tag does.
- * The second use is the evidence that a component saves anything, and a
- * schema used once stays where it is rather than gaining a `$ref` hop.
- *
- * ## Why the two slots do not share with each other
- *
- * A payload and a headers block are surveyed separately, so a message that
- * carries the same text in both keeps both in place. Sharing them would give
- * `headers` a reference to a component named after a payload, and the saving
- * is one copy inside one message. The case this file exists for is the same
- * schema reaching several messages.
- *
- * ## Why the key is claimed rather than checked
+ * A raw schema has no name of its own, so it promotes only on a second use,
+ * the `"repeated"` policy from `./promotion.ts`. Payloads and headers survey
+ * separately, so a message carrying identical text in both keeps both
+ * copies in place; the saving this file targets is one schema reaching
+ * several messages, not one message reaching itself twice.
  *
  * The key comes from the message that carried the schema first, so it can
- * collide with a key a model wants for itself. The survey runs before any
- * model is walked, so asking who owns a key at this point always answers
- * "nobody": the check has to be a claim.
- *
- * `claimDerived` is the same call the lifted-payload path makes, and it puts
- * this key under the one collision rule every other key follows. A key
- * another claim already holds leaves the schema inline, and a model that
- * later wants the same name is reported rather than quietly replacing it.
+ * collide with a key a model wants. The survey runs before any model is
+ * walked, so it cannot check who owns a key yet; it can only claim one.
+ * `claimDerived` puts this claim under the same collision rule every other
+ * key follows: a key another claim already holds leaves the schema inline,
+ * and a model that later wants the same name is reported rather than
+ * silently overridden.
  */
 
 import type { Model } from "@typespec/compiler";
@@ -110,9 +94,9 @@ export class RawSchemaPromoter {
 
     const promoted = new RawSchemaPromoter(payloads, headers);
     for (const [key, schema] of [...payloads.entries(), ...headers.entries()]) {
-      // The claim is made on behalf of the message the key was derived from,
-      // so a later collision names that message rather than sending the
-      // author to look for a second declaration.
+      // Claimed on behalf of the message the key came from, so a later
+      // collision names that message instead of sending the author hunting
+      // for a second declaration.
       const target = owners.get(key);
       if (target === undefined || !schemas.claimDerived(key, target)) continue;
       promoted.#keys.set(key, schema);

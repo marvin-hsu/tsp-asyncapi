@@ -1,5 +1,9 @@
 /**
  * The lower half of the security schemes.
+ *
+ * It turns resolved scheme nodes into the `components.securitySchemes` map.
+ * It reads no decorator state and reports no diagnostic. Which schemes
+ * survive, and their shape, were both settled in resolve.
  */
 
 import type { SecuritySchemeNode } from "tsp-asyncapi-core/unstable";

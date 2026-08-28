@@ -2,6 +2,14 @@ import { Type, Model, Enum, Scalar, Union, Program, compilerAssert } from "@type
 import { reportDiagnostic, declarationNameFor, fallbackDeclarationName } from "tsp-asyncapi-core";
 
 /**
+ * Assigns and owns every `components.schemas` key for one emit.
+ *
+ * A name collision is a hard error, `duplicate-schema-key`. The registry
+ * never renames a colliding type to make it fit, matching
+ * `@typespec/openapi`'s own `duplicate-type-name` diagnostic.
+ */
+
+/**
  * Why a key belongs to no type the author wrote.
  *
  * A collision on such a key names the message it was derived from, and the
@@ -21,13 +29,6 @@ interface DerivedKey {
   readonly cause: DerivedKeyCause;
 }
 
-/**
- * Key-collision policy for `components.schemas`. A name collision reports
- * a hard diagnostic error (`duplicate-schema-key`). This registry does not
- * rename on collision. This matches `@typespec/openapi`'s own
- * `duplicate-type-name` diagnostic. This policy replaces an earlier
- * auto-qualify/numeric-suffix ladder.
- */
 export class SchemaKeyRegistry {
   private readonly schemaKeys = new Map<Type, string>();
   private readonly claimedBy = new Map<string, Type>();
@@ -47,11 +48,8 @@ export class SchemaKeyRegistry {
 
   /**
    * Returns the compact name `type` would be keyed by, without registering
-   * anything.
-   * Returns `undefined` when `type` is unspeakable: a template instantiation
-   * with an argument that has no fixed identity of its own. The caller then
-   * inlines the type, or keys it under `fallbackDeclarationName` when inlining
-   * cannot express it.
+   * anything. Returns `undefined` when `type` is unspeakable: a template
+   * instantiation with an argument that has no fixed identity of its own.
    */
   public nameFor(type: Model | Enum | Scalar | Union): string | undefined {
     if (this.names.has(type)) {
@@ -63,26 +61,21 @@ export class SchemaKeyRegistry {
   }
 
   /**
-   * Returns the key `type` would claim, without registering anything and
-   * without reporting a collision.
-   * This is `nameFor`'s compact name when there is one, and the long fallback
-   * name otherwise. So it is exactly the name `keyFor` settles on.
-   * A caller uses it to compare two types by the component they would share,
-   * before deciding whether their collision on some other key is real.
+   * Returns the key `type` would claim, without registering it or
+   * reporting a collision: `nameFor`'s compact name, or the long fallback
+   * name, exactly as `keyFor` settles on. Lets a caller compare two types
+   * by the component they would share before deciding a collision is real.
    */
   public candidateFor(type: Model | Union): string {
     return this.nameFor(type) ?? fallbackDeclarationName(this.program, type);
   }
 
   /**
-   * Returns the `components.schemas` key for `type`. Registers the key on
+   * Returns the `components.schemas` key for `type`, registering it on
    * first use. Reports `duplicate-schema-key` if a different type already
-   * claimed this name. See the `schemaKeys`/`claimedBy` fields above for the
-   * collision policy.
-   * An unspeakable `type`, one with no compact name (see `nameFor`), falls
-   * back to `fallbackDeclarationName`. A caller reaches that path only when
-   * it cannot inline the type, so the long fallback key never displaces a
-   * compact one.
+   * claimed this name. An unspeakable `type` (see `nameFor`) falls back to
+   * `fallbackDeclarationName`, reached only when the caller cannot inline
+   * the type, so the long fallback key never displaces a compact one.
    */
   public keyFor(type: Model | Enum | Scalar | Union): string {
     const cached = this.schemaKeys.get(type);
@@ -114,18 +107,16 @@ export class SchemaKeyRegistry {
   /**
    * Claims a key that no type owns, on behalf of `target`.
    *
-   * A message that lifts `@header` fields needs a payload schema that its
-   * own model does not describe, so that schema is registered under a key
-   * derived from the model's. No type owns the derived key, and the author
-   * may still have declared a model whose own name lands on it. Routing the
-   * claim through here puts the derived key under the same collision rule
-   * as every other one, so the clash is reported instead of one schema
-   * quietly replacing the other.
+   * A message that lifts `@header` fields needs a payload schema its own
+   * model does not describe, registered under a key derived from the
+   * model's. The author may still have declared an unrelated model whose
+   * own name lands on that key, so routing the claim through here puts it
+   * under the same collision rule as every other key, instead of one
+   * schema quietly replacing the other.
    *
-   * A key `target` already owns is claimed again without a report. This
-   * mirrors `keyFor`, where a type asking twice for its own key is not a
-   * collision. So a second caller for the same message gets the same answer
-   * instead of a diagnostic about a clash with itself.
+   * A key `target` already owns is claimed again without a report,
+   * mirroring `keyFor`: a second caller for the same message gets the same
+   * answer instead of a diagnostic about a clash with itself.
    *
    * @param key - The derived key
    * @param target - The message model the key is derived from
@@ -149,10 +140,10 @@ export class SchemaKeyRegistry {
   /**
    * Reports one key collision, naming the cause the user can act on.
    *
-   * A key that `claimDerived` produced belongs to no type the author wrote.
-   * A generic "duplicate schema name" would send the author looking for a
-   * second declaration that does not exist. So such a collision names the
-   * message the key was derived from, and says why that message needed one.
+   * A key `claimDerived` produced belongs to no type the author wrote, so a
+   * generic "duplicate schema name" would send the author looking for a
+   * declaration that does not exist. Such a collision instead names the
+   * message the key was derived from.
    */
   private reportCollision(key: string, target: Type): void {
     const derived = this.derivedFrom.get(key);
@@ -172,10 +163,9 @@ export class SchemaKeyRegistry {
   }
 
   /**
-   * Returns the type that currently owns `key`, or `undefined` when no type
-   * claimed it.
-   * A caller uses this to tell whether a key it built for another Components
-   * Object section, such as `components.messages`, already names a different
+   * Returns the type that currently owns `key`, or `undefined`. Lets a
+   * caller check whether a key built for another Components Object
+   * section, such as `components.messages`, already names a different
    * type's schema.
    */
   public ownerOf(key: string): Type | undefined {
@@ -183,10 +173,9 @@ export class SchemaKeyRegistry {
   }
 
   /**
-   * Releases the key claimed by `type`, if any.
-   * Call this when building that type's schema body fails partway through.
-   * This keeps a failed build from leaving a reserved key with no matching
-   * schema. Otherwise, a `$ref` would point at nothing.
+   * Releases the key claimed by `type`, if any. Call this when building
+   * that type's schema body fails partway through, so a failed build does
+   * not leave a `$ref` pointing at a reserved key with no matching schema.
    */
   public release(type: Type): void {
     const key = this.schemaKeys.get(type);

@@ -316,20 +316,15 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     });
     expect(propertiesOf(schema).note).toEqual({ type: "string" });
 
-    // Actually run the assembled components through a real draft-07
-    // validator. A `toEqual` shape assertion alone cannot catch a
-    // regression that produces a shape-correct but schema-invalid
-    // document (e.g. `enum: []`/`anyOf: []`).
+    // Run the assembled components through a real draft-07 validator. A
+    // `toEqual` shape assertion alone cannot catch a regression that
+    // produces a shape-correct but schema-invalid document, such as
+    // `enum: []`.
     // `addFormats` teaches the validator the `format` keywords the emitter
-    // writes. Draft-07 leaves `format` as an annotation, so a bare Ajv does
-    // not implement `int32` or `double` and says so on stderr once per
-    // schema. Those four lines per run looked like failures on a green build,
-    // which is how a log stops being read.
-    //
-    // Registering them is the better answer than silencing the logger,
-    // because it makes the validator enforce what the assertions above only
-    // name: `format: "int32"` now rejects a value outside 32 bits, not just
-    // a non-integer.
+    // writes. Draft-07 leaves `format` as an annotation, so a bare Ajv logs
+    // a warning and does not enforce `int32` or `double`. Registering the
+    // formats makes the validator enforce them: `format: "int32"` rejects a
+    // value outside 32 bits, not just a non-integer value.
     const ajv = addFormats(new Ajv({ strict: false }));
     for (const [key, componentSchema] of Object.entries(components)) {
       ajv.addSchema(componentSchema, `#/components/schemas/${key}`);
@@ -364,11 +359,8 @@ describe("Unit: Schemas — models, collections, and literals", () => {
       }),
     ).toBe(false);
 
-    // Exceeds `int32` on the integer branch of `contact`, and is not a
-    // string, so neither branch of the `anyOf` accepts it. This is the
-    // assertion that the registered formats are doing work: without
-    // `addFormats` a bare draft-07 validator ignores `format` and calls
-    // this document valid.
+    // Exceeds `int32` on the integer branch of `contact` and is not a
+    // string, so neither branch of the `anyOf` accepts it.
     expect(
       validate({
         id: "abc",

@@ -232,10 +232,8 @@ describe("Unit: the @kafkaChannel decorator", () => {
       }
     `);
 
-    // The diagnostic says the field was dropped and the rest of the binding
-    // was kept, so that has to be true. One bad value is no reason to take
-    // away keys the author wrote correctly, including a vendor key this
-    // emitter has never heard of.
+    // One bad value drops only that field. Keys the author wrote correctly,
+    // including a vendor key this emitter has never heard of, stay.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/invalid-binding-field");
     expect(bindingsOf(doc?.channels?.["orders.created"]?.bindings).kafka).toEqual({
       topic: "orders",
@@ -412,11 +410,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("records one augment decorator once, however often the namespace reopens", async () => {
-    // An augment decorator runs again for every declaration of its target.
-    // Two blocks of one namespace therefore run one `@@kafkaChannel` twice.
-    // Those runs are one application, not a repeated one. Recording both
-    // would report a protocol claimed twice that the author never wrote.
-    // `emitDocument` fails on any diagnostic, so it asserts that too.
+    // An augment decorator runs again for every declaration of its target, so
+    // two blocks of one namespace run one `@@kafkaChannel` twice. That is one
+    // application, not a repeated one, and must not report a collision.
     const doc = await emitDocument(`
       ${SERVICE}
 
@@ -436,10 +432,9 @@ describe("Unit: the @kafkaChannel decorator", () => {
   });
 
   it("keeps a server binding and a channel binding apart on one namespace", async () => {
-    // One namespace can be both the service namespace and a channel. The two
-    // Kafka bindings then sit on one target and both name the protocol
-    // `kafka`. They are two members of two different objects, so neither is
-    // a repeated protocol and neither reaches the other object.
+    // One namespace can be both the service namespace and a channel. Both
+    // Kafka bindings then sit on the same target but land on different
+    // objects, so neither is a repeated protocol.
     const doc = await emitDocument(`
       @service(#{ title: "Orders" })
       @server("prod", #{ host: "kafka.example.com:9092", protocol: "kafka" })

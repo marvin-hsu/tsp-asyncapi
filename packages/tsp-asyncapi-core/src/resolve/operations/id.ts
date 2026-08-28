@@ -45,6 +45,8 @@ export function operationId(operation: Operation, record: OperationActionState):
  *
  * The copy carries no other link back. `sourceOperation` stays `undefined`,
  * because the compiler sets that field for `is` alone.
+ *
+ * @param operation - The operation to inspect
  */
 function inheritingInterface(operation: Operation): Interface | undefined {
   const owner = operation.interface;

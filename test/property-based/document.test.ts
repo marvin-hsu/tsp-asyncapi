@@ -40,13 +40,11 @@ const plainName = fc
 /**
  * A declaration name that reaches the key sanitizer.
  *
- * A plain identifier lies entirely inside the Components Object charset, so
- * `sanitizeDeclarationName` returns it unchanged on its first line. A
- * generator of plain identifiers alone therefore never runs the escaping
- * code, and a charset claim over its output would hold no matter what that
- * code did. The backticked forms carry `/`, `~`, and a space, which the
- * sanitizer must encode. The `Sep`-spelling forms are the payload text that
- * collides with the sanitizer's own escape marker.
+ * A plain identifier lies inside the Components Object charset already, so
+ * `sanitizeDeclarationName` returns it unchanged. A generator drawing plain
+ * names alone would never run the escaping code. The backticked forms carry
+ * `/`, `~`, and a space, which the sanitizer must encode. The `Sep`-spelling
+ * forms collide with the sanitizer's own escape marker.
  */
 const trickyName = fc.oneof(
   plainName,
@@ -65,25 +63,16 @@ describe("Integration: emitted document properties", () => {
    * `components.schemas` key lies inside the Components Object charset, and
    * every `$ref` in the document resolves to a node.
    *
-   * Reachability. The run is instrumented for documents emitted, programs
-   * refused, documents holding at least one key the sanitizer rewrote, keys
-   * rewritten, and `$ref` strings collected and resolved. A refused program
-   * is retried by `fc.pre`, so the emitted and refused counts do not add up
-   * to `numRuns`.
-   *
-   * The rewritten-key counter is what makes the charset claim mean anything.
-   * An earlier version of this property drew plain identifiers only, and
-   * rewrote no key at all: the charset assertion passed without ever running
-   * the escaping code.
+   * Reachability: the run counts documents emitted, programs refused, and
+   * keys the sanitizer rewrote. `fc.pre` retries a refused program, so the
+   * emitted and refused counts do not add up to `numRuns`. Without the
+   * rewritten-key counter the charset claim could pass on plain identifiers
+   * alone, never running the escaping code.
    *
    * No collected `$ref` carries an RFC 6901 escape, because the sanitizer
-   * encodes `/` and `~` out of the key before a `$ref` is ever built. The
-   * unescaping in `resolveRef` is therefore untested by this property. It
-   * stays there so a future key that does keep those characters resolves.
-   *
-   * Both rewrite counters are asserted below, the per-document one and the
-   * per-key one. So both recorded numbers stay honest if the generator or
-   * the sanitizer moves.
+   * removes `/` and `~` from a key before building a `$ref`. The unescaping
+   * in `resolveRef` stays untested here, in case a future key keeps those
+   * characters.
    */
   it("emits keys inside the charset, and every $ref resolves", async () => {
     let rewrittenKeys = 0;
@@ -144,34 +133,20 @@ describe("Integration: emitted document properties", () => {
   /**
    * Distinct declarations must stay distinct in the output.
    *
-   * The key sanitizer can map two different names onto one key, and
-   * `` `/` `` against `Sep47` was measured doing exactly that. The registry
-   * reports `duplicate-schema-key` at error severity when it happens, so
-   * this property treats a reported error as an acceptable answer and only
-   * refuses silence.
+   * The key sanitizer can map two different names onto one key. The registry
+   * then reports `duplicate-schema-key` at error severity, so this property
+   * accepts a reported error as a valid answer and only refuses silence.
    *
-   * Reporting is not the same as refusing. The emitter still returns a
-   * document, and that document holds one entry under the shared key with
-   * one of the two bodies, so the other declaration is described by the
-   * wrong shape. A real `tsp compile` stops on the error and writes no
-   * file, which is what keeps that document away from readers.
+   * Reporting is not refusing: the emitter still returns a document, with one
+   * entry under the shared key describing only one of the two declarations. A
+   * real `tsp compile` stops on the error and writes nothing, which is what
+   * keeps that document away from a reader. So this property holds the
+   * registry to that job: losing the report would turn a build failure into a
+   * wrong document.
    *
-   * So this property cannot fail from the sanitizer defect while the
-   * registry keeps reporting. It is here to hold the registry to that job:
-   * losing the report would turn a build failure into a wrong document. The
-   * names include the shapes the sanitizer treats specially, since a
-   * generic identifier never reaches them.
-   *
-   * Reachability. Two counters split the runs: those that reported
-   * `duplicate-schema-key`, and those that reached the length assertion.
-   *
-   * `checked` counts the runs that reach the length assertion. `duplicates`
-   * counts the runs that took the early return. Both are asserted after the
-   * search. Without `checked` the property has a vacuous mode. A generator
-   * that drifted until every draw collided would take the early return every
-   * time, the assertion would never run, and the test would still be green.
-   * Without `duplicates` the sanitizer collision the property watches for
-   * could stop being drawn at all, unnoticed.
+   * Reachability: `checked` counts runs that reach the length assertion,
+   * `duplicates` counts runs that took the early return on a reported error.
+   * Both are asserted, so neither path can go quietly unreached.
    */
   it("never merges two declarations into one component without saying so", async () => {
     let checked = 0;
@@ -180,12 +155,10 @@ describe("Integration: emitted document properties", () => {
     await fc.assert(
       fc.asyncProperty(
         fc.uniqueArray(trickyName, { minLength: 2, maxLength: 4 }),
-        // Two declarations that resolve to one key are still possible, and
-        // no longer through the marker: the sanitizer keeps those apart now.
-        // A shared `@friendlyName` is the remaining way, so the generator
-        // makes one sometimes. Without it the reported branch below is never
-        // entered and its counter assertion fails, which is the counter
-        // doing its job.
+        // Two declarations can still resolve to one key, no longer through
+        // the marker since the sanitizer now keeps those apart. A shared
+        // `@friendlyName` is the remaining way, so the generator makes one
+        // sometimes, or the reported branch below is never reached.
         fc.boolean(),
         async (names, collide) => {
           const models = names

@@ -148,8 +148,8 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // `default` is typed as a string in a Parameter Object, so a numeric
-    // default is left out along with the rest of the declaration.
+    // `default` is typed as a string in a Parameter Object, so the whole
+    // declaration is left out, not just the numeric default.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
       orderId: {},
@@ -252,7 +252,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // The union is still a string type, so it is not reported. It no longer
-    // names a limited set, so no `enum` describes it.
+    // names a limited set, so it emits no `enum`.
     expect(diagnostics.map((d) => d.code)).not.toContain("tsp-asyncapi/non-string-channel-param");
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {},
@@ -278,9 +278,8 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
-    // One non-string variant makes the whole union a non-string type. The
-    // union is rejected whole, rather than emitted as an `enum` that names
-    // the string variants alone.
+    // One non-string variant makes the whole union non-string. It is
+    // rejected whole, not emitted as an `enum` of its string variants.
     expect(reported).toHaveLength(1);
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {},
@@ -310,20 +309,16 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // A member names one string, so it names a set of one. The whole-enum
-    // form already worked. The member form fell through to the default arm
-    // and was reported as a non-string parameter.
+    // A member names one string, so it names a set of one, same as the
+    // whole-enum form.
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: { enum: ["eu"] },
     });
   });
 
   it("rejects a parameter typed as a numeric enum member", async () => {
-    // A member whose value is a number names no string, so it is not a
-    // string type. `stringValuesOf` returns `undefined` for it, and the
-    // parameter is reported like any other non-string type. This is the
-    // same rule the whole-enum form follows. The existing member test uses
-    // a string-valued member, which takes the other side of the check.
+    // A member whose value is a number names no string, so `stringValuesOf`
+    // returns `undefined` and it is reported like any other non-string type.
     const [, diagnostics] = await runner.compileAndDiagnose(`
       @service(#{ title: "Orders" })
       namespace Test;
@@ -401,9 +396,8 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The built-in check is by namespace, not by name. A scalar the author
-    // declared and happened to call `string` is not the built-in one, and it
-    // carries no promise of being a string at all.
+    // The built-in check is by namespace, not by name. An author's own
+    // scalar named `string` is not the built-in one.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {},
@@ -433,8 +427,7 @@ describe("Unit: Channel parameters: value types (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // A model is neither a string, a scalar, an enum nor a union, so it
-    // reaches the last arm of the value reader. Nothing else in this suite
-    // gets there.
+    // reaches the last arm of the value reader.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {},

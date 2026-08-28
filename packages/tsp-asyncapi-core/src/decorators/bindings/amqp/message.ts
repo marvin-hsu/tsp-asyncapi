@@ -1,3 +1,11 @@
+/**
+ * The `@amqpMessage` decorator: the AMQP message binding.
+ *
+ * It lands in `components.messages.<key>.bindings.amqp`. Field checks live
+ * in the sibling `config.ts`. `state.ts` claims the slot once the fields
+ * are checked.
+ */
+
 import { DecoratorContext, Model } from "@typespec/compiler";
 import { AMQP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";

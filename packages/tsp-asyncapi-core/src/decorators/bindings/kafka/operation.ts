@@ -1,3 +1,5 @@
+/** The Kafka operation binding: consumer group and client id schemas. */
+
 import { DecoratorContext, Operation } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";

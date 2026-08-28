@@ -73,8 +73,7 @@ export interface DocumentPromotions {
  * A promoter for a fragment that carries the name the author gave it.
  *
  * One use is enough, because the key is the author's own word rather than
- * the site that happened to meet it first. This is the rule
- * `plan/09-advanced.md` settled and `SchemaBuilder` has run since Phase 2.
+ * the site that happened to meet it first.
  */
 function byName<T extends { readonly name: string }>(): Promoter<T> {
   return new Promoter<T>({ when: "named", key: (value) => keyFromSite(value.name) });
@@ -99,9 +98,7 @@ function anonymous<T>(): Promoter<T> {
 /**
  * Walks every site of the document and closes each survey.
  *
- * @param service - The semantic model
  * @param schemas - The builder, asked whether a schema key is already claimed
- * @returns The promotions, ready to be read
  * @internal
  */
 export function surveyDocument(
@@ -199,17 +196,11 @@ export function surveyDocument(
  * What one site writes for a fragment: a reference when it is shared, and a
  * copy of the fragment when it is not.
  *
- * The copy is what every site did before promotion existed, and it stays.
  * Only the shared branch hands out the object `components` holds, and it is
- * the same object every site of that fragment points at, which is the whole
- * point of sharing it.
+ * the same object every site of that fragment points at.
  *
- * @param promoter - The closed survey for this kind of fragment
- * @param section - The `components` section the reference points into
- * @param value - The fragment this site carries
  * @param site - The site's own name, needed only for a fragment whose name
  * lives outside it, such as a Parameter Object
- * @returns The reference or the copy
  * @internal
  */
 export function shared<T>(
@@ -225,10 +216,7 @@ export function shared<T>(
 /**
  * {@link shared}, for a field the site may not carry at all.
  *
- * @param promoter - The closed survey for this kind of fragment
- * @param section - The `components` section the reference points into
- * @param value - The fragment this site carries, if any
- * @returns The reference, the copy, or `undefined` when the site has nothing
+ * @returns `undefined` when the site carries no value
  * @internal
  */
 export function sharedOptional<T>(
@@ -246,10 +234,7 @@ export function sharedOptional<T>(
  * carry one tag in common and differ in the rest, and the specification puts
  * the reference at the entry.
  *
- * @param promoter - The closed survey for this kind of fragment
- * @param section - The `components` section the references point into
- * @param values - The fragments this site carries
- * @returns The list, or `undefined` when the site carries none
+ * @returns `undefined` when the site carries no fragment
  * @internal
  */
 export function sharedEach<T>(
@@ -270,19 +255,14 @@ export type BindingsSection =
  * `bindings`.
  *
  * A server, a channel, an operation and a message each carry all three, and
- * each answered the same three questions in its own words. What differs
- * between them is only which `components` section the bindings go to, which
- * is the one argument this takes.
+ * only the bindings section differs between them, which is the one argument
+ * this takes.
  *
  * The fields come back separately rather than as a piece of the object to
  * spread. Each site writes them in the order its own specification table
  * lists, and those orders differ.
  *
- * @param promoted - The closed surveys
  * @param section - The bindings section of this kind of site
- * @param node - The resolved site
- * @returns What this site writes for each of the three, `undefined` where it
- * carries nothing
  * @internal
  */
 export function sharedSiteFields(

@@ -71,18 +71,16 @@ export type AvroFieldOrder = "ascending" | "descending" | "ignore";
 export interface AvroField {
   /** The field name. */
   readonly name: string;
-  /** The type of the field. */
+  /** The field's schema. */
   readonly type: AvroSchema;
-  /** The documentation of the field. */
+  /** The field's documentation. */
   readonly doc?: string;
   /**
-   * The default of the field.
-   *
    * Avro allows null as a default, and undefined here means the field has
    * none. So the two are apart: `null` is written, `undefined` disappears.
    */
   readonly default?: AvroDefault;
-  /** The names a reader also knows the field by. */
+  /** Other names a reader may know this field by. */
   readonly aliases?: readonly string[];
   /** How a reader sorts records by this field. */
   readonly order?: AvroFieldOrder;
@@ -96,15 +94,15 @@ export interface AvroField {
 export interface AvroRecord {
   /** The Avro type keyword. */
   readonly type: "record";
-  /** The unqualified name of the record. */
+  /** The record's unqualified name. */
   readonly name: string;
   /** The namespace that qualifies the name. */
   readonly namespace?: string;
-  /** The documentation of the record. */
+  /** The record's documentation. */
   readonly doc?: string;
-  /** The full names a reader also knows the record by. */
+  /** Other full names a reader may know this record by. */
   readonly aliases?: readonly string[];
-  /** The fields, in declaration order. */
+  /** In declaration order. */
   readonly fields: readonly AvroField[];
 }
 
@@ -116,15 +114,15 @@ export interface AvroRecord {
 export interface AvroEnum {
   /** The Avro type keyword. */
   readonly type: "enum";
-  /** The unqualified name of the enum. */
+  /** The enum's unqualified name. */
   readonly name: string;
   /** The namespace that qualifies the name. */
   readonly namespace?: string;
-  /** The documentation of the enum. */
+  /** The enum's documentation. */
   readonly doc?: string;
-  /** The full names a reader also knows the enum by. */
+  /** Other full names a reader may know this enum by. */
   readonly aliases?: readonly string[];
-  /** The symbols, in declaration order. */
+  /** In declaration order. */
   readonly symbols: readonly string[];
   /** The symbol a reader falls back to when it meets one it does not hold. */
   readonly default?: string;
@@ -138,13 +136,13 @@ export interface AvroEnum {
 export interface AvroFixed {
   /** The Avro type keyword. */
   readonly type: "fixed";
-  /** The unqualified name of the type. */
+  /** The type's unqualified name. */
   readonly name: string;
   /** The namespace that qualifies the name. */
   readonly namespace?: string;
-  /** The full names a reader also knows the type by. */
+  /** Other full names a reader may know this type by. */
   readonly aliases?: readonly string[];
-  /** How many bytes the type holds. */
+  /** Width, in bytes. */
   readonly size: number;
   /** The meaning a reader takes from those bytes. */
   readonly logicalType?: string;
@@ -189,7 +187,7 @@ export interface AvroLogical {
 export interface AvroArray {
   /** The Avro type keyword. */
   readonly type: "array";
-  /** The type of every item. */
+  /** The schema every item holds. */
   readonly items: AvroSchema;
 }
 
@@ -201,7 +199,7 @@ export interface AvroArray {
 export interface AvroMap {
   /** The Avro type keyword. */
   readonly type: "map";
-  /** The type of every value. */
+  /** The schema every value holds. */
   readonly values: AvroSchema;
 }
 
@@ -241,9 +239,6 @@ export type AvroSchema = AvroBranch | AvroUnion;
  * Avro gives a union no keyword. It is a JSON array, and that array is the
  * only member of {@link AvroSchema} spelled as one.
  *
- * @param schema - Any schema
- * @returns True when the schema is a union
- *
  * @public
  */
 export function isAvroUnion(schema: AvroSchema): schema is AvroUnion {
@@ -267,9 +262,6 @@ const AVRO_KEYWORDS: ReadonlySet<string> = new Set(["record", "enum", "fixed", "
  *
  * A fixed type carries an annotation too, and it is not this: it is a named
  * type first, and the annotation is one more member of it.
- *
- * @param schema - Any schema that is not a union
- * @returns True when the schema is a primitive with a logical type on it
  *
  * @public
  */

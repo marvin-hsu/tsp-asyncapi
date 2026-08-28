@@ -1,3 +1,12 @@
+/**
+ * State recorded by `@asyncTag`, and the readers other modules use.
+ *
+ * Each application adds one Tag Object, with its name and metadata, in the
+ * order the applications ran. Merging with a matching `@tag` application, and
+ * reporting a name clash between two tags on one target, belongs to the
+ * emitter: only it knows source order and can pick a winner.
+ */
+
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { useStateMap } from "@typespec/compiler/utils";
@@ -59,23 +68,16 @@ const [getAsyncTagsInternal, setAsyncTags, getAsyncTagStateMap] = useStateMap<
  * Adds one tag, with its metadata, to the emitted object.
  *
  * This decorator exists because the built-in `@tag` cannot express an
- * AsyncAPI Tag Object. The built-in decorator takes a name and nothing else,
- * and its target does not include `Model`. AsyncAPI puts a full Tag Object on
- * each item, and a message is a model. So a message can only be tagged
- * through this decorator.
+ * AsyncAPI Tag Object: it takes only a name, and its target excludes
+ * `Model`, so a message (which is a model) cannot use it. It is named
+ * `asyncTag` and not `tag` because the built-in `@tag` lives in the global
+ * `TypeSpec` namespace. A second `tag` in this namespace would make a plain
+ * `@tag(...)` ambiguous for anyone who writes `using AsyncAPI;`.
  *
- * It is named `asyncTag` and not `tag`. The built-in `@tag` lives in the
- * global `TypeSpec` namespace, which is always in scope. A second `tag` in
- * this namespace would make a plain `@tag(...)` ambiguous for anyone who
- * writes `using AsyncAPI;`, and every existing `@tag` would have to be
- * rewritten as `@TypeSpec.tag(...)`.
- *
- * This decorator is repeatable. Each application adds one tag rather than
- * replacing a prior one. The emitted `tags` array follows source order.
- *
- * The built-in `@tag` keeps working wherever it already works. The two merge
- * into one Tag Object when they name the same tag on one target, and the
- * metadata given here wins.
+ * This decorator is repeatable. Each application adds one tag, and the
+ * emitted `tags` array follows source order. The built-in `@tag` keeps
+ * working wherever it already works; the two merge into one Tag Object when
+ * they name the same tag on one target, and the metadata given here wins.
  *
  * The name must not be empty. AsyncAPI requires a Tag Object to carry a
  * `name`, and a blank one names nothing a consumer can match. An empty name
@@ -131,7 +133,11 @@ export function $asyncTag(
   setAsyncTags(context.program, target, tags);
 }
 
-/** Records one `externalDocs` value, without an empty description. */
+/**
+ *  Records one `externalDocs` value, without an empty description.
+ *
+ * @param externalDocs - The external docs object the author wrote
+ */
 function toExternalDocs(externalDocs: AsyncTagExternalDocs): AsyncTagExternalDocs {
   return {
     url: externalDocs.url,

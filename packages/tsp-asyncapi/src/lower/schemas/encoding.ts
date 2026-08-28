@@ -26,18 +26,16 @@ import { SchemaDiagnostics } from "./diagnostics.js";
  *
  * `format` is the declared type's own format, before any encoding. Resolving
  * against that, rather than against a format an earlier encoding already
- * produced, is what lets an encoding be overridden: a scalar encoded as
- * `unixTimestamp` and then re-encoded as `rfc7231` at the use site still
- * describes a date, so it has to resolve to `http-date` and not to the bare
- * encoding name.
+ * produced, lets an encoding be overridden: a scalar encoded as
+ * `unixTimestamp` and then re-encoded as `rfc7231` still describes a date,
+ * so it resolves to `http-date`, not to the bare encoding name.
  *
- * Date-time and duration each have a named JSON Schema format per encoding,
- * so they need their own rules. Everything else falls through to the encode
- * target's format, then the encoding name, then the declared format.
+ * Date-time and duration each have a named JSON Schema format per encoding.
+ * Everything else falls through to the encode target's format, then the
+ * encoding name, then the declared format.
  *
- * These rules match `@typespec/openapi3`'s `mergeFormatAndEncoding`. Both
- * emitters write JSON Schema, so a value encoded one way has to be described
- * the same way by both.
+ * These rules match `@typespec/openapi3`'s `mergeFormatAndEncoding`, so a
+ * value encoded one way is described the same way by both emitters.
  */
 function mergeFormatAndEncoding(
   format: string | undefined,
@@ -71,13 +69,11 @@ function mergeFormatAndEncoding(
 /**
  * Returns a scalar's shape before any `@encode` is taken into account.
  *
- * This is the same walk `buildScalarSchemaShapeWithDocs` performs, minus the
+ * This is the same walk `buildScalarShapeWithDocs` performs, minus the
  * documentation and the validation keywords. A built-in is looked up by its
- * own name and never falls through to its base, so a user scalar that happens
- * to share a built-in's name cannot borrow that mapping. A user-declared
- * scalar walks its `baseScalar` chain until a built-in is found.
- * A chain that bottoms out in no built-in yields `{}`, the unconstrained
- * shape an unmapped scalar produces everywhere else.
+ * own name, so a user scalar that happens to share a built-in's name cannot
+ * borrow that mapping; a user-declared scalar walks its `baseScalar` chain
+ * until a built-in is found, or yields `{}` when none is.
  */
 function naturalScalarShape(scalar: Scalar): SchemaObject {
   if (isBuiltinScalar(scalar)) {
@@ -101,12 +97,11 @@ function declaredTypeOf(target: Scalar | ModelProperty): Type {
  *
  * The encode target's `type` replaces the declared type's: a `utcDateTime`
  * encoded as `unixTimestamp` into an `int32` is an integer on the wire, not a
- * string. `items` goes with it whenever the new type is not an array, because
- * it described an element shape that no longer travels.
+ * string. `items` goes with it whenever the new type is not an array.
  *
  * `declared` is the scalar the encoded value was declared as, which decides
- * the format the encoding resolves to. A value declared as anything else has
- * no natural format to resolve against, so it takes the encoding's own.
+ * the format the encoding resolves to. A value declared as anything else
+ * takes the encoding's own format instead.
  */
 function encodeShape(
   schema: SchemaObject,
@@ -134,18 +129,17 @@ function encodeShape(
  *
  * Every row but `ISO8601` repeats a rule `validateEncodeData` in
  * `@typespec/compiler` applies. The compiler accepts an encoding on a union
- * when any one variant is a legal target. It does not record which variant
- * that was. So the rule is repeated here to ask each variant the same
+ * when any one variant is a legal target, without recording which variant
+ * that was, so the rule is repeated here to ask each variant the same
  * question.
  *
  * The compiler validates no target for `ISO8601`, so that row is this
- * emitter's own rule. `ISO8601` is one of the three `DurationKnownEncoding`
- * values, and it names how a duration travels. A variant that is not a
- * duration is not the one it describes.
+ * emitter's own rule: it names how a duration travels, and a variant that
+ * is not a duration is not the one it describes.
  *
  * An encoding this table does not name is a custom one. The compiler
- * constrains neither its target nor its encode type, so there is no rule
- * here to select a variant by.
+ * constrains neither its target nor its encode type, so every variant is
+ * treated as one it describes.
  */
 const ENCODING_TARGETS: Record<string, readonly string[]> = {
   rfc3339: ["utcDateTime", "offsetDateTime"],
@@ -182,9 +176,8 @@ function builtinBaseName(scalar: Scalar): string | undefined {
  * boolean to text, so those are the shapes it describes.
  *
  * A custom encoding has no rule to select a variant by, so every scalar
- * variant is treated as one it describes. That is what this function did for
- * every encoding before, and it keeps a custom encoding reaching the
- * document.
+ * variant is treated as one it describes. This keeps a custom encoding
+ * reaching the document.
  */
 function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
   const { encoding } = encodeData;
@@ -203,20 +196,20 @@ function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
  * Returns the union variants an encoding on `prop` writes over.
  *
  * A named scalar variant this names has to be built in place rather than
- * referenced. The component a reference points at describes the un-encoded
- * scalar, and encoding it here would leave that component with nothing
+ * referenced: the component a reference points at describes the un-encoded
+ * scalar, so encoding it here would leave that component with nothing
  * pointing at it. The caller that builds the union asks this first, so the
  * reference is never made. See `encodeUnion` for what is then written.
  *
  * The answer is empty for a property with no `@encode`, and for one whose
  * declared type is not a union.
  *
- * An `@encode` that describes no variant at all is reported. The encoding
- * then reaches the document nowhere, and the schema says the value travels
- * as its declared type does. `@encode("ISO8601") d: utcDateTime | null` is
- * that case: ISO 8601 names how a duration travels, and neither variant is
- * a duration. The compiler validates no target for `ISO8601`, so nothing
- * else tells the author the encoding was dropped.
+ * An `@encode` that describes no variant at all is reported, since the
+ * encoding then reaches the document nowhere and the schema says the value
+ * travels as its declared type does. `@encode("ISO8601") d: utcDateTime |
+ * null` is that case: neither variant is a duration, and the compiler
+ * validates no target for `ISO8601`, so nothing else tells the author the
+ * encoding was dropped.
  *
  * @param program - The program the property belongs to
  * @param prop - The property whose `@encode` and declared type are read
@@ -259,38 +252,28 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  * A nullable value is a union, and `@encode` on one describes a single
  * variant. `utcDateTime | null` encoded as a `unixTimestamp` arrives as
  * either an integer or a null, never as an integer that is also a string.
- * Writing the encoded `type` onto the union itself says all three at once,
- * and no value satisfies that.
+ * Writing the encoded `type` onto the union itself would say all three at
+ * once, which no value satisfies. So each branch is encoded on its own, and
+ * only a branch whose variant is a scalar the encoding describes is
+ * touched; see `encodingDescribes` for that rule. A `null` variant, a model
+ * variant, or a scalar variant the encoding says nothing about is left as
+ * it was.
  *
- * So each branch is encoded on its own, and only a branch whose variant is a
- * scalar is touched. A `null` variant, or a model variant, carries no encoded
- * value and is left as it was.
- *
- * A scalar variant the encoding says nothing about is left as it was too.
- * The compiler accepts `@encode("unixTimestamp", int32)` on
- * `utcDateTime | string` because one variant is a moment in time. The
- * `string` variant is not one. Describing it as an integer as well would
- * make every legal string payload fail its own schema. See
- * `encodingDescribes` for the rule that selects a variant.
- *
- * A branch that is a reference is replaced rather than wrapped. The component
- * it points at describes the un-encoded scalar, and `allOf` would then ask
- * for a string and an integer at once. The replacement is built from the
+ * A branch that is a reference is replaced rather than wrapped, since the
+ * component it points at describes the un-encoded scalar and `allOf` would
+ * then ask for both shapes at once. The replacement is built from the
  * variant's own shape, so the scalar's `@doc`, its `@summary`, and its
- * validation keywords survive the dropped reference.
- *
- * A caller that asks `encodedUnionVariants` first builds such a variant in
- * place, so no branch reaching here is a reference. The replacement stays as
- * the answer for a caller that does not ask.
+ * validation keywords survive the dropped reference. A caller that asks
+ * `encodedUnionVariants` first builds such a variant in place, so no branch
+ * reaching here is a reference; the replacement is the fallback for a
+ * caller that does not ask.
  *
  * A schema whose branches do not line up with the union's variants is
- * returned untouched. A string-literal union is that case. It collapses to
- * one `enum`, which is a single branch for every variant.
- *
- * A `@discriminated` union does have one branch per variant, so the loop
- * runs over it. Every variant of one is a model, and no branch is then a
- * scalar to encode. The compiler's own `invalid-encode` already rejects an
- * encoding on either union.
+ * returned untouched, as a string-literal union's single `enum` branch
+ * does. A `@discriminated` union does have one branch per variant, but
+ * every variant is a model, so nothing there is a scalar to encode; the
+ * compiler's own `invalid-encode` already rejects an encoding on either
+ * union.
  */
 function encodeUnion(
   program: Program,
@@ -323,10 +306,8 @@ function encodeUnion(
  * Applies `target`'s own `@encode`, if it has one, to an already-built schema.
  *
  * A scalar-typed target is encoded in place. A union-typed one is encoded
- * variant by variant; see `encodeUnion`.
- *
- * A target with no `@encode` is returned untouched, so callers can apply this
- * unconditionally.
+ * variant by variant; see `encodeUnion`. A target with no `@encode` is
+ * returned untouched, so callers can apply this unconditionally.
  *
  * @param program - The program the target belongs to
  * @param target - The scalar declaration or property whose `@encode` is read

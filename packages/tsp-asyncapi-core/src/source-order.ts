@@ -49,6 +49,8 @@ export function sourcePositionOf(target: DiagnosticTarget): SourcePosition {
  * the first time it is reached. So the index of a path in that map is a
  * stable, execution-order-consistent file ranking. A path the map does not
  * hold ranks before every other file, which keeps the sort total.
+ *
+ * @param program - The program to read the state from
  */
 function fileRanking(program: Program): (path: string) => number {
   const order = new Map<string, number>();
@@ -91,15 +93,12 @@ export function bySourcePosition(
  * `recorded`, one node per entry. The caller supplies it, because how an
  * entry maps back to its application differs per decorator.
  *
- * The recorded list is in the order the applications *ran*, which is not the
- * order they appear in source.
  * Inline decorators execute bottom-up: the last-listed one executes first.
  * Augment decorators are spliced in *before* the inline ones by the checker
- * (see `checkDecorators` in `@typespec/compiler`'s `checker.js`).
- * So a blanket reverse would be correct for inline-only applications, but it
- * inverts the relative order of augment applications instead. Sorting by
- * each application's source position recovers true source order. This works
- * for inline decorators, augment decorators, and any mix of the two.
+ * (see `checkDecorators` in `@typespec/compiler`'s `checker.js`). A blanket
+ * reverse would work for inline-only applications, but it inverts augment
+ * applications instead. Sorting by source position recovers true source
+ * order for any mix of the two.
  *
  * The sort key is the source position, and `bySourcePosition` above defines
  * how two of them compare.
@@ -108,6 +107,10 @@ export function bySourcePosition(
  * list do not pair up. That should not happen, because every application has
  * a source node. Falling back keeps the best-effort order rather than
  * throwing out of the emitter.
+ *
+ * @param program - The program to read the state from
+ * @param nodes - The source nodes to sort
+ * @param recorded - The recorded positions, keyed the same way as `nodes`
  *
  * @internal
  */

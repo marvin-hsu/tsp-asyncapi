@@ -10,9 +10,7 @@
  * for, and nothing in the file would say so.
  *
  * A broken install cannot be arranged from a TypeSpec source, so a failing
- * loader is stated here. The loader only fails. The code that reads the
- * failure and reports it is the provider's, and that is what these cases
- * measure.
+ * loader is stated here instead.
  */
 
 import { describe, expect, it } from "vitest";

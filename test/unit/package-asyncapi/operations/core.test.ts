@@ -274,18 +274,10 @@ describe("Unit: Operations (Phase 5.1)", () => {
   });
 
   it("gives the clashing key to the action written first, across two interfaces", async () => {
-    // The winner of an id clash is decided by source order, and by nothing
-    // else. This fixture separates source order from the two orders that
-    // could stand in for it by accident.
-    //
-    // The state map is filled in the order the decorators ran, and augment
-    // decorators run per augmented declaration, so `alpha` is recorded first.
-    // Alphabetically `alpha` also wins. Source order puts `zebra` first,
-    // because its augment statement is written above the other one.
-    //
-    // The position compared is the one of the decorator, not the one of the
-    // operation. `A.alpha` is declared above `B.zebra`, so reading the
-    // position from the operation would hand the key to `alpha` as well.
+    // Source order of the decorator application decides the winner of an id
+    // clash. The `@@send` for `zebra` is written above the one for `alpha`,
+    // so `zebra` wins even though `alpha` sorts first alphabetically and
+    // `A.alpha` is declared above `B.zebra` in the source.
     const diagnostics = await runner.diagnose(`
       @service(#{ title: "Orders" })
       namespace Test;

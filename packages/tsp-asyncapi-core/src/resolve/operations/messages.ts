@@ -45,7 +45,7 @@ export function resolveMessageRefs(
     const messageKey = channel.messageKeys.get(model);
     if (messageKey === undefined) continue;
     // Only the two keys are carried. Writing the pointer they address is a
-    // document detail, so the lower stage does it.
+    // document detail, so the lower half does it.
     refs.push({ channelKey: channel.id, messageKey });
   }
 

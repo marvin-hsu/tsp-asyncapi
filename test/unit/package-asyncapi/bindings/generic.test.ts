@@ -107,9 +107,8 @@ describe("Unit: the generic @binding decorator", () => {
     `);
 
     // One decorator on the namespace reaches every server it declares, so
-    // both carry the same Bindings Object and it is written once. A Bindings
-    // Object has no name of its own, so the component is named after the
-    // declaration that carries it — here the service namespace.
+    // both carry the same Bindings Object, written once. The component is
+    // named after the declaration that carries it, here the namespace.
     expect(doc.components?.serverBindings).toStrictEqual({
       Test: {
         kafka: { schemaRegistryUrl: "https://registry.example.com" },
@@ -144,9 +143,8 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("trims a padded protocol name before it becomes a member name", async () => {
-    // The name is checked after it is trimmed, so it has to be recorded after
-    // it is trimmed too. Recording the raw name would write a member keyed
-    // with the spaces the author typed around it.
+    // The name is recorded trimmed, not raw, so the member key carries no
+    // spaces the author typed around it.
     const doc = await emitDocument(`
       ${KAFKA_SERVICE}
 
@@ -189,10 +187,10 @@ describe("Unit: the generic @binding decorator", () => {
     expect(targetText(reported)).toBe(`"  "`);
     // The diagnostic is an error, so the emitter never writes a document.
     expect(doc).toBeNull();
-    // The message says the binding was dropped, so nothing may be recorded.
     // The document is not written here, so the state is the only place that
-    // can say so. A recorded entry keyed with a blank protocol name would
-    // reach the document the day this code becomes a warning.
+    // can confirm nothing was recorded for the blank protocol name.
+    // A recorded entry here would reach the document if this diagnostic
+    // ever becomes a warning.
     expect(listAllBindings(program)).toEqual([]);
   });
 
@@ -367,10 +365,8 @@ describe("Unit: the generic @binding decorator", () => {
   });
 
   it("serializes an unflattened scalar that sits inside a list", async () => {
-    // A list of numbers passes through whether or not its elements are
-    // converted. Only a value the compiler did not flatten shows that the
-    // conversion reaches inside the list. Without it the compiler's own
-    // value object would be written into the document.
+    // Only an unflattened value shows that the conversion reaches inside a
+    // list. A plain number would pass through either way.
     const doc = await emitDocument(`
       ${KAFKA_SERVICE}
 

@@ -29,8 +29,8 @@ export { $lib } from "./lib.js";
  * of `src/index.ts`, means the published API is a decision rather than a side
  * effect of which file happens to export what.
  *
- * Each key is the name `lib/main.tsp` declares, and the two have to agree.
- * The name of the function behind a key is internal, and it does not.
+ * Each key is the name `lib/main.tsp` declares, and the two must match. The
+ * function bound to a key can have any name of its own.
  *
  * @internal
  */

@@ -6,8 +6,7 @@ const serverStateKey = Symbol.for("tsp-asyncapi.server");
 
 /**
  * One value that a `{var}` template of `host` or `pathname` stands for.
- * It is part of the state `getServers` returns, so it is part of the
- * public surface.
+ * It is part of the state `getServers` returns.
  * @public
  */
 export interface AsyncAPIServerVariableState {
@@ -22,9 +21,8 @@ export interface AsyncAPIServerVariableState {
 }
 
 /**
- * State interface representing one server declared by `@server`.
- * It is the element type `getServers` returns, so it is part of the public
- * surface.
+ * One server declared by `@server`. It is the element type `getServers`
+ * returns.
  * @public
  */
 export interface AsyncAPIServerState {
@@ -43,7 +41,7 @@ export interface AsyncAPIServerState {
 
 /**
  * One `@server` application, with the source position it was written at.
- * The position orders the servers and picks the winner of a name clash.
+ * The position orders the servers and settles a name clash.
  */
 export interface ServerRecord extends SourcePosition {
   server: AsyncAPIServerState;
@@ -58,12 +56,12 @@ const [getServersInternal, setServers, getServerStateMap] = useStateMap<Namespac
 export { getServersInternal, setServers };
 
 /**
-/**
  * True when a namespace carries at least one server that survived its own
  * checks.
  *
  * @param program - The program to read the state from
  * @param namespace - The namespace to look at
+ *
  * @returns Whether `@server` recorded anything for that namespace
  */
 export function namespaceHasServers(program: Program, namespace: Namespace): boolean {
@@ -84,15 +82,16 @@ export interface StrayServerRecord {
 }
 
 /**
- * Lists the servers that sit outside the service namespace.
+ * Lists the servers that sit outside the service namespace, in source order.
  *
  * The emitter reads servers from the service namespace only. Any other
  * server is dropped, so the caller reports it instead of dropping it in
- * silence.
+ * silence. When `service` is `undefined`, every server is outside it.
  *
  * @param program - The program to read the state from
  * @param service - The service namespace, or `undefined` when the program
  * declares no service. Every server is then outside the service.
+ *
  * @returns The stray servers, in source order.
  */
 export function listServersOutsideService(

@@ -23,9 +23,8 @@ export interface ReplyAddressState {
 
 /**
  * One `@replyChannel` application.
- * The diagnostic target is kept, because the check that the reply channel
- * exists runs while the document is built. The message has to point at the
- * argument the author wrote, not at the operation.
+ * The target is kept so the existence check, which runs while the document
+ * is built, can point at the argument the author wrote, not the operation.
  */
 interface ReplyChannelRecord {
   /** The interface or namespace whose channel answers this operation. */
@@ -36,9 +35,8 @@ interface ReplyChannelRecord {
 
 /**
  * One `@replyAddress` application.
- * The diagnostic target is kept for the same reason. AsyncAPI only allows a
- * reply address on a channel whose address is `null`, and that check needs
- * the built channel set.
+ * AsyncAPI allows a reply address only on a channel with a `null` address.
+ * The target is kept because that check needs the built channel set.
  * @internal
  */
 export interface ReplyAddressRecord {
@@ -61,19 +59,18 @@ const [getReplyAddressInternal, setReplyAddress, getReplyAddressStateMap] = useS
 export { getReplyAddressInternal, getReplyChannelInternal, setReplyAddress, setReplyChannel };
 
 /**
- * Lists every operation that names one target as its reply channel.
+ * Lists every operation whose reply travels over `channel`.
  *
- * A channel carries the messages that travel over it. A reply named by
- * `@replyChannel` travels over the named channel, and the operation that
- * declares it sits on another one. So the named channel has to look outside
- * the operations it owns to find that message. This is the lookup that finds
- * them.
+ * A reply named by `@replyChannel` travels over another channel than the one
+ * its operation declares. So that channel has to look outside its own
+ * operations to find these replies.
  *
- * The order is the order the applications ran, which is not source order. The
- * caller sorts, because the caller knows what it ranks.
+ * The result order is application order, not source order. Sort it if the
+ * caller needs a specific order.
  *
  * @param program - The program to read the state from
  * @param channel - The interface or namespace the reply channel sits on
+ *
  * @returns The operations that name that target, unordered
  */
 export function listOperationsReplyingOver(program: Program, channel: ChannelTarget): Operation[] {
@@ -86,8 +83,7 @@ export function listOperationsReplyingOver(program: Program, channel: ChannelTar
 
 /**
  * One reply declaration that reached no emitted operation.
- * A reply sits on an operation, so a reply on an operation with no action
- * reaches no part of the document.
+ * A reply on an operation with no action reaches no part of the document.
  */
 export interface StrayReplyRecord {
   /** The operation that carries the reply decorator. */
@@ -100,10 +96,11 @@ export interface StrayReplyRecord {
  * Lists every reply declaration the program holds.
  *
  * Both decorators are listed, because either one on its own emits a reply.
- * The caller keeps the ones whose operation carries no action, and reports
+ * The caller keeps the ones whose operation carries no action and reports
  * each of them.
  *
  * @param program - The program to read the state from
+ *
  * @returns One entry per application of either reply decorator
  */
 export function listReplyDeclarations(program: Program): StrayReplyRecord[] {

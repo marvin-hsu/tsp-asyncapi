@@ -8,7 +8,7 @@
  * The compiler validates the `tspconfig.yaml` options of an emitter against
  * the `emitter.options` schema registered here. The schema accepts no option
  * today, and `additionalProperties: false` makes the compiler reject any
- * option a project writes. The output directory is not an option: the
+ * option a project writes. The output directory is not an option here. The
  * compiler supplies `emitter-output-dir` for every emitter, and
  * `context.emitterOutputDir` is how this emitter reads it.
  */
@@ -177,9 +177,9 @@ export const reportDiagnostic = $lib.reportDiagnostic.bind($lib);
  * Builds one diagnostic from this library without reporting it.
  *
  * The walk builds its diagnostics with this and hands the list to its caller.
- * Reporting is then the caller's decision, which is what lets an emitter in
- * another package read the reason and say it under its own name. Two emitters
- * over one program would otherwise report every refusal twice.
+ * Reporting is then the caller's decision. This lets an emitter in another
+ * package read the reason and report it under its own name, so two emitters
+ * over one program do not each report the same refusal.
  *
  * @internal
  */

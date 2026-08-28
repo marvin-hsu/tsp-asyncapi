@@ -7,6 +7,9 @@
  * specification defines, so the section gets a file of its own rather than
  * growing inside `document.ts`.
  *
+ * This file does not build a schema itself. It only assembles what
+ * `SchemaBuilder` and the promoters in `lower/components/` hand back.
+ *
  * The order the fields are written here is the order a reader sees, and it
  * follows the order the specification lists them. TypeScript does not make an
  * object literal follow its interface, so the two agree because they were

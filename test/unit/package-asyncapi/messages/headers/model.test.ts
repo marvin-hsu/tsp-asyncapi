@@ -128,8 +128,8 @@ describe("Unit: Message headers: the @headers model (Phase 3.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // Every field of a `@headers` model is already a header. So the mark
-    // there neither adds nor removes a field, and it is not a misplaced one.
+    // Every field of a `@headers` model is already a header, so the mark
+    // neither adds nor removes anything and is not a misplaced one.
     expect(
       runner.program.diagnostics.filter(
         (d) =>

@@ -2,18 +2,15 @@
  * The committed Protobuf example, read as a consumer reads it.
  *
  * `examples/16-protobuf-payloads` is compiled by two emitters over one
- * source. The official one writes the `.proto` files. This one writes the
- * AsyncAPI document, and every payload in it is proto3 text this emitter
- * rendered from the same decorator state.
+ * source. The official emitter writes the `.proto` files, and this emitter
+ * renders the same decorator state as proto3 text in the AsyncAPI document.
  *
- * So the example is a parity case that no test host produced. The files below
- * are the committed output of a real compile, and the two sides have to
- * describe one wire format. A drift between this emitter's mapping and the
- * official one shows up here as a descriptor that differs.
+ * The committed files are a parity case no test host produced: a drift
+ * between this emitter's mapping and the official one shows up here as a
+ * differing descriptor.
  *
- * The document is also parsed. The validation helper registers the official
- * AsyncAPI Protobuf schema parser, so a payload that is not proto3 a reader
- * can root is an error and not a string nobody looked at.
+ * The document is also parsed, with the official AsyncAPI Protobuf schema
+ * parser registered, so a payload that is not valid proto3 is an error here.
  */
 
 import { describe, expect, it } from "vitest";
@@ -73,11 +70,8 @@ interface DescriptorNode {
  *
  * A payload and a `.proto` file nest their declarations under the package,
  * and comparing the trees whole would compare the packages too. Flattening
- * gives one entry per declaration, so the declarations of two texts can be
- * compared even when one text holds fewer of them.
- *
- * @param text - The proto3 text to read
- * @returns Each declaration of that text, by its qualified name
+ * gives one entry per declaration, so declarations from two texts compare
+ * even when one text holds fewer of them.
  */
 function declarationsOf(text: string): Map<string, unknown> {
   const found = new Map<string, unknown>();
@@ -96,12 +90,7 @@ function declarationsOf(text: string): Map<string, unknown> {
   return found;
 }
 
-/**
- * Every payload the document carries for one Protobuf package.
- *
- * @param packageName - The package declaration to match
- * @returns The proto3 text of each payload of that package
- */
+/** Every payload the document carries for one Protobuf package. */
 function payloadsOf(packageName: string): string[] {
   const messages = Object.values(DOCUMENT.components?.messages ?? {});
   const texts: string[] = [];
@@ -113,14 +102,7 @@ function payloadsOf(packageName: string): string[] {
   return texts;
 }
 
-/**
- * Reads one fenced block out of a documentation page.
- *
- * @param page - The whole page
- * @param language - The language the fence names, such as `yaml`
- * @param starts - The first line of the block the caller wants
- * @returns The content of that block, without the fences
- */
+/** Reads one fenced block out of a documentation page. */
 function blockOf(page: string, language: string, starts: string): string {
   const opening = `\`\`\`${language}\n${starts}`;
   const from = page.indexOf(opening);

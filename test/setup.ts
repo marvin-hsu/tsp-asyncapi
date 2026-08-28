@@ -4,10 +4,9 @@ import { validateAsyncAPI } from "./utils/spec-validation.js";
 /**
  * Matchers for the official AsyncAPI parser.
  *
- * The check used to be a helper that threw. That works, but it leaves a test
- * body with no visible `expect`, so neither a reader nor a static analyser
- * can tell what the test asserts. A matcher keeps the assertion at the call
- * site and hands the failure message to vitest.
+ * A throwing helper hides the assertion: neither a reader nor a static
+ * analyser can tell what the test checks. A matcher keeps the assertion at
+ * the call site and hands the failure message to vitest.
  */
 expect.extend({
   async toBeValidAsyncAPI(received: unknown) {
@@ -20,11 +19,10 @@ expect.extend({
   },
 
   /**
-   * Asserts the parser rejects the document, and that the reason matches.
+   * Asserts the parser rejects the document for the given reason.
    *
-   * `.not.toBeValidAsyncAPI()` cannot say why a document is invalid, so a
-   * test using it would pass on any rejection at all, including one for the
-   * wrong reason. This matcher takes the expected reason instead.
+   * `.not.toBeValidAsyncAPI()` cannot say why a document is invalid, so it
+   * would pass on any rejection, including one for the wrong reason.
    */
   async toBeInvalidAsyncAPI(received: unknown, reason: RegExp) {
     const failure = await validateAsyncAPI(received);

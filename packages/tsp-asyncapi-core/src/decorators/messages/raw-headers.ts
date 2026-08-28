@@ -63,6 +63,7 @@ export function $rawHeaders(
  *
  * @param program - The program to read the state from
  * @param target - The model the decorator was applied to
+ *
  * @returns The recorded format and schema, or `undefined` when the decorator
  * was never applied with a valid value
  *

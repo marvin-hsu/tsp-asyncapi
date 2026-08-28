@@ -1,3 +1,5 @@
+/** The Kafka message binding: key schema and schema registry lookup fields. */
+
 import { DecoratorContext, Model } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";

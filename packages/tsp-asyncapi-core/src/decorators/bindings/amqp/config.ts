@@ -69,7 +69,9 @@ const MAX_NAME_LENGTH = 255;
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function channelKind(
@@ -89,7 +91,9 @@ export function channelKind(
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function deliveryMode(
@@ -116,7 +120,9 @@ export function deliveryMode(
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function expiration(
@@ -138,8 +144,10 @@ export function expiration(
  * @param field - The field name, for the diagnostic
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The routing keys, or `undefined` when the field was absent, empty,
  * or rejected
+ *
  * @internal
  */
 export function routingKeys(
@@ -163,6 +171,11 @@ export function routingKeys(
  *
  * AMQP limits the name to 255 characters. A longer one is reported and
  * dropped, and the rest of the object is kept.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function topologyName(
   context: DecoratorContext,
@@ -181,15 +194,21 @@ function topologyName(
 }
 
 /**
- * Reads one sub-object of the channel binding.
+ * Reads one nested object of the channel binding.
  *
  * `exchange` and `queue` are the two, and neither is a Schema Object. Each
  * one is a fixed set of fields, so it is read field by field rather than
  * passed through. A key the author misspelled would otherwise reach the
  * document and describe a topology no broker builds.
  *
- * A sub-object with nothing left in it is dropped. An empty object states no
- * exchange or queue at all.
+ * A nested object with nothing left in it is dropped. An empty object states
+ * no exchange or queue at all.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ * @param read - The function that reads the nested object's fields
  */
 function topology<T extends object>(
   context: DecoratorContext,
@@ -209,8 +228,10 @@ function topology<T extends object>(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The exchange, or `undefined` when it was absent, empty, or not an
  * object
+ *
  * @internal
  */
 export function exchange(
@@ -243,8 +264,10 @@ export function exchange(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The queue, or `undefined` when it was absent, empty, or not an
  * object
+ *
  * @internal
  */
 export function queue(

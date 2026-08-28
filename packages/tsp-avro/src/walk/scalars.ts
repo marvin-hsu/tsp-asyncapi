@@ -1,19 +1,18 @@
 /**
  * The TypeSpec scalar to Avro primitive table.
  *
- * Avro has eight primitive types and no unsigned integer. So the table is
- * short, and a TypeSpec scalar with no entry is refused rather than widened:
- * `uint32` fits in no Avro primitive without changing what it means.
+ * Avro has eight primitive types and no unsigned integer. A TypeSpec scalar
+ * with no entry is refused rather than widened: `uint32` fits no Avro
+ * primitive without changing what it means.
  *
  * A scalar the author declared is matched through its base. `scalar Age
- * extends int32` has no entry of its own, and its base does, so it maps to
- * `int`. This is the rule the upstream Protobuf emitter uses, and it is what
- * lets a project name its own scalars without teaching this table about them.
+ * extends int32` has no entry of its own, but `int32` does, so it maps to
+ * `int`. This is the rule the upstream Protobuf emitter uses, and it lets a
+ * project name its own scalars without teaching this table about them.
  *
- * The table is built for one program, because a TypeSpec type is only the same
- * object inside one program. It is built once per program and passed down the
- * walk. The programs are held weakly, so nothing here outlives the program
- * that the table is about.
+ * A TypeSpec type is only the same object inside one program, so the table
+ * is built once per program and passed down the walk. The programs are held
+ * weakly, so nothing here outlives the program the table is about.
  */
 
 import { formatDiagnostic, type Program, type Scalar, type Type } from "@typespec/compiler";
@@ -45,9 +44,9 @@ export type AvroScalarTable = ReadonlyMap<Type, AvroPrimitiveName>;
 /**
  * Every table built so far, by the program it is about.
  *
- * Resolving seven type references is work, and the walk is entered once per
- * `@record`. The answer is the same every time inside one program, so a
- * program that declares fifty records resolved them fifty times over.
+ * Resolving seven type references is work, and the walk enters once per
+ * `@record`. Without this cache, a program with fifty records would repeat
+ * the work fifty times.
  */
 const tables = new WeakMap<Program, AvroScalarTable>();
 
@@ -91,8 +90,7 @@ function createScalarTable(program: Program): AvroScalarTable {
  *
  * @param table - The table for the program the scalar belongs to
  * @param target - The scalar to map
- * @returns The primitive name, or undefined when neither the scalar nor any
- * of its bases has an entry
+ * @returns The primitive name, or undefined when neither the scalar nor its bases has an entry
  *
  * @internal
  */

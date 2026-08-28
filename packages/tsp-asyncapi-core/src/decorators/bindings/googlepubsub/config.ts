@@ -47,7 +47,16 @@ export type GooglePubSubMessageBindingState = Omit<
 /** The fields `schemaSettings` requires. */
 const REQUIRED_SCHEMA_SETTINGS = ["encoding", "name"];
 
-/** Reads one object field, naming the protocol for the caller. */
+/**
+ *  Reads one object field, naming the protocol for the caller.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected value costs. Pass `binding` where the binding
+ * requires the field.
+ */
 function pubSubObject(
   context: DecoratorContext,
   field: string,
@@ -68,8 +77,10 @@ function pubSubObject(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The schema settings, `dropped` when the object was not an object,
- * or `incomplete` when a required field is absent
+ *
+ * @returns The schema settings, `dropped` when the object was not an object, or
+ * `incomplete` when a required field is absent
+ *
  * @internal
  */
 export function schemaSettings(
@@ -114,7 +125,9 @@ export function schemaSettings(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The storage policy, or `undefined` when it was absent or empty
+ *
  * @internal
  */
 export function messageStoragePolicy(
@@ -146,8 +159,9 @@ export function messageStoragePolicy(
  * @param field - The field name, for the diagnostic
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The map, or `undefined` when it was absent, empty, or not an
- * object
+ *
+ * @returns The map, or `undefined` when it was absent, empty, or not an object
+ *
  * @internal
  */
 export function openMap(
@@ -168,8 +182,10 @@ export function openMap(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The schema, `dropped` when it was absent or not an object, or
  * `incomplete` when it has no name
+ *
  * @internal
  */
 export function messageSchema(

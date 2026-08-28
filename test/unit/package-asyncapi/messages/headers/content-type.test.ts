@@ -178,9 +178,8 @@ describe("Unit: Message headers: content type (Phase 3.3)", () => {
     await documentFrom(runner.program);
 
     // The derived message adopts the header its base already lifts. The
-    // conflict is about one property, so it is reported once. The message
-    // text names no message, so a second report would be the same text on the
-    // same squiggle.
+    // conflict is about one property, so it is reported once. A second
+    // report would put the same text on the same squiggle.
     expect(
       diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(1);

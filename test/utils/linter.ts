@@ -49,11 +49,10 @@ export async function createMultiFileRuleTester(
  *
  * The rule tester of the compiler builds its own compiler options, so it
  * cannot carry emitter options at all. A rule that reads `preview-features`
- * therefore has to run a normal compilation and enable itself by id. Two
- * suites wrote that compilation out by hand.
+ * has to run a normal compilation instead and enable itself by id.
  *
- * The instance is built inside the returned function rather than once here,
- * for the reason `createRuleTester` gives: one instance carries one
+ * The instance is built inside the returned function, for the same reason
+ * `createRuleTester` builds it per call: one instance carries one
  * compilation.
  *
  * @param rule - The full id of the rule, as a user would configure it

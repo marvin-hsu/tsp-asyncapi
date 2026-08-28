@@ -55,8 +55,8 @@ export interface ResolvedOperations {
  *
  * An operation reaches the document through the channel it sits on. One with
  * no such channel reaches nothing, and it is reported unless another
- * declaration already carries it in. A repeated key is reported and the later
- * operation is dropped, the same rule every other key collision follows.
+ * declaration already carries it in. A repeated key is reported and dropped,
+ * the same rule every other key collision follows.
  *
  * @param program - The program to read the operations from
  * @param channels - The channel each target contributed
@@ -64,8 +64,10 @@ export interface ResolvedOperations {
  * @param declaredSchemes - The keys of `components.securitySchemes`
  * @param placements - Where the binding applications this build placed are
  * recorded
- * @returns The operations in source order, and every operation whose
- * extensions reached an Operation Object
+ *
+ * @returns The operations in source order, and every operation whose extensions
+ * reached an Operation Object
+ *
  * @internal
  */
 export function resolveOperations(
@@ -77,17 +79,11 @@ export function resolveOperations(
 ): ResolvedOperations {
   const nodes: OperationNode[] = [];
   const claimed = new Set<string>();
-  // Every operation that reached an Operation Object, whether it holds a node
-  // of its own or a copy of it carried the declaration in. The extension
-  // report reads this set, so neither route raises a warning about a key the
-  // document does carry.
-  // Every operation the loop sees carries its extensions into the document,
-  // through its own node or through a copy that stood in for it. The one
-  // exception takes itself back out below. Registering first, rather than on
-  // each surviving path, is what keeps a later branch from forgetting: the
-  // three reports this loop can make each dropped a declaration that the
-  // document did carry, and each one warned about an extension that was
-  // already there.
+  // Every operation that reached an Operation Object, whether through its own
+  // node or a copy that carried the declaration in. The loop registers each
+  // one up front, before it knows which branch it will take, so no later
+  // report forgets that the document still carries the declaration. The one
+  // exception takes itself back out below.
   const extensionCarriers = new Set<Operation>();
 
   const placed: PlacedOperation[] = listOperationActions(program).map(({ target, record }) => {
@@ -171,6 +167,8 @@ export function resolveOperations(
  * interface, and each copy shares the declaration node of the original. The
  * original itself sits on no channel, so it would otherwise be reported as
  * reaching nothing.
+ *
+ * @param placed - The binding placements already recorded
  */
 function emittedDeclarationNodes(placed: readonly PlacedOperation[]): ReadonlySet<object> {
   const nodes = new Set<object>();
@@ -186,6 +184,8 @@ function emittedDeclarationNodes(placed: readonly PlacedOperation[]): ReadonlySe
  * A reply belongs to an operation, and an operation reaches the document only
  * through `@send` or `@receive`. So a reply decorator beside neither has
  * nowhere to go and changes nothing.
+ *
+ * @param program - The program to read the state from
  */
 function reportRepliesWithoutAction(program: Program): void {
   for (const { operation, target } of listReplyDeclarations(program)) {

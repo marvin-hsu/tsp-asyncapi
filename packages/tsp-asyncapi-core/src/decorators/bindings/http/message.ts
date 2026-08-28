@@ -6,6 +6,10 @@ import { namedValuesSchemaField, reportBindingField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
 /**
+ * `@httpMessage`, which fills the message-level HTTP Bindings Object.
+ */
+
+/**
  * What `@httpMessage` records.
  *
  * It is the emitted object without `bindingVersion`. That field is appended
@@ -96,6 +100,10 @@ export function $httpMessage(
  *
  * RFC 9110 defines status codes from 100 to 599. A number outside that range
  * is not a status code, so no client can act on it.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function statusCode(
   context: DecoratorContext,

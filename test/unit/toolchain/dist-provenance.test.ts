@@ -69,9 +69,8 @@ describe("Unit: the provenance of the build output", () => {
   });
 
   /**
-   * A package that was never built has no `dist` at all. The listing has to
-   * report that as no file, so the case that reads it fails with the message
-   * it wrote for that state.
+   * A package that was never built has no `dist` at all. The listing
+   * reports that as no file, rather than throwing.
    */
   it("lists a directory that does not exist as no file", async () => {
     await expect(filesIn(new URL("packages/tsp-asyncapi/dist-absent/", ROOT))).resolves.toEqual([]);
@@ -82,10 +81,9 @@ describe("Unit: the provenance of the build output", () => {
       await readFile(new URL(`packages/${name}/package.json`, ROOT), "utf8"),
     ) as Manifest;
 
-    // `prebuild` runs before `build`, whichever command starts the build of
-    // this package. So the removal covers `pnpm -r build` and a filtered
-    // build alike. The root drives its own build with one `tsc -b`, and
-    // removes the output of all three in `check:package`.
+    // `prebuild` runs before any command that starts `build`, so this
+    // covers `pnpm -r build` and a filtered build alike. The root's own
+    // `tsc -b` build removes all three packages' output via `check:package`.
     expect(manifest.scripts.prebuild).toBe("pnpm run clean");
   });
 
@@ -100,9 +98,9 @@ describe("Unit: the provenance of the build output", () => {
 
     const before = steps.slice(0, pack);
 
-    // The pack has to follow a build of its own. Without one the tarballs
-    // hold whatever `dist` the checkout already carried, which is the state
-    // this file exists to keep out of a release.
+    // The pack must follow its own build. Without one, the tarballs hold
+    // whatever stale `dist` the checkout carried, the state this suite
+    // guards against.
     const rebuild = before.findIndex((step) => step.endsWith("build"));
     expect(
       rebuild,
@@ -121,10 +119,9 @@ describe("Unit: the provenance of the build output", () => {
   it("removes the build output the root itself carries", async () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;
 
-    // The workspace was one package before it was three, and a checkout from
-    // that time still holds the `dist` and `temp` it wrote at the root. The
-    // recursive clean reaches the packages alone, so the root removes its
-    // own.
+    // A checkout may still hold a stale root-level `dist` and `temp` from
+    // before the workspace split into three packages. The recursive clean
+    // reaches only the packages, so the root removes its own.
     expect(manifest.scripts.clean).toContain("./dist");
     expect(manifest.scripts.clean).toContain("./temp");
   });
@@ -147,11 +144,10 @@ describe("Unit: the provenance of the build output", () => {
   /**
    * The removal belongs to the packaging path alone.
    *
-   * Each package writes `temp/tsconfig.tsbuildinfo`, and `clean` removes
-   * `temp` with `dist`. A clean before every root build erases that state, so
-   * `pnpm test` and `pnpm check` compile the workspace from nothing every
-   * time. What the removal protects is the tarball, and `check:package` is
-   * the only path that writes one.
+   * `clean` removes `temp/tsconfig.tsbuildinfo` along with `dist`. Running
+   * it before every root build would force `pnpm test` and `pnpm check` to
+   * compile from nothing each time. Only `check:package` needs that
+   * removal, to keep a stale `dist` out of the tarball.
    */
   it("removes the whole workspace output before it packs", async () => {
     const manifest = JSON.parse(await readFile(new URL("package.json", ROOT), "utf8")) as Manifest;

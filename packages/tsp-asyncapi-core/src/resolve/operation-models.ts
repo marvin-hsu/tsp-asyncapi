@@ -23,10 +23,8 @@ import { channelOperations } from "../resolve/channels/scope.js";
 /**
  * The models of one operation signature, split by side.
  *
- * The parameters and the return type are the two sides of a signature. An
- * operation reads them by its action. A `@send` operation sends what its
- * parameters name and receives what its return type names. A `@receive`
- * operation is the inverse.
+ * A `@send` operation sends what its parameters name and receives what its
+ * return type names. A `@receive` operation is the inverse.
  */
 interface OperationSignatureModels {
   /** The models the top-level parameters name. */
@@ -51,6 +49,7 @@ interface OperationSignatureModels {
  *
  * @param program - The program the operation belongs to
  * @param operation - The operation to walk
+ *
  * @returns The models of each side, with repeats removed inside each side
  */
 function operationSignatureModels(
@@ -88,16 +87,14 @@ export interface OperationSides {
  * operation sends what its parameters name and receives its reply through the
  * return type. A `receive` operation is the inverse.
  *
- * Two callers need the rule. The operation builder puts the request side in
- * `messages` and the reply side in `reply.messages`. The channel message
- * collection needs the request side alone when `@replyChannel` sends the
- * reply somewhere else. A second spelling of the rule would let the channel
- * and the operation state opposite directions for one operation, so there is
- * only this one.
+ * Two callers need the rule: the operation builder, and the channel message
+ * collection when `@replyChannel` sends the reply elsewhere. A second
+ * spelling would let them state opposite directions for one operation.
  *
  * @param program - The program the operation belongs to
  * @param operation - The operation to split
  * @param action - The action recorded for that operation
+ *
  * @returns The models of each direction, in source order
  */
 export function operationSides(
@@ -119,6 +116,7 @@ export function operationSides(
  *
  * @param program - The program the operation belongs to
  * @param operation - The operation to walk
+ *
  * @returns Every model the operation names, with repeats removed
  */
 function operationModels(program: Program, operation: Operation): Model[] {
@@ -152,6 +150,7 @@ function operationModels(program: Program, operation: Operation): Model[] {
  * @param program - The program the operation belongs to
  * @param operation - The operation to walk
  * @param channel - The interface or namespace that carries the channel
+ *
  * @returns The models this operation puts on that channel
  */
 function operationChannelModels(
@@ -177,10 +176,8 @@ function operationChannelModels(
  * reply side.
  *
  * The second group exists because AsyncAPI requires `reply.messages` to be a
- * subset of the messages of the reply channel. The reply really does travel
- * over that channel, so the channel has to carry it. Leaving it out used to
- * force the author to declare an extra operation on the reply channel, which
- * put an operation in the document that the author never asked for.
+ * subset of the messages of the reply channel. The reply travels over that
+ * channel, so the channel must carry it.
  *
  * A replying operation with no action contributes nothing here. Such an
  * operation emits no operation object, so it emits no reply either, and both
@@ -192,6 +189,7 @@ function operationChannelModels(
  *
  * @param program - The program the channel belongs to
  * @param target - The interface or namespace that carries the channel
+ *
  * @returns The models this channel carries, with repeats removed
  */
 export function channelMessageModels(program: Program, target: ChannelTarget): Model[] {
@@ -215,6 +213,9 @@ export function channelMessageModels(program: Program, target: ChannelTarget): M
  * The state map hands them over in the order the decorators ran. Every
  * diagnostic about a message key names "the first one in source order" as the
  * winner, so the order is restored here rather than taken on trust.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 function replyingOperations(program: Program, target: ChannelTarget): Operation[] {
   const compare = bySourcePosition(program);
@@ -223,7 +224,13 @@ function replyingOperations(program: Program, target: ChannelTarget): Operation[
   );
 }
 
-/** Appends the models the list does not already hold. */
+/**
+ *  Appends the models the list does not already hold.
+ *
+ * @param found - The models already collected
+ * @param seen - The models already visited
+ * @param models - The models to walk
+ */
 function collectInto(found: Model[], seen: Set<Model>, models: Model[]): void {
   for (const model of models) {
     if (seen.has(model)) continue;
@@ -243,6 +250,9 @@ function collectInto(found: Model[], seen: Set<Model>, models: Model[]): void {
  * The `@message` check comes first, so a message declared as `model Bag is
  * Record<string>` stays the message it is marked as. Without that order the
  * walk would unwrap it to `string` and the channel would lose the message.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  */
 export function unwrapModels(program: Program, type: Type): Model[] {
   return unwrap(type, listMessages(program), new Set<Type>());
@@ -260,6 +270,10 @@ export function unwrapModels(program: Program, type: Type): Model[] {
  * The visited set spans one walk, not one branch of it. A model that two
  * branches both reach contributes once, which is what the caller wants
  * anyway.
+ *
+ * @param type - The type to inspect
+ * @param messages - The messages this channel carries
+ * @param visited - The types already visited
  */
 function unwrap(type: Type, messages: ReadonlyMap<Model, unknown>, visited: Set<Type>): Model[] {
   if (visited.has(type)) return [];
@@ -284,6 +298,8 @@ function unwrap(type: Type, messages: ReadonlyMap<Model, unknown>, visited: Set<
  * The compiler backs both templates with an indexer, and the value of that
  * indexer is the element type. A model with properties of its own is not one
  * of the two, so its own indexer, if any, is left alone.
+ *
+ * @param model - The model to inspect
  */
 function collectionElement(model: Model): Type | undefined {
   if (model.indexer === undefined) return undefined;

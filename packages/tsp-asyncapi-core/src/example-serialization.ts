@@ -40,8 +40,8 @@ import { orderBySourceNodes } from "./source-order.js";
  * to agree: an example encoded one way and described the other would fail to
  * validate against its own schema.
  *
- * The `program` is no longer needed here. The compiler binds `originalFn` to
- * everything this handler has to re-invoke, including the encoding it
+ * This handler takes no `program` parameter. The compiler binds `originalFn`
+ * to everything this handler has to re-invoke, including the encoding it
  * resolved.
  *
  * @internal

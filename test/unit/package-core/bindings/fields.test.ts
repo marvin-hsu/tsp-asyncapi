@@ -9,17 +9,15 @@ import { missingFields } from "#core/decorators/bindings/fields.js";
  * answers an author gave, and a binding that dropped them would report a
  * field the author had filled in.
  *
- * The value kinds are enumerated because they are the rule. A property once
- * stated the same claim by rebuilding the rule as its own oracle — a filter
- * with the same three conditions in the same order as the implementation —
- * which asserts that the code does what the code does. It cannot say what
- * the rule should be, and a change to the rule has to be made twice with
- * nothing to enforce the pairing.
+ * The value kinds are enumerated because they are the rule. Restating the
+ * rule as a mirrored filter would assert only that the code matches itself.
+ * A change to the rule would then need two edits, with nothing to enforce
+ * the pairing.
  *
- * The claims that do not come from the rule — the answer is a subset of
- * `required`, in that order, without repeats — stay a property in
+ * The claims that do not come from the rule stay a property in
  * `test/property-based/pure-predicates.test.ts`, where the field sets and
- * their orders are drawn.
+ * their orders are drawn. The answer there is a subset of `required`, in
+ * that order, without repeats.
  */
 describe("Unit: missingFields — which values say nothing", () => {
   it.each([

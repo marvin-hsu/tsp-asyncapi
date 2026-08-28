@@ -234,16 +234,13 @@ describe("Unit: server security", () => {
   });
 
   it("reports a useSecurity next to a server outside the service", async () => {
-    // Both applications are dropped, and each one is a separate thing the
-    // author wrote, so each gets a word.
+    // Both applications are dropped, and each is a separate mistake the
+    // author wrote, so each gets its own diagnostic.
     //
-    // This case used to stay quiet while the sibling case above, where the
-    // server is dropped by its own field check, reported. That difference was
-    // never decided: a server dropped for a bad field never reaches the state
-    // at all, so the namespace read as one with no server, while a server
-    // dropped for sitting outside the service does reach the state. The test
-    // now pins the question the emitter actually asks, which is whether the
-    // namespace puts any server into the document.
+    // A server dropped for sitting outside the service still reaches the
+    // state, unlike one dropped by its own field check. The emitter reports
+    // this case for the same reason: it asks whether the namespace puts any
+    // server into the document, not why a server was dropped.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       @service(#{ title: "Orders" })
       namespace Test;

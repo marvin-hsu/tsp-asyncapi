@@ -317,13 +317,7 @@ describe("Unit: Protobuf payload parity (Phase 16 W1)", () => {
   });
 });
 
-/**
- * Walks into the nested declarations of one package of a descriptor.
- *
- * @param root - The descriptor tree the parser produced
- * @param packageName - The dotted package name to walk down
- * @returns The declarations of that package
- */
+/** Walks into the nested declarations of one package of a descriptor. */
 function nestedOf(root: unknown, packageName: string): Record<string, unknown> {
   let current = root as { nested?: Record<string, unknown> };
   for (const part of packageName.split(".")) {

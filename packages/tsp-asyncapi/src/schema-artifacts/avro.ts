@@ -1,39 +1,22 @@
 /**
  * The Avro provider, as the registry holds it.
  *
- * This provider owns none of the translation. `tsp-avro` walks a model into an
- * Avro schema and renders that schema as JSON, and this file calls it. The
- * Protobuf provider next door had to read the state of a third party library
- * and write the walk itself, because that library emits files and exposes no
- * walk. `tsp-avro` is ours, so a second walk here would be a copy that drifts.
+ * `tsp-avro` walks a model into an Avro schema and renders it as JSON. This
+ * file only calls it. Unlike the Protobuf provider next door, it never
+ * re-implements that walk, since `tsp-avro` already owns one.
  *
- * ## Why the library is loaded at run time
+ * The library loads dynamically. It is experimental and optional, so a
+ * static import would force every installer to pull an unstable dependency.
+ * The import runs only when the `avro` preview feature is on.
  *
- * `tsp-avro` is experimental and this package is not. A static import would
- * make every project that installs this emitter install that one, and would
- * tie a stable release to a `0.x` version range. So the import is dynamic and
- * runs only when the preview feature is on. A project that never turns it on
- * never loads it.
- *
- * ## Who gets told
- *
- * A payload is built only for a model the document asks one for, which is a
- * model that carries `@AsyncAPI.message` as well. A project that writes
- * `@Avro.record` for types outside the document keeps its build green, and no
- * diagnostic names a model no message describes.
- *
- * A model the document asks about and this cannot answer for is a refusal.
- * The caller stops on one. Its payload would otherwise fall back to the schema
- * its TypeSpec type produces, which answers a request for Avro with ordinary
- * JSON Schema and says so nowhere in the file.
- *
- * ## Why the reason is rewritten
- *
- * The walk collects its refusals rather than reporting them. Reporting them
- * would show a user the codes of a library they never asked to emit, and a
- * project that emits both Avro files and an AsyncAPI document would read every
- * refusal twice. So the reason is carried into this library's own diagnostic,
- * and one compile speaks with one voice.
+ * A payload is built only for a model the document asks about, one that
+ * also carries `@AsyncAPI.message`. A model this cannot answer for is a
+ * refusal. The caller stops on one rather than falling back to the plain
+ * JSON Schema its TypeSpec type would otherwise produce. The walk's own
+ * diagnostics are collapsed into one reason per refusal. That reason is
+ * reported through this provider's own diagnostic. One compile then speaks
+ * with one voice, instead of doubling up with the Avro emitter's
+ * diagnostics.
  */
 
 import type { Diagnostic, Model, Program } from "@typespec/compiler";
@@ -48,9 +31,8 @@ import type { CollectedSchemaArtifacts, SchemaArtifactProvider } from "./provide
 /**
  * The AsyncAPI schema format of an Avro schema.
  *
- * The AsyncAPI specification lists this string for Avro. It names no `+json`
- * variant here, because the schema is written as an object rather than as
- * text, which is what the specification asks of a JSON based format.
+ * The AsyncAPI specification lists this string for Avro. No `+json` variant
+ * applies, since the schema is written as an object, not as text.
  */
 const AVRO_SCHEMA_FORMAT = "application/vnd.apache.avro;version=1.9.0";
 
@@ -60,15 +42,10 @@ const PROVIDER_ID = "avro";
 /**
  * Builds the provider that answers the `avro` preview feature.
  *
- * The provider is built rather than exported as a constant, so two emits of
- * one program each get their own. Nothing in it holds state between calls.
+ * Returns a fresh provider per call, since nothing in it holds state
+ * between emits. `load` is a parameter so a test can supply one that
+ * fails, exercising a broken install without touching the shipped default.
  *
- * The loader is a parameter because a broken install cannot be arranged by a
- * source file. A test states a loader that fails, and the shipped registry
- * takes the default.
- *
- * @param load - How to reach the Avro library
- * @returns The provider, ready for the registry
  * @internal
  */
 export function createAvroProvider(load: AvroLoader = loadAvro): SchemaArtifactProvider {
@@ -78,9 +55,8 @@ export function createAvroProvider(load: AvroLoader = loadAvro): SchemaArtifactP
 /**
  * How the provider reaches the Avro library.
  *
- * The loader only loads. It rejects when the library is not there, and the
- * caller turns that into a diagnostic. So a test that states a broken install
- * states the failure alone, and the code that reports it is the shipped code.
+ * Rejects when the library is not installed. The caller turns that into a
+ * diagnostic, so a test can state the failure alone.
  *
  * @internal
  */
@@ -89,12 +65,9 @@ export type AvroLoader = () => Promise<AvroLibrary>;
 /**
  * The part of `tsp-avro` this provider calls.
  *
- * The two entry points are held as they were loaded, and their types come from
- * the loader rather than from a copy written here. A copy would be a second
- * declaration of someone else's signature, and the two would drift.
- *
- * `typeof import(...)` in a type position names a module without loading one.
- * The only load in this file is the one inside {@link loadAvro}.
+ * Types come from the loader, not from a copy written here, so the two
+ * cannot drift apart. `typeof import(...)` names a module without loading
+ * it. The only load in this file is inside {@link loadAvro}.
  */
 interface AvroLibrary {
   /** The main entry point, which lists the models the author marked. */
@@ -112,10 +85,8 @@ interface AvroFullName {
 /**
  * Loads `tsp-avro`.
  *
- * The two entry points are loaded together, because the provider calls both.
- * A rejection means the library is not installed, and the caller says so.
- *
- * @returns The two entry points of the library
+ * Loads both entry points together, since the provider calls both. A
+ * rejection means the library is not installed.
  */
 async function loadAvro(): Promise<AvroLibrary> {
   const [main, unstable] = await Promise.all([import("tsp-avro"), import("tsp-avro/unstable")]);
@@ -125,10 +96,7 @@ async function loadAvro(): Promise<AvroLibrary> {
 /**
  * Renders a payload for every message model `@Avro.record` marks.
  *
- * @param program - The compiled program
- * @param load - How to reach the Avro library
- * @returns The payload artifact of every model that got one, and whether any
- * model the document names went unanswered
+ * `refused` is set when any model the document asks about went unanswered.
  */
 async function collectAvroArtifacts(
   program: Program,
@@ -138,9 +106,8 @@ async function collectAvroArtifacts(
   try {
     avro = await load();
   } catch (error) {
-    // The author writes `@Avro.record`, so the library is installed whenever a
-    // model carries it. A load that fails is a broken install, and the
-    // diagnostic says so rather than leaving the emit silent.
+    // A model carrying `@Avro.record` implies the library is installed.
+    // A load failure means a broken install, so it gets a diagnostic.
     reportDiagnostic(program, {
       code: "avro-library-missing",
       target: program.getGlobalNamespaceType(),
@@ -154,9 +121,8 @@ async function collectAvroArtifacts(
 
   let refused = false;
   for (const model of avro.main.listRecords(program)) {
-    // A model outside the document is not asked about, so it is neither
-    // rendered nor reported. A report for such a model would name a message
-    // that does not exist.
+    // A model outside the document is skipped, not reported: a diagnostic
+    // for it would name a message that does not exist.
     if (!asked.has(model)) continue;
 
     const [record, diagnostics] = avro.unstable.buildAvroRecordWithDiagnostics(program, model);
@@ -172,8 +138,7 @@ async function collectAvroArtifacts(
 
     payloadFor.set(model, {
       schemaFormat: AVRO_SCHEMA_FORMAT,
-      // An object, not text. Avro is JSON, and AsyncAPI inlines a schema of a
-      // JSON based format rather than carrying it as a string.
+      // An object, not text: AsyncAPI inlines a JSON-based schema.
       schema: avro.unstable.renderAvroSchema(record),
       provider: PROVIDER_ID,
       identity: fullNameOf(record),
@@ -186,18 +151,11 @@ async function collectAvroArtifacts(
 /**
  * The reason a refusal carries.
  *
- * The walk promises at least one, and it keeps walking after the first, so a
- * model with several problems collects several. Only the first is carried
- * here: a diagnostic says one thing, and the author reads the rest by running
- * the Avro emitter itself.
- *
- * A walk that keeps its promise never reaches the fallback. A walk that breaks
- * it must not produce a diagnostic with a hole in the middle, because the
- * reason sits inside a sentence. So the fallback names the walk as the place
- * the reason went missing.
- *
- * @param diagnostics - What the walk collected
- * @returns The message of the first one, or a sentence saying there was none
+ * The walk keeps going after the first problem, so several can pile up.
+ * Only the first is used: a diagnostic says one thing, and the author reads
+ * the rest by running the Avro emitter directly. The fallback text guards
+ * against a walk that breaks its promise of at least one diagnostic. It
+ * keeps the reason from going missing from the middle of a sentence.
  */
 function firstReason(diagnostics: readonly Diagnostic[]): string {
   const first = diagnostics.length === 0 ? "" : diagnostics[0].message;
@@ -207,23 +165,15 @@ function firstReason(diagnostics: readonly Diagnostic[]): string {
 /**
  * The name an Avro reader knows this record by.
  *
- * The identity never reaches the document. It tells two artifacts apart, and
- * two records differ by their namespace as well as by their name. So the
- * namespace is part of it whenever the record declares one.
- *
- * @param record - The record the walk built
- * @returns The Avro full name
+ * Never reaches the document. It only tells two artifacts apart. Two
+ * records can share a name but differ by namespace, so the namespace is
+ * included whenever the record declares one.
  */
 function fullNameOf(record: AvroFullName): string {
   return record.namespace === undefined ? record.name : `${record.namespace}.${record.name}`;
 }
 
-/**
- * The text of whatever a failed load threw.
- *
- * @param error - What the import rejected with
- * @returns Its message, or its own text when it is not an error
- */
+/** The text of whatever a failed load threw. */
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }

@@ -1,3 +1,12 @@
+/**
+ * State recorded by `@extension`, and the readers other modules use.
+ *
+ * Every emitted object can carry `x-` specification extensions, so this
+ * module is shared across `info`, channels, operations, and messages rather
+ * than duplicated per decorator. It checks the key shape and the value's
+ * serializability, but leaves clash resolution to resolve.
+ */
+
 import { DecoratorContext, DiagnosticTarget, Program, Type } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

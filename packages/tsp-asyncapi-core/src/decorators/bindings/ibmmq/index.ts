@@ -49,7 +49,15 @@ const HEARTBEAT_RANGE = { lowest: 0, highest: 999999 };
 /** The bytes a message may hold, which is 100 MB. */
 const MAX_MSG_LENGTH_RANGE = { lowest: 0, highest: 104857600 };
 
-/** Checks one field IBM MQ states as a range. */
+/**
+ *  Checks one field IBM MQ states as a range.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param range - The inclusive bounds the field must sit in
+ * @param target - Where a problem is reported
+ */
 function inRange(
   context: DecoratorContext,
   field: string,
@@ -71,7 +79,14 @@ function inRange(
   return value;
 }
 
-/** Reads one sub-object of the channel binding, dropping an empty one. */
+/**
+ *  Reads one sub-object of the channel binding, dropping an empty one.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ */
 function subObject(
   context: DecoratorContext,
   field: string,
@@ -321,19 +336,18 @@ export function $ibmMqMessage(
 /**
  * Checks the `headers` field against the payload kind.
  *
- * IBM MQ allows the field only on a binary payload. Its schema says so with a
- * `oneOf`: the `jms` and `string` branches both forbid `headers`, and the
- * `binary` branch does not. A document that carries both is rejected by the
- * AsyncAPI parser, so emitting it would hand the author a failure that talks
- * about this emitter rather than about their source.
+ * IBM MQ's schema is a `oneOf`. Only the `binary` branch allows `headers`, so
+ * a `jms` or `string` payload with headers set matches no branch. A binding
+ * that names no type keeps the field, because the `binary` branch also
+ * matches an absent type.
  *
- * A binding that names no type keeps the field. The specification leaves that
- * combination valid, because the `binary` branch matches when the type is
- * absent.
+ * The field is dropped, not the kind, because the kind is the more specific
+ * of the two statements.
  *
- * The field goes and the kind stays. The kind is the more specific statement:
- * the author said what the payload is, and headers are the part that cannot
- * apply to it.
+ * @param context - The decorator context
+ * @param kind - The destination kind
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function headers(
   context: DecoratorContext,
@@ -354,7 +368,13 @@ function headers(
   return undefined;
 }
 
-/** Checks the `expiry` field, which IBM MQ states as zero or more. */
+/**
+ *  Checks the `expiry` field, which IBM MQ states as zero or more.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ */
 function expiry(
   context: DecoratorContext,
   value: number | undefined,

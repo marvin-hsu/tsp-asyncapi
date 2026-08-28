@@ -48,7 +48,9 @@ const PERSISTENCE_VALUES = ["persistent", "non-persistent"];
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function persistence(
@@ -72,6 +74,11 @@ export function persistence(
  *
  * Pulsar states both as zero or more. Zero disables retention on that
  * measure, so it is a value rather than an absent field.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function retentionMeasure(
   context: DecoratorContext,
@@ -98,8 +105,10 @@ function retentionMeasure(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
+ *
  * @returns The retention policy, or `undefined` when it was absent, empty, or
  * not an object
+ *
  * @internal
  */
 export function retention(
@@ -124,7 +133,9 @@ export function retention(
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
+ *
  * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function compaction(
@@ -144,8 +155,10 @@ export function compaction(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The cluster names, or `undefined` when the field was absent,
- * empty, or not a list
+ *
+ * @returns The cluster names, or `undefined` when the field was absent, empty,
+ * or not a list
+ *
  * @internal
  */
 export function geoReplication(

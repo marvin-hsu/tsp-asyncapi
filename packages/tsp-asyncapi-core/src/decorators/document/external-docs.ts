@@ -1,3 +1,12 @@
+/**
+ * State recorded by `@externalDocs`, and the reader other modules use.
+ *
+ * A component or namespace carries at most one External Documentation
+ * Object, so this module keeps one value per target rather than a list. It
+ * checks that the URL is absolute; it does not check that the target it
+ * documents reaches the emitted document.
+ */
+
 import { DecoratorContext, Program, Type } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../../lib.js";

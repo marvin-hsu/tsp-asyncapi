@@ -32,6 +32,7 @@ export function $oneOf(context: DecoratorContext, target: Union) {
  *
  * @param program - The program to read the state from
  * @param target - The union to test
+ *
  * @returns True when the decorator was applied to `target`
  *
  * @public

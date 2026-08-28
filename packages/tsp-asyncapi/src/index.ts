@@ -1,11 +1,10 @@
 /**
  * The public API of this package.
  *
- * Every name here is listed on purpose. An `export *` would publish
- * whatever a module happens to export, which already caught this project
- * once: a state helper meant for one builder became part of the package's
- * runtime surface because it sat in a re-exported file. An `@internal` tag
- * does not prevent that, since it only affects the API report.
+ * Every name here is listed on purpose. An `export *` can leak an internal
+ * helper into the public surface, because it publishes whatever a module
+ * happens to export. An `@internal` tag does not prevent that, since it
+ * only affects the API report.
  *
  * The decorators are not here, and neither are the readers for the state they
  * record. Those declare the input language, and they come from
@@ -16,12 +15,10 @@ export { $onEmit } from "./emitter.js";
 
 export { $lib, PACKAGE_NAME } from "./lib.js";
 
-// The linter the compiler runs. The rules are implemented in
-// `tsp-asyncapi-core`, because a rule reads decorator state and that state is
-// what the core package owns. The compiler builds each rule id from the
-// specifier the library was loaded under, and a user loads this package, so
-// `$linter` has to be exported from here for the ids to read
-// `tsp-asyncapi/<rule>` rather than `tsp-asyncapi-core/<rule>`.
+// The linter the compiler runs. Rules live in `tsp-asyncapi-core`, since a
+// rule reads decorator state that package owns. The compiler builds each
+// rule id from the specifier a user loads. So `$linter` must be exported
+// here for the ids to read `tsp-asyncapi/<rule>`, not `tsp-asyncapi-core/<rule>`.
 export { asyncAPILinter as $linter } from "tsp-asyncapi-core/unstable";
 
 export type { AsyncAPIEmitterOptions, PreviewFeature } from "./emitter-options.js";

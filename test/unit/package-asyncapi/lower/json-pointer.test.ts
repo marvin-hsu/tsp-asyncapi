@@ -6,25 +6,15 @@ import { COMPONENTS_SCHEMA_REF_PREFIX } from "#core/constants.js";
  * The array-index rule of the reference reader, one token at a time.
  *
  * RFC 6901 spells an array index as `0` or a digit run with no leading zero.
- * The reader used to pass the token to `Number`, which accepts much more:
- * `""` and `" "` both became 0, and `"01"`, `"1.0"`, `"+1"`, `"0x1"` and
- * `"1e0"` all became 1. So a raw schema carrying `#/…/oneOf/0x1` was reported
- * as resolving, while a reader that follows the specification finds nothing
- * there. The corpus case `raw-ref-array-index` pins the same rule end to end.
+ * A naive reader that passes the token to `Number` accepts far more:
+ * `""` and `" "` both become 0, and `"01"`, `"1.0"`, `"+1"`, `"0x1"`, and
+ * `"1e0"` all become 1. The corpus case `raw-ref-array-index` pins the same
+ * rule end to end.
  *
- * The whole rule is enumerated here. It used to be split with a property in
- * `test/property-based/json-pointer.test.ts`, which drew a token against a
- * drawn array and computed its answer from a copy of the reader's own
- * `ARRAY_INDEX`. That copy was character-for-character the constant it was
- * checking, and the two lists it drew from were the tokens below, so the
- * property was this table shuffled -- with two of its four claims reached by
- * luck rather than by construction. Every expectation here is a literal
- * `true` or `false`, which is the one oracle that cannot drift.
- *
- * The bounds are enumerable too, and the reason is worth writing down: the
- * `index >= length` check is a fast path rather than a decision, because
- * reading past the end of an array yields `undefined` and the walk stops on
- * `undefined` anyway. Turning it into `index > length` changes no answer.
+ * Every case here expects a literal `true` or `false`, an oracle that cannot
+ * drift. The `index >= length` check is a fast path, not a separate rule:
+ * reading past the end of an array yields `undefined`, and the walk already
+ * stops on `undefined`. `index > length` would answer the same way.
  */
 describe("Unit: the array-index rule of the reference reader", () => {
   /** Wraps an array where a raw schema would carry one. */
@@ -45,12 +35,10 @@ describe("Unit: the array-index rule of the reference reader", () => {
     },
   );
 
-  // `length` and `constructor` are the load-bearing pair. A reader that
-  // indexed the array by the raw token instead of by the number would answer
-  // for both, and no other token here would catch it: `Number("x")` is `NaN`,
-  // `NaN >= 3` is false, and `items[NaN]` is `undefined`, so plain garbage
-  // gets refused either way. The garbage is kept because a token is not
-  // required to look like anything in particular.
+  // `length` and `constructor` are load-bearing: a reader that indexed the
+  // array by the raw token instead of the parsed number would answer for
+  // both. No other token here catches that mistake, since `Number("x")` is
+  // `NaN` and `items[NaN]` is `undefined` regardless.
   it.each(["length", "constructor", "__proto__", "x", "abc", "1.5", "-0.5", "NaN", "Infinity"])(
     "rejects the array index %j, which names no member of an array",
     (token) => {
@@ -77,10 +65,8 @@ describe("Unit: the array-index rule of the reference reader", () => {
   });
 
   // The walk stops on `undefined`, and only on `undefined`. A member that is
-  // merely falsy is a member, so the pointer that names it resolves. This is
-  // the claim that fails if the stop condition is ever widened to `!current`,
-  // and the property that used to cover it only did so on the runs where a
-  // falsy member happened to be drawn in range.
+  // merely falsy still resolves. Widening the stop condition to `!current`
+  // would break this case.
   it.each([null, 0, "", false])("resolves a pointer to the falsy member %j", (member) => {
     expect(resolvesInDocument(arrayDoc([member]), arrayRef("0"))).toBe(true);
   });

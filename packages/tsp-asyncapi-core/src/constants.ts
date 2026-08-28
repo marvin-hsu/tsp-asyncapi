@@ -1,13 +1,26 @@
+/**
+ * Constants this package's other modules share.
+ *
+ * A JSON Schema type string, a JSON Pointer prefix, and a binding version
+ * number each have exactly one correct spelling. Writing that spelling out
+ * again at every call site invites drift, because the type system cannot
+ * catch a typo in a plain string. Collecting each value here turns a typo
+ * into a single-point fix.
+ *
+ * Most of the constants below are `@public`. An emitter package built on
+ * top of this one reads them directly, instead of hardcoding the same
+ * specification value a second time.
+ */
+
 import { Namespace } from "@typespec/compiler";
 
 /**
  * JSON Schema `type` keyword values this emitter emits.
- * `SchemaObject.type` is typed as plain `string`, not a string-literal
- * union. So nothing in the type system catches a typo in one of these
- * values, the way a `Type["kind"]` discriminated-union branch would.
- * Collecting the values here turns a typo into a single-point fix. It
- * replaces the old approach of spelling out the literal separately at
- * each call site, which could silently drift out of sync.
+ *
+ * `SchemaObject.type` is a plain `string`, not a string-literal union.
+ * Nothing in the type system catches a typo in one of these values, unlike
+ * a `Type["kind"]` discriminated-union branch. Collecting the values here
+ * turns a typo into a single-point fix.
  *
  * @public
  */
@@ -26,12 +39,11 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
 
 /**
  * True for the namespace node representing the compiler's built-in
- * `TypeSpec` namespace itself. This is the namespace sitting directly
- * under the global (unnamed) namespace. It is not any other namespace,
- * including a user namespace that happens to share the name. Every call
- * site used to spell out `ns?.name === "TypeSpec" && !ns.namespace?.name`
- * (or the equivalent `ns.namespace?.name === ""` form) separately. This
- * function replaces all of those separate checks.
+ * `TypeSpec` namespace itself, sitting directly under the global (unnamed)
+ * namespace. Not true for any other namespace, including a user namespace
+ * that happens to share the name.
+ *
+ * @param ns - The namespace to test
  *
  * @public
  */
@@ -352,8 +364,8 @@ export const SOLACE_BINDING_PROTOCOL = "solace";
  * The version of the Solace binding specification this library emits.
  *
  * AsyncAPI 3.0 accepts `0.2.0`, `0.3.0` and `0.4.0`. This library emits
- * `0.4.0`, which is the latest. It is also the first to spell the server
- * field `msgVpn`; the `0.2.0` schema spells it `msvVpn`.
+ * `0.4.0`, which is the latest. The `0.2.0` schema misspells the server
+ * field `msvVpn`; `0.3.0` onward spells it `msgVpn`.
  *
  * @public
  */
@@ -440,17 +452,20 @@ export const DEFAULT_INFO_VERSION = "0.0.0";
 /**
  * The mime type a schema's own property keys are resolved against through
  * `@encodedName`.
- * An `@example`'s object keys are resolved against it too, via the
+ *
+ * An `@example`'s object keys are resolved against it too, through the
  * compiler's own `serializeObjectValueAsJson`.
- * This value is hardcoded because 2.7 has no notion yet of a message's
- * actual wire `contentType`. A model with both
+ *
+ * This value is hardcoded. The emitter has no notion yet of a message's
+ * actual wire content type. A model with both
  * `@encodedName("application/json", ...)` and
  * `@encodedName("application/xml", ...)`, for example, always emits the
  * JSON name. It does this regardless of which content type a message
  * actually declares.
- * Phase 3 adds per-message content types. It must thread the real
- * `contentType` through to both this constant's use site and the example
- * serialization it keeps in sync with, instead of assuming JSON everywhere.
+ *
+ * `example-serialization.ts` does not read this constant. It assumes
+ * `application/json` on its own. The two are not a shared contract yet, so
+ * a change to either assumption must update both by hand.
  *
  * @public
  */

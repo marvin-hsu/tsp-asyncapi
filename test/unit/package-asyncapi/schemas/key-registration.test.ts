@@ -8,13 +8,12 @@ import { propertiesOf, refOf, schemaOf } from "../../../utils/document.js";
 
 describe("Unit: Schemas — schema keys and registration", () => {
   it("should Sep-encode `/` and `~` out of a backtick-declared model's own name, rather than leaking them into the schema key", async () => {
-    // A model's own name is now sanitized before it becomes a
-    // `components.schemas` key (see `sanitizeDeclarationName`). So `/`
-    // and `~`, both outside the AsyncAPI Components Object key charset,
-    // never reach the key at all. There is nothing left here for
-    // `toJsonPointerToken`'s RFC 6901 escaping to do; it stays in place
-    // as a defense-in-depth guard for a key from any other future
-    // source.
+    // A model's own name is sanitized before it becomes a
+    // `components.schemas` key (see `sanitizeDeclarationName`). `/` and
+    // `~`, both outside the AsyncAPI Components Object key charset, never
+    // reach the key at all. `toJsonPointerToken`'s RFC 6901 escaping has
+    // nothing left to do here. It stays in place as a defense-in-depth
+    // guard for a key from any other future source.
     const { builder, M } = await compileSchemas(t.code`
       model \`x/y\` { z: string; }
       model \`a~b\` { z: string; }
@@ -338,11 +337,9 @@ describe("Unit: Schemas — schema keys and registration", () => {
   });
 
   it("resolves same-named models from different namespaces to distinct keys regardless of referencing-property order", async () => {
-    // Under the old first-come-first-served/hard-error policies, the
-    // *order* two colliding properties were visited in used to matter.
-    // Under default namespace-qualified naming there is no collision at
-    // all to race over: each property's namespace-qualified key is fixed
-    // by its own declaring namespace, independent of visitation order.
+    // Under default namespace-qualified naming there is no collision to
+    // race over. Each property's namespace-qualified key is fixed by its
+    // own declaring namespace, independent of visitation order.
     const { builder, program, W } = await compileSchemas(t.code`
       namespace NS1 { model Foo { a: string; } }
       namespace NS2 { model Foo { b: int32; } }

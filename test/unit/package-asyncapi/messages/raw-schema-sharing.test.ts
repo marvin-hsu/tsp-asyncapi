@@ -156,12 +156,11 @@ describe("Unit: sharing a raw payload", () => {
   });
 
   /**
-   * The key of a promoted raw schema is derived from a message model's name,
-   * so a model the author declared can want the same one. The survey runs
-   * before any model is walked, so it cannot ask who owns the key: it has to
-   * claim it. Without the claim the raw schema silently replaced the model's
-   * component, and every reference to that model pointed at a schema written
-   * in another language.
+   * The key of a promoted raw schema derives from a message model's name, so
+   * an author's own model can want the same one. The survey runs before any
+   * model is walked, so it must claim the key rather than ask who owns it.
+   * Without the claim, the raw schema would silently replace the model's
+   * component.
    */
   it("reports a model that wants the key a shared raw payload took", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
@@ -245,11 +244,7 @@ describe("Unit: sharing a raw payload", () => {
     });
   });
 
-  /**
-   * The promoted form has to be a document the specification accepts. The
-   * official parser is the authority, and this is the case the whole phase
-   * rests on.
-   */
+  /** The promoted form must be a document the official parser accepts. */
   it("emits a document the official parser accepts", async () => {
     const doc = await emitDocument(`
       @service(#{ title: "Orders" })

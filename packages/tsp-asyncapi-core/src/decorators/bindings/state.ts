@@ -38,17 +38,17 @@ export type EmittedBindingLevel = Exclude<BindingLevel, "any">;
  * The protocol whose specification a recorded config follows.
  *
  * The decorators record this name, and the lower half looks up the version
- * that goes with it. A name keeps the two apart: the state layer never
- * imports the lower half, and the lower half never has to know which
- * decorator wrote an entry.
+ * that goes with it. A name keeps the two apart. The state layer never
+ * imports the lower half. The lower half never has to know which decorator
+ * wrote an entry.
  *
  * One protocol needs one name, however many levels it covers. Every decorator
- * records its fields under the names the document uses, so the level changes
- * the fields and not what is done with them. The level is already stored in
- * `level`, and that is the field every reader of it uses.
+ * records its fields under the names the document uses. The level changes
+ * the fields, not what is done with them. The level is already stored in
+ * `level`, and every reader of it uses that field.
  *
- * The lower half keys its version table by this union, so a name added here
- * without an entry there is a compile error.
+ * The lower half keys its version table by this union. A name added here
+ * without a matching entry there is a compile error.
  * @internal
  */
 export type BindingRenderer =
@@ -92,25 +92,26 @@ const [getEntries, setEntries, getEntryMap] = useStateMap<Type, BindingEntry[]>(
  * Records one binding application.
  *
  * This function decides nothing. It only writes down what the author wrote.
- * One protocol claims one member of a Bindings Object, and the builder makes
+ * One protocol claims one member of a Bindings Object. The builder makes
  * that decision on the assembled list. Deciding it here as well would need a
- * second winner rule, and the two rules drifted apart: this layer sees
+ * second winner rule. The two rules would drift apart: this layer sees
  * decorator execution order, and the builder sees source order. So the rule
  * lives in one place, and `buildBindings` is that place.
  *
  * For the same reason this function does not use `singleApplication`. That
- * guard answers "did this decorator already run on this target", which is a
+ * guard answers "did this decorator already run on this target". That is a
  * question about one decorator. A binding clash spans several decorators,
  * because `@binding("kafka", ...)` claims the member `@kafkaChannel` claims.
  *
  * A repeated run of one application is not a second application. An augment
- * decorator runs once per declaration of its target, so one `@@kafkaChannel`
+ * decorator runs once per declaration of its target. One `@@kafkaChannel`
  * runs again for every reopened namespace block. The source position is the
  * identity that separates the two cases. Recording such a rerun twice would
  * make the builder report a clash the author never wrote.
  *
  * @param context - The decorator context
  * @param entry - The application to record, without its position
+ *
  * @internal
  */
 export function claimBinding(
@@ -138,8 +139,10 @@ export function claimBinding(
  *
  * @param program - The program to read the state from
  * @param target - The type the decorators were applied to
- * @returns The recorded entries. The list is empty when the target carries
- * no binding.
+ *
+ * @returns The recorded entries. The list is empty when the target carries no
+ * binding.
+ *
  * @internal
  */
 export function listBindings(program: Program, target: Type): readonly BindingEntry[] {
@@ -153,7 +156,9 @@ export function listBindings(program: Program, target: Type): readonly BindingEn
  * the program rather than about one target.
  *
  * @param program - The program to read the state from
+ *
  * @returns Every recorded entry, across every target
+ *
  * @internal
  */
 export function listAllBindings(program: Program): BindingEntry[] {

@@ -1,11 +1,10 @@
 /**
  * The resolve half of the servers.
  *
- * It reads the `@server` state of the service namespace, together with the
- * three things that namespace contributes to every server it declares:
- * the security scheme names, the external documentation, and the tags. It
- * also reports the two mistakes that are about placement rather than about
- * one server's fields.
+ * It reads the `@server` state of the service namespace, plus the security
+ * scheme names, external documentation, and tags that namespace contributes
+ * to every server. It also reports the two mistakes about server placement,
+ * not about one server's own fields.
  *
  * What it produces is a list of `ServerNode`, already in source order. The
  * lower half turns those into Server Objects and reads no state.
@@ -33,14 +32,14 @@ import { ServerNode, ServerVariableNode } from "./service.js";
  * Resolves the security scheme names of one namespace or operation.
  *
  * A name no `@securityScheme` defines is reported and dropped here. The
- * reference the lower half writes would otherwise address a key the
- * document does not carry, and a parser rejects the whole document for it.
- * `@useSecurity` cannot make this check itself, because a `@securityScheme`
- * anywhere in the program can still arrive after it runs. Here the full set
- * is known.
+ * reference the lower half writes would otherwise address a key the document
+ * does not carry, and a parser rejects the whole document for it.
+ * `@useSecurity` cannot make this check itself. A `@securityScheme` anywhere
+ * in the program can still arrive after it runs. The full set of names is
+ * known only once the whole program is read.
  *
  * Only the names are carried. Turning a name into a reference is a document
- * detail, and it belongs to the lower half.
+ * detail that belongs to the lower half.
  *
  * @param program - The program to read the applications from
  * @param target - The namespace or operation that carries the `@useSecurity`
@@ -71,7 +70,11 @@ export function resolveSecuritySchemeNames(
   return names;
 }
 
-/** Turns the recorded variables of one server into resolved nodes. */
+/**
+ *  Turns the recorded variables of one server into resolved nodes.
+ *
+ * @param variables - The recorded server variables
+ */
 function resolveServerVariables(
   variables: Record<string, AsyncAPIServerVariableState>,
 ): ReadonlyMap<string, ServerVariableNode> {
@@ -97,8 +100,8 @@ function resolveServerVariables(
  * the channels are resolved, because the channel is where the reference is
  * written.
  *
- * Only the service namespace is read. A `@server` anywhere else never
- * reaches the document, and it is reported on its own.
+ * Only the service namespace is read, since a `@server` anywhere else never
+ * reaches the document and is reported on its own.
  *
  * @param program - The program to read the servers from
  * @param namespace - The service namespace, or `undefined` when the program
@@ -117,20 +120,20 @@ export function declaredServerNames(
 /**
  * Resolves the servers of the service namespace.
  *
- * The decorator already checked each server. It reported a diagnostic and
- * dropped any server with a bad or repeated name, or with a blank required
- * field. So every record here is safe to use as a key.
+ * The decorator already checked each server, reporting and dropping any with
+ * a bad or repeated name or a blank required field. Every record here is
+ * safe to use as a key.
  *
  * `security`, `externalDocs`, and `tags` come from the namespace rather than
  * from one server, so every server the namespace declares carries the same
  * value for all three. They are read once and shared here. The lower half
- * gives each server its own copy, because that is where a shared value would
- * turn into a shared object in the output.
+ * gives each server its own copy. That is where a shared value would
+ * otherwise turn into a shared object in the output.
  *
- * The `externalDocs` and `tags` of the namespace also reach `info`, because
- * the servers are read from the service namespace and `info` reads that same
- * namespace. The duplication is intended. AsyncAPI defines both fields on
- * both objects, and a reader of a server should not have to look at `info`.
+ * The `externalDocs` and `tags` of the namespace also reach `info`, since
+ * `info` reads that same namespace. The duplication is intended: AsyncAPI
+ * defines both fields on both objects, and a reader of a server should not
+ * have to look at `info`.
  *
  * @param program - The program to read the servers from
  * @param namespace - The service namespace
@@ -205,14 +208,13 @@ export function reportServersOutsideService(
  * document.
  *
  * The `security` array sits on a server object, so such an application has
- * nowhere to go and changes nothing. This is the same silent failure that
- * `server-outside-service` was added for.
+ * nowhere to go and changes nothing, the same silent failure
+ * `server-outside-service` guards against.
  *
- * A namespace that declares a server is not enough. Only the service
- * namespace's servers are emitted, so a `@server` elsewhere is dropped and
- * reported, and the `@useSecurity` beside it has just as little to attach to.
- * Reading the recorded state alone would call that namespace served and let
- * the second mistake pass without a word.
+ * Only the service namespace's servers are emitted. A `@server` elsewhere is
+ * not enough: it is dropped and reported. The `@useSecurity` beside it has
+ * just as little to attach to. Reading the recorded state alone would call
+ * that namespace served and miss the second mistake.
  *
  * @param program - The program to read the applications from
  * @param service - The namespace the document is emitted from, if there is one

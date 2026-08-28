@@ -254,10 +254,9 @@ describe("Unit: Message raw schemas: conflicts (Phase 3.9)", () => {
     const doc = await documentFrom(runner.program);
 
     // The derived message declares two header sources, so it gets none of
-    // them. What it declares is what decides that, not what it resolved to.
-    // A message with an unresolved conflict must not adopt the lift of its
-    // base message, because that would emit a `headers` object next to the
-    // error that says none was emitted.
+    // them: what it declares decides this, not what it resolved to. It must
+    // not adopt its base message's lift, or a `headers` object would sit
+    // next to the error that says none was emitted.
     const reported = diagnosticsWith(runner.program.diagnostics, "duplicate-message-headers");
     expect(reported).toHaveLength(1);
     expect(Object.hasOwn(doc.components?.messages?.OrderCreated ?? {}, "headers")).toBe(false);

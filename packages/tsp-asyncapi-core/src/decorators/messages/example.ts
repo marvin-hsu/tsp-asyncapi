@@ -32,11 +32,10 @@ export interface MessageExampleOptions {
  * part of the public surface.
  *
  * `headers` and `payload` hold the raw TypeSpec value, not a marshalled JS
- * object. The raw value keeps the type of every scalar it contains, so the
- * emitter can serialize a `utcDateTime` to its ISO form rather than emit the
- * compiler's internal value object. This follows the compiler's own
- * `@example` and `@opExample`, which record the raw value for the same
- * reason.
+ * object, so the emitter can serialize a `utcDateTime` to its ISO form
+ * rather than emit the compiler's internal value object. This follows the
+ * compiler's own `@example` and `@opExample`, which record the raw value
+ * for the same reason.
  * @public
  */
 export interface MessageExampleState extends MessageExampleOptions {
@@ -59,21 +58,18 @@ const [getMessageExamplesInternal, setMessageExamples] = useStateMap<Model, Mess
 /**
  * Adds one example to a message.
  *
- * This decorator is repeatable. Each application appends its own example
- * rather than replacing a prior one. AsyncAPI's `examples` is an array, and
- * one message often shows several situations, each with its own `name`. The
- * emitted array follows source order.
+ * This decorator is repeatable: each application appends its own example
+ * rather than replacing a prior one, matching AsyncAPI's `examples` array.
+ * The emitted array follows source order.
  *
- * Every example carries at least one of `headers` and `payload`. An example
- * with neither says nothing about the message, so it is reported and
- * dropped.
- *
- * The example content is not checked against the message schema. The value
- * is emitted as written.
+ * An example needs at least one of `headers` and `payload`; one with
+ * neither says nothing about the message, so it is reported and dropped.
+ * The content is not checked against the message schema and is emitted as
+ * written.
  *
  * @param context - The decorator context
  * @param target - The message model
- * @param example - The example content: `headers`, `payload`, or both
+ * @param _example - The example content. The marshalled value is unused.
  * @param options - The `name` and `summary` of this example
  *
  * @example
@@ -97,15 +93,13 @@ export function $messageExample(
   _example: unknown,
   options?: MessageExampleOptions,
 ) {
-  // The marshalled `_example` argument is not used. Marshalling turns a
-  // value into plain JS, which loses the type of every scalar inside it. A
-  // `utcDateTime` would then reach the document as the compiler's own value
-  // object rather than as an ISO string. So the raw value is read back off
-  // the decorator application instead, the way the compiler's `@example` and
-  // `@opExample` read theirs.
-  // `decoratorTarget` is the source node of the application that is running.
-  // Its static type is the wider `DiagnosticTarget`, so it is narrowed here
-  // to compare against the node each application records.
+  // The marshalled `_example` argument is unused: marshalling loses the type
+  // of every scalar it contains, so a `utcDateTime` would reach the document
+  // as the compiler's value object rather than an ISO string. The raw value
+  // is read back off the decorator application instead, matching how the
+  // compiler's `@example` and `@opExample` read theirs.
+  // `decoratorTarget`'s static type is the wider `DiagnosticTarget`, so it is
+  // narrowed here to compare against the node each application records.
   const node = context.decoratorTarget as DecoratorExpressionNode | AugmentDecoratorStatementNode;
   const application = target.decorators.find(
     (d) => d.decorator === $messageExample && d.node === node,
@@ -116,17 +110,15 @@ export function $messageExample(
   const payload = raw?.properties.get("payload")?.value;
 
   if (headers === undefined && payload === undefined) {
-    // The diagnostic points at this application, not at the model. One model
-    // can carry several applications, and only the model tells the user
-    // nothing about which of them was rejected.
+    // Points at this application, not the model: a model can carry several
+    // applications, and the model alone would not say which was rejected.
     reportDiagnostic(context.program, { code: "empty-message-example", target: node });
     return;
   }
 
   const examples = getMessageExamplesInternal(context.program, target) ?? [];
-  // An empty prose field is dropped rather than recorded. A blank name names
-  // nothing and a blank summary summarises nothing. The emitted field would
-  // claim the example carries one rather than none.
+  // A blank `name` or `summary` is dropped rather than recorded, since the
+  // emitted field would otherwise claim the example carries one.
   examples.push({
     node,
     ...(options?.name ? { name: options.name } : {}),
@@ -139,8 +131,8 @@ export function $messageExample(
 
 /**
  * Reads back every example that `@messageExample` records for one model.
- * The list is in the order the applications ran, which is not source order.
- * The emitter sorts it before it emits the `examples` array.
+ * The list is in the order the applications ran, which is not source order;
+ * the emitter sorts it before it emits the `examples` array.
  *
  * @param program - The program to read the state from
  * @param target - The model the decorator was applied to
@@ -151,8 +143,6 @@ export function $messageExample(
  * @public
  */
 export function getMessageExamples(program: Program, target: Model): MessageExampleState[] {
-  // Copy the array and every entry. The stored array is the one the decorator
-  // pushes into, so handing it out lets a caller sort or push and change what
-  // the emitter writes.
+  // A copy, so a caller cannot mutate emitted state through the returned value.
   return (getMessageExamplesInternal(program, target) ?? []).map((example) => ({ ...example }));
 }

@@ -1,18 +1,18 @@
 /**
- * The logical types the Avro specification defines, and what each is written
- * on.
+ * The logical types the Avro specification defines, and what each is
+ * written on.
  *
- * A logical type is an attribute of a type rather than a type of its own. Avro
- * carries a date as an `int` and a timestamp as a `long`, and a reader that
- * knows the attribute builds a date or a timestamp from it. A reader that does
- * not know it reads the number, so the attribute never changes what is on the
- * wire.
+ * A logical type is an attribute of a type, not a type of its own. Avro
+ * carries a date as an `int` and a timestamp as a `long`. A reader that
+ * knows the attribute builds a date or a timestamp from it. A reader that
+ * does not know it just reads the number, so the attribute never changes
+ * what is on the wire.
  *
  * This table is the only thing that checks an annotation. Measured: `avsc`
- * accepts `{ type: "int", logicalType: "totally-made-up" }` without a word, and
- * it drops the attribute altogether when it writes a schema back out. So a
- * pair the specification does not name would reach a schema registry as a
- * schema no reader understands.
+ * accepts `{ type: "int", logicalType: "totally-made-up" }` without a word,
+ * and drops the attribute when it writes the schema back out. A pair the
+ * specification does not name would reach a schema registry as a schema no
+ * reader understands.
  */
 
 import type { Diagnostic, DiagnosticTarget } from "@typespec/compiler";
@@ -30,8 +30,8 @@ import {
 } from "../types.js";
 
 /**
- * How wide an Avro duration is. The twelve bytes hold three unsigned four byte
- * numbers: the months, the days and the milliseconds.
+ * How wide an Avro duration is: twelve bytes holding three unsigned
+ * four-byte numbers, for the months, the days, and the milliseconds.
  */
 const DURATION_SIZE = 12;
 
@@ -66,10 +66,9 @@ const AVRO_PRIMITIVES: ReadonlySet<string> = new Set(AVRO_PRIMITIVE_NAMES);
 /**
  * Writes a logical type onto a schema, or refuses the pair.
  *
- * Two shapes take an annotation, and they are the two the specification names:
- * a primitive, and a fixed type. Everything else is refused, including a
- * reference to a named type: a reference is a name, and the annotation belongs
- * to the definition that name points at.
+ * Only two shapes take an annotation, the two the specification names: a
+ * primitive, and a fixed type. A reference to a named type is refused too,
+ * because the annotation belongs on the definition that name points at.
  *
  * @param diagnostics - Where a refusal is collected
  * @param schema - The schema to annotate
@@ -198,10 +197,9 @@ export function namedTypeOf(schema: AvroSchema): string | undefined {
 /**
  * How many digits a decimal of a stated width holds.
  *
- * Avro carries the digits as a two's complement integer, so `size` bytes hold
- * every number up to `2^(8 * size - 1) - 1`. The specification bounds the
- * precision by the base ten logarithm of that number, which is one less than
- * the count of its digits.
+ * Avro carries the digits as a two's complement integer, so `size` bytes
+ * hold every number up to `2^(8 * size - 1) - 1`. The precision is bounded
+ * by the base ten logarithm of that number, one less than its digit count.
  *
  * @param size - The width of the fixed type, in bytes
  * @returns The largest precision that width carries
@@ -214,8 +212,7 @@ function maxPrecisionOf(size: number): number {
 /**
  * What a schema is, as the table above compares it.
  *
- * @returns The primitive name, or `fixed`, or undefined when the schema is
- *   nothing an annotation can be written on
+ * @returns The primitive name, or `fixed`, or undefined when nothing here takes an annotation
  */
 function underlyingOf(schema: AvroSchema): string | undefined {
   if (isAvroUnion(schema)) {

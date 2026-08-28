@@ -6,12 +6,12 @@ import { validateAsyncAPI } from "../../../utils/spec-validation.js";
 /**
  * Where a Parameter Object and a Server Variable Object are written.
  *
- * Neither carries a name of its own: the author wrote it as the key of the
- * map it sits in. So the key *is* the name, one use is enough to earn a
- * component, and the key joins the identity — two parameters that differ
- * only in their name are two fragments, and a document with a `{tenant}` and
- * a `{region}` that are both `{}` writes two components rather than pointing
- * one at the other.
+ * Neither object carries its own name. The author writes it as the key of
+ * the map it sits in, so the key is the name, and one use is enough to earn
+ * a component. The key also joins the identity: two parameters with the
+ * same shape but different names stay two separate fragments. A document
+ * with both `{tenant}` and `{region}` as `{}` writes two components,
+ * never one pointing at the other.
  */
 describe("Unit: promoting parameters and server variables", () => {
   it("shares one parameter between the channels that address it", async () => {

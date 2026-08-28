@@ -4,15 +4,8 @@ import { AsyncAPITester } from "#emitter/testing.js";
 import { $onEmit } from "#emitter/emitter.js";
 import type { AsyncAPIEmitterOptions } from "#emitter/emitter-options.js";
 
-/**
- * The emit context, with the three members this emitter reads.
- *
- * The compiler builds a larger one, and nothing here touches the rest of it.
- *
- * @param program - The compiled program to emit
- * @param options - The emitter options of the run
- * @returns The context to hand to the emitter
- */
+// Builds the emit context with the three members this emitter reads. The
+// compiler builds a larger one; nothing here touches the rest of it.
 function emitContextFor(
   program: Program,
   options: AsyncAPIEmitterOptions,
@@ -32,14 +25,9 @@ describe("Unit: $onEmit", () => {
       namespace Test;
     `);
 
-    // The write is captured with a spy rather than an assignment. A spy
-    // records the call, so the arguments are read off it instead of out of
-    // two variables the replacement had to fill. The avro emitter case
-    // captures its own write the same way.
-    //
-    // Nothing restores the spy. The suite sets no `restoreMocks`, and
-    // `createInstance` builds a fresh host for each case. The replaced
-    // method reaches no other case.
+    // The write is captured with a spy so the call arguments can be read off
+    // it. Nothing restores the spy, because `createInstance` builds a fresh
+    // host for each case.
     const writeFile = vi.spyOn(runner.program.host, "writeFile").mockResolvedValue(undefined);
 
     await $onEmit(

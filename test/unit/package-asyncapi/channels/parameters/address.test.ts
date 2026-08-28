@@ -137,8 +137,8 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     await documentFrom(runner.program);
     const reported = findDiagnostic(diagnostics, "missing-channel-param");
 
-    // The address is the place the author has to change, and no property
-    // exists to point at.
+    // The address is the place the author must change. No property exists to
+    // point at instead.
     expect(targetText(reported)).toBe(`"orders.{orderId}"`);
   });
 
@@ -206,8 +206,7 @@ describe("Unit: Channel parameters: address matching (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // The operation declares the three in the opposite order to the address.
-    // The address decides the emitted order, so this input fails if the map
-    // is ever built from the declarations instead.
+    // The address decides the emitted order, not the declarations.
     expect(
       Object.keys(doc.channels?.["orders.{region}.{tenant}.{orderId}"].parameters ?? {}),
     ).toEqual(["region", "tenant", "orderId"]);

@@ -5,15 +5,14 @@ import { $lib } from "#core/lib.js";
 /**
  * The code of one diagnostic this library defines, without the library prefix.
  *
- * The union comes from `$lib`, so a code that is not defined is a compile
- * error rather than a test that looks for something nothing can report.
- * `createTypeSpecLibrary` declares its diagnostics parameter as `const`, which
- * is what keeps the keys as literals here.
+ * The union comes from `$lib`, so an undefined code is a compile error rather
+ * than a test that looks for something nothing can report.
+ * `createTypeSpecLibrary` declares its diagnostics parameter as `const`.
+ * That keeps these keys as literal types.
  *
- * The code stays spelled out at the call site on purpose. It is the part of a
- * diagnostic that other people's code depends on, so a test naming it is
- * pinning a public contract. Deriving the code from `$lib` as well would leave
- * the assertion comparing the library against itself.
+ * The code stays spelled out at the call site on purpose: it is the part of
+ * a diagnostic other code depends on, so naming it pins a public contract.
+ * Deriving it from `$lib` too would compare the library against itself.
  */
 export type DiagnosticCode = keyof typeof $lib.diagnostics;
 
@@ -63,18 +62,16 @@ export function diagnosticsWith(
 /**
  * Reads the source text one diagnostic points at.
  *
- * A diagnostic carries a code and a message, and it also carries the place
- * the author has to look. The place is the part a test cannot see in the
- * code alone. Two decorator arguments sit next to each other, so an
- * off-by-one in the argument index still produces the right code with the
- * squiggle on the wrong argument.
+ * The target is the part a test cannot see from the code alone: two
+ * decorator arguments can sit next to each other, so an off-by-one in the
+ * argument index still produces the right code with the squiggle on the
+ * wrong argument.
  *
- * The text of a string argument holds its quotes, because the node the
- * compiler points at is the whole string literal.
+ * A string argument's text includes its quotes, since the compiler points at
+ * the whole string literal.
  *
  * @param diagnostic - The diagnostic to read the target of
- * @returns The source text of its target, or an empty string when it has no
- * target. An empty string never matches text a test asks for.
+ * @returns The source text of its target, or an empty string when it has none
  */
 export function targetText(diagnostic: Diagnostic): string {
   const location = getSourceLocation(diagnostic.target);
@@ -87,7 +84,7 @@ export function targetText(diagnostic: Diagnostic): string {
  *
  * A property that only claims something about a document the emitter did
  * write has to skip the draws it refused, and this is the question that
- * decides. It was written out inline at ten sites.
+ * decides.
  *
  * @param diagnostics - Every diagnostic the compile reported
  * @returns Whether any of them is an error

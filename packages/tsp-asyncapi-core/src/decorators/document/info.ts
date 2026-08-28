@@ -1,3 +1,14 @@
+/**
+ * State recorded by `@info`, and the reader other modules use.
+ *
+ * A document carries exactly one Info Object, so this module keeps one
+ * value per namespace and guards against a second application. It trims
+ * every text field, checks the `uri`-format fields for an absolute URL, and
+ * drops a field that fails a check rather than the whole `@info` value. It
+ * does not check whether the namespace it was applied to reaches the
+ * emitted document.
+ */
+
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { DEFAULT_INFO_VERSION } from "../../constants.js";
@@ -33,15 +44,14 @@ const guard = singleApplication(
  *
  * Three fields of the Info Object carry the `uri` format. The official
  * parser checks that format, and it rejects the whole document when a value
- * fails it. A relative reference such as `/terms` fails it.
- *
- * Only the field is dropped. The rest of `@info` names the application, and
- * none of it is at fault.
+ * fails it. A relative reference such as `/terms` fails it, so only that
+ * field is dropped; the rest of `@info` is not at fault.
  *
  * @param context - The decorator context
  * @param value - The value the author wrote
  * @param field - The name to report, such as `license.url`
  * @param target - Where to report a problem about this field
+ *
  * @returns The trimmed URL, or `undefined` when there is none to keep
  */
 function urlField(
@@ -68,6 +78,10 @@ function urlField(
  * A contact whose every field is blank is left out altogether. An empty
  * Contact Object names nobody, and a reader cannot tell it from a contact
  * the author meant to leave blank.
+ *
+ * @param context - The decorator context
+ * @param contact - The contact object the author wrote
+ * @param target - Where a problem is reported
  */
 function contactOf(
   context: DecoratorContext,
@@ -89,6 +103,10 @@ function contactOf(
  * `name` is the one required field of a License Object. A blank one names no
  * license, so it is reported and the whole object is dropped. The URL is not
  * checked in that case, because the license it would point at is gone.
+ *
+ * @param context - The decorator context
+ * @param license - The license object the author wrote
+ * @param target - Where a problem is reported
  */
 function licenseOf(
   context: DecoratorContext,
@@ -122,7 +140,7 @@ function licenseOf(
  * alone is dropped.
  *
  * Apply this decorator only once per namespace. A document carries one Info
- * Object, so a second application is reported and discarded.
+ * Object, so a second application is reported and dropped.
  *
  * @param context - The decorator context
  * @param target - The namespace to apply this decorator to
@@ -143,11 +161,9 @@ function licenseOf(
  */
 export function $info(context: DecoratorContext, target: Namespace, info: AsyncAPIInfoState) {
   // Decorators on one declaration run bottom-up, so the application written
-  // last in the source runs first and wins. The guard records that this
-  // decorator ran, before any value is checked, so a value that fails a
-  // check still blocks a later application.
-  //
-  // Only a first claim runs the checks below. An augment `@@info` runs once
+  // last in the source runs first and wins. The guard claims before any
+  // value is checked, so a failing check still blocks a later application.
+  // Only a first claim runs the checks below: an augment `@@info` runs once
   // per declaration of its target namespace, and a reopened namespace would
   // otherwise report each field problem once per declaration.
   if (guard.claim(context, target) !== "first") return;
@@ -181,8 +197,8 @@ export function $info(context: DecoratorContext, target: Namespace, info: AsyncA
  *
  * @param program - The program to read the state from
  * @param target - The namespace the decorator was applied to
- * @returns A copy of the recorded info state, or `undefined` when the
- * decorator was never applied
+ * @returns A copy of the recorded info state, or `undefined` when the decorator
+ * was never applied
  *
  * @public
  */

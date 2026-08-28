@@ -171,9 +171,7 @@ describe("Unit: the @kafkaMessage decorator", () => {
   });
 
   it("trims a padded schema id location before it is checked", async () => {
-    // The allowed set holds `header` and `payload`. The value is trimmed
-    // first, so spacing around the word does not turn a legal location into
-    // a rejected one.
+    // The value is trimmed before the check against `header` and `payload`.
     const doc = await emitDocument(`
       ${SERVICE}
 

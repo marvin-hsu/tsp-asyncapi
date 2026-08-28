@@ -1,9 +1,9 @@
 /**
  * The public API of this package.
  *
- * Every name is listed on purpose. An `export *` publishes whatever a module
- * happens to export, and an `@internal` tag does not prevent that: it only
- * changes the API report.
+ * Every name is listed on purpose. An `export *` would publish whatever a
+ * module exports. An `@internal` tag does not stop that; it only changes the
+ * API report.
  *
  * This package is experimental. Every name here may change in any release.
  */

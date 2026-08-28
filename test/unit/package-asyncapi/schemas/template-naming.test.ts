@@ -102,16 +102,11 @@ describe("Unit: Schemas — template instantiation naming", () => {
   });
 
   it("reports a diagnostic error when a synthesized template-instantiation name collides with a user-declared model's key", async () => {
-    // This test used to document a different, superseded policy:
-    // first-come-first-served auto-suffixing. Under that old policy, the
-    // instantiation reached first via property `a` claimed the bare
-    // `EnvelopeOrder` key. The user's own declaration, reached second via
-    // property `b`, was silently pushed to a numeric suffix. An
-    // architecture review replaced that policy with a hard diagnostic
-    // error. This matches `@typespec/openapi3`'s own collision policy.
-    // Whichever of the two is built second now reports
-    // `duplicate-schema-key` and degrades to the same colliding key,
-    // instead of being silently renamed.
+    // A synthesized template-instantiation name can collide with a
+    // user-declared model's own key. Whichever of the two is built second
+    // reports `duplicate-schema-key` as an error and degrades to the same
+    // colliding key, instead of being silently renamed. This matches
+    // `@typespec/openapi3`'s own collision policy.
     const { builder, program, W } = await compileSchemas(t.code`
       model Order { id: string; }
       model Envelope<T> { data: T; }
@@ -306,10 +301,10 @@ describe("Unit: Schemas — template instantiation naming", () => {
   it("gives an anonymous union argument no name, so the instantiation inlines", async () => {
     // An inline union such as `"a" | "b"` is an anonymous `Union`. Its
     // `name` is `undefined`, so it has no fixed identity to name the
-    // instantiation after. The argument namer answers "unspeakable", and
-    // the whole instantiation then has no compact composed name. A `Model`
-    // argument can never reach this rule, because a model instantiation is
-    // always named. So only an inline union reaches it.
+    // instantiation after. The argument namer answers "unspeakable". The
+    // whole instantiation then has no compact composed name. A `Model`
+    // argument can never reach this rule, because a model instantiation
+    // is always named. Only an inline union reaches it.
     const { builder, M } = await compileSchemas(t.code`
       model Envelope<T> { body: T; }
       @test("M")

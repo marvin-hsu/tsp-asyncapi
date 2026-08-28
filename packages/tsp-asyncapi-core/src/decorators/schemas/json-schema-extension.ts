@@ -51,7 +51,12 @@ export function $jsonSchemaExtension(
   setJsonSchemaExtensions(context.program, target, existing);
 }
 
-/** @public */
+/**
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ *
+ *  @public
+ */
 export function getJsonSchemaExtensions(
   program: Program,
   target: Model | ModelProperty,

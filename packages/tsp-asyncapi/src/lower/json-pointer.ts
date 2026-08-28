@@ -1,21 +1,14 @@
 /**
  * Every `$ref` this emitter writes, and the one it reads back.
  *
- * A `$ref` is a root and one or more tokens, and each token is an escaped
- * key. Both halves of that decision live here, for every section of the
- * document: schemas, messages, channels, servers, and security schemes.
+ * A `$ref` is a root and one or more escaped-key tokens. Both the writing and
+ * the escaping live here, for every section of the document: schemas,
+ * messages, channels, servers, and security schemes. Keeping escaping outside
+ * this module risks a broken pointer from a site that never learned to do it.
  *
- * Keeping one of them outside was the mistake this module exists to prevent.
- * A layer whose key charset is relaxed later then produces a broken pointer,
- * and it produces it from the one site that never learned to escape.
- *
- * The roots themselves are constants, so a section name is written once as
- * well.
- *
- * One `$ref` in the document comes from the user, not from this emitter. A
- * raw schema is copied verbatim, and it can carry a reference into the
- * document. Resolving that one lives here too, so the escaping rule has one
- * definition for both directions.
+ * A raw schema is copied verbatim and can carry a `$ref` the user wrote, not
+ * this emitter. Resolving that reference lives here too, so both directions
+ * share one escaping rule.
  */
 
 import type { ReferenceObject } from "../types/index.js";
@@ -34,21 +27,14 @@ import {
  *
  * Per RFC 6901, `~` becomes `~0` and `/` becomes `~1`. A raw `~` or `/`
  * would otherwise produce a `$ref` that every conforming resolver misreads
- * as a path through nested objects.
- *
- * The keys that reach this function come from three sources with three
- * different charsets. A `components.schemas` key can hold any character,
- * because a model or namespace identifier can be backquoted. A
- * `components.messages` key holds neither character today. A `@useServer`
- * name is a bare string this emitter never checks, so it can hold both.
+ * as a path through nested objects. A `components.schemas` key can hold
+ * either character. A `components.messages` key holds neither today. A
+ * `@useServer` name can hold both, since this emitter never checks its
+ * charset.
  *
  * Only the `$ref` string needs this escaping. The key stored in the map the
- * pointer points into is left as it is.
- *
- * The function stays inside this module. Every caller wants a whole pointer,
- * and each of those is a function below. A caller that escaped a token itself
- * would decide the pointer root itself as well, which is the split this
- * module exists to prevent.
+ * pointer points into is left as it is. The function stays private: every
+ * caller wants a whole pointer, built by a function below.
  *
  * @param key - The key to place in a pointer
  * @returns The escaped token

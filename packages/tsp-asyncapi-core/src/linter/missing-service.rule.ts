@@ -31,13 +31,12 @@ export const missingServiceRule = createRule({
       // The guard: a channel, not merely a message.
       //
       // An application declares channels. A shared library of `@message`
-      // models does not, and it has no service of its own on purpose. An
-      // earlier version of this guard accepted messages alone and reported
-      // every such library.
+      // models does not, and it has no service of its own on purpose.
+      // Reporting on messages alone would flag every such library.
       //
       // A program with messages and no channel is left alone for the same
-      // reason. It describes no traffic, so a placeholder title is the
-      // smaller of its problems.
+      // reason: it describes no traffic, so a placeholder title is the
+      // smaller problem.
       const channels = listChannels(program);
       if (channels.size === 0) return;
 

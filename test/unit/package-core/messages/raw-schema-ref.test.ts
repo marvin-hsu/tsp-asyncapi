@@ -9,10 +9,9 @@ import { localRef } from "#core/decorators/messages/raw-schema.js";
  * else — a bare `#`, a URL, a relative path, a non-string, a value that is not
  * an object — is not that.
  *
- * The shapes are enumerated because they are the rule. A property once stated
- * the same claim while rebuilding the rule as its own oracle, with the three
- * conditions in the same order as the implementation, which asserts that the
- * code does what the code does.
+ * The shapes are enumerated because they are the rule. Restating the rule as
+ * a mirrored oracle, with the same conditions in the same order, would only
+ * assert that the code matches itself.
  *
  * The claim that does not come from the rule stays a property in
  * `test/property-based/pure-predicates.test.ts`: a sibling key beside the

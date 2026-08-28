@@ -31,7 +31,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     const doc = await documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/missing-channel-param");
-    // The map still covers the whole address, so the document stays readable.
+    // The map still covers the whole address, so the document stays usable.
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
       orderId: {},
     });
@@ -62,8 +62,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unused-channel-param");
 
-    // Each operation carries its own property, so each of them is a place
-    // the author has to change.
+    // Each operation carries its own property, so each is a place to fix.
     expect(reported).toHaveLength(2);
   });
 
@@ -93,8 +92,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     const reported = diagnosticsWith(diagnostics, "optional-channel-param");
 
     // Every declaration of a name the address uses is checked. An optional
-    // parameter is wrong wherever it sits, so which operation declares it
-    // first must not decide whether the author hears about it.
+    // parameter is wrong wherever it sits, first declaration or not.
     expect(reported).toHaveLength(1);
     expect(targetText(reported[0])).toBe("orderId?: string");
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
@@ -127,9 +125,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
     const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "non-string-channel-param");
 
-    // The two declarations also disagree, and that is reported too. The
-    // disagreement alone would leave the author free to change the string
-    // one into an `int32`, which is the illegal declaration of the two.
+    // The disagreement is also reported. Without it, the author could change
+    // the string declaration into the illegal `int32` one unchallenged.
     expect(reported).toHaveLength(1);
     expect(targetText(reported[0])).toBe("orderId: int32");
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/conflicting-channel-param");
@@ -206,8 +203,7 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
       "examples",
       "location",
     ]);
-    // The first declaration in source order is the one that reaches the
-    // document, field by field.
+    // The first declaration in source order wins, field by field.
     expect(resolveParameters(doc, doc.channels?.["orders.{region}"].parameters)).toEqual({
       region: {
         enum: ["eu", "us"],
@@ -243,8 +239,8 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
 
     const doc = await documentFrom(runner.program);
 
-    // The two unions are separate TypeSpec objects, because each operation
-    // writes its own. They allow the same values, so they agree.
+    // The two unions are separate TypeSpec objects, one per operation. They
+    // allow the same values, so they agree.
     expect(diagnostics).toEqual([]);
     expect(resolveParameters(doc, doc.channels?.["orders.{region}.changed"].parameters)).toEqual({
       region: { enum: ["eu", "us"] },
@@ -292,9 +288,9 @@ describe("Unit: Channel parameters: disagreeing declarations (Phase 4.3)", () =>
 
     await documentFrom(runner.program);
 
-    // The two declarations name the same set, so a comparison that sorted
-    // first would call them equal. They are not: the order is the order the
-    // emitted `enum` array carries, and only one of the two can be emitted.
+    // The two declarations name the same set, so sorting before comparing
+    // would call them equal. Order matters: it becomes the emitted `enum`
+    // array, and only one declaration's order can win.
     const reported = diagnosticsWith(diagnostics, "conflicting-channel-param");
     expect(reported).toHaveLength(1);
     expect(reported[0].message).toContain("type");

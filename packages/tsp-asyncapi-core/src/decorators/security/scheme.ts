@@ -14,6 +14,14 @@ import { sourcePositionOf } from "../../source-order.js";
 import { settleNameClash } from "../name-clash.js";
 import { HTTP_BEARER_SCHEME, COMPONENTS_KEY_PATTERN } from "../../constants.js";
 
+/**
+ * `@securityScheme` and its state reader, `getSecuritySchemes`.
+ *
+ * Every scheme kind has its own normalize function, since AsyncAPI requires
+ * different fields per kind and rejects a URL field that is blank or
+ * relative. This module builds the emitted `SecuritySchemeObject`; it does
+ * not decide where a scheme is used, which is `@useSecurity`'s job.
+ */
 export type { AsyncAPISecuritySchemeState } from "./scheme-state.js";
 
 /**
@@ -93,7 +101,6 @@ export type SecuritySchemeArgument =
 
 /**
  * Reads one required string field, and reports it when it is blank.
- *
  * A blank value passes the type check and then makes the document invalid,
  * so it is treated the same as a missing one. This follows the rule
  * `@server` applies to `host` and `protocol`.
@@ -102,6 +109,7 @@ export type SecuritySchemeArgument =
  * @param value - The value the author gave
  * @param field - The name of the field, for the diagnostic
  * @param target - The node to report on
+ *
  * @returns The trimmed value, or `undefined` when it is blank
  */
 function requireField(
@@ -128,13 +136,13 @@ function requireField(
  * A blank value is reported the same way a blank name is. A value that is
  * not an absolute URL is reported as well. AsyncAPI marks every URL field
  * of a security scheme with the `uri` format, and the official parser
- * rejects the whole document over a relative value. Emitting it would hand
- * the author a document no parser accepts.
+ * rejects the whole document over a relative value.
  *
  * @param context - The decorator context
  * @param value - The value the author gave
  * @param field - The name of the field, for the diagnostic
  * @param target - The node to report on
+ *
  * @returns The trimmed URL, or `undefined` when it cannot be used
  */
 function requireUrlField(
@@ -158,16 +166,15 @@ function requireUrlField(
  * Trims every entry of a scope list and drops the blank ones.
  *
  * A blank entry names no scope, so it is dropped and reported. Dropping it
- * in silence would change what the list says. A list of two blank entries
- * would become the empty list, and AsyncAPI reads the empty list as "this
- * scheme needs no scope". That is the opposite of what the author wrote.
- *
- * A list that ends up empty is kept. AsyncAPI reads an empty `scopes` as
- * "this scheme needs no scope", which differs from leaving the field out.
+ * in silence would change what the list says: two blank entries would
+ * silently become the empty list, and AsyncAPI reads an empty `scopes` as
+ * "this scheme needs no scope" rather than as the field being absent. So a
+ * list that ends up empty after trimming is still kept, not dropped.
  *
  * @param context - The decorator context
  * @param scopes - The scope names the author gave
  * @param target - The node to report a problem on
+ *
  * @returns The list to emit, or `undefined` when the author gave none
  */
 function normalizeScopes(
@@ -197,6 +204,7 @@ function normalizeScopes(
  * @param field - The name of the URL field inside that flow
  * @param value - The URL the author gave, already trimmed
  * @param target - The node to report a problem on
+ *
  * @returns Whether the URL can be emitted
  */
 function checkFlowUrl(
@@ -216,12 +224,14 @@ function checkFlowUrl(
 }
 
 /**
- * Checks one OAuth flow and turns it into the object to emit.
+ * Checks one OAuth flow and turns it into the object to emit. Returns
+ * `undefined` when a required URL is missing.
  *
  * @param context - The decorator context
  * @param flowName - Which of the four flows this is
  * @param flow - The flow the author wrote
  * @param target - The node to report a problem on
+ *
  * @returns The flow to emit, or `undefined` when a required URL is missing
  */
 function normalizeFlow(
@@ -288,11 +298,12 @@ function normalizeFlow(
 
 /**
  * Checks the `flows` of an `oauth2` scheme and turns them into the object
- * to emit.
+ * to emit. Returns `undefined` when any of them is unusable.
  *
  * @param context - The decorator context
  * @param flows - The flows the author wrote
  * @param target - The node to report a problem on
+ *
  * @returns The flows to emit, or `undefined` when any of them is unusable
  */
 function normalizeFlows(
@@ -331,7 +342,13 @@ function normalizeFlows(
  */
 type SchemeFields = Omit<SecuritySchemeObject, "type" | "description">;
 
-/** Checks the fields of an `httpApiKey` scheme. */
+/**
+ *  Checks the fields of an `httpApiKey` scheme.
+ *
+ * @param context - The decorator context
+ * @param scheme - The scheme the author wrote
+ * @param target - Where a problem is reported
+ */
 function normalizeHttpApiKey(
   context: DecoratorContext,
   scheme: Extract<SecuritySchemeArgument, { type: "httpApiKey" }>,
@@ -350,6 +367,10 @@ function normalizeHttpApiKey(
  * object is the only one carrying the field. The TypeSpec library declares
  * the same split, so the type checker rejects the field on another scheme
  * before it reaches here.
+ *
+ * @param context - The decorator context
+ * @param scheme - The scheme the author wrote
+ * @param target - Where a problem is reported
  */
 function normalizeHttp(
   context: DecoratorContext,
@@ -365,7 +386,13 @@ function normalizeHttp(
   return fields;
 }
 
-/** Checks the fields of an `oauth2` scheme. */
+/**
+ *  Checks the fields of an `oauth2` scheme.
+ *
+ * @param context - The decorator context
+ * @param scheme - The scheme the author wrote
+ * @param target - Where a problem is reported
+ */
 function normalizeOAuth2(
   context: DecoratorContext,
   scheme: Extract<SecuritySchemeArgument, { type: "oauth2" }>,
@@ -379,7 +406,13 @@ function normalizeOAuth2(
   return fields;
 }
 
-/** Checks the fields of an `openIdConnect` scheme. */
+/**
+ *  Checks the fields of an `openIdConnect` scheme.
+ *
+ * @param context - The decorator context
+ * @param scheme - The scheme the author wrote
+ * @param target - Where a problem is reported
+ */
 function normalizeOpenIdConnect(
   context: DecoratorContext,
   scheme: Extract<SecuritySchemeArgument, { type: "openIdConnect" }>,
@@ -394,7 +427,12 @@ function normalizeOpenIdConnect(
 }
 
 /**
- * Checks the fields that belong to the kind of one scheme.
+ * Checks the fields that belong to the kind of one scheme. Returns
+ * `undefined` when the scheme is unusable.
+ *
+ * @param context - The decorator context
+ * @param scheme - The scheme the author wrote
+ * @param target - Where a problem is reported
  *
  * @returns The fields to emit, or `undefined` when the scheme is unusable
  */
@@ -422,10 +460,12 @@ function normalizeSchemeFields(
 
 /**
  * Checks one scheme argument and turns it into the object to emit.
+ * Returns `undefined` when it is unusable.
  *
  * @param context - The decorator context
  * @param scheme - The scheme the author wrote
  * @param target - The node to report a problem on
+ *
  * @returns The scheme to emit, or `undefined` when it is unusable
  */
 function normalizeScheme(
@@ -528,11 +568,13 @@ export function $securityScheme(
 }
 
 /**
- * Reads back the security schemes declared by `@securityScheme`.
+ * Reads back a copy of every security scheme declared by `@securityScheme`,
+ * in source order. The list is empty when the decorator was never applied.
  *
  * @param program - The program to read the state from
- * @returns A copy of every declared scheme, in source order. The list is
- * empty when the decorator was never applied.
+ *
+ * @returns A copy of every declared scheme, in source order. The list is empty
+ * when the decorator was never applied.
  *
  * @public
  */

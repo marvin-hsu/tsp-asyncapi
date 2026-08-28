@@ -1,3 +1,11 @@
+/**
+ * The `@amqpOperation` decorator: the AMQP operation binding.
+ *
+ * It lands in `operations.<key>.bindings.amqp`. Field checks live in the
+ * sibling `config.ts`. `state.ts` claims the slot once the fields are
+ * checked.
+ */
+
 import { DecoratorContext, Operation } from "@typespec/compiler";
 import { AMQP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";

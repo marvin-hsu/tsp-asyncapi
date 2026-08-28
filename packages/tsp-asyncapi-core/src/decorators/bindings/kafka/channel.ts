@@ -1,3 +1,5 @@
+/** The Kafka channel binding: topic name, partition and replica counts, and topic configuration. */
+
 import { DecoratorContext, Interface, Namespace } from "@typespec/compiler";
 import { KAFKA_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
@@ -6,10 +8,6 @@ import { KafkaChannelBindingState, positiveCount, topicConfiguration } from "./c
 
 /**
  * The `config` argument of `@kafkaChannel`, as the author wrote it.
- *
- * `topicConfiguration` is an open map. The Kafka binding says the object may
- * carry additional properties, and its keys hold dots, so the value is typed
- * as unknown here and checked field by field instead.
  * @public
  */
 export interface KafkaChannelBindingConfig {

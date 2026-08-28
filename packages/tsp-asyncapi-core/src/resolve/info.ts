@@ -21,11 +21,11 @@ import { present, text } from "../optional-fields.js";
  * carries. `@doc` fills the description only when `@info` gave none, because
  * the more specific decorator wins.
  *
- * The node's fields are fixed, so the emitted order is the order of the Info
- * Object table in the specification. The previous builder merged the `@info`
- * value with `Object.assign`, which made the emitted order follow the order
- * the author happened to write inside `#{ ... }`. Two documents describing
- * one service would then differ by how their author typed a literal.
+ * The node's fields are fixed, so the emitted order always follows the Info
+ * Object table in the specification. It never follows the order the author
+ * happened to write inside `#{ ... }`. Two documents describing one service
+ * emit `info` with the same field order, regardless of how their author
+ * typed the `@info` literal.
  *
  * @param program - The program the service belongs to
  * @param service - The service the document describes

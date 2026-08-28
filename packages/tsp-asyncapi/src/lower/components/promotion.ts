@@ -1,40 +1,23 @@
 /**
  * Deciding which fragments earn a place in `components`.
  *
- * A fragment is a piece of the document that more than one place can carry:
- * a Bindings Object, a Tag Object, an External Documentation Object. When two
- * places carry the same one, the document repeats it. `components` plus a
- * `$ref` says it once.
+ * A fragment is a piece of the document more than one place can carry: a
+ * Bindings Object, a Tag Object, an External Documentation Object. Two
+ * places carrying the same one would repeat it in the document; `components`
+ * plus a `$ref` says it once.
  *
- * ## Two policies, split by whether the author named the thing
+ * A named TypeSpec declaration promotes on its first use, the same rule
+ * `SchemaBuilder` and `@typespec/openapi3` both follow. A Bindings Object, an
+ * External Documentation Object, and a Correlation ID Object carry no such
+ * name: their `valueof` values give this emitter no way to tell one written
+ * in place from one assigned to a constant. So those promote only on a
+ * second use, once sharing actually saves something.
  *
- * `plan/09-advanced.md` settled the rule this project follows: a named
- * TypeSpec declaration is hoisted and referenced, and something written
- * inline is expanded in place. `SchemaBuilder` has run that rule since
- * Phase 2, and `@typespec/openapi3` runs the same one.
- *
- * A tag has a name the author wrote. So does a channel parameter, a server
- * variable, and a scalar. Those are `"named"`: one use is enough.
- *
- * A Bindings Object does not. Its config arrives as a `valueof` object value,
- * and `ObjectValue` carries no pointer back to a declaration, so this emitter
- * cannot tell `#{ … }` written in place from `const prod = #{ … }`. The same
- * holds for an External Documentation Object and a Correlation ID Object.
- * Those are `"repeated"`: the second use is the evidence that sharing helps,
- * and a fragment used once stays where it is rather than gaining a `$ref` hop
- * that saves nothing.
- *
- * ## Why two passes
- *
- * `SchemaBuilder` promotes by rewriting the object it already emitted
- * (`lower/schemas/declarations.ts`). It has to: which schemas exist is
- * unknowable until the walk finishes.
- *
- * Nothing else here has that problem. The resolved model holds every server,
- * channel, operation and message before the first byte is written. So this
- * surveys first and writes second, and it never mutates an object a caller
- * already holds. That matters, because every lowering site copies its
- * fragment defensively today, and a rewrite would need those copies gone.
+ * `SchemaBuilder` promotes by rewriting the object it already emitted,
+ * because which schemas exist is unknowable until its walk finishes. This
+ * file surveys first and writes second instead: the resolved model holds
+ * every server, channel, operation, and message before the first byte is
+ * written, so nothing here needs to mutate an object a caller already holds.
  */
 
 /** How one kind of fragment earns a place in `components`. */
@@ -46,12 +29,11 @@ export interface PromotionPolicy<T> {
    * inside the fragment. A Tag Object is this: its `name` is a member, so
    * two tags of different names are already two fragments.
    *
-   * `"keyed"` also promotes on the first use, but the name is *not* inside
-   * the fragment — the author wrote it as the key of the map the fragment
-   * sits in. A Parameter Object with no fields is `{}` whatever it is
-   * called, so the key joins the identity here. Without that, a channel's
-   * `{tenant}` would point at a component named after some other channel's
-   * `{region}`.
+   * `"keyed"` also promotes on the first use, but the name lives outside the
+   * fragment: the author wrote it as the map key the fragment sits under. A
+   * Parameter Object with no fields is `{}` regardless of its name, so the
+   * key joins the identity. Otherwise a channel's `{tenant}` could point at
+   * a component named after some other channel's `{region}`.
    *
    * `"repeated"` waits for the second use, because nothing named it and one
    * use has nothing to share with.
@@ -78,9 +60,8 @@ function identityOf(value: unknown): string {
   return JSON.stringify(value, (_key, item: unknown) => {
     if (item === null || typeof item !== "object" || Array.isArray(item)) return item;
     const entries = Object.entries(item as Record<string, unknown>);
-    // `localeCompare` rather than `<`, because the sort only has to be
-    // stable, and a locale-aware comparison is what this repository's lint
-    // rules ask for on strings.
+    // `localeCompare`, not `<`: only stability matters here, and this
+    // repo's lint rules require locale-aware string comparison anyway.
     entries.sort(([a], [b]) => a.localeCompare(b));
     return Object.fromEntries(entries);
   });
@@ -108,10 +89,9 @@ export class Promoter<T> {
   /**
    * The identity of each fragment object already read.
    *
-   * One object is asked about at least twice: the survey meets it, and the
-   * site that carries it asks for its key. Reading an identity walks the
-   * whole fragment, and the fragments are read only, so the second walk
-   * answers what the first one did.
+   * Every fragment is asked about at least twice: once by the survey, once
+   * by the site reading its key back. Caching here means the second walk
+   * reuses the first one's answer instead of repeating it.
    */
   readonly #identities = new WeakMap<object, string>();
   #frozen = false;
@@ -144,11 +124,10 @@ export class Promoter<T> {
   /**
    * Closes the survey. Nothing is promoted before this runs.
    *
-   * Two fragments can ask for one key: two Tag Objects can share a name and
-   * differ in their description, which makes them two fragments by identity
-   * and one key by name. Neither is promoted then. Picking a winner would
-   * silently give one site the other site's text, and `resolve/tags.ts`
-   * already reports the conflict it can see.
+   * Two Tag Objects can share a name but differ in description: two
+   * fragments by identity, one key by name. Neither promotes then, since
+   * picking a winner would silently give one site the other's text.
+   * `resolve/tags.ts` already reports the conflict it can see.
    */
   public freeze(): void {
     const claimed = new Set<string>();

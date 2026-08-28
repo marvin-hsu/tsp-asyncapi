@@ -18,9 +18,8 @@ function reportsUnattached(diagnostics: readonly Diagnostic[]): boolean {
 
 describe("Unit: which bindings count as having reached the document", () => {
   it("leaves an operation declared in a base interface alone", async () => {
-    // `interface C extends Base` copies each operation of `Base` and runs its
-    // decorators again. The declaration in `Base` sits on no channel, and it
-    // reaches the document through the copy. Its binding did too.
+    // `interface C extends Base` copies each operation and reruns its
+    // decorators, so the copy carries the binding into the document.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_SERVICE}
 
@@ -128,11 +127,9 @@ describe("Unit: which bindings count as having reached the document", () => {
   });
 
   it("leaves the second instantiation of one template message alone", async () => {
-    // Two instantiations of one template can share a message key. They emit
-    // one Message Object between them, so the second one is dropped without a
-    // report. The decorator ran on each instantiation, so each carries its
-    // own recorded binding, and the dropped one reached the document through
-    // the surviving instantiation.
+    // Two instantiations sharing a message key emit one Message Object. The
+    // other drops silently, but its decorator ran too, so its binding still
+    // reaches the document through the surviving instantiation.
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_SERVICE}
 
@@ -180,15 +177,15 @@ describe("Unit: which bindings count as having reached the document", () => {
 
     const reported = findDiagnostic(diagnostics, BINDING_OUTSIDE);
     // The whole clause is asserted, not the bare word. The remedy sentence
-    // of this diagnostic already lists every level by name, so a test that
-    // looks for "channel" alone passes whichever level is interpolated.
+    // names every level, so a bare "channel" match would pass no matter
+    // which level got interpolated.
     expect(reported.message).toContain("for the channel level");
   });
 
   it("reports every stray binding of one target, not just the first", async () => {
-    // One target can carry two bindings that both reach nothing. They are two
-    // mistakes, so the author hears about both. The state layer stores the
-    // entries of one target as a list, and the report flattens those lists.
+    // One target can carry two stray bindings, two separate mistakes. The
+    // state stores a target's entries as a list, and the report flattens it
+    // so the author hears about both.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_SERVICE}
 
@@ -219,26 +216,23 @@ describe("Unit: which bindings count as having reached the document", () => {
     const reported = diagnosticsWith(diagnostics, BINDING_OUTSIDE);
     expect(reported).toHaveLength(4);
 
-    // The order is asserted, not just the membership. The state layer hands
-    // these over in the order the decorators ran, which is not the order the
-    // author reads, so the builder sorts them by source position. Joining the
-    // two messages before asserting cannot see that sort at all: reversing it
-    // left the whole suite green.
+    // Order is asserted, not just membership. State hands entries over in
+    // decorator run order, not source order, so the builder sorts them by
+    // source position. Joining the messages before asserting would hide that
+    // sort: a plain reverse of the list would still pass.
     const protocols = reported.map((diagnostic) => /'(\w+)' binding/.exec(diagnostic.message)?.[1]);
-    // Two targets, two bindings each. That shape is what makes the sort
-    // observable. Decorators on one declaration run bottom-up, so the entries
-    // of a single target arrive in the reverse of source order, and a plain
-    // reverse of the whole list would fix them by accident. Across two
-    // targets it cannot: reversing gives the second target first.
+    // Two targets with two bindings each make the sort observable. Decorators
+    // on one declaration run bottom-up, so one target's entries arrive in
+    // reverse source order. Reversing the whole list fixes that by accident
+    // for one target, but puts the second target first.
     expect(protocols).toEqual(["kafka", "mqtt", "amqp", "ws"]);
   });
 
   it("marks only the level the builder dropped, and still reports the other one", async () => {
-    // A namespace can carry a binding at two levels. Here the channel is
-    // dropped as a repeated id, so its binding counts as placed and is not
-    // reported. The server binding of the same namespace reaches nothing at
-    // all, because the namespace declares no server. Marking by target alone
-    // would silence it.
+    // A namespace can carry a binding at two levels. The channel's binding
+    // counts as placed because the channel drops as a repeated id, but the
+    // server's binding reaches nothing, since the namespace declares no
+    // server. Marking by target alone would silence that second one.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_SERVICE}
 
@@ -269,9 +263,9 @@ describe("Unit: which bindings count as having reached the document", () => {
   });
 
   it("names all four objects when a level-less @binding reaches nothing", async () => {
-    // `@binding` records no level, so it reports a wording of its own. The
-    // default wording interpolates the level, which would read "the any
-    // level" here and name a position the author cannot look for.
+    // `@binding` records no level, so it uses its own wording. The default
+    // wording would interpolate "the any level" here, a position the author
+    // cannot look for.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
       ${KAFKA_SERVICE}
 
@@ -298,13 +292,11 @@ describe("Unit: which bindings count as having reached the document", () => {
   });
 
   it("picks the wording per binding when a level-less and a levelled binding are both stray", async () => {
-    // `reportUnattachedBindings` chooses between two wordings for each
-    // stray binding. The level-less `@binding` gets `anyLevel`, and a
-    // levelled one such as `@kafkaChannel` gets `default`. The tests above
-    // each drive one wording per compile, so neither shows the choice
-    // being made both ways over one list.
-    // The reporter runs on its own here, with no emit before it. Nothing
-    // consumed a binding, so both applications are stray at once.
+    // `reportUnattachedBindings` picks one of two wordings per stray binding:
+    // `anyLevel` for a level-less `@binding`, `default` for a levelled one
+    // like `@kafkaChannel`. The tests above each drive only one wording per
+    // compile. Here the reporter runs alone, with no emit before it, so
+    // nothing consumed a binding and both wordings appear in one list.
     const runner = await AsyncAPITester.createInstance();
     const { program } = await runner.compile(`
       @binding("mqtt", #{ qos: 1 })
@@ -336,12 +328,10 @@ describe("Unit: which bindings count as having reached the document", () => {
 describe("Unit: Bindings — consumption marks do not leak between builds", () => {
   /**
    * A binding records whether it reached an emitted object. That mark lives on
-   * the entry, and the entry lives in program state, so it outlives the build
-   * that set it.
-   *
-   * One build per program hides the problem. Emitting one document per
-   * version, or one per service, resolves the same program more than once, and
-   * a mark left by an earlier build would then answer for the current one.
+   * the entry in program state, so it outlives the build that set it.
+   * One build per program hides this. Emitting one document per version or
+   * per service resolves the same program more than once, so a mark left by
+   * an earlier build would wrongly answer for the current one.
    */
   it("still reports a stray binding when an earlier build left a mark on it", async () => {
     const runner = await AsyncAPITester.createInstance();
@@ -360,9 +350,8 @@ describe("Unit: Bindings — consumption marks do not leak between builds", () =
       model Orphan { id: string; }
     `);
 
-    // Stand in for a previous build over the same program: place every entry,
-    // including the stray one, in a record of that build's own. A record the
-    // build owns cannot reach the next build, so the stray is still reported.
+    // Stand in for an earlier build: place every entry, including the stray
+    // one, in that build's own record, which the next build cannot reach.
     const earlierBuild = new BindingPlacements();
     for (const entry of listAllBindings(runner.program)) {
       earlierBuild.place(entry);

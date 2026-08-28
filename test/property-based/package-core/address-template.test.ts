@@ -73,7 +73,6 @@ const paramSegment: fc.Arbitrary<Segment> = legalName.map((name) => ({ kind: "pa
 
 const anySegment = fc.oneof(literalSegment, paramSegment);
 
-/** A non-empty run of segments. */
 const segments = fc.array(anySegment, { minLength: 1, maxLength: 6 });
 
 /** A run of segments holding at least one parameter. */
@@ -85,7 +84,6 @@ const segmentsWithParam = fc
   )
   .map(([before, param, after]) => [...before, param, ...after]);
 
-/** Renders segments to the address text. */
 function render(parts: readonly Segment[]): string {
   return parts.map((part) => (part.kind === "literal" ? part.text : `{${part.name}}`)).join("");
 }
@@ -95,7 +93,6 @@ function names(parts: readonly Segment[]): string[] {
   return parts.filter((part) => part.kind === "param").map((part) => part.name);
 }
 
-/** True when the list holds one name twice. */
 function hasRepeat(list: readonly string[]): boolean {
   return new Set(list).size !== list.length;
 }

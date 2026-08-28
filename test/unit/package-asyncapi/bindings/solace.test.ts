@@ -128,9 +128,8 @@ describe("Unit: the Solace binding decorators", () => {
       }
     `);
 
-    // An empty entry names no queue and no topic. Every other binding drops
-    // an empty nested object, and Solace answers the same source the same
-    // way. The list is then left with no entry, so it goes too.
+    // An empty entry names no queue and no topic, so it drops like any other
+    // empty nested object. The list is then left empty, so it drops too.
     expect(bindingsOf(operationsOf(doc).publish.bindings).solace).toEqual({
       timeToLive: 60000,
       bindingVersion: "0.4.0",

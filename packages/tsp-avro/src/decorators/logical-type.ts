@@ -1,3 +1,15 @@
+/**
+ * The `@logicalType` and `@decimal` decorators, and their reader,
+ * `getAvroLogicalType`.
+ *
+ * Both decorators write to one piece of state, because a decimal is a
+ * logical type that also carries precision and scale. This file checks the
+ * shape of what an author wrote, such as a positive precision, and refuses a
+ * second logical type on the same target. It does not check the logical type
+ * against its underlying type; the walk refuses that pairing when it builds
+ * the schema.
+ */
+
 import { DecoratorContext, ModelProperty, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
@@ -43,8 +55,6 @@ const [getLogicalTypeInternal, setLogicalTypeInternal] = useStateMap<
  * Use `@decimal` for `decimal`. It is the one logical type that takes
  * parameters, and it is unreadable without them.
  *
- * @param context - The decorator context
- * @param target - The scalar or field the meaning belongs to
  * @param name - The logical type name, such as `uuid` or `timestamp-millis`
  *
  * @example
@@ -98,8 +108,6 @@ function recordLogicalType(
  * them sit after the point. Both are part of the schema, because a reader
  * cannot place the point without them.
  *
- * @param context - The decorator context
- * @param target - The scalar or field the decimal belongs to
  * @param precision - How many digits, which is a positive number
  * @param scale - How many digits sit after the point. It defaults to zero, and
  *   it is never larger than the precision.
@@ -145,8 +153,6 @@ export function $decimal(
 /**
  * Reads the logical type declared on a scalar or a field.
  *
- * @param program - The program to read the state from
- * @param target - The scalar or field to read
  * @returns The annotation, or undefined when the target carries none
  *
  * @public

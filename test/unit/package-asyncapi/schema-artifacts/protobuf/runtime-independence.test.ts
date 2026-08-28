@@ -69,8 +69,8 @@ describe("Unit: Protobuf run time independence (Phase 16 W1)", () => {
     expect(manifest.dependencies["@typespec/protobuf"]).toBeUndefined();
 
     // The version is exact, so the judge cannot drift under a caret range.
-    // The number itself is read here rather than written down. An upgrade
-    // moves it, and this case is about the shape rather than the number.
+    // The number is read here rather than hardcoded, so an upgrade only
+    // moves the number, not this case.
     const pinned = manifest.devDependencies["@typespec/protobuf"];
     expect(pinned).toMatch(/^\d+\.\d+\.\d+$/);
     // The parity oracle runs from the workspace root, so both manifests have

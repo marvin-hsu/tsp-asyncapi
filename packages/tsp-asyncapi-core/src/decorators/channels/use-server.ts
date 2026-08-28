@@ -1,3 +1,11 @@
+/**
+ * State recorded by `@useServer`, and the reader other modules use.
+ *
+ * A channel can name several servers it is available on. This module records
+ * each name in the order the applications ran, and hands out copies to
+ * callers.
+ */
+
 import { DecoratorContext, Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
 import { SERVER_NAME_PATTERN } from "../../constants.js";
@@ -15,10 +23,9 @@ export type { UseServerState } from "./use-server-state.js";
  * never inlined into a channel.
  *
  * This decorator is repeatable, because a channel is often available on
- * several servers at once. Each application adds one reference rather than
- * replacing a prior one, and the references keep their source order. A name
- * given twice on one channel emits one reference, and the repeat is
- * reported.
+ * several servers at once. Each application adds one reference and keeps
+ * source order. A name given twice on one channel emits one reference, and
+ * the repeat is reported.
  *
  * A channel with no `@useServer` at all carries no `servers` field. AsyncAPI
  * reads an absent field and an empty array alike as "available on every
@@ -26,12 +33,10 @@ export type { UseServerState } from "./use-server-state.js";
  * array.
  *
  * The name is checked against the character set AsyncAPI allows for a key of
- * the root `servers` map. A name outside it, a blank one included, could
- * only emit a reference no parser resolves, so it is reported and dropped.
- *
- * The name is tested as written, the same way `@server` tests the key it
- * declares. So a padded name is rejected on both sides, and the author
- * writes one name the same way on each side.
+ * the root `servers` map. It is tested as written, the same way `@server`
+ * tests the key it declares, so a padded name is rejected on both sides.
+ * A name outside that set, a blank one included, could only emit a
+ * reference no parser resolves, so it is reported and dropped.
  *
  * Whether some `@server` declares the name is checked while the document is
  * built, not here. A `@server` can still arrive after this decorator runs.

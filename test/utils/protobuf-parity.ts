@@ -1,21 +1,19 @@
 /**
  * The parity oracle for generated Protobuf payloads.
  *
- * This emitter renders proto3 text itself. So the one risk that matters is
- * drift: our mapping of a TypeSpec type says one thing, and the official
- * Protobuf library says another. A test that only reads our own output cannot
- * see that.
+ * This emitter renders proto3 text itself, so it can drift from the
+ * official Protobuf library's own mapping. A test that only reads our own
+ * output cannot see that drift.
  *
- * So a parity case compiles one source twice. One compile is the run time
+ * A parity case compiles one source twice. One compile is the run time
  * path: the official decorators write their state, and this emitter walks
- * that state and renders. The other compile runs the official emitter and
- * keeps the `.proto` file it wrote. The official emitter appears here and
- * nowhere else, which is why it is a development dependency.
+ * that state and renders. The other compile runs the official emitter
+ * itself and keeps the `.proto` file it wrote. That is the only place the
+ * official emitter runs, which is why it is a development dependency.
  *
- * Both texts are then parsed, and the two descriptors are compared. The
- * comparison is about meaning: types, field numbers, labels, names, and
- * nesting. Comments and layout are not part of it, because two texts that
- * describe one wire format are equal for every consumer of the document.
+ * The two `.proto` texts are parsed and compared as descriptors: types,
+ * field numbers, labels, names, and nesting. Comments and layout are not
+ * part of the comparison, since both texts describe the same wire format.
  */
 
 import { createLibraryTester } from "./emitter-package.js";
@@ -38,13 +36,12 @@ const OfficialTester = StateTester.emit("@typespec/protobuf");
 /**
  * Parses proto3 text into a descriptor.
  *
- * Names are kept as the text spells them. The parser would otherwise rewrite
- * a field name into camel case, and a naming difference between the two texts
- * would then be invisible here.
+ * Names are kept as the text spells them, since the parser otherwise
+ * rewrites a field name to camel case. That would hide a naming difference
+ * between the two texts.
  *
- * The descriptor tree carries no syntax version, so the caller checks that
- * separately. A proto2 file and a proto3 file mean different things for the
- * same fields.
+ * The descriptor carries no syntax version, so callers check that
+ * separately: proto2 and proto3 mean different things for the same fields.
  *
  * @param text - The proto3 text to parse
  * @returns The descriptor of that text
@@ -68,8 +65,7 @@ export async function renderPayload(source: string, modelName: string): Promise<
 /**
  * Compiles one source with both libraries loaded and no emitter run.
  *
- * This is the run time path a caller of the provider sees. The official
- * decorators write their state, and nothing else has happened yet.
+ * The official decorators write their state, and nothing else has run yet.
  *
  * @param source - The TypeSpec source, which must carry the official
  *   decorators
@@ -84,8 +80,8 @@ export async function compileWithProtobuf(source: string): Promise<Program> {
 /**
  * Renders the payload of one model of an already compiled program.
  *
- * Exported for a caller that renders several payloads of one program. One
- * compilation per payload would repeat the slowest step of the test.
+ * Exported so a caller can render several payloads from one compilation,
+ * instead of repeating the slowest step of the test per payload.
  *
  * @param program - The compiled program
  * @param modelName - The model to render the payload of
@@ -118,9 +114,8 @@ export function messageModelNamed(program: Program, modelName: string): Model {
 /**
  * Compiles a source with the official emitter and returns the file it wrote.
  *
- * A parity source declares one package, so the emitter writes one file. More
- * than one file means the source stopped being a parity source, and that is
- * an error rather than a choice of which file to read.
+ * A parity source declares one package, so the emitter writes one file.
+ * More than one file is an error, not a choice of which file to read.
  *
  * @param source - The same TypeSpec source the run time path compiled
  * @returns The proto3 text the official emitter wrote
@@ -147,8 +142,8 @@ export async function expectDescriptorParity(source: string, modelName: string):
   const ourText = await renderPayload(source, modelName);
   const officialText = await emitOfficialProto(source);
 
-  // The descriptor tree says nothing about the syntax version, and the same
-  // field means different things under proto2 and proto3.
+  // Guard the syntax version directly: the descriptor comparison below
+  // cannot see it, and the same field means different things under proto2.
   expect(ourText).toContain('syntax = "proto3";');
   expect(officialText).toContain('syntax = "proto3";');
 
@@ -159,15 +154,14 @@ export async function expectDescriptorParity(source: string, modelName: string):
  * Compiles a source and asserts this emitter refuses a payload for one model.
  *
  * Every walk that stops has to stop the same way: it reports, and it yields
- * nothing. A walk that returned a partial payload would put proto3 text in
- * the document that no consumer can decode, and say so nowhere.
+ * nothing. A partial payload would put undecodable proto3 text in the
+ * document and say so nowhere.
  *
  * @param source - The TypeSpec source, which compiles without an error
  * @param modelName - The model whose payload is asked for
- * @param prepare - What to do to the program before the payload is asked for.
- *   A case that stands in for another version of the official library writes
- *   its state here, because no source can produce a shape that library does
- *   not write today.
+ * @param prepare - What to do to the program before the payload is asked
+ *   for. A case standing in for another version of the official library
+ *   writes its state here, since no source today produces that shape.
  * @returns The diagnostics the refusal reported
  */
 export async function refusePayload(

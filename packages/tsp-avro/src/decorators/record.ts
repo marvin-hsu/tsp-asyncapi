@@ -1,3 +1,12 @@
+/**
+ * The `@record` decorator and its readers.
+ *
+ * Marking a model here is what makes the emitter write it as one `.avsc`
+ * file. This file only records the mark and lists the marked models in
+ * source order. The emitter decides the file path, and the walk decides
+ * whether the model translates.
+ */
+
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateSet } from "@typespec/compiler/utils";
 
@@ -11,9 +20,6 @@ const [isRecordInternal, markRecord] = useStateSet<Model>(recordStateKey);
  * One marked model becomes one `.avsc` file. A model this one reaches is
  * written into that same file, because an Avro schema holds no import and has
  * to stand alone. Mark a model here only when you want a file for it.
- *
- * @param context - The decorator context
- * @param target - The model to emit
  *
  * @example
  * ```typespec
@@ -30,8 +36,6 @@ export function $record(context: DecoratorContext, target: Model): void {
 /**
  * Tells whether `@record` marks this model.
  *
- * @param program - The program to read the state from
- * @param target - The model to test
  * @returns True when the decorator was applied to `target`
  *
  * @public
@@ -47,7 +51,6 @@ export function isRecord(program: Program, target: Model): boolean {
  * emitter writes one file per entry, so the order decides nothing about the
  * output beyond which file is written first.
  *
- * @param program - The program to read the state from
  * @returns The marked models
  *
  * @public

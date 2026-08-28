@@ -272,7 +272,6 @@ export interface SecuritySchemeNode {
 //
 // @internal
 export interface ServerNode {
-    // (undocumented)
     readonly bindings: readonly BindingNode[];
     readonly description?: string;
     readonly externalDocs?: ExternalDocsNode;
@@ -309,7 +308,7 @@ export interface UnreadableProtobufPackage {
 
 // Warnings were encountered during analysis:
 //
-// src/resolve/service.ts:436:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
+// src/resolve/service.ts:432:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
 
 // (No @packageDocumentation comment for this package)
 

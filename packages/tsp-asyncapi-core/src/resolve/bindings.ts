@@ -1,10 +1,10 @@
 /**
  * The resolve half of the bindings.
  *
- * This half reads the recorded applications, orders them, decides which one
- * wins a repeated protocol, and reports every application that reached
- * nothing. What it produces is a list of `BindingNode`, which says which
- * protocol the member is named after and what the renderer will be given.
+ * It reads the recorded applications, orders them, decides which one wins a
+ * repeated protocol, and reports every application that reached nothing. It
+ * produces a list of `BindingNode`, naming the protocol and the config the
+ * renderer receives.
  *
  * The lower half turns those nodes into the Bindings Object. It names no
  * decorator and reads no state.
@@ -27,6 +27,8 @@ import { BindingNode, JsonObject } from "./service.js";
  * A namespace, an interface, an operation and a model all carry a name. An
  * anonymous target carries none, and then the component that shares this
  * binding is named after the first site instead.
+ *
+ * @param target - The type the decorator was applied to
  */
 function carrierOf(target: Type): string | undefined {
   if (!("name" in target) || typeof target.name !== "string" || target.name.length === 0) {
@@ -36,15 +38,12 @@ function carrierOf(target: Type): string | undefined {
 }
 
 /**
- * The applications one build placed, and the record of which they were.
+ * Tracks which binding applications one build placed.
  *
- * The record used to be a flag on the entry, and an entry lives in program
- * state, so it outlived the build that set it. Emitting one document per
- * version, or per service, resolves one program more than once, and the
- * earlier build's answer would then stand in for the current one.
- *
- * A build owns one of these and passes it explicitly. Two builds of one
- * program cannot see each other's.
+ * Program state outlives a single build. One program can resolve more than
+ * once, for one document per version or per service. Without a fresh
+ * instance, an earlier build's answer would leak into the current one. Each
+ * build owns its own instance and passes it explicitly.
  *
  * @internal
  */
@@ -73,6 +72,10 @@ export class BindingPlacements {
  *
  * A level takes its own bindings and the level-less ones. Both `resolve` and
  * `markBindingsPlaced` need the same filter, so the filter has one definition.
+ *
+ * @param program - The program to read the state from
+ * @param level - The document level this binding belongs to
+ * @param target - The type the decorator was applied to
  */
 function applicableBindings(
   program: Program,
@@ -87,25 +90,20 @@ function applicableBindings(
 /**
  * Resolves the bindings of one server, channel, operation, or message.
  *
- * Two buckets reach one level. The first holds the bindings a
- * protocol-specific decorator recorded for exactly this level. The second
- * holds the bindings the generic `@binding` recorded, which name no level and
- * land wherever their target emits an object.
- *
- * The nodes keep source order, so the emitted document is the same on every
- * run and reads in the order the author wrote the decorators.
+ * A level's bindings are the ones a protocol-specific decorator recorded for
+ * exactly that level, plus the level-less ones the generic `@binding`
+ * recorded. Nodes keep source order, so the emitted document is stable and
+ * matches how the author wrote the decorators.
  *
  * One protocol claims one member. A second claim on the same level is
- * reported and dropped, which is how `@binding("kafka", ...)` beside
- * `@kafkaChannel` is caught. The two are never merged. The first in source
- * order keeps the member, the same rule `duplicate-schema-key` and
- * `duplicate-channel-id` follow.
+ * reported and dropped rather than merged. The first in source order wins,
+ * following the same rule as `duplicate-schema-key` and
+ * `duplicate-channel-id`.
  *
- * A level takes its own bindings and the level-less ones, and nothing else.
- * The filter matters because one namespace can be both the service namespace
- * and a channel. `@kafkaServer` and `@kafkaChannel` then sit on one target and
- * both name the protocol `kafka`. They are two members of two different
- * objects, not a repeated protocol.
+ * The level filter matters when one namespace is both the service namespace
+ * and a channel. `@kafkaServer` and `@kafkaChannel` then sit on one target
+ * and name the same protocol, but they belong to two different objects, not
+ * a repeated protocol.
  *
  * @param program - The program to read the bindings from
  * @param level - The document position being resolved
@@ -159,22 +157,15 @@ export function resolveBindings(
 /**
  * Records that one target reached its document position, without resolving.
  *
- * A builder drops a target on paths that emit no object and still are not a
- * stray binding. There are two such paths.
+ * Some targets emit no object but are still not a stray binding. One case is
+ * a declaration reached only through `interface C extends Base`, which
+ * `emittedDeclarationNodes` already excludes from `operation-without-channel`.
+ * The other is a target the builder already dropped and reported, for
+ * example a repeated channel id, operation id, or message key. The binding
+ * itself is not the mistake there.
  *
- * The first is a target that reaches the document by another route. An
- * operation declared in a base interface is reached through
- * `interface C extends Base`, and the declaration itself sits on no channel.
- * `emittedDeclarationNodes` already suppresses `operation-without-channel`
- * for it, and its bindings need the same answer.
- *
- * The second is a target the builder dropped and reported. A repeated channel
- * id, operation id, or message key each names the mistake exactly. A second
- * report about the binding would send the author after a decorator the target
- * already carries, and the binding is not the mistake.
- *
- * Without this call the stray report would compute its own, weaker answer to
- * a question four builders already answered.
+ * Without this call, `reportUnattachedBindings` would treat both cases as
+ * stray.
  *
  * @param program - The program to read the bindings from
  * @param level - The document position the target was building
@@ -194,17 +185,15 @@ export function markBindingsPlaced(
 /**
  * Reports every binding that reached no object.
  *
- * A binding sits on the object its target emits. So a `@kafkaOperation` on an
- * operation with no action, a `@kafkaMessage` on a model with no `@message`,
- * a `@kafkaChannel` on a plain interface, and a `@kafkaServer` on a namespace
- * that declares no server all have nowhere to go. Each one is silent unless
- * it is reported here.
+ * A binding sits on the object its target emits. Four cases have nowhere to
+ * go. A `@kafkaOperation` can have no action. A `@kafkaMessage` can sit on a
+ * model with no `@message`. A `@kafkaChannel` can sit on a plain interface. A
+ * `@kafkaServer` can sit on a namespace with no server. Each stays silent
+ * unless reported here.
  *
- * Call it once the whole document is built. Anything `placements` does not
- * hold by then had every chance to be placed.
- *
- * The reports come out in source order. The state layer hands them over in
- * the order the decorators ran, which is not the order the author reads.
+ * Call it once the whole document is built, so every binding had its chance
+ * to be placed. Reports come out in source order, not the state layer's
+ * decorator-run order.
  *
  * @param program - The program to read the bindings from
  * @param placements - What this build placed

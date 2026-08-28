@@ -61,7 +61,6 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // AsyncAPI types `examples` as strings, so the number has no place in it.
-    // The type itself is the mistake the author is told about.
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/non-string-channel-param");
     expect(resolveParameters(doc, doc.channels?.["orders.{orderId}"].parameters)).toEqual({
       orderId: {},
@@ -92,10 +91,9 @@ describe("Unit: Channel parameters: examples (Phase 4.3)", () => {
     const doc = await documentFrom(runner.program);
     const reported = diagnosticsWith(diagnostics, "unserializable-example");
 
-    // Two operations declare `source`, so the first declaration is read
-    // twice: once to compare it with the second, and once to emit it. The
-    // reader keeps what it has already read, so the one mistake is reported
-    // once. Without that, the author sees the same warning twice.
+    // Two operations declare `source`. The reader compares then emits the
+    // first declaration, and caches what it read, so the mistake is
+    // reported once instead of twice.
     expect(reported).toHaveLength(1);
     expect(resolveParameters(doc, doc.channels?.["orders.{source}"].parameters)).toEqual({
       source: {},

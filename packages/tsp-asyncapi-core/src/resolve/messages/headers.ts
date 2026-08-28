@@ -1,3 +1,26 @@
+/**
+ * What one message takes its headers from, and the lifting that follows.
+ *
+ * It reads three decorator states across every message model: a field-level
+ * `@header` mark, a model-level `@headers`, and a model-level `@rawHeaders`.
+ * A message names at most one of the three; a message that names more than
+ * one gets none of them, reported as `duplicate-message-headers`.
+ *
+ * It decides, for every message, which of the three sources describes its
+ * headers, and which fields a `@header` mark lifts out of the payload. A
+ * lifted field is inherited by every message that extends the one that lifts
+ * it, so the resulting plan covers the whole program, not one message at a
+ * time.
+ *
+ * It also reports every conflict the three mechanisms can produce. A mark
+ * can reach no top-level field. A content type can be stated twice. A lift
+ * can be overridden by a derived message's own `@headers`. A lift can name
+ * a field a raw payload cannot honour.
+ *
+ * It does not build a headers schema. The plan names the source; expanding a
+ * model or a set of fields into a schema is the lower half's work.
+ */
+
 import {
   isArrayModelType,
   Model,
@@ -43,13 +66,17 @@ export interface HeaderSource {
  * fields a base message lifts. The two members here each fill the whole
  * object, so neither combines with anything.
  *
- * Three places ask this question, and each one used to spell out the two
- * members again. A fourth source, or a rename of one member, would need all
- * three edits and would compile after two. The members are named here only.
+ * Three places ask this question. Naming the members here, instead of at
+ * each call site, keeps a fourth source or a renamed member to one edit.
  */
 const WHOLE_HEADER_MEMBERS = ["model", "raw"] as const;
 
-/** Reads the two decorators that each describe the whole headers object. */
+/**
+ *  Reads the two decorators that each describe the whole headers object.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ */
 function wholeHeaderDecorators(program: Program, message: Model): Partial<HeaderSource> {
   return {
     model: getHeadersModel(program, message),
@@ -64,6 +91,8 @@ function wholeHeaderDecorators(program: Program, message: Model): Partial<Header
  * carries. The two answer different questions. A message can carry
  * `@rawHeaders` and still have no source, because a
  * `duplicate-message-headers` error dropped it.
+ *
+ * @param source - The type that declared the headers
  */
 function describesWholeHeaders(source: Partial<HeaderSource> | undefined): boolean {
   return source !== undefined && WHOLE_HEADER_MEMBERS.some((key) => source[key] !== undefined);
@@ -75,6 +104,9 @@ function describesWholeHeaders(source: Partial<HeaderSource> | undefined): boole
  * A count above one is the conflict `duplicate-message-headers` names. The
  * lifted fields count as one source together, because they describe one
  * headers object between them.
+ *
+ * @param fields - The fields already collected
+ * @param declared - The parameter names the channel already declared
  */
 function countHeaderSources(
   fields: readonly ModelProperty[],
@@ -105,21 +137,22 @@ export interface MessageHeaderPlan {
 
 /**
  * Resolves where each message takes its headers from, and reports every
- * conflict between the two mechanisms.
+ * conflict between the mechanisms.
  *
- * This runs before any schema is built, for two reasons. The lifted fields
- * must reach the schema builder before it builds the payload that would
- * otherwise still describe them. And a message model can be reached through
- * another message's payload, so the first build of it can happen at any
- * point in the message loop.
+ * This runs before any schema is built. The lifted fields must reach the
+ * schema builder before it builds a payload that would otherwise still
+ * describe them, and a message model can be reached through another
+ * message's payload at any point in the loop.
  *
- * A message that names more than one of the three header sources gets none of
- * them. The three sources are a field-level `@header`, a model-level
- * `@headers`, and a model-level `@rawHeaders`. There is no rule that picks
- * one, so picking one anyway would invent an order the user cannot see. The
- * error says so.
- * The fields still stay in the payload in that case, so nothing the user
- * wrote disappears from the document while the error is unresolved.
+ * A message that names more than one of the three header sources gets none
+ * of them. The three sources are a field-level `@header`, a model-level
+ * `@headers`, and a model-level `@rawHeaders`. No rule picks a winner, so the
+ * conflict is reported instead. The fields stay in the payload while the
+ * error is unresolved, so nothing the author wrote disappears from the
+ * document.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
  */
 export function planMessageHeaders(program: Program, messages: Iterable<Model>): MessageHeaderPlan {
   const sources = new Map<Model, HeaderSource>();
@@ -192,26 +225,28 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
 /**
  * Reports every message that lifts `@header` fields out of a raw payload.
  *
- * A lifting message normally gets a payload component of its own, and that
- * component leaves the lifted fields out. A raw payload is opaque, so the
- * emitter cannot leave anything out of it. The Avro or Protobuf record may
- * still declare the field the message claims as a header. That is a document
- * that contradicts itself, so it must not be silent.
+ * A lifting message normally gets its own payload component, built without
+ * the lifted fields. A raw payload is opaque, so the emitter cannot leave
+ * anything out of it. The Avro or Protobuf record may still declare the
+ * field the message claims as a header, and that contradiction must not be
+ * silent.
  *
- * Both halves are still emitted. The raw payload goes into the message as
- * written, and the lifted fields still become the `headers`. This departs
- * from the `duplicate-message-headers` rule, which drops both sources. That
- * rule exists because two sources fill one field, and no rule picks a winner.
- * Here the two things fill two different fields of the Message Object, so
- * nothing has to be dropped. The one thing the emitter cannot do is edit the
- * opaque payload, and that is what the diagnostic names.
+ * Both halves are still emitted, the raw payload as written and the lifted
+ * fields as `headers`. This departs from `duplicate-message-headers`, which
+ * drops both sources when two of them fill one field. Here the two things
+ * fill two different fields of the Message Object, so nothing is dropped.
+ * The diagnostic names the one thing the emitter cannot do, which is edit
+ * the opaque payload.
  *
- * The derived payload component is not built either, because the payload
- * builder never reaches the schema layer for a raw payload. So no derived key
- * is claimed for a schema that is never emitted.
+ * No derived payload key is claimed either, because the payload builder
+ * never reaches the schema layer for a raw payload.
  *
- * This runs after the inherited lifts are adopted, so a message that inherits
- * its header fields from a base message is reported too.
+ * This runs after the inherited lifts are adopted, so a message that
+ * inherits its header fields from a base message is reported too.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param sources - The types that declared headers
  */
 function reportRawPayloadLifting(
   program: Program,
@@ -237,30 +272,28 @@ function reportRawPayloadLifting(
 /**
  * Gives a message the header fields that its base model already lifts.
  *
- * A lifted field leaves the payload of the message that declares it. A
- * message that extends that model inherits the field. A reader of the base
- * message finds the field in `headers`, and expects a specialisation of that
- * message to describe it in the same place.
+ * A lifted field leaves the payload of the message that declares it, and a
+ * message that extends that model inherits the field. So the derived
+ * message repeats the header, and its own payload omits the field too.
  *
- * So the derived message repeats the header. Its payload then omits the field
- * too, because the payload component is built from the fields the message
- * keeps.
+ * This runs after every message resolves its own source, because a base
+ * model can come later in the list than the message that extends it. The
+ * fields are not added to `lifted` again. The derived message carries the
+ * field in its own source instead.
  *
- * This runs after every message resolved its own source, because a base model
- * can come later in the list than the message that extends it.
- *
- * The fields are not added to `lifted` again. That list records each field
- * once, and the derived message carries the field in its own source instead.
- *
- * A message that carries `@headers` or `@rawHeaders` is left out. Each of
- * those describes the whole headers object on its own, so adding a field to it
- * would emit a headers schema the user never wrote. The inherited field then
- * stays in the payload of that message while it is a header of the base
- * message, so the pair is reported. See `reportOverriddenInheritedHeaders`.
+ * A message that carries `@headers` or `@rawHeaders` is left out. Either
+ * would emit a headers schema the author never wrote. The inherited field
+ * then stays in that message's payload while it is a header of the base, so
+ * the pair is reported. See `reportOverriddenInheritedHeaders`.
  *
  * A message with an unresolved `duplicate-message-headers` error is left out
- * as well, and it is not reported. Neither mechanism takes effect there, so
- * the emitter has nothing to say about which of them wins.
+ * too. It is not reported, because neither mechanism takes effect there.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param sources - The types that declared headers
+ * @param lifted - The header fields already lifted from the payload
+ * @param contentTypeReported - Whether a content-type clash was already reported
  */
 function adoptInheritedLiftedFields(
   program: Program,
@@ -305,6 +338,10 @@ function adoptInheritedLiftedFields(
  * The diagnostic targets the derived message. That is where the `@headers`
  * sits, and it is the decorator the author chooses between keeping and
  * dropping.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ * @param inherited - The headers inherited from the channel
  */
 function reportOverriddenInheritedHeaders(
   program: Program,
@@ -325,48 +362,46 @@ function reportOverriddenInheritedHeaders(
 }
 
 /**
- * Reports every `@header` that the emitter cannot honour.
+ * Reports every `@header` mark the emitter cannot honour.
  *
- * A mark is honoured on a top-level field of a message model only. The
- * payload of a message is one object, and its headers are a sibling of that
- * object. A field two levels down has no such sibling to move to; lifting it
- * would silently restructure the payload around it. `@typespec/http` reads
- * metadata off the top level for the same reason, and warns about the marks
- * it leaves in place.
+ * A mark is honoured only on a top-level field of a message model. The
+ * payload is one object, and its headers are a sibling of it. A nested
+ * field has no such sibling to move to, so lifting it would silently
+ * restructure the payload around it. `@typespec/http` applies the same rule
+ * and warns about the marks it leaves in place.
  *
- * The walk starts from each message model and follows its whole payload
- * graph. So a mark inside a model that a payload merely refers to is found
- * too. A mark the emitter never reaches from any message is left alone; it
- * describes nothing this document emits. A mark inside a `@headers` model is
- * left alone as well: everything in that model is already a header, so the
- * mark neither adds nor removes a field there.
+ * The walk starts at each message model and follows its whole payload
+ * graph, so a mark inside a model a payload merely refers to is found too.
+ * A mark the emitter never reaches from any message is left alone, and so
+ * is a mark inside a `@headers` model: every field there is already a
+ * header.
  *
- * `honoured` holds every top-level field of a message model that carries the
- * mark, including the fields a `duplicate-message-headers` error just
- * cancelled. Those are already reported once. Reporting them again, as if
- * they sat in the wrong place, would send the user to the wrong fix.
+ * `honoured` holds every top-level field of a message model that carries
+ * the mark, including fields a `duplicate-message-headers` error just
+ * cancelled. Those already got a report, so this function does not name
+ * them again.
  *
- * A mark on a property the message inherits through `extends` gets its own
- * diagnostic. That property is a top-level field of the emitted payload, so
- * the ordinary message would name a cause the user cannot act on. The rule
- * itself is the same: only a property the message model declares itself is
- * lifted. A base model is a declaration of its own, shared by every model
- * that extends it, and the payload refers to it through `allOf`. Lifting a
- * field out of it would change every other user of that base model too. The
- * spread form, `...Base`, copies the properties into the message model
- * instead, so those fields are the message's own and are lifted.
+ * A mark on a property inherited through `extends` gets its own diagnostic,
+ * because the ordinary message would name a cause the author cannot act on.
+ * The rule is the same: only a property the message model declares itself
+ * is lifted. A base model is shared by every model that extends it, so
+ * lifting a field out of it would change every other user of that base. The
+ * spread form, `...Base`, copies properties into the message model instead,
+ * so those fields are the message's own and are lifted.
  *
- * One inherited mark is honoured, and it is not reported here. A base model
- * that is a message of its own already lifts its own fields. The derived
- * message inherits those headers rather than losing them. See
- * `adoptInheritedLiftedFields`. Such a property is in `honoured`, because it
- * is a top-level field of the base message.
+ * One inherited mark is honoured and not reported here: a base model that
+ * is itself a message already lifts its own fields, and the derived message
+ * inherits those headers instead of losing them. See
+ * `adoptInheritedLiftedFields`.
  *
  * A message with `@rawPayload` is not a walk root. Both diagnostics tell the
- * user that the mark stays in the payload schema, and such a message has no
- * payload schema built from its model. A mark inside a model that some other,
- * non-raw message also reaches is still reported from that other message's
- * walk.
+ * author the mark stays in the payload schema, and that message builds no
+ * payload schema from its model. A mark inside a model some other, non-raw
+ * message also reaches is still reported from that message's walk.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param honoured - The messages whose headers were already applied
  */
 export function reportIgnoredNestedHeaders(
   program: Program,
@@ -412,6 +447,8 @@ export function reportIgnoredNestedHeaders(
  * A base model shared by two messages maps to the first of them. The message
  * name only makes the diagnostic concrete, and either name points the reader
  * at the same base model.
+ *
+ * @param messages - The messages this channel carries
  */
 function collectInheritedProperties(messages: Iterable<Model>): Map<ModelProperty, string> {
   const inherited = new Map<ModelProperty, string>();
@@ -437,19 +474,20 @@ function collectInheritedProperties(messages: Iterable<Model>): Map<ModelPropert
  * instead of choosing silently.
  *
  * The name compared is the field's wire name, the name that would appear in
- * the emitted headers schema, and the comparison ignores case. HTTP header
- * names are case-insensitive, and a reader matching `Content-Type` against
- * `content-type` finds the same header.
+ * the emitted headers schema, compared case-insensitively. HTTP header
+ * names ignore case, so `Content-Type` and `content-type` name the same
+ * header.
  *
- * The field stays a header. The error already stops the build, and dropping
- * it as well would make the emitted document disagree with the source about
- * a second thing.
+ * The field stays a header. The error already stops the build.
  *
- * One field is reported once. `reported` holds the fields already named, and
- * it is shared by every call of one plan. A message that extends a lifting
- * base adopts the base's header field, so the same field reaches this check
- * from both messages. The diagnostic names no message and targets the field
- * itself, so a second report would repeat the same text on the same squiggle.
+ * `reported` holds the fields already named, shared across every call of
+ * one plan. A message that extends a lifting base adopts the same field, so
+ * this keeps that field from being reported twice.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ * @param fields - The fields already collected
+ * @param reported - The header names already reported
  */
 function reportContentTypeHeaders(
   program: Program,
@@ -482,6 +520,8 @@ function reportContentTypeHeaders(
  * `additionalProperties` constraint. It is a legal headers schema.
  * The whole `baseModel` chain is walked. The array shape is inherited, so
  * only the chain shows it.
+ *
+ * @param model - The model to inspect
  */
 function isObjectBacked(model: Model): boolean {
   for (let current: Model | undefined = model; current !== undefined; current = current.baseModel) {

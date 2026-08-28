@@ -39,11 +39,7 @@ const SOURCE = `
   }
 `;
 
-/**
- * The real library, with a walk that refuses and collects nothing.
- *
- * @returns The library the provider calls
- */
+/** The real library, with a walk that refuses and collects nothing. */
 const loadSilentWalk: AvroLoader = async () => {
   const [main, unstable] = await Promise.all([import("tsp-avro"), import("tsp-avro/unstable")]);
   return {

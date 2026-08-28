@@ -26,19 +26,17 @@ const replyAddressGuard = singleApplication(
 /**
  * Names the channel the reply of one operation travels over.
  *
- * The argument is the interface or namespace that carries the channel, not
- * the id of that channel. A type reference cannot name a channel that does
- * not exist, and the compiler resolves it. A string would let a typo reach
- * the document as a reference to nothing.
+ * The argument is a type reference, not a channel id as a string. The
+ * compiler resolves the reference, so a typo cannot name a channel that
+ * does not exist.
  *
- * An operation with no `@replyChannel` replies over its own channel. So this
- * decorator is only needed for a reply that travels over another channel.
+ * An operation with no `@replyChannel` replies over its own channel. This
+ * decorator is only needed when the reply travels over another channel.
  *
- * The named target must carry `@channel` or `@dynamicChannel`, and that
- * channel must reach the document. The check runs while the document is
- * built, because a channel decorator can still arrive after this one runs. A
- * target with no emitted channel is reported, and the whole `reply` object
- * is dropped.
+ * The named target must carry `@channel` or `@dynamicChannel` and reach the
+ * document. This check runs while the document is built, since a channel
+ * decorator can still arrive after this one runs. A target with no emitted
+ * channel is reported, and the whole `reply` object is dropped.
  *
  * Apply this decorator only once per operation.
  *
@@ -72,20 +70,19 @@ export function $replyChannel(
  * Names where the address of a reply sits at runtime.
  *
  * A reply address is for a channel whose address is unknown at design time.
- * The sender puts the address in the message, and the responder reads it
- * from there. `$message.header#/replyTo` is the usual place.
+ * The sender puts it in the message, and the responder reads it from there.
  *
- * The format of `location` is checked while this decorator runs. AsyncAPI
- * allows `$message.header` and `$message.payload` and nothing else, each
- * followed by `#` and an optional JSON Pointer. A location outside that
- * grammar is reported, and the application is dropped. The contents of the
- * pointer are not checked, the same rule `@correlationId` follows.
+ * `location` is checked immediately. AsyncAPI allows only `$message.header`
+ * or `$message.payload`, followed by `#` and an optional JSON Pointer. A
+ * location outside that grammar is reported and the application is dropped.
+ * The pointer's contents are not checked, the same rule `@correlationId`
+ * follows.
  *
  * AsyncAPI requires the reply channel to carry `address: null` when a reply
- * address is given. So the reply channel has to be declared with
- * `@dynamicChannel`. That check runs while the document is built, because
- * the channel decorator may not have run yet. A reply address on a channel
- * with an address is reported, and the address is dropped from the reply.
+ * address is given, so it must be declared with `@dynamicChannel`. This
+ * check runs while the document is built, since the channel decorator may
+ * not have run yet. A reply address on a channel with an address is
+ * reported, and the address is dropped from the reply.
  *
  * Apply this decorator only once per operation.
  *
@@ -133,6 +130,7 @@ export function $replyAddress(
  *
  * @param program - The program to read the state from
  * @param target - The operation the decorator was applied to
+ *
  * @returns The interface or namespace that carries the reply channel, or
  * `undefined` when the decorator was never applied
  *
@@ -147,8 +145,9 @@ export function getReplyChannel(program: Program, target: Operation): ChannelTar
  *
  * @param program - The program to read the state from
  * @param target - The operation the decorator was applied to
- * @returns A copy of the recorded state, or `undefined` when the decorator
- * was never applied, and when the application was dropped
+ *
+ * @returns A copy of the recorded state, or `undefined` when the decorator was
+ * never applied, and when the application was dropped
  *
  * @public
  */

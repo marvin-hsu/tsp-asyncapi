@@ -349,8 +349,8 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
     `,
       "Event",
       (program) => {
-        // A map with no arguments at all: the shape a template with another
-        // signature would leave behind.
+        // A map with no arguments at all. This is the shape a template with
+        // another signature would leave behind.
         Object.assign(mapPropertyOf(program, "keyed"), { templateMapper: undefined });
       },
     );
@@ -461,8 +461,8 @@ describe("Unit: Protobuf payload rendering (Phase 16 W1)", () => {
       (program) => {
         const mapper = mapPropertyOf(program, "keyed").templateMapper;
         if (mapper === undefined) throw new Error("The map carries no template arguments.");
-        // A template argument the compiler passed as a value: the shape a
-        // library that took a value parameter would leave behind.
+        // A template argument the compiler passed as a value. This is the
+        // shape a library that took a value parameter would leave behind.
         Object.assign(mapper, { args: [{ valueKind: "StringValue" }, mapper.args[1]] });
       },
     );

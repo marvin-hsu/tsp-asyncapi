@@ -42,7 +42,6 @@ export interface SchemaArtifactProvider {
   /**
    * Runs the tool over one program.
    *
-   * @param program - The compiled program
    * @returns Every schema the tool produced, and whether it had to refuse a
    * model it was asked about
    */
@@ -61,7 +60,6 @@ export interface SchemaArtifactProvider {
  * document for it. Both reserved names are answered here, so nothing a
  * project may write in the option is refused for want of a provider.
  *
- * @returns The providers, in a fixed order
  * @internal
  */
 export function shippedProviders(): readonly SchemaArtifactProvider[] {
@@ -69,10 +67,8 @@ export function shippedProviders(): readonly SchemaArtifactProvider[] {
 }
 
 /**
- * The preview features a registry can honor.
+ * The preview features a registry can honor: the id of every provider in it.
  *
- * @param providers - The registry to read
- * @returns The id of every provider in it
  * @internal
  */
 export function availableFeatures(
@@ -104,10 +100,8 @@ export interface CollectedSchemaArtifacts {
 /**
  * Runs each enabled provider and merges what they produced.
  *
- * @param program - The compiled program
- * @param features - The preview features the project turned on
- * @param providers - The registry to select from. A test passes its own.
- * @returns The artifacts and whether a conflict removed any of them
+ * `providers` is the registry to select from. A test passes its own.
+ *
  * @internal
  */
 export async function collectSchemaArtifacts(
@@ -133,9 +127,9 @@ export async function collectSchemaArtifacts(
 /**
  * Merges the payload map of every index into one.
  *
- * Two providers that claim one model are a conflict, and there is no winner. Keeping the first would make the answer depend on the order
- * the registry lists them, which is not something a project states. So both
- * are dropped.
+ * Two providers that claim one model are a conflict, and there is no winner.
+ * Keeping the first would make the answer depend on the order the registry
+ * lists them, which is not something a project states. So both are dropped.
  *
  * The model is then left with the schema its TypeSpec type produces, which
  * answers the project with output that ignores its request. Reporting the
@@ -143,8 +137,6 @@ export async function collectSchemaArtifacts(
  * whatever the diagnostics say. So the conflict is returned to the caller
  * too, and the caller writes nothing.
  *
- * @param program - The program, to report against
- * @param maps - What each enabled provider produced
  * @returns The artifacts no other provider also claimed, and whether any
  * conflict was found
  */

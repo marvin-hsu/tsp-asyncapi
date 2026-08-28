@@ -1,20 +1,18 @@
 /**
- * Reading the decorator state of the Avro library.
+ * Reads the decorator state the Avro library records on a model.
  *
- * A linter rule asks one question about a model: does the author mark it as an
- * Avro record? The answer decides whether a message that names an Avro media
- * type has an Avro payload to go with it.
+ * A linter rule asks one question: does the author mark this model as an
+ * Avro record? The answer decides whether a message naming an Avro media
+ * type actually has an Avro payload.
  *
- * The question is answered here, without a dependency on `tsp-avro`. This
- * package owns the input language and must stay installable on its own, and a
- * rule that only asks a yes or no question does not need the library that
- * answers it. The compiler builds every state symbol with `Symbol.for`, from
- * the library name and the key, so the same symbol comes back from the global
- * registry.
+ * This file answers that question without a dependency on `tsp-avro`, so
+ * this package stays installable on its own. The compiler builds every
+ * state symbol with `Symbol.for` from the library name and the key, so the
+ * same symbol comes back from the global registry either way.
  *
- * The key name and the shape behind it are not covered by any compatibility
- * promise of that library. This file is the only place that reads them, so an
- * upgrade has one place to check.
+ * The key name and its shape carry no compatibility promise from that
+ * library. This file is the only place that reads them, so an upgrade has
+ * one place to check.
  */
 
 import type { Model, Program } from "@typespec/compiler";
@@ -25,10 +23,10 @@ const RECORD_STATE = Symbol.for("tsp-avro.record");
 /**
  * Lists every model the author marked with `@Avro.avroRecord`.
  *
- * These are the models the Avro preview feature offers a generated payload
- * for. A model the Avro emitter writes for another reason, such as one another
- * record reaches, is not one of them. Such a model has no schema file of its
- * own, so it has no AsyncAPI payload of its own either.
+ * These are the models the Avro preview feature can render a payload for.
+ * A model the Avro emitter writes for another reason, such as one another
+ * record reaches, has no schema file of its own and so no AsyncAPI payload
+ * either.
  *
  * @param program - The compiled program
  * @returns Every model that carries the decorator

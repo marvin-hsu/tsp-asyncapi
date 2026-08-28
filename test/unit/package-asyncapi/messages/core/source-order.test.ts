@@ -36,8 +36,7 @@ describe("Unit: Messages — source order", () => {
   it("keeps declaration order when a message refers to one declared later", async () => {
     // The compiler checks `Gamma` while checking `Alpha`'s property, so
     // `@message` runs on `Gamma` first. Reading the state map in its own
-    // order would emit `Gamma, Alpha, Beta` here, and adding this one
-    // reference would reorder the whole of `components.messages`.
+    // order would emit `Gamma, Alpha, Beta` here.
     expect(
       await messageKeys(`
         @service(#{ title: "Orders" })

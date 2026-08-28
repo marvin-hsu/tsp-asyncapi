@@ -1,3 +1,12 @@
+/**
+ * The `@aliases` decorator and its reader, `getAvroAliases`.
+ *
+ * This file only validates a name against the Avro grammar and records the
+ * result. It does not decide which declarations need an alias. It does not
+ * build the `"aliases"` member either. The walk reads this state later and
+ * makes both calls.
+ */
+
 import { DecoratorContext, Enum, Model, ModelProperty, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";
@@ -24,19 +33,15 @@ const [getAliasesInternal, setAliasesInternal] = useStateMap<AvroAliasTarget, re
  * Declares the names a reader also knows this declaration by.
  *
  * An Avro reader uses aliases to read data written under an older schema. A
- * record, an enum and a fixed type take a full name, which is a namespace and
- * a name joined by dots. A field takes a plain name, because a field carries
- * no namespace of its own.
+ * record, an enum and a fixed type take a full name, a namespace and a name
+ * joined by dots. A field takes a plain name, since a field has no namespace
+ * of its own. A scalar takes one where `@fixed` makes it a named Avro type.
+ * A primitive scalar has no name of its own, so an alias there is refused by
+ * the walk.
  *
  * A name that breaks the Avro rules is reported here, where the author wrote
  * it, and nothing is recorded.
  *
- * A scalar takes one where `@fixed` makes it a named Avro type. A scalar that
- * is a primitive carries no name of its own, so an alias there stands for
- * nothing and is refused by the walk.
- *
- * @param context - The decorator context
- * @param target - The record, enum, fixed type or field the names belong to
  * @param names - The alternate names, in the order Avro writes them
  *
  * @example
@@ -89,8 +94,6 @@ export function $aliases(
  * A scalar carries aliases where `@fixed` turns one into a named Avro type.
  * The walk reads the aliases of every named type through this one call.
  *
- * @param program - The program to read the state from
- * @param target - The declaration to read
  * @returns The names, or undefined when the declaration carries none
  *
  * @public

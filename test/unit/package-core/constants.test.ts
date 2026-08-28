@@ -10,11 +10,9 @@ import { isSafeComponentsKey } from "#core/naming.js";
  * one. Both rules live in `constants.ts`, and `isSafeComponentsKey` in
  * `naming.ts` is the reader of the second one.
  *
- * Both are one `^[...]+$` class, so single characters decide the whole
- * relationship: no character interacts with its neighbours, and length adds
- * nothing. A property once drew names of one to twelve characters to state
- * this; the characters that separate or join the charsets are the rows
- * below, written out.
+ * Both are one `^[...]+$` class, so a single character decides the whole
+ * relationship. Neither its neighbours nor the name's length matter. The
+ * rows below enumerate every character that separates or joins the charsets.
  */
 describe("Unit: the two name charsets", () => {
   it.each(["A", "z", "0", "9", "-", "_"])("lets %j into both charsets", (char) => {

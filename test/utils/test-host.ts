@@ -8,28 +8,24 @@ import yaml from "yaml";
 
 /**
  * Source for a test compilation. A string is the whole of `main.tsp`. A
- * record is a set of files, keyed by name, for a case that needs more than
- * one file. Behavior that depends on a declaration being spread across
- * files, such as a namespace opened in several of them, needs the record
- * form.
+ * record is a set of files, keyed by name, for a case where a declaration
+ * spans files, such as a namespace opened in more than one of them.
  */
 export type TestSource = string | Record<string, string>;
 
 /**
- * The name of the entry file of a test compilation.
- * The tester wraps this one file with the library import and the `using`
- * statement, and the compiler starts from it.
+ * The entry file of a test compilation. The tester wraps it with the
+ * library import and the `using` statement, and the compiler starts here.
  */
 const ENTRY_FILE = "main.tsp";
 
 /**
  * Builds the tester for one source.
  *
- * A multi-file case declares every file it needs, and each of them is
- * imported from the entry file. The imports cannot be written in the entry
- * file itself, because the tester puts its own `using` statement above the
- * text this helper is given, and TypeSpec requires every import to come
- * first. The files are imported in the order the record lists them.
+ * A multi-file case imports every extra file from the entry file, in the
+ * order the record lists them. The imports cannot live in the entry file's
+ * own text, because the tester's `using` statement goes above it and
+ * TypeSpec requires every import to come first.
  *
  * @param code - The source of the compilation
  * @param options - The emitter options
@@ -47,10 +43,8 @@ function createTester(code: TestSource, options: Record<string, unknown>) {
 /**
  * Compiles one source and hands back the text of the file the emitter wrote.
  *
- * Every other helper here is a few lines on top of this one. Three copies of
- * this logic used to exist: this file, and a hand-written `emitRaw` in each of
- * two integration suites. The option names that decide which file to read are
- * the part worth having in one place.
+ * Every other helper here builds on this one. The option names that decide
+ * which output file to read are the part worth keeping in one place.
  *
  * @param code - The source of the compilation
  * @param options - The emitter options
@@ -62,8 +56,8 @@ async function emitOutput(
   options: Record<string, unknown>,
   includeService: boolean,
 ) {
-  // The service wrapper is only added to the single-file form. A multi-file
-  // case declares its own service, since only its author knows which file
+  // Only a single-file source gets this wrapper added. A multi-file case
+  // must declare its own service, since only its author knows which file
   // should hold it.
   const fullCode =
     typeof code === "string" && includeService && !code.includes("@service")
@@ -83,11 +77,10 @@ async function emitOutput(
 /**
  * Emits one source and parses the document, keeping every diagnostic.
  *
- * The program is returned alongside the document. Most cases read the document
- * alone, but a decorator that records state and emits nothing can only be
- * checked by reading that state back. A decorator that reports an error also
- * stops the emitter from running, so `doc` is null in that case and a caller
- * about diagnostics has to handle it.
+ * The program comes back alongside the document, because a decorator that
+ * only records state needs it read back directly. An error also stops the
+ * emitter, so `doc` is null then, and a caller checking diagnostics must
+ * handle that.
  *
  * @param code - The source of the compilation
  * @param options - The emitter options
@@ -113,10 +106,10 @@ export async function emitDocumentWithDiagnostics(
     return { doc: null, diagnostics, program };
   }
 
-  // The parsers both return `any`, and this is the one place that says what
-  // the text actually is. Every caller reads a typed document from here, so a
-  // path that does not exist on `AsyncAPIDocument` is a compile error rather
-  // than an `undefined` at run time.
+  // Both parsers return `any`. This is the one place that names the real
+  // type, so every caller reads a typed document from here. A path missing
+  // from `AsyncAPIDocument` is then a compile error, not an `undefined` at
+  // run time.
   const parsed: unknown = fileType === "json" ? JSON.parse(content) : yaml.parse(content);
   return { doc: parsed as AsyncAPIDocument, diagnostics, program };
 }
@@ -124,10 +117,9 @@ export async function emitDocumentWithDiagnostics(
 /**
  * Emits one source that is meant to compile clean, and returns its document.
  *
- * Two things are asserted before the document is handed back: the compilation
- * reported nothing, and the emitter wrote a file. Neither is a case a test
- * about document content should have to handle, and a null document reaching
- * such a test is a broken fixture rather than an outcome worth asserting on.
+ * This asserts the compilation reported nothing and the emitter wrote a
+ * file, so a test about document content never has to check either. A null
+ * document reaching such a test means a broken fixture, not a real outcome.
  *
  * @param code - The source of the compilation
  * @param options - The emitter options
@@ -151,12 +143,13 @@ export async function emitDocument(
 /**
  * Builds the document from a program the test compiled itself.
  *
- * The two arguments this fills in are the same at every call site: no explicit
- * service, and no emitter options. Spelled out, they were the longest
- * repetition in the suite and said nothing about the case under test.
+ * Fills in the two arguments that are the same at every call site: no
+ * explicit service and no emitter options. Spelled out, they were the
+ * longest repetition in the suite and said nothing about the case under
+ * test.
  *
- * A test that needs to name the service, as the multiple-service cases do,
- * calls `buildAsyncAPIDocument` directly.
+ * A test that needs to name the service calls `buildAsyncAPIDocument`
+ * directly.
  *
  * @param program - The compiled program
  * @returns The built document
@@ -168,17 +161,17 @@ export function documentFrom(program: Program): Promise<AsyncAPIDocument> {
 /**
  * Builds a document from source without writing a file.
  *
- * `emitDocumentWithDiagnostics` goes through the emitter, and the emitter
- * writes nothing once an error is reported. So a test about an error cannot
- * use it to look at what the document still holds.
+ * The emitter writes nothing once an error is reported, so a test about an
+ * error cannot use `emitDocumentWithDiagnostics` to see what the document
+ * still holds.
  *
- * A binding that leaves out a field its specification requires is exactly
- * that case. The diagnostic promises the one binding was dropped and the rest
- * of the document survived, and only the document itself can show that.
+ * A binding missing a field its specification requires is exactly that
+ * case. The diagnostic promises the binding was dropped and the rest of
+ * the document survived, and only the document itself can confirm that.
  *
- * The pipeline is called directly, so this is the `src` copy of the builder
- * rather than the build output. The decorators still run from `dist`, which
- * is where the compiler loads them from.
+ * This calls the pipeline directly, so it runs the `src` copy of the
+ * builder. The decorators still run from `dist`, which is where the
+ * compiler loads them from.
  *
  * @param code - The source of the compilation
  * @returns The built document and every diagnostic the compilation reported

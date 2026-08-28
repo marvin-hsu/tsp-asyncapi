@@ -5,6 +5,12 @@ import { claimBinding } from "../state.js";
 import { GooglePubSubMessageBindingState, messageSchema, openMap } from "./config.js";
 
 /**
+ * `@googlePubSubMessage`, which fills the message-level Google Cloud
+ * Pub/Sub Bindings Object. The field checks live in `config.ts`, and the
+ * slot is claimed here.
+ */
+
+/**
  * The `config` argument of `@googlePubSubMessage`, as the author wrote it.
  * @public
  */

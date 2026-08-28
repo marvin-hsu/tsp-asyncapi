@@ -1,3 +1,7 @@
+/**
+ * A model's, property's, and scalar's `@doc`/`@summary`/`@example` map to
+ * the emitted schema's `description`, `title`, and `examples`.
+ */
 import { describe, it, expect, vi } from "vitest";
 import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "#emitter/testing.js";
@@ -207,8 +211,8 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     expect(Object.hasOwn(builder.getSchemas().M, "examples")).toBe(false);
-    // The whole example is dropped (even the sibling `name` field, which
-    // was itself perfectly serializable) -- that must not happen in total
+    // The whole example is dropped, even the sibling `name` field, which
+    // was itself perfectly serializable. That drop must not happen in
     // silence.
     expect(program.diagnostics).toHaveLength(1);
     expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");

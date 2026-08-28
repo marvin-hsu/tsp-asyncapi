@@ -4,36 +4,35 @@ import { describe, expect, it } from "vitest";
  * What every schema walk in this repository must hold, whatever it emits.
  *
  * Two walks turn TypeSpec types into a schema of another language: the
- * Protobuf one inside this emitter, and the Avro one inside `tsp-avro`. They
- * emit different shapes and share no code, because the shapes disagree where
- * it matters. Protobuf lays its declarations out flat and refers to them by
- * name; Avro nests a declaration at its first occurrence and refers to it by
- * name after that. There is no useful common implementation.
+ * Protobuf one inside this emitter, and the Avro one inside `tsp-avro`.
+ * They share no code, because the shapes disagree where it matters.
+ * Protobuf lays declarations out flat and refers to them by name. Avro
+ * nests a declaration at its first occurrence and refers to it by name
+ * after that.
  *
- * There is a common contract. Both walk a graph that can loop, both name what
- * they walk, and both must refuse rather than write something wrong. That
- * contract is what this file holds.
+ * The contract is common: both walk a graph that can loop, both name what
+ * they walk, and both must refuse rather than write something wrong. This
+ * file holds that contract.
  *
- * ## Why a shared suite rather than a shared interface
+ * ## Why a shared suite, not a shared interface
  *
- * An interface earns its place when something consumes it without knowing
- * which implementation it holds. Nothing does that here. Worse, an interface
- * cannot state the rule that actually broke: keying a closure by the rendered
- * name rather than by the type. A `Map<K, V>` satisfies any interface for
- * either choice of `K`.
+ * An interface earns its place when a consumer uses it without knowing
+ * which implementation it holds. Nothing does that here, and an interface
+ * cannot state the rule that actually broke: keying a closure by rendered
+ * name instead of by type, which any `Map<K, V>` satisfies either way.
  *
- * A suite states the rule as an outcome instead, and the outcome is testable.
- * The Protobuf walk had a closure keyed by rendered name and two declarations
- * collapsed into one; the Avro walk carried the diagnostic for that case and
- * nothing ever reached it. Each walk knew something the other did not.
+ * A suite states the rule as a testable outcome instead. The Protobuf walk
+ * once keyed its closure by rendered name and collapsed two declarations
+ * into one. The Avro walk carried the diagnostic for that case, but
+ * nothing ever reached it.
  *
  * ## Why the sources are supplied per walk
  *
- * The invariants are shared; the sources cannot be. Protobuf needs a package
- * and a field number on every property, Avro needs a namespace and neither.
- * So each walk brings its own source for each invariant, and the type below
- * makes that a complete set: leaving one out is a compile error rather than a
- * gap nobody notices.
+ * The invariants are shared, but the sources cannot be. Protobuf needs a
+ * package and a field number on every property; Avro needs a namespace
+ * and neither. Each walk brings its own source per invariant, and the
+ * type below makes that set complete: leaving one out is a compile error,
+ * not a silent gap.
  */
 
 /** How one walk answers for one source. */
@@ -52,9 +51,9 @@ export interface ConformanceCase {
 /**
  * A source for every invariant.
  *
- * The keys are required, so a walk that joins this suite has to answer every
- * one of them. That is the point: the gap this file exists for was an
- * invariant one walk tested and the other did not.
+ * The keys are required, so a walk joining this suite must answer all of
+ * them. That is the point: this file exists because one walk tested an
+ * invariant the other did not.
  */
 interface ConformanceSources {
   /** A declaration that reaches itself through a field. */
@@ -101,10 +100,10 @@ export function describeWalkConformance(walk: WalkUnderTest): void {
     });
 
     /**
-     * Two declarations, one name. Neither target language can hold both, and
-     * writing one of them twice would describe two types as one. A walk that
-     * keys its closure by the rendered name does not notice: the second
-     * declaration reads as the first, and the output is wrong without a word.
+     * Two declarations, one name. Neither target language can hold both,
+     * and writing one twice would describe two types as one. A walk keyed
+     * by rendered name misses this: the second declaration reads as the
+     * first, and the output is wrong without a word.
      */
     it("refuses two declarations that render to one name", async () => {
       const outcome = await walk.run(walk.sources.nameCollision);

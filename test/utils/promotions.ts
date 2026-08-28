@@ -6,9 +6,8 @@ import { surveyDocument } from "#emitter/lower/components/survey.js";
  * The promotions of an empty document: every survey closed, nothing shared.
  *
  * A test that lowers one section on its own has no whole-document survey to
- * hand it, and a section lowered alone has nothing to share with. So this
- * answers "write the fragment itself" everywhere, which is what those tests
- * asserted before promotion existed.
+ * hand it, and a section lowered alone has nothing to share with. This
+ * answers "write the fragment itself" everywhere.
  *
  * @returns Closed, empty surveys
  */

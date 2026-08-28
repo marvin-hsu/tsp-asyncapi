@@ -6,6 +6,10 @@ import { enumeratedField, namedValuesSchemaField } from "../fields.js";
 import { claimBinding } from "../state.js";
 
 /**
+ * `@httpOperation`, which fills the operation-level HTTP Bindings Object.
+ */
+
+/**
  * What `@httpOperation` records.
  *
  * It is the emitted object without `bindingVersion`. That field is appended

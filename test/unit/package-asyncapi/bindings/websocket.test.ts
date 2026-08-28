@@ -32,9 +32,8 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    // The member is `ws`. AsyncAPI names the binding folder `websockets` and
-    // the decorator `websocketChannel`, and neither of those is the member
-    // name a reader of the document sees.
+    // The member key is `ws`, unlike the binding folder `websockets` or the
+    // decorator name `websocketChannel`.
     expect(channelsOf(doc)["/ticks"].bindings).toEqual({
       ws: {
         method: "GET",
@@ -167,9 +166,8 @@ describe("Unit: the @websocketChannel decorator", () => {
       }
     `);
 
-    // The binding says the schema must have a `properties` key. A schema
-    // without one describes no header, so a generator reading it builds a
-    // handshake with nothing in it.
+    // The binding requires a `properties` key. Without one, the schema
+    // describes no header, so a generator would build an empty handshake.
     const reported = findDiagnostic(diagnostics, "invalid-binding-field");
     expect(reported.message).toContain("headers");
     expect(reported.message).toContain(`an object schema with a "properties" key`);

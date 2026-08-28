@@ -20,7 +20,9 @@ import { SecuritySchemeNode } from "./service.js";
  * key.
  *
  * @param program - The program to read the schemes from
+ *
  * @returns The schemes, in source order
+ *
  * @internal
  */
 export function resolveSecuritySchemes(program: Program): readonly SecuritySchemeNode[] {

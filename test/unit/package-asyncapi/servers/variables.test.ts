@@ -99,11 +99,10 @@ describe("Unit: server variables", () => {
   });
 
   it("emits each variable field on its own, without the other three", async () => {
-    // The builder writes `enum`, `default`, `description` and `examples`
-    // one at a time, each behind its own guard. The first test above passes
-    // all four fields, and the test above passes none. Neither shape can
-    // tell the four guards apart. Four variables that each carry one field
-    // pin them separately. `enum` alone must not pull in a `default`, and a
+    // The builder writes `enum`, `default`, `description`, and `examples`
+    // one at a time, each behind its own guard. Passing all four fields or
+    // none can't tell the four guards apart, so each variable here carries
+    // exactly one field. `enum` alone must not pull in a `default`, and a
     // lone `description` must survive with no sibling.
     const doc = await emitDocument(`
       @service(#{ title: "Orders" })
@@ -346,13 +345,9 @@ describe("Unit: server variables", () => {
   it("never receives a variable named __proto__, because the compiler drops the key", async () => {
     // A server name and a security scheme name are plain string arguments,
     // so `__proto__` reaches this emitter and both maps keep it. A variable
-    // name is an object key instead. The compiler marshals an object value
-    // with `result[key] = ...`, so `__proto__` writes the prototype and the
+    // name is an object key instead, and the compiler marshals an object
+    // value with `result[key] = ...`. That writes the prototype, and the
     // entry is gone before any decorator of this library runs.
-    //
-    // This test pins that boundary. It fails if the compiler starts to
-    // carry the key through, which is the moment the maps below have to be
-    // checked for a real entry rather than for none.
     const runner = await AsyncAPITester.createInstance();
     const [{ Test }, diagnostics] = await runner.compileAndDiagnose(t.code`
       @service(#{ title: "Orders" })

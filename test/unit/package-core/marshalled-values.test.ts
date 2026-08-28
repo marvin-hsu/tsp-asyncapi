@@ -3,13 +3,11 @@ import { isPlainObject, toPlainValue } from "#core/marshalled-values.js";
 import { unusedProgram } from "../../utils/program.js";
 
 describe("Unit: isPlainObject — what counts as a JSON object", () => {
-  /** A value paired with the answer its category demands. */
   /**
-   * The predicate looks only at the shape's category, never inside it, so
-   * category representatives are the whole input space: a sampled dictionary
-   * exercises no line a written-out `{ a: 1 }` does not. The `Date` and `Map`
-   * rows pin today's behavior — no marshalled argument can carry either, so
-   * the emitter never asks this question of them.
+   * The predicate looks only at the shape's category, never inside it, so a
+   * sampled dictionary and a written-out `{ a: 1 }` exercise the same code.
+   * No marshalled argument can carry a `Date` or a `Map`, so the emitter
+   * never asks this question of either.
    */
   it.each([
     { name: "an object literal", value: { a: 1 }, plain: true },
@@ -37,11 +35,10 @@ describe("Unit: isPlainObject — what counts as a JSON object", () => {
 
 describe("Unit: toPlainValue — marshalled arguments as plain JSON", () => {
   /**
-   * A `Program` reaches `serializeValueAsJson`, and that call happens only
-   * for a TypeSpec `Value`. Every case below passes plain JavaScript, so the
-   * program is never read. The program below refuses every read, so that
-   * claim is checked rather than stated, and these cases stay free of a
-   * compilation.
+   * `toPlainValue` reaches `serializeValueAsJson` only for a TypeSpec
+   * `Value`. Every case here passes plain JavaScript, so the program is
+   * never read. The program below refuses every read, so this claim is
+   * checked rather than assumed.
    */
   const program = unusedProgram();
 

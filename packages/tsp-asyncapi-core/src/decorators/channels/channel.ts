@@ -1,3 +1,12 @@
+/**
+ * The `@channel` and `@dynamicChannel` decorators, and the readers other
+ * modules use to see what they recorded.
+ *
+ * Both decorators share `recordChannel` for everything after the address is
+ * settled. The claim and conflict rules live in `state.js`, and the address
+ * grammar lives in `address-template.js`, so this module wires the two
+ * together and turns their findings into diagnostics.
+ */
 import { DecoratorContext, DiagnosticTarget, Program } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
 import { sourcePositionOf } from "../../source-order.js";
@@ -19,6 +28,11 @@ export type { ChannelState } from "./state.js";
  * Records one channel on a target.
  * The two decorators differ only in the address they carry, so they share
  * everything that happens after the address is settled.
+ *
+ * @param context - The decorator context
+ * @param target - The type the decorator was applied to
+ * @param state - The state to store
+ * @param addressTarget - The node to report an address problem on
  */
 function recordChannel(
   context: DecoratorContext,
@@ -43,14 +57,9 @@ function recordChannel(
  * of their operations reaches this channel.
  *
  * The address is checked while this decorator runs, so a problem is reported
- * at the place the address was written. A query string and a fragment are
- * both rejected, because AsyncAPI states that a channel binding expresses
- * them instead. Braces must pair up, and the name between them must be one a
- * TypeSpec property could carry. The scheme and the host are not checked at
- * all: a full URL, a bare path, and a plain topic name are all legal.
- *
- * The address is stored trimmed, and the trimmed text is what is emitted.
- * An address that fails a check drops the channel.
+ * at the place it was written; see `checkAddress` for the rule. The address
+ * is stored trimmed, and the trimmed text is what is emitted. An address
+ * that fails a check drops the channel.
  *
  * Apply this decorator only once per target, and never together with
  * `@dynamicChannel`. Both mistakes are reported.
@@ -129,13 +138,11 @@ export function $channel(
  *
  * This is a separate decorator rather than a `@channel` with the address
  * left out. A channel with an unknown address is a different kind of
- * channel, not a channel that forgot its address, and the two must stay
- * distinguishable. So `@channel` keeps its required address.
+ * channel, not one that forgot its address. The two must stay
+ * distinguishable, so `@channel` keeps its required address.
  *
- * The scope rule is the one `@channel` follows: the channel owns the
- * operations declared directly inside the target, and nothing nested inside
- * it. A channel with an unknown address takes no parameters, because it
- * carries no address to put an expression in.
+ * The scope rule is the one `@channel` follows. A channel with an unknown
+ * address takes no parameters, since it carries no address to put one in.
  *
  * Apply this decorator only once per target, and never together with
  * `@channel`. Both mistakes are reported.

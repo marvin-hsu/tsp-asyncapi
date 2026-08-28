@@ -558,10 +558,8 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "undeclared-used-server": {
-      // This is a warning, not an error, for the reason every build-time
-      // "this name resolves to nothing" check here is one. The check needs
-      // the declared servers, and an error stops the compiler before the
-      // document this message describes is written.
+      // A warning, not an error. The check needs the declared servers, and
+      // an error would stop the compiler before this document is written.
       severity: "warning",
       messages: {
         default: paramMessage`@useServer names the server '${"name"}', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.`,
@@ -574,10 +572,8 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "undeclared-server-variable": {
-      // This is a warning, not an error, because the server survives it. An
-      // error stops the compiler from running the emitter, so no document
-      // would be written at all, and the promise the message makes could
-      // not be kept.
+      // This stays a warning. The server survives it, and an error would
+      // block the whole document from being written.
       severity: "warning",
       messages: {
         default: paramMessage`The template '{${"name"}}' in this server has no matching entry in \`variables\`. A reader cannot tell what to put there. The server is still emitted, with the template text unchanged. Add '${"name"}' to \`variables\`, or take the template out of \`host\` and \`pathname\`.`,
@@ -590,10 +586,8 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "blank-server-variable-value": {
-      // This is a warning, not an error, because the variable survives it.
-      // An error stops the compiler from running the emitter, so no document
-      // would be written at all, and the promise the message makes could
-      // not be kept.
+      // This stays a warning. The variable survives it, and an error would
+      // block the whole document from being written.
       severity: "warning",
       messages: {
         default: paramMessage`The \`${"field"}\` of the server variable '${"name"}' holds an entry that is blank. A blank entry names no value, so it was dropped. A list left with no entry at all is dropped whole, and the variable is then emitted without it. Give every entry a value, or remove the ones that carry none.`,
@@ -633,10 +627,8 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "blank-security-scope-name": {
-      // This is a warning, not an error, because the scheme survives it. An
-      // error stops the compiler from running the emitter, so no document
-      // would be written at all, and the promise the message makes could
-      // not be kept.
+      // This stays a warning. The scheme survives it, and an error would
+      // block the whole document from being written.
       severity: "warning",
       messages: {
         default:
@@ -695,9 +687,8 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "undeclared-security-scheme": {
-      // This is a warning, not an error, because the document survives it.
-      // An error stops the compiler before the emitter writes anything, and
-      // the check runs while the document is built.
+      // A warning, not an error. The document survives it, and this check
+      // runs while the document is still being built.
       severity: "warning",
       messages: {
         default: paramMessage`@useSecurity('${"schemeName"}') names a security scheme that no @securityScheme defines. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @securityScheme with this name, or correct the name.`,
@@ -738,10 +729,9 @@ export const $lib = createTypeSpecLibrary({
       },
     },
     "operation-without-channel": {
-      // This is a warning, not an error, for the reason every build-time
-      // "this decorator reaches nothing" check here is one. The check needs
-      // the built channel set. An error stops the compiler before the
-      // document this message describes is written.
+      // A warning for the same reason: the check needs the built channel
+      // set, and an error would stop the compiler before this document is
+      // written.
       severity: "warning",
       messages: {
         default: paramMessage`The operation '${"name"}' carries @send or @receive, and the interface or namespace around it carries no emitted channel. An operation always points at a channel, so this one reaches no part of the document. This operation was dropped. Add @channel or @dynamicChannel to the interface or namespace that holds it.`,

@@ -1,23 +1,16 @@
 /**
  * The committed Avro example, read as a consumer reads it.
  *
- * `examples/17-avro-schemas` holds the output of a real `tsp compile`. The
- * files are in the repository so that a reader sees an input and its output
- * side by side, and that only helps while the two agree. This suite is what
- * makes them agree. It compiles the committed source again and compares the
- * bytes, so a change to the walk or to the renderer that nobody meant to make
- * shows up here.
+ * `examples/17-avro-schemas` holds the output of a real `tsp compile`. This
+ * suite recompiles the committed source and compares the bytes, so an
+ * unintended change to the walk or the renderer shows up here.
  *
- * It also hands every committed file to `avsc`. A schema file no reader can
- * build is worse than no example at all, because a reader would copy it.
+ * It also hands every committed file to `avsc`, since a schema a reader
+ * cannot build is worse than no example at all.
  *
- * The two guide pages quote the example. Every block they quote is checked
- * against the files rather than against a copy of them, so a page cannot
- * drift from the emitter without a failure here.
- *
- * The four pages that list the diagnostics are checked against the library
- * for the same reason. A reader looks a code up, and a table that names a
- * code nothing reports sends that reader nowhere.
+ * The guide pages and the diagnostics tables are checked against these files
+ * and against the library, so neither can drift from the emitter without a
+ * failure here.
  */
 
 import { describe, expect, it } from "vitest";
@@ -40,7 +33,6 @@ const SCHEMAS = [
 /** The two guide pages that quote the example. */
 const GUIDES = ["docs/guide/avro-schemas.md", "docs/zh-tw/guide/avro-schemas.md"] as const;
 
-/** Reads one committed schema file as text. */
 function committedText(path: string): string {
   return readFileSync(new URL(`schemas/${path}`, EXAMPLE), "utf8");
 }
@@ -53,8 +45,8 @@ function committedSource(): string {
 /**
  * The source of the example, ready for the test host.
  *
- * The host writes the import line itself, and TypeSpec wants every import
- * first. So the one the file carries is dropped, and nothing else is touched.
+ * The host writes its own import line, and TypeSpec requires imports first.
+ * This drops the file's import line and changes nothing else.
  */
 function hostSource(): string {
   return committedSource().replace('import "tsp-avro";', "");
@@ -63,9 +55,9 @@ function hostSource(): string {
 /**
  * Every fenced block of one language on a page.
  *
- * A block is returned with its own indentation and its trailing newline, so
- * it is the text a reader would copy. That is what makes the assertion below
- * a substring test rather than a comparison of two normalized things.
+ * Each block keeps its indentation and trailing newline, matching what a
+ * reader would copy. This lets the checks below use substring comparisons
+ * instead of normalized text.
  */
 function blocksOf(page: string, language: string): string[] {
   const blocks: string[] = [];
@@ -74,10 +66,9 @@ function blocksOf(page: string, language: string): string[] {
   while (from !== -1) {
     const body = page.slice(from + opening.length);
     const closing = body.indexOf("\n```");
-    // A fence that is never closed makes `indexOf` answer -1, and the slice
-    // that follows would then be the empty string. Every check below this
-    // point passes on the empty string, so a malformed page would read as a
-    // page that quotes the example correctly. It fails here instead.
+    // An unclosed fence makes `indexOf` return -1, and the slice becomes
+    // empty. An empty block would pass every check below, so this throws
+    // instead of letting a malformed page read as a correct one.
     if (closing === -1) {
       throw new Error(`A \`${language}\` block on the page is never closed.`);
     }
@@ -119,11 +110,8 @@ describe("Integration: the Avro example", () => {
   });
 
   /**
-   * The reader of the two assertions below.
-   *
-   * An empty block is a substring of everything, so it would pass both of
-   * them. A page that lost the body of a block would then read as a page that
-   * quotes the example. This is what stops that.
+   * An empty block is a substring of everything, so it would pass the quote
+   * checks below silently. This confirms `blocksOf` throws instead.
    */
   it("refuses a block the page never closes", () => {
     expect(() => blocksOf('```json\n{ "a": 1 }\n', "json")).toThrow(/never closed/);
@@ -157,10 +145,8 @@ describe("Integration: the Avro example", () => {
 /**
  * The pages that carry a table of every diagnostic this package reports.
  *
- * The guides alone. A README is what a reader sees on npm, and it answers
- * whether to install the package rather than what a code means. A diagnostic
- * arrives with its own message text, so a reader who meets one is reading the
- * terminal, not this table.
+ * Guides only, not the README: a README helps a reader decide whether to
+ * install the package, not what a diagnostic code means.
  */
 const DIAGNOSTIC_PAGES = [...GUIDES] as const;
 
@@ -189,20 +175,17 @@ describe("Integration: the Avro diagnostics tables", () => {
 /**
  * The pages that tell a reader this package is experimental.
  *
- * Every one of them says so in prose. None of them may say it by quoting a
- * version, because a version in prose is a claim the next publish falsifies:
- * the changeset raises the number and the prose keeps the old one, in six
- * places at once. The word "experimental" and the range `0.x` both survive a
- * release, so those are what the pages carry.
+ * None may quote an exact version: the next release changes the number, but
+ * the prose would not update with it. "Experimental" and `0.x` both survive
+ * a release, so the pages use those instead.
  */
 const VERSION_PAGES = [...DIAGNOSTIC_PAGES, "README.md", "README.zh-TW.md"] as const;
 
 /**
  * Pages that must carry the notice but may name a version.
  *
- * A changelog names versions; that is what it is for. It still has to say the
- * package is experimental, because a reader who arrives at the entry for the
- * first release learns it there.
+ * A changelog names versions by design, but its first-release entry must
+ * still call the package experimental.
  */
 const NOTICE_PAGES = [...VERSION_PAGES, "packages/tsp-avro/CHANGELOG.md"] as const;
 
@@ -239,12 +222,8 @@ describe("Integration: the Avro experimental notice", () => {
 });
 
 /**
- * The Chinese pages of this package, in Taiwanese usage.
- *
- * The repository writes one term for one concept, and it writes the Taiwanese
- * term. A mainland term reads as a second name for a thing that already has
- * one. Each entry below is a word this repository has chosen against, paired
- * with the word it uses instead, so a failure says what to write.
+ * Mainland terms this repository writes another way, paired with the
+ * Taiwanese term it uses instead. A failure names the correct word.
  */
 const MAINLAND_TERMS: readonly (readonly [string, string])[] = [
   ["對象", "物件"],

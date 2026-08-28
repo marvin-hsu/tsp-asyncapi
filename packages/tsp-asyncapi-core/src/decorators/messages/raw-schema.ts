@@ -13,10 +13,20 @@ import type { MultiFormatSchemaObject } from "../../types/index.js";
 import { trimmed } from "../../optional-fields.js";
 
 /**
+ * Shared engine behind `@rawPayload` and `@rawHeaders`: a raw schema of
+ * another format, recorded verbatim into one slot of the Message Object.
+ * Both decorators differ only in the state key, the diagnostic code, and
+ * the field they fill. This module never reads inside the schema value
+ * itself. Validation stops at `schemaFormat` and the top-level shape.
+ */
+
+/**
  * True when a value is text that opens a JSON object or array.
  *
- * Used to tell a schema written as serialized text from one that is a JSON
- * string in its own right.
+ * Tells serialized-text schemas from a JSON string that is a schema on its
+ * own (e.g. Avro's `"string"` primitive).
+ *
+ * @param value - The field as the author wrote it
  */
 function looksLikeSerializedJson(value: unknown): boolean {
   if (typeof value !== "string") return false;
@@ -65,13 +75,9 @@ export interface RawSchemaSlot {
 }
 
 /**
- * Builds the slot one raw schema decorator uses.
- *
- * The two decorators differ in three things only: the state they write, the
- * diagnostic they report for a second application, and the field they fill.
- * Everything else is one piece of code here. So a rule about a
- * `schemaFormat` value or about a schema value has one definition, and the
- * two slots cannot drift apart.
+ * Builds the slot one raw schema decorator uses, so a rule about
+ * `schemaFormat` or about the schema value has one definition shared by
+ * both slots.
  *
  * @param stateKey - A symbol private to the calling decorator
  * @param appliedKey - A second symbol, for the single-application guard
@@ -88,10 +94,9 @@ export function rawSchemaSlot(
 
   return {
     apply(context: DecoratorContext, target: Model, schemaFormat: string, schema: unknown): void {
-      // Decorators on one declaration run bottom-up, so the application
-      // written last in the source runs first and wins. The guard records
-      // that this decorator ran, before any value is validated, so a value
-      // that fails validation still blocks a later application.
+      // Decorators on one declaration run bottom-up: the last application in
+      // source wins. The guard claims before validation, so an invalid value
+      // still blocks a later application.
       if (guard.claim(context, target) !== "first") return;
 
       const format = resolveSchemaFormat(context, schemaFormat);
@@ -99,15 +104,10 @@ export function rawSchemaSlot(
 
       const value = toPlainValue(context.program, schema);
       if (value === undefined || value === null) {
-        // `toPlainValue` returns `undefined` for a value the serializer
-        // cannot represent. Writing it would put a `schema` key with no
-        // value into the document, which no JSON document can hold.
-        //
-        // `null` takes the same route. The specification requires `schema`,
-        // and it requires the value to match `schemaFormat`. `null` names no
-        // schema in any of the listed formats. So the message falls back to
-        // the payload built from the model, rather than emitting a Multi
-        // Format Schema Object that describes nothing.
+        // `undefined` means the serializer could not represent the value.
+        // `null` names no schema in any listed format, and the specification
+        // requires `schema` to match `schemaFormat`. Either way, the message
+        // falls back to the payload built from the model.
         reportDiagnostic(context.program, {
           code: "invalid-raw-schema",
           target: context.getArgumentTarget(1) ?? target,
@@ -125,16 +125,11 @@ export function rawSchemaSlot(
 }
 
 /**
- * Reports the two rules that hold between a `schemaFormat` and its schema.
+ * Reports the rules that hold between a `schemaFormat` and its schema.
  *
- * Both rules are reported and the schema is still recorded. The emitter writes
- * what the author wrote, the same choice `unknown-schema-format` makes. The
- * author decides which half to change, and neither half disappears from the
- * document while the error is open.
- *
- * The value itself is not read any deeper than these two rules need. A raw
- * schema is opaque by design, so the emitter checks only what it can decide
- * from the format alone.
+ * Every violation is only reported; the schema is still recorded, the same
+ * choice `unknown-schema-format` makes. The value is never read any deeper
+ * than these rules need, since a raw schema is opaque by design.
  *
  * @param context - The decorator context
  * @param target - The model the decorator sits on
@@ -157,17 +152,10 @@ function reportSchemaValueRules(
       format: { format },
     });
   }
-  // The other half of the same sentence. A JSON based schema language has an
-  // object form, and AsyncAPI requires the schema to be inlined as one rather
-  // than as text waiting to be parsed. Only the non-JSON direction was checked
-  // before, so serialized text reached the document and the official parser
-  // rejected it while this emitter exited clean.
-  //
-  // The test is whether the string opens a JSON object or array, not whether
-  // it is a string at all. A JSON string can be a whole schema on its own:
-  // Avro names its primitives that way, so `"string"` is a schema and not text
-  // to be parsed. Reading further would mean parsing the value, and this
-  // emitter never looks inside `schema`.
+  // The other half of the same rule: a JSON based schema language must inline
+  // the schema as an object, not as text waiting to be parsed. The test is
+  // whether the string opens a JSON object or array, not whether it is a
+  // string at all. Avro's `"string"` primitive is itself a valid schema.
   if (!NON_JSON_SCHEMA_FORMATS.includes(format) && looksLikeSerializedJson(value)) {
     reportDiagnostic(context.program, {
       code: "string-raw-schema",
@@ -192,18 +180,14 @@ function reportSchemaValueRules(
 /**
  * Reads the reference a raw schema makes into this document, if it makes one.
  *
- * Only the top level of the schema is read. A reference nested inside the
- * schema is written in the schema language itself, and the emitter does not
- * know the grammar of that language. The top-level form is the same in every
- * JSON based language the specification lists, so it is the one form the
- * emitter can decide.
- *
- * Two checks read this one answer. The decorator compares the two
- * `schemaFormat` values. The document builder resolves the target. So the
- * form of a local reference has one definition.
+ * Only the top level is read. A nested reference is written in the schema
+ * language itself, whose grammar this emitter does not know. Both the
+ * decorator's format check and the document builder's target resolution
+ * read this one answer, so the form of a local reference has one definition.
  *
  * @param value - The schema, converted to plain JSON
  * @returns The reference, or `undefined` when the top level makes none
+ *
  * @internal
  */
 export function localRef(value: unknown): string | undefined {
@@ -220,25 +204,18 @@ export function localRef(value: unknown): string | undefined {
 /**
  * Checks one `schemaFormat` argument and returns the value to record.
  *
- * A blank format names no schema language, so it is reported and the whole
- * decorator is dropped. The value is written by hand, so it is reported
- * rather than replaced with something the author never asked for.
+ * A blank format names no schema language, so the decorator is dropped.
+ * `trimmed` decides the blank rule and supplies the value both the check
+ * below and the emitter use, so a padded identifier cannot look unlisted
+ * while still reaching the document.
  *
- * `trimmed` answers whether the format says anything, and it answers with the
- * value to use. One call therefore decides the blank rule, the value the
- * check below compares, and the value the emitter writes. Spaces around a
- * listed identifier would otherwise make it look unlisted, and the padded
- * string would reach the document.
- *
- * A format outside the list AsyncAPI names is only warned about. The
- * specification allows a custom value, so the emitter must still write it.
- * The specification also states that a custom value must not collide with a
- * listed one. The emitter cannot check that rule, because it cannot see that
- * a listed identifier now carries another meaning. So the warning carries the
- * rule instead.
+ * A format outside the AsyncAPI list is only warned about: the specification
+ * allows a custom value, but also forbids it from colliding with a listed
+ * one, a rule this emitter cannot itself verify.
  *
  * @param context - The decorator context
  * @param schemaFormat - The argument as the author wrote it
+ *
  * @returns The format to record, or `undefined` when the decorator is dropped
  */
 function resolveSchemaFormat(context: DecoratorContext, schemaFormat: string): string | undefined {

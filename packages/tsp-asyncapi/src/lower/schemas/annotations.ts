@@ -1,3 +1,13 @@
+/**
+ * The lower half of schema annotations: documentation fields, JSON Schema
+ * validation keywords, defaults, and `@jsonSchemaExtension`.
+ *
+ * `withDocs` and `withPropertyDocs` are the entry points, called once a
+ * declaration's or a property's own body has been built. Both merge these
+ * fields onto that body, wrapping it in `allOf` when a keyword collides with
+ * one the body already carries, so both constraints still hold.
+ */
+
 import {
   Type,
   Model,
@@ -40,10 +50,10 @@ import { SchemaDiagnostics } from "./diagnostics.js";
 import { applyEncoding } from "./encoding.js";
 
 /**
- * The annotation keywords a declaration or a use site contributes.
- * These describe the value for a reader. None of them changes whether a
- * value validates. That distinction is what lets them be hoisted out of an
- * `allOf` branch, which `hoistAnnotationsAboveAllOf` relies on.
+ * The annotation keywords a declaration or a use site contributes. These
+ * describe the value for a reader; none changes whether a value validates.
+ * That distinction is what lets `hoistAnnotationsAboveAllOf` hoist them out
+ * of an `allOf` branch.
  */
 type DocFields = Pick<
   SchemaObject,
@@ -52,47 +62,38 @@ type DocFields = Pick<
 
 /**
  * Builds `title`/`description`/`examples`/`deprecated` from a declaration's
- * own documentation decorators.
- * `@summary` maps to `title`. `@doc`, or a plain doc comment that `getDoc`
- * already resolves to the same thing, maps to `description`. TypeSpec's
- * built-in `@example` maps to `examples`.
- * Each example value is serialized to plain JSON against `exampleValueType`,
- * in source order. `serializeExamples` owns that step, and the channel
- * parameter builder uses the same one.
- * A value the serializer cannot represent is dropped there. The example is
- * dropped rather than left to throw past this builder, or to leak in as a
- * JSON `null` or a silently-missing key. Either way, the example carries no
- * usable information.
- * A dropped example still reports the `unserializable-example` warning
- * diagnostic. It targets the declaration or property the `@example` was
- * applied to. So the drop is not completely silent, even though the
- * emitted schema itself has no field to say so.
- * Each dropped example reports once per target, thanks to `diagnostics`. One
- * model can be built twice: a message that lifts `@header` fields emits a
- * payload declaration next to the model's own. One unserializable value is
- * one mistake, so the user hears about it once. The dedup key holds the
- * position of the example, so a target with two bad examples still gets two
- * diagnostics.
- * This function omits any field whose decorator was not applied, per the
- * emitter's omit-empty convention.
+ * own documentation decorators. `@summary` maps to `title`. `@doc`, or a
+ * plain doc comment `getDoc` resolves to the same thing, maps to
+ * `description`. `@example` maps to `examples`.
  *
- * Note: `ExampleOptions`'s `title`/`description`, the `@example`'s second
- * argument, are deliberately not read here.
- * draft-07's `examples` keyword is a bare array of values. It has nowhere
- * to hang a per-entry title or description, so this phase has no field to
- * put them in. Phase 3 adds message-level examples, which have their own
- * `name`/`summary` fields. That is where they get picked up.
+ * Each example is serialized to plain JSON against `exampleValueType`, in
+ * source order, through `serializeExamples`, the same step the channel
+ * parameter builder uses. A value the serializer cannot represent is
+ * dropped rather than left to throw, leak in as a JSON `null`, or leave a
+ * silently-missing key. The drop still reports the `unserializable-example`
+ * warning against the declaration or property the `@example` targeted, once
+ * per target: a model can be built twice, when a message that lifts
+ * `@header` fields emits a payload declaration next to the model's own, and
+ * one mistake should surface once. The dedup key holds the example's
+ * position, so two bad examples on one target still get two diagnostics.
  *
- * `#deprecated` maps to the `deprecated` annotation. The compiler stores a
- * message with it, such as `#deprecated "use v2 instead"`. JSON Schema's
- * `deprecated` is a bare boolean with nowhere to carry that message, so only
- * its presence is emitted. The compiler already reports the message itself
- * at every use site, so it does not go unseen.
+ * `ExampleOptions`'s `title`/`description` are deliberately not read here.
+ * draft-07's `examples` keyword is a bare array with nowhere to hang a
+ * per-entry title or description; message-level examples, which do carry
+ * `name`/`summary`, are built separately in `messages.ts`.
  *
- * `@externalDocs` maps to `externalDocs`. AsyncAPI's Schema Object defines it
- * alongside `discriminator` and `deprecated` as one of the three fields it
- * adds on top of draft-07. A model that is also a message emits it on both
- * the message and its schema, which is the same thing `@doc` already does.
+ * `#deprecated` maps to the `deprecated` annotation. JSON Schema's
+ * `deprecated` is a bare boolean with no field for the message the compiler
+ * stores, e.g. `#deprecated "use v2 instead"`, but the compiler already
+ * reports that message at every use site.
+ *
+ * `@externalDocs` maps to `externalDocs`, one of the three fields AsyncAPI's
+ * Schema Object adds on top of draft-07 alongside `discriminator` and
+ * `deprecated`. A model that is also a message emits it on both the message
+ * and its schema, the same as `@doc`.
+ *
+ * Every field whose decorator was not applied is omitted, per the emitter's
+ * omit-empty convention.
  */
 function buildDocFields(
   program: Program,
@@ -104,10 +105,7 @@ function buildDocFields(
   const description = getDoc(program, target);
   const deprecated = getDeprecated(program, target) !== undefined ? true : undefined;
   const externalDocs = buildExternalDocs(program, target);
-  // A dropped example still surfaces as a diagnostic, rather than being
-  // dropped in total silence. Each example is its own drop, so the
-  // source-order index separates them. Two bad examples on one target are
-  // two mistakes and get two reports.
+  // The source-order index keys each dropped example's diagnostic.
   const examples = serializeExamples(program, target, exampleValueType, (index) =>
     diagnostics.reportOnce({ code: "unserializable-example", target }, String(index)),
   );
@@ -124,29 +122,24 @@ function buildDocFields(
  * Resolves one `@minValue`/`@maxValue`/`@minValueExclusive`/
  * `@maxValueExclusive` bound to the JSON-number field it maps to:
  * `minimum`/`maximum`/`exclusiveMinimum`/`exclusiveMaximum`.
- * The compiler's own `get*Value*` accessors, such as `getMinValue`, silently
- * return `undefined` in two cases. One is when the decorator was never
- * applied. The other is when it was applied but the stored value cannot be
- * represented as a JS `number`. This second case happens when the value
- * overflows, for example `@maxValue(9223372036854775807) v: int64;`, or
- * loses precision, for example a `decimal128` bound with more significant
- * digits than a JS `number` carries. This is per that accessor's own doc
- * comment.
- * Reading the raw `Numeric` first, via `get*ValueAsNumeric`, distinguishes
- * the two cases. A defined `Numeric` whose `asNumber()` is `null` means the
- * decorator *was* applied but cannot be emitted. That case is reported as a
- * diagnostic instead of vanishing without a word.
  *
- * Separately, `@minValue`/`@maxValue` also legally target a temporal scalar
- * such as `utcDateTime`, `plainDate`, or `duration`. In that case the
- * compiler stores a `ScalarValue` rather than a `Numeric`, and the numeric
- * accessor above returns `undefined` by construction.
- * This function reads that case back via the `get*ValueForScalar` sibling
- * accessor, so it is diagnosed too, rather than being silently
- * indistinguishable from "decorator absent".
- * draft-07 has no keyword to express a bound on a `string`-typed schema,
- * such as one with `format: date-time`. So this case can only ever be
- * diagnosed, never emitted.
+ * The compiler's `get*Value*` accessors, such as `getMinValue`, silently
+ * return `undefined` both when the decorator was never applied and when it
+ * was applied but the value cannot be represented as a JS `number`, e.g. an
+ * overflowing `@maxValue(9223372036854775807) v: int64;` or a `decimal128`
+ * bound with more digits than a JS `number` carries. Reading the raw
+ * `Numeric` first, via `get*ValueAsNumeric`, distinguishes the two: a
+ * defined `Numeric` whose `asNumber()` is `null` means the decorator was
+ * applied but cannot be emitted, and that case is reported as a diagnostic.
+ *
+ * `@minValue`/`@maxValue` also legally target a temporal scalar such as
+ * `utcDateTime`, `plainDate`, or `duration`, where the compiler stores a
+ * `ScalarValue` instead of a `Numeric` and the accessor above returns
+ * `undefined` by construction. The `get*ValueForScalar` sibling accessor
+ * reads that case back so it is diagnosed too, rather than looking like
+ * "decorator absent". draft-07 has no keyword for a bound on a
+ * `string`-typed schema, such as one with `format: date-time`, so this case
+ * can only ever be diagnosed, never emitted.
  */
 function resolveRangeBound(
   program: Program,
@@ -184,18 +177,15 @@ function resolveRangeBound(
  * Resolves one `@minLength`/`@maxLength`/`@minItems`/`@maxItems` bound to
  * the JSON-number field it maps to:
  * `minLength`/`maxLength`/`minItems`/`maxItems`.
- * These decorators' own `get*` accessors have the exact same silent-collapse
- * problem `resolveRangeBound`'s doc comment describes for
- * `@minValue`/`@maxValue`.
- * Their signature is `value: valueof integer`, arbitrary precision. The
- * plain accessor, `get*AsNumeric(...)?.asNumber() ?? undefined`, cannot
- * distinguish "decorator absent" from "decorator applied but the value
- * overflows a JS `number`". Both simply come back `undefined`.
- * Reading the raw `Numeric` first, and checking `asNumber()` for `null`,
- * recovers that distinction, the same way `resolveRangeBound` does.
- * Unlike `@minValue`/`@maxValue`, none of these four decorators may legally
- * target a temporal scalar. So there is no `ScalarValue` sibling case to
- * check here.
+ *
+ * These decorators take `value: valueof integer`, arbitrary precision, and
+ * their `get*` accessors have the same silent-collapse problem
+ * `resolveRangeBound` describes for `@minValue`/`@maxValue`: the plain
+ * accessor cannot distinguish "decorator absent" from "decorator applied
+ * but the value overflows a JS `number`". Reading the raw `Numeric` first
+ * and checking `asNumber()` for `null` recovers that distinction the same
+ * way. Unlike `@minValue`/`@maxValue`, none of these four may legally
+ * target a temporal scalar, so there is no `ScalarValue` sibling case here.
  */
 function resolveLengthBound(
   program: Program,
@@ -217,20 +207,20 @@ function resolveLengthBound(
 
 /**
  * Reports a range-constraint diagnostic at most once per `target`,
- * `decorator`, and `SchemaBuilder` instance triple.
+ * `decorator`, and `SchemaBuilder` instance.
+ *
  * Named models, enums, and unions are only ever built once, thanks to
- * `registerNamed`'s cache. So any diagnostic `buildValidationKeywords`
- * reports for them is naturally reported once too.
- * A scalar has no such cache. `buildScalarSchemaShapeWithDocs` re-walks the
- * whole `baseScalar` chain at every use site. Without this guard, the same
- * offending decorator would be re-reported once per property that uses the
- * scalar.
- * The decorator name is passed as the dedup discriminator, so it is keyed on
- * more than `target` and `code`. One diagnostic code covers several distinct
- * decorators. Both `@minLength` and `@maxLength`, for example, map to
- * `unrepresentable-numeric-constraint`. A target with two independently
- * overflowing constraints must still get one diagnostic per constraint. The
- * second must not be silently swallowed by the first's dedup entry.
+ * `registerNamed`'s cache, so any diagnostic reported for them is naturally
+ * reported once too. A scalar has no such cache. `buildScalarShapeWithDocs`
+ * re-walks the whole `baseScalar` chain at every use site. Without this
+ * guard, the same offending decorator would be re-reported per property.
+ *
+ * The decorator name is the dedup discriminator, keyed on more than
+ * `target` and `code`, since one code covers several decorators; both
+ * `@minLength` and `@maxLength` map to `unrepresentable-numeric-constraint`.
+ * A target with two independently overflowing constraints must still get
+ * one diagnostic per constraint, not have the second swallowed by the
+ * first's dedup entry.
  */
 function reportRangeDiagnosticOnce(
   diagnostics: SchemaDiagnostics,
@@ -243,32 +233,28 @@ function reportRangeDiagnosticOnce(
 
 /**
  * Builds validation keywords contributed by `@typespec/compiler`'s own
- * built-in validation decorators (2.8).
- * The string keywords are `minLength`/`maxLength`/`pattern`/`format`.
- * The numeric keywords are `minimum`/`maximum`/`exclusiveMinimum`/
- * `exclusiveMaximum`. These use draft-07's numeric-value form, not the
- * draft-06+ boolean-flag form. See `resolveRangeBound` for how an
- * unrepresentable or temporal bound is diagnosed rather than silently
- * dropped.
- * The array keywords are `minItems`/`maxItems`.
- * Each of these decorators legally targets either a scalar or model
- * declaration directly, such as `@minLength(2) scalar Username extends
- * string;`, or a `ModelProperty`, such as `@minLength(2) name: string;`.
- * The compiler's own `get*` accessors read state keyed by whichever `Type`
- * the decorator was actually applied to. So passing either kind of target
- * here just works.
- * A decorator that does not apply to `target`'s own kind simply reads back
- * `undefined` here. For example, `@minLength` can never legally reach a
- * numeric scalar; the checker itself rejects that at compile time. So all
- * accessors can be called unconditionally, without first switching on what
- * shape `target` is.
- * This function omits every field whose decorator was not applied, per the
- * emitter's omit-empty convention.
+ * built-in validation decorators.
  *
- * There is no `@uniqueItems`, or equivalent, decorator in
- * `@typespec/compiler` 1.14.0's standard library. Only `@minItems`/
- * `@maxItems` exist for arrays. So `uniqueItems` is not produced here; it
- * has no source decorator to read.
+ * The string keywords are `minLength`/`maxLength`/`pattern`/`format`. The
+ * numeric keywords are `minimum`/`maximum`/`exclusiveMinimum`/
+ * `exclusiveMaximum`, using draft-07's numeric-value form rather than the
+ * draft-06+ boolean-flag form; see `resolveRangeBound` for how an
+ * unrepresentable or temporal bound is diagnosed instead of silently
+ * dropped. The array keywords are `minItems`/`maxItems`.
+ *
+ * Each decorator legally targets a scalar or model declaration directly,
+ * e.g. `@minLength(2) scalar Username extends string;`, or a
+ * `ModelProperty`, e.g. `@minLength(2) name: string;`. The compiler's
+ * `get*` accessors read state keyed by whichever `Type` the decorator was
+ * applied to, so passing either kind of target here just works. A
+ * decorator that does not apply to `target`'s own kind reads back
+ * `undefined`, since the checker itself rejects the mismatch at compile
+ * time, so every accessor can be called unconditionally.
+ *
+ * Every field whose decorator was not applied is omitted, per the
+ * emitter's omit-empty convention. `@typespec/compiler`'s standard library
+ * has no `@uniqueItems` or equivalent decorator for arrays, so this
+ * function never produces `uniqueItems`.
  */
 export function buildValidationKeywords(
   program: Program,
@@ -290,13 +276,10 @@ export function buildValidationKeywords(
     getMaxLengthAsNumeric(program, target),
   );
   const pattern = getPattern(program, target);
-  // `@secret` marks a string as sensitive. JSON Schema has no keyword of its
-  // own for that, so it maps to the `password` format, the same spelling
-  // `@typespec/openapi3` uses.
-  // An explicit `@format` wins over it. `@secret` only says the value is
-  // sensitive, while `@format` says what the value actually is, which is the
-  // more specific statement. This is the same precedence the official
-  // emitter applies: it sets `password` first and lets `@format` overwrite it.
+  // `@secret` marks a string as sensitive. JSON Schema has no keyword for
+  // that, so it maps to the `password` format, the same spelling
+  // `@typespec/openapi3` uses. An explicit `@format` wins, since it says
+  // what the value actually is, the more specific statement.
   const format =
     getFormat(program, target) ?? (isSecret(program, target) ? SCHEMA_FORMAT.password : undefined);
   const minimum = resolveRangeBound(
@@ -363,17 +346,14 @@ export function buildValidationKeywords(
  * Builds the `default` keyword from a property's own default value, written
  * as `name?: T = value`.
  *
- * The value is serialized against the property's own type, through the same
- * path an `@example` value takes. So a default and an example of one property
- * always agree on how a value of that type reaches JSON.
+ * The value is serialized against the property's own type, the same path
+ * an `@example` value takes, so a default and an example always agree on
+ * how a value reaches JSON. A value the serializer cannot represent reports
+ * `unserializable-default` and contributes no keyword, rather than putting
+ * a value in the schema that the schema itself rejects or dropping it with
+ * no way for the user to find out.
  *
- * A value the serializer cannot represent reports `unserializable-default`
- * and contributes no keyword. Emitting a partially-serialized default would
- * put a value in the schema that the schema itself rejects. Dropping it
- * silently would leave the user with no way to find out.
- *
- * A property with no default contributes `{}`, so merging this in is a no-op
- * for the common case.
+ * A property with no default contributes `{}`, a no-op when merged in.
  */
 function buildDefaultField(
   program: Program,
@@ -388,16 +368,14 @@ function buildDefaultField(
 
 /**
  * Turns `@jsonSchemaExtension`'s accumulated `{ key, value }` records into a
- * plain object of top-level schema keywords, one property per record.
- * A target with no `@jsonSchemaExtension` application returns `{}`, so
- * merging this in is always a no-op for the common case.
+ * plain object of top-level schema keywords, one property per record. A
+ * target with no application returns `{}`, a no-op when merged in.
  *
- * The decorator stores the value as the compiler marshalled it. That is plain
- * JavaScript for a string, a number and a boolean, and it is the compiler's
- * own value object for a scalar such as `utcDateTime`. So the value goes
- * through `toPlainValue` here, the same rule every binding decorator uses.
- * Writing the marshalled object straight into the schema would emit the
- * compiler's internals.
+ * The decorator stores the value as the compiler marshalled it: plain
+ * JavaScript for a string, number, or boolean, and the compiler's own value
+ * object for a scalar such as `utcDateTime`. The value goes through
+ * `toPlainValue` here, the same rule every binding decorator uses, so the
+ * schema never emits the compiler's internals directly.
  */
 function buildJsonSchemaExtensionFields(
   program: Program,
@@ -439,17 +417,17 @@ function withoutFormat(schema: SchemaObject): SchemaObject {
 /**
  * Wraps `schema` in `allOf` and hoists `title`/`description`/`examples`
  * above it. `withDocs` and `withPropertyDocs` both call this on a
- * validation-keyword collision. Left inside the `allOf` branch, these three
- * fields would not propagate to the parent schema. This level's own value,
- * from `docs`, wins when present. Otherwise, the inherited value already on
- * `schema` is carried up instead of being silently dropped. `restValidation`
- * and `format` are then merged onto the wrapper: `format` last, so this
- * level's `format`, if any, wins over the base's. It wins outright: the
- * base's is removed from the branch, and from any `allOf` nested inside it,
- * rather than left there beside it.
- * `format` is a draft-07 annotation, not a keyword `allOf` intersects. A
- * branch saying `uuid` under a wrapper saying `email` is a contradiction. It
- * is not two constraints that both hold. A base format this level says
+ * validation-keyword collision, since left inside the `allOf` branch these
+ * fields would not propagate to the parent schema. This level's own value
+ * from `docs` wins when present; otherwise the inherited value already on
+ * `schema` is carried up rather than dropped.
+ *
+ * `restValidation` and `format` merge onto the wrapper last, so this
+ * level's `format`, if any, wins over the base's outright: the base's is
+ * removed from the branch and any nested `allOf`, not left there beside it.
+ * `format` is a draft-07 annotation, not a keyword `allOf` intersects; a
+ * branch saying `uuid` under a wrapper saying `email` is a contradiction,
+ * not two constraints that both hold. A base format this level says
  * nothing about stays in the branch, where it already describes the value.
  */
 function hoistAnnotationsAboveAllOf(
@@ -486,15 +464,14 @@ function hoistAnnotationsAboveAllOf(
 
 /**
  * Merges a declaration's own documentation fields and its own validation
- * keywords (2.8) onto its schema body.
+ * keywords onto its schema body.
+ *
  * This schema body is always plain, never a bare `$ref` to itself. It is
  * used for the model, enum, union, and scalar bodies built inside
- * `registerNamed` and `buildScalarSchemaShapeWithDocs`.
- * Enum and union are never a legal target of any 2.8 validation decorator.
- * So merging `buildValidationKeywords` in for them is a no-op. This merge
- * is still done unconditionally, so every named-declaration kind shares
- * this one function, instead of splitting into a docs-only variant and a
- * docs-plus-validation variant.
+ * `registerNamed` and `buildScalarShapeWithDocs`. Enum and union are
+ * never a legal target of a validation decorator, so merging
+ * `buildValidationKeywords` in for them is a no-op, done unconditionally so
+ * every named-declaration kind shares this one function.
  */
 export function withDocs(
   program: Program,
@@ -504,49 +481,38 @@ export function withDocs(
 ): SchemaObject {
   const docs = buildDocFields(program, target, target, diagnostics);
   const validation = buildValidationKeywords(program, target, diagnostics);
-  // `format` is a draft-07 *annotation*, and an assertion under a
-  // format-assertion vocabulary. It is not a keyword that can be
-  // intersected, unlike `minLength`/`pattern`/`minimum`. Two different
-  // `format`s on the same value are a contradiction, not a valid `allOf`
-  // intersection.
-  // So `format` is excluded from the collision set below. It is always
-  // merged last, so this level's `format`, if any, wins over the base's.
+  // `format` is a draft-07 annotation, not a keyword that can be
+  // intersected like `minLength`/`pattern`/`minimum`. Two different
+  // `format`s on the same value contradict rather than form a valid
+  // `allOf` intersection, so it is excluded from the collision set below
+  // and always merged last, so this level's `format` wins over the base's.
   const { format, ...restValidation } = validation;
   // A derived scalar can re-declare a validation keyword its base scalar
-  // already baked into `schema` (see `buildScalarSchemaShapeWithDocs`).
-  // Plain object-spread must not silently replace that keyword. Two
-  // constraints on the same value form a JSON Schema intersection; both
-  // must hold.
-  // On collision, wrap `schema` whole in `allOf`, the same wrap
-  // `withPropertyDocs` uses for the property-vs-scalar case. This layers
-  // this level's keywords as siblings, instead of merging them into the
-  // same object.
-  // Model, enum, and union targets never hit this branch in practice.
-  // `schema` for them is a freshly-built body with no validation keywords
-  // already baked in to collide with.
+  // already baked into `schema`. Plain object-spread must not silently
+  // replace that keyword, since two constraints on the same value form a
+  // JSON Schema intersection and both must hold. On collision, `schema` is
+  // wrapped whole in `allOf`, the same wrap `withPropertyDocs` uses, so
+  // this level's keywords layer as siblings instead of merging in. Model,
+  // enum, and union targets never hit this branch: `schema` for them is a
+  // freshly-built body with nothing already baked in to collide with.
   const collidesWithBase = Object.keys(restValidation).some(
     (key) => key in (schema as Record<string, unknown>),
   );
-  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
-  // `lib/main.tsp`). `Scalar`/`Enum`/`Union` never carry one, so this is
-  // always `{}` for them.
-  // These fields are merged in last, after everything above, deliberately.
-  // A user reaching for this escape hatch to set a keyword this emitter
-  // already produces from a dedicated decorator, e.g. `unevaluatedProperties`
-  // alongside `@discriminator`-driven keywords, is doing so on purpose. So an
-  // extension key always wins over one this builder would otherwise have
-  // produced, rather than being silently dropped as "already present".
+  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty`, so
+  // this is always `{}` for `Scalar`/`Enum`/`Union`. These fields merge in
+  // last, deliberately: a user reaching for this escape hatch to set a
+  // keyword the emitter already produces, e.g. `unevaluatedProperties`
+  // alongside `@discriminator`, is doing so on purpose, so an extension
+  // key always wins rather than being dropped as "already present".
   const extensionFields =
     target.kind === "Model"
       ? buildJsonSchemaExtensionFields(program, getJsonSchemaExtensions(program, target))
       : {};
   if (collidesWithBase) {
-    // `title`/`description`/`examples` are annotations. Left inside the
-    // `allOf` branch, they would not propagate to the parent schema. So any
-    // reader looking at this level's own `title`/`description` would see
-    // nothing whenever an unrelated validation keyword happens to collide.
-    // A derived scalar that only adds a validation keyword, with no `@doc`
-    // of its own, must not lose the base's inherited description.
+    // `title`/`description`/`examples` left inside the `allOf` branch would
+    // not propagate to the parent schema. A derived scalar that only adds
+    // a validation keyword, with no `@doc` of its own, must not lose the
+    // base's inherited description.
     return {
       ...hoistAnnotationsAboveAllOf(schema, docs, restValidation, format),
       ...extensionFields,
@@ -563,46 +529,37 @@ export function withDocs(
 /**
  * Merges a property's, or union variant's, own documentation fields onto
  * its schema entry.
- * A property typed as a named declaration builds to a bare `$ref` (see
- * `buildSchema`). Per JSON Schema, a `$ref` has no sibling keywords of its
- * own. So a ref is wrapped in `allOf`, to give the property's
- * `title`/`description`/`examples` somewhere valid to live. A plain inline
- * schema gets them merged in directly instead.
- * `prop.type`, not `prop` itself, is passed as the example's value type.
- * Passing `prop` would make `serializeValueAsJson` apply the property's own
- * `@encode` to the example. But `buildScalarSchema` (2.7) does not yet map
- * `@encode` into the schema's `type`/`format`; that is out of scope for
- * this phase (2.8 adds it). Encoding only the example, and not the schema,
- * would produce an example that fails validation against its own
- * property's schema.
+ *
+ * A property typed as a named declaration builds to a bare `$ref`. Per
+ * JSON Schema, a `$ref` has no sibling keywords of its own, so a ref is
+ * wrapped in `allOf` to give the property's `title`/`description`/
+ * `examples` somewhere valid to live; a plain inline schema gets them
+ * merged in directly. `prop.type`, not `prop` itself, is passed as the
+ * example's value type: passing `prop` would make the serializer apply the
+ * property's own `@encode` to the example, but the schema's own
+ * `type`/`format` does not carry that encoding, so an example encoded
+ * differently from its schema would fail to validate against it.
+ *
  * This function is shared with `buildUnionSchemaBody`, for a union
  * variant's own `@doc`/`@summary`/`@example`. `UnionVariant` has the same
- * `type` shape a `ModelProperty` does, and it is a legal `@example` target
- * per `decorators.tsp`.
+ * `type` shape a `ModelProperty` does, and it is a legal `@example` target.
  *
- * This function also merges the property's, or variant's, own 2.8
- * validation keywords (`buildValidationKeywords`) the same way.
- * A `@minLength`/`@minValue`/`@minItems`, and so on, applied directly at
- * the property use site, rather than on the underlying scalar or model
- * declaration, needs the exact same $ref-wrap-or-merge handling
- * documentation already gets. Both are "extra keywords this use site
- * contributes on top of its type's own schema".
- * Unlike `title`/`description`, a validation keyword that collides with one
- * already baked into `schema` must NOT simply replace it.
- * `buildScalarSchemaShapeWithDocs` bakes in every 2.8 keyword, not just
- * `type`/`format`. Two constraints declared on the same value form a JSON
- * Schema intersection; both must hold, never a replacement. A property
- * weakening a scalar's own `@minLength`/`@pattern`, and so on, must not
- * silently erase the scalar's stricter constraint.
+ * It also merges the property's, or variant's, own validation keywords
+ * (`buildValidationKeywords`) the same way: extra keywords the use site
+ * contributes on top of its type's own schema. Unlike `title`/`description`,
+ * a validation keyword colliding with one already baked into `schema` must
+ * not simply replace it. `buildScalarShapeWithDocs` bakes in every
+ * such keyword, not just `type`/`format`, and two constraints on the same
+ * value form a JSON Schema intersection where both must hold. A property
+ * weakening a scalar's own `@minLength`/`@pattern` must not silently erase
+ * the scalar's stricter constraint.
+ *
  * On collision, `schema` is wrapped whole in `allOf`, the same wrap the
- * `$ref` branch already uses. The property's own keywords are then layered
- * as sibling keywords, instead of merged into the same object. JSON Schema
- * requires an `allOf` branch's keywords and any sibling keywords to all
- * hold simultaneously. So this preserves both constraints without needing
- * a per-keyword intersection rule; numeric min/max, regex `pattern`, and so
- * on, all fall out of the same wrap.
- * When there is no collision, the keywords are still merged in directly as
- * before.
+ * `$ref` branch uses, layering the property's own keywords as siblings
+ * instead of merging them into the same object. This preserves both
+ * constraints without a per-keyword intersection rule; numeric min/max,
+ * regex `pattern`, and so on all fall out of the same wrap. With no
+ * collision, the keywords still merge in directly.
  */
 export function withPropertyDocs(
   program: Program,
@@ -610,32 +567,28 @@ export function withPropertyDocs(
   schema: SchemaObject | ReferenceObject,
   diagnostics: SchemaDiagnostics,
 ): SchemaObject | ReferenceObject {
-  // The property's own `@encode` rewrites the `type`/`format` it got from its
-  // declared type, so it is applied before anything below. An explicit
-  // `@format` on the property still wins, being merged in afterwards.
-  // A `$ref` is never reached here: a property whose `@encode` reaches a
-  // named scalar, or a variant of a named union, is written in place rather
-  // than referenced.
+  // The property's own `@encode` rewrites the `type`/`format` from its
+  // declared type, applied before anything below; an explicit `@format`
+  // still wins, merged in afterwards. A `$ref` never reaches here: a
+  // property whose `@encode` reaches a named scalar, or a variant of a
+  // named union, is written in place instead of referenced.
   const encoded =
     prop.kind === "ModelProperty" && !("$ref" in schema)
       ? applyEncoding(program, prop, schema, diagnostics)
       : schema;
-  // The example is serialized against `prop`, not `prop.type`, so the compiler
-  // applies the same `@encode` to it. An example encoded differently from the
-  // schema describing it would fail to validate against that schema.
+  // The example is serialized against `prop`, not `prop.type`, so it gets
+  // the same `@encode`, keeping it valid against the schema describing it.
   const docs = buildDocFields(program, prop, prop, diagnostics);
   const validation = buildValidationKeywords(program, prop, diagnostics);
-  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty` (see
-  // `lib/main.tsp`); a `UnionVariant` never carries one, so this is always
-  // `{}` in that case. These fields are merged in last, after everything
-  // else, deliberately. See `withDocs`'s matching comment for the
-  // collision-priority rationale.
+  // `@jsonSchemaExtension` only legally targets `Model | ModelProperty`; a
+  // `UnionVariant` never carries one, so this is always `{}` in that case.
+  // See `withDocs`'s matching comment for the merge-order rationale.
   const extensionFields =
     prop.kind === "ModelProperty"
       ? buildJsonSchemaExtensionFields(program, getJsonSchemaExtensions(program, prop))
       : {};
-  // A `UnionVariant` has no default value to read; only a `ModelProperty`
-  // carries one, written as `name?: T = value`.
+  // A `UnionVariant` has no default value; only a `ModelProperty` carries
+  // one, written as `name?: T = value`.
   const defaultFields =
     prop.kind === "ModelProperty" ? buildDefaultField(program, prop, diagnostics) : {};
   const extra = { ...docs, ...validation, ...extensionFields, ...defaultFields };
@@ -645,41 +598,34 @@ export function withPropertyDocs(
   if ("$ref" in encoded) {
     return { allOf: [encoded], ...extra };
   }
-  // `format` is a draft-07 *annotation*, not a keyword that can be
-  // intersected. Two different `format`s on the same value are a
-  // contradiction, not a valid `allOf` intersection. So it must never by
-  // itself trigger
-  // the collision branch below; this is the same reasoning as `withDocs`.
-  // It is excluded from the collision set and merged in last, so this
-  // level's `format`, if any, wins.
+  // `format` is a draft-07 annotation, not an intersectable keyword; two
+  // different `format`s on the same value contradict rather than form a
+  // valid `allOf` intersection, so, as in `withDocs`, it is excluded from
+  // the collision set and merged in last, winning over the base's.
   const { format, ...restValidation } = validation;
   const collidesWithOwnShape = Object.keys(restValidation).some(
     (key) => key in (encoded as Record<string, unknown>),
   );
   if (collidesWithOwnShape) {
-    // Same annotation-hoisting rule as `withDocs`. `title`/`description`/
+    // Same annotation-hoisting rule as `withDocs`: `title`/`description`/
     // `examples` left inside the `allOf` branch would not propagate to the
-    // parent schema. A property that only adds a colliding validation
-    // keyword, with no `@doc` of its own, must not lose the scalar's
-    // inherited description.
-    // `default` is an annotation as well, so it belongs beside the `allOf`,
-    // not inside its branch, for the same reason.
+    // parent schema, and a property that only adds a colliding validation
+    // keyword must not lose the scalar's inherited description. `default`
+    // is an annotation too, so it belongs beside the `allOf` for the same
+    // reason.
     return {
       ...hoistAnnotationsAboveAllOf(encoded, docs, restValidation, format),
       ...extensionFields,
       ...defaultFields,
     };
   }
-  // The property has its own title and/or description here. It fully
-  // determines this use site's title/description. This replaces, rather
-  // than merges with, whatever the scalar's own schema shape may have
-  // baked in via `buildScalarSchema`. Otherwise, a property overriding only
-  // `@summary`, for example, would incoherently keep the underlying
-  // scalar's `@doc` as its `description`.
-  // `examples` does not affect either field. So a property that only adds
-  // its own `@example` must not strip the scalar's inherited
-  // `title`/`description`. Gate the deletion only on the fields actually
-  // being overridden.
+  // A property's own title/description fully determines this use site's,
+  // replacing rather than merging with whatever the scalar's own shape
+  // baked in. Otherwise a property overriding only `@summary` would
+  // incoherently keep the scalar's `@doc` as its `description`. `examples`
+  // does not affect either field, so gate the deletion only on the fields
+  // actually being overridden; a property adding only its own `@example`
+  // must not strip the scalar's inherited `title`/`description`.
   const rest: SchemaObject = { ...encoded };
   if (docs.title !== undefined || docs.description !== undefined) {
     delete rest.title;

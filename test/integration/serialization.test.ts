@@ -15,8 +15,7 @@ import { PACKAGE_NAME } from "#emitter/lib.js";
 /**
  * Compiles one program and returns the file the emitter wrote.
  *
- * @param code - The whole of `main.tsp`, service namespace included
- * @returns The text of the emitted file
+ * `code` must include the service namespace.
  */
 async function emitRaw(code: string): Promise<string> {
   const [result, diagnostics] = await AsyncAPITester.emit(PACKAGE_NAME).compileAndDiagnose(code);

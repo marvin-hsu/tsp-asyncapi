@@ -89,7 +89,6 @@ describe("Unit: the @kafkaServer decorator", () => {
 
     const reported = findDiagnostic(diagnostics, "binding-outside-document");
     expect(reported.message).toContain("kafka");
-    // The message names the document position the author has to look at.
     expect(reported.message).toContain("for the server level");
   });
 

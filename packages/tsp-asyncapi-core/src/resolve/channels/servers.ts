@@ -11,9 +11,9 @@ import { orderBySourceNodes } from "../../source-order.js";
  * The array holds references into the root `servers` map. AsyncAPI requires
  * a Reference Object here, so no Server Object is ever inlined.
  *
- * The order is source order, which the recorded state does not carry: the
- * compiler records the applications in the order they ran, and that differs
- * between a decorator written inline and an augment decorator.
+ * The order is source order. The recorded state does not preserve it,
+ * because the compiler records applications in the order they ran, which
+ * differs between a decorator written inline and an augment decorator.
  *
  * A name given twice contributes one reference. AsyncAPI requires the
  * entries of this array to be unique, and the repeat is reported so it is
@@ -24,6 +24,10 @@ import { orderBySourceNodes } from "../../source-order.js";
  * parser rejects the whole document over one. The check runs here rather
  * than in the decorator, because a `@server` can arrive after `@useServer`
  * runs.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ * @param declaredServers - The servers the service namespace declared
  *
  * @returns The `servers` array, or `undefined` when the channel names no
  * server. The caller then leaves the field out, which AsyncAPI reads as
@@ -64,7 +68,7 @@ export function resolveChannelServers(
       continue;
     }
     // Only the name is carried. Turning it into a reference is a document
-    // detail, so the lower stage does it.
+    // detail, so the lower half does it.
     names.push(entry.name);
   }
   return names;

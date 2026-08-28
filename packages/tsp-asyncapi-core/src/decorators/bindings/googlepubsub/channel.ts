@@ -11,6 +11,12 @@ import {
 } from "./config.js";
 
 /**
+ * `@googlePubSubChannel`, which fills the channel-level Google Cloud
+ * Pub/Sub Bindings Object. The field checks live in `config.ts`, and the
+ * slot is claimed here.
+ */
+
+/**
  * The `config` argument of `@googlePubSubChannel`, as the author wrote it.
  * @public
  */

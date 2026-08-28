@@ -1,26 +1,22 @@
 /**
  * The walk and the renderer, exported with no stability promise.
  *
- * An emitter in another package turns a TypeSpec model into an Avro schema by
- * calling this package rather than by walking the model again. A second walk
- * would drift from this one, and the two would disagree about a construct
- * neither author remembered.
+ * An emitter in another package builds an Avro schema by calling this
+ * package rather than walking the model again itself. Two independent
+ * walks would drift and disagree about a construct neither author
+ * remembered.
  *
- * Nothing here is a semver promise. The main entry point is. These names sit
- * behind their own entry point so the two are told apart, which is what
- * `tsp-asyncapi-core` does with its semantic model for the same reason.
- *
- * There are three names and no more.
+ * Nothing here is a semver promise; the main entry point is. These names
+ * sit behind their own entry point so the two stay distinguishable, the
+ * way `tsp-asyncapi-core` separates its semantic model for the same reason.
  *
  * `buildAvroRecordWithDiagnostics` collects what it refused instead of
- * reporting it. A caller that reported this library's diagnostics would show a
- * user codes from a package they never asked to emit, and two emitters over
- * one program would each report every refusal. So the caller reads the reason
- * and says it under its own name.
+ * reporting it, so the caller reports each refusal under its own name
+ * rather than surfacing this package's diagnostic codes, and two emitters
+ * over one program do not each report the same refusal.
  *
- * `renderAvroSchema` answers with the JSON value rather than the text of a
- * file, because a caller that embeds a schema in another document has nothing
- * to do with a file.
+ * `renderAvroSchema` answers with the JSON value rather than file text, for
+ * a caller that embeds the schema in another document.
  *
  * `AvroSchema` is what the first hands over and the second takes.
  */
