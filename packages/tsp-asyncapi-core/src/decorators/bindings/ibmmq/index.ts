@@ -321,19 +321,13 @@ export function $ibmMqMessage(
 /**
  * Checks the `headers` field against the payload kind.
  *
- * IBM MQ allows the field only on a binary payload. Its schema says so with a
- * `oneOf`: the `jms` and `string` branches both forbid `headers`, and the
- * `binary` branch does not. A document that carries both is rejected by the
- * AsyncAPI parser, so emitting it would hand the author a failure that talks
- * about this emitter rather than about their source.
+ * IBM MQ's schema is a `oneOf`. Only the `binary` branch allows `headers`, so
+ * a `jms` or `string` payload with headers set matches no branch. A binding
+ * that names no type keeps the field, because the `binary` branch also
+ * matches an absent type.
  *
- * A binding that names no type keeps the field. The specification leaves that
- * combination valid, because the `binary` branch matches when the type is
- * absent.
- *
- * The field goes and the kind stays. The kind is the more specific statement:
- * the author said what the payload is, and headers are the part that cannot
- * apply to it.
+ * The field is dropped, not the kind, because the kind is the more specific
+ * of the two statements.
  */
 function headers(
   context: DecoratorContext,

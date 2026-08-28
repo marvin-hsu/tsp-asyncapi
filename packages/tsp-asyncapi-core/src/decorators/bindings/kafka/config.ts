@@ -70,12 +70,6 @@ function reportField(
  * The Kafka binding states that `partitions` and `replicas` are positive
  * integers. Zero partitions describe no topic at all. The declared type is
  * `int32`, so the value is already whole and only the sign is checked here.
- *
- * @param context - The decorator context
- * @param field - The field name, for the diagnostic
- * @param value - The field as the author wrote it
- * @param target - Where a problem is reported
- * @returns The value, or `undefined` when it was absent or rejected
  * @internal
  */
 export function positiveCount(
@@ -97,11 +91,6 @@ export function positiveCount(
  *
  * The Kafka binding allows `header` and `payload` and nothing else. A value
  * outside that set names a place no consumer looks in.
- *
- * @param context - The decorator context
- * @param value - The field as the author wrote it
- * @param target - Where a problem is reported
- * @returns The value, or `undefined` when it was absent or rejected
  * @internal
  */
 export function schemaIdLocation(
@@ -123,13 +112,6 @@ export function schemaIdLocation(
  * Checks one Schema Object field of a Kafka binding.
  *
  * `key`, `groupId` and `clientId` are Schema Objects in the Kafka binding.
- *
- * @param context - The decorator context
- * @param field - The field name, for the diagnostic
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The plain JSON object, or `undefined` when it was absent or
- * rejected
  * @internal
  */
 export function kafkaSchemaField(
@@ -144,29 +126,21 @@ export function kafkaSchemaField(
 /**
  * Checks the `topicConfiguration` field of the channel binding.
  *
- * The map passes through untouched, apart from the one rule the binding
- * states about a value. AsyncAPI allows this object to carry additional
- * properties, and its own keys hold dots, so a vendor key such as
- * `confluent.value.schema.validation` stays legal here.
+ * The map passes through untouched except for `cleanup.policy`. AsyncAPI
+ * allows this object to carry additional properties, and Kafka's own keys
+ * hold dots, so a vendor key such as `confluent.value.schema.validation`
+ * stays legal here.
  *
  * The declared type is `Record<unknown>`, so the checker already refused a
- * scalar here. The map still arrives as no object at all when one member is a
- * value the serializer cannot represent. A custom scalar with an `init` is
- * one. That member fails the whole map, so the field is reported and dropped.
+ * scalar. The map can still arrive as no object at all: a member that is a
+ * custom scalar with an `init` fails serialization, and that fails the whole
+ * map, so the field is reported and dropped.
  *
- * The one rule is `cleanup.policy`. Kafka accepts `delete` and `compact`, and
- * the field is a list, so each entry is checked. A list that holds any other
- * entry is reported and the whole field is dropped.
- *
- * A single value is accepted in place of a list, and it is emitted as a
- * one-entry list. The binding types this field as an array, so emitting the
- * bare string would write a document the AsyncAPI parser rejects.
- *
- * @param context - The decorator context
- * @param value - The field as the author wrote it, still marshalled
- * @param target - Where a problem is reported
- * @returns The plain JSON object, or `undefined` when it was absent, empty,
- * or rejected by the `cleanup.policy` rule
+ * `cleanup.policy` is a list, and Kafka accepts only `delete` and `compact`
+ * as entries. A list holding any other entry is reported, and the whole
+ * field is dropped. A single value in place of a list is accepted and
+ * emitted as a one-entry list, since the binding types this field as an
+ * array.
  * @internal
  */
 export function topicConfiguration(
