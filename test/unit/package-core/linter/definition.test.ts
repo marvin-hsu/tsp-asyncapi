@@ -59,8 +59,8 @@ describe("Unit: the linter definition", () => {
   });
 
   /**
-   * Promoting a rule into `recommended` is a decision about what a user sees
-   * without asking for it. Pinning the set makes that a deliberate diff
+   * Promoting a rule into `recommended` is a decision about what an author
+   * sees without asking for it. Pinning the set makes that a deliberate diff
    * rather than a side effect of adding a rule.
    */
   it("recommends exactly the expected rules", () => {

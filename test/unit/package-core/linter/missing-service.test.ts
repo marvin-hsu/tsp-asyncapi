@@ -80,8 +80,8 @@ describe("Unit: the missing-service rule", () => {
 
   /**
    * A shared library of `@message` models has no service of its own on
-   * purpose, and it declares no channel. An earlier guard accepted messages
-   * alone and reported every such library.
+   * purpose, and it declares no channel. The rule exempts a program with
+   * messages but no channel and no service.
    */
   it("stays quiet on a message-only library", async () => {
     const tester = await createRuleTester(missingServiceRule);

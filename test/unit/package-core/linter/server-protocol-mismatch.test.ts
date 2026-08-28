@@ -80,9 +80,7 @@ describe("Unit: the server-protocol-mismatch rule", () => {
 
   /**
    * The binding member name is not always the protocol name. Solace's
-   * binding is `solace` and the protocol it configures is `smf`. The table
-   * had this row wrong, and `examples/14-streaming-platforms` caught it, so
-   * the pairing is pinned here.
+   * binding member name, `solace`, configures the `smf` protocol.
    */
   it("pairs the solace binding with the smf protocol", async () => {
     const tester = await createRuleTester(serverProtocolMismatchRule);
