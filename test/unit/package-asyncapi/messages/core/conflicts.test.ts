@@ -13,10 +13,10 @@ describe("Unit: Messages — decorator conflicts", () => {
     runner = await AsyncAPITester.createInstance();
   });
 
-  // The other two rules of this step are enforced where the headers are
-  // resolved, and their cases live with the header tests. Two sources of one
-  // message's headers is `duplicate-message-headers`, an error that picks no
-  // winner. A `@header` below the top level of a message model is
+  // The other two rules of this step are enforced where headers are
+  // resolved, and their cases live with the header tests. Two sources of
+  // one message's headers is `duplicate-message-headers`, an error that
+  // picks no winner. A `@header` below the top level of a message model is
   // `nested-header-ignored`, a warning that leaves the field in the payload.
   it("does not report a conflict when a message field is another message", async () => {
     const [, diagnostics] = await runner.compileAndDiagnose(`
@@ -110,7 +110,7 @@ describe("Unit: Messages — decorator conflicts", () => {
 
     // The key collision drops `B`, but the conflict inside `B` is a separate
     // mistake. Reporting it only after the collision is fixed would hand the
-    // user one error at a time.
+    // author one error at a time.
     expect(diagnosticsWith(runner.program.diagnostics, "duplicate-message-key")).toHaveLength(1);
     const reported = diagnosticsWith(runner.program.diagnostics, "conflicting-tag-metadata");
     expect(reported).toHaveLength(1);

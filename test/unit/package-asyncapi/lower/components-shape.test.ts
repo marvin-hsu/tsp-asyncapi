@@ -5,19 +5,17 @@ import { emitDocument } from "../../../utils/test-host.js";
 /**
  * The shape of `components`, pinned at the type level.
  *
- * Nothing writes most of these fields yet. They are declared first, so a
- * later step adds one writer rather than a writer and a field together.
+ * Most of these fields have no writer yet. Declaring the field first lets a
+ * later step add just the writer, not the writer and the field together.
  *
- * The assertions below are ordinary values. The check that matters is that
- * this file compiles. `pnpm typecheck` covers `test/`, so the type rejects a
- * wrong assignment at build time.
+ * The real check is that this file compiles under `pnpm typecheck`. A wrong
+ * assignment fails the build, not a runtime assertion.
  */
 describe("Unit: the shape of ComponentsObject", () => {
   /**
-   * The field this whole phase exists for. A schema written in another
-   * language is a Multi Format Schema Object, and the specification allows
-   * one under `components.schemas`. Until now the type said otherwise, so a
-   * protobuf schema could only be written inline, once per message.
+   * A schema written in another language is a Multi Format Schema Object.
+   * The specification allows one under `components.schemas`, so a protobuf
+   * schema can be shared, not just written inline per message.
    */
   it("accepts a Multi Format Schema Object under schemas", () => {
     const components: ComponentsObject = {
@@ -32,7 +30,7 @@ describe("Unit: the shape of ComponentsObject", () => {
     expect(components.schemas?.OrderProto).toHaveProperty("schemaFormat");
   });
 
-  /** A plain Schema Object still fits the same map. */
+  /** A plain Schema Object fits the same map. */
   it("still accepts a plain Schema Object under schemas", () => {
     const components: ComponentsObject = {
       schemas: { Order: { type: "object", properties: { id: { type: "string" } } } },
@@ -42,12 +40,9 @@ describe("Unit: the shape of ComponentsObject", () => {
   });
 
   /**
-   * A bindings component holds a whole Bindings Object.
-   *
-   * The specification offers no reference alternative for one protocol
-   * member, so `$ref` belongs at `bindings` and never at
-   * `bindings.<protocol>`. Typing the map by `BindingsObject` is what keeps
-   * a later step from promoting at the wrong granularity.
+   * A bindings component holds a whole Bindings Object, not one protocol
+   * member. The specification allows `$ref` only at `bindings`, never at
+   * `bindings.<protocol>`, so the map is typed by `BindingsObject`.
    */
   it("holds a whole Bindings Object in each bindings map", () => {
     const components: ComponentsObject = {
@@ -68,14 +63,12 @@ describe("Unit: the shape of ComponentsObject", () => {
   /**
    * The field set, pinned.
    *
-   * `Required<ComponentsObject>` makes an added or removed field a compile
-   * error, so this catches a field arriving without a decision behind it.
+   * `Required<ComponentsObject>` turns an added or removed field into a
+   * compile error, so no field arrives without a decision behind it.
    *
-   * It does not pin the order. An interface declaration order cannot be read
-   * at run time, and `Object.keys` here would return the order of the literal
-   * below rather than the order of the type. The order a reader sees is the
-   * order `lowerComponents` writes, and the case after this one pins that
-   * against an emitted document.
+   * This does not pin field order. `Object.keys` on the literal below would
+   * only return the literal's own order, not the type's. The order a reader
+   * sees is the order `lowerComponents` writes, pinned by the next case.
    */
   it("declares exactly the fields this emitter writes", () => {
     const populated: Required<ComponentsObject> = {
@@ -95,7 +88,7 @@ describe("Unit: the shape of ComponentsObject", () => {
       externalDocs: {},
     };
 
-    // The five the specification defines and this emitter does not write:
+    // Five fields the specification defines but this emitter never writes:
     // `servers`, `channels`, `operations`, and the two traits.
     expect(Object.keys(populated)).toHaveLength(14);
   });
@@ -104,12 +97,11 @@ describe("Unit: the shape of ComponentsObject", () => {
    * The order a reader sees.
    *
    * `lowerComponents` builds the section from a spread of conditional
-   * literals, and TypeScript does not make that follow the interface. The two
-   * agree today because they were written to. This case is what keeps them
-   * agreeing as later steps add a spread each.
+   * literals. TypeScript does not enforce that this order follows the
+   * interface, so this case is what keeps the two in agreement.
    *
-   * Only the three fields with a writer can appear yet. A later step extends
-   * the expected list as it adds its own.
+   * Only the three fields with a writer appear yet. A later step extends
+   * this list as it adds its own.
    */
   it("emits the sections in specification order", async () => {
     const doc = await emitDocument(`

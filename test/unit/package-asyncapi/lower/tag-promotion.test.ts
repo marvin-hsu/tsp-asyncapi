@@ -7,14 +7,13 @@ import { validateAsyncAPI } from "../../../utils/spec-validation.js";
  * Where a Tag Object is written.
  *
  * A tag carries the name its author wrote, so one use is enough to earn a
- * component: the key is the author's own word rather than the site that
- * happened to meet it first. This is the rule `plan/09-advanced.md` settled
- * and `SchemaBuilder` has run since Phase 2, applied to a fragment that is
- * not a declaration.
+ * component. The key is the author's own word, not the site that happened
+ * to meet it first, even though a tag is a fragment rather than a
+ * declaration.
  *
- * What a tag *says* — how two applications of `@asyncTag` merge, which
- * fields survive — is pinned in `messages/tags.test.ts`, which reads through
- * `resolveTags` so it never restates this rule.
+ * How two applications of `@asyncTag` merge, and which fields survive, is
+ * pinned in `messages/tags.test.ts` through `resolveTags`. This suite does
+ * not restate that rule.
  */
 describe("Unit: promoting tags into components", () => {
   it("writes one component and a reference from every site", async () => {

@@ -18,10 +18,8 @@ function stubServer(name: string): ServerNode {
 
 describe("Unit: lowering the servers of one document", () => {
   it("omits the section when there is no node", () => {
-    // An empty `servers` claims the application has none rather than that
-    // none were declared, so the field is omitted. "No node" is a single
-    // point, so it is stated rather than drawn; the non-empty half is the
-    // keying property in `test/property-based/lower-transforms.test.ts`.
+    // An empty `servers` claims the application has none, not that none
+    // were declared. The field is omitted instead.
     expect(lowerServers([], noPromotions())).toBeUndefined();
   });
 
