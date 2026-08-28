@@ -132,10 +132,16 @@ function encodeShape(
 /**
  * The declared scalars each named encoding describes.
  *
- * These rows repeat the rules `validateEncodeData` in `@typespec/compiler`
- * applies. The compiler accepts an encoding on a union when any one variant
- * is a legal target. It does not record which variant that was. So the rule
- * is repeated here to ask each variant the same question.
+ * Every row but `ISO8601` repeats a rule `validateEncodeData` in
+ * `@typespec/compiler` applies. The compiler accepts an encoding on a union
+ * when any one variant is a legal target. It does not record which variant
+ * that was. So the rule is repeated here to ask each variant the same
+ * question.
+ *
+ * The compiler validates no target for `ISO8601`, so that row is this
+ * emitter's own rule. `ISO8601` is one of the three `DurationKnownEncoding`
+ * values, and it names how a duration travels. A variant that is not a
+ * duration is not the one it describes.
  *
  * An encoding this table does not name is a custom one. The compiler
  * constrains neither its target nor its encode type, so there is no rule
@@ -259,10 +265,13 @@ const UNION_KEYWORDS = ["anyOf", "oneOf"] as const;
  * the answer for a caller that does not ask.
  *
  * A schema whose branches do not line up with the union's variants is
- * returned untouched. That is a string-literal union collapsed to one `enum`,
- * or a `@discriminated` envelope: neither has a branch per variant to encode,
- * and the compiler's own `invalid-encode` already rejects an encoding on
- * either.
+ * returned untouched. A string-literal union is that case. It collapses to
+ * one `enum`, which is a single branch for every variant.
+ *
+ * A `@discriminated` union does have one branch per variant, so the loop
+ * runs over it. Every variant of one is a model, and no branch is then a
+ * scalar to encode. The compiler's own `invalid-encode` already rejects an
+ * encoding on either union.
  */
 function encodeUnion(
   program: Program,
