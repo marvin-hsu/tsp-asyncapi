@@ -10,20 +10,14 @@ export type ServerVariablesArgument = Record<string, AsyncAPIServerVariableState
 
 /**
  * Matches one `{var}` template in a `host` or a `pathname`.
- * A template never spans a path separator, which is what keeps a `pathname`
- * such as `/{a}/{b}` two templates rather than one. A template holds no
- * brace of its own either, so the match cannot run past its own closing
- * brace.
+ * A template never spans a path separator, so a `pathname` such as
+ * `/{a}/{b}` is two templates, not one. A template holds no brace of its
+ * own, so the match cannot run past its own closing brace.
  * This mirrors `extractParamsFromPath` of `@typespec/http`.
  */
 const TEMPLATE_PATTERN = /\{[^/{}]+\}/g;
 
-/**
- * Lists the template names one field uses, in the order they appear.
- *
- * @param text - The `host` or `pathname` to scan
- * @returns The names written inside the braces
- */
+/** Lists the template names one field uses, in the order they appear. */
 function extractTemplateNames(text: string): string[] {
   return (text.match(TEMPLATE_PATTERN) ?? []).map((match) => match.slice(1, -1));
 }
@@ -35,17 +29,10 @@ function extractTemplateNames(text: string): string[] {
  * That is the same rule the string fields of `@server` follow.
  *
  * A blank entry of `enum` or of `examples` names no value, so it is dropped
- * and reported. Dropping it in silence would change what the list says. A
- * list of blank entries would vanish whole, and the variable would then
- * carry no constraint at all, which is the opposite of what the author
- * wrote. The `default`-not-in-`enum` check reads the list after this one,
- * so a lost list would also silence that check.
- *
- * @param context - The decorator context
- * @param name - The name of this variable, for the diagnostic
- * @param variable - One entry of the `variables` argument
- * @param configTarget - The node to report a problem on
- * @returns The entry to store
+ * and reported instead of dropped in silence. A list of blank entries would
+ * otherwise vanish whole, leaving the variable with no constraint at all,
+ * the opposite of what the author wrote. The `default`-not-in-`enum` check
+ * reads this list afterward, so a lost list would silence that check too.
  */
 function normalizeVariable(
   context: DecoratorContext,
@@ -91,12 +78,7 @@ function normalizeVariable(
  * Keeps the first of every repeated value, and reports each repeat once.
  *
  * The first occurrence wins, so the order the author wrote survives. A value
- * that repeats three times is reported once, because it is one mistake.
- *
- * @param context - The decorator context, used to report
- * @param name - The variable the list belongs to, used in the message
- * @param values - The trimmed, non-blank entries
- * @returns The entries with every repeat removed
+ * that repeats three times is one mistake, so it is reported once.
  */
 function dropRepeats(context: DecoratorContext, name: string, values: string[]): string[] {
   const seen = new Set<string>();
@@ -121,25 +103,14 @@ function dropRepeats(context: DecoratorContext, name: string, values: string[]):
 
 /**
  * Checks the `{var}` templates of one server against its declared variables,
- * and normalizes the declarations.
- *
- * `host` and `pathname` both support templates, so the names of both fields
- * are checked against one set of declarations.
+ * and normalizes the declarations. `host` and `pathname` both support
+ * templates, so both fields are checked against one set of declarations.
  *
  * Every problem here degrades the server rather than dropping it. This
  * follows `$server` of `@typespec/http`, which reports a missing parameter
  * and then keeps the rest of the server. A template with no declaration
  * stays in the emitted text, because rewriting the host would change the
  * address the author wrote.
- *
- * @param context - The decorator context
- * @param host - The `host` of this server, already trimmed
- * @param pathname - The `pathname` of this server, already trimmed, or
- * `undefined` when the author gave none
- * @param variables - The `variables` argument, or `undefined` when the
- * author gave none
- * @param configTarget - The node to report a variable problem on
- * @returns The variables to store, or `undefined` when there is none
  */
 export function resolveServerVariables(
   context: DecoratorContext,
@@ -189,14 +160,11 @@ export function resolveServerVariables(
 }
 
 /**
- * Copies one set of variables, deep enough that the caller cannot reach the
+ * Copies one set of variables, deep enough that the caller cannot mutate the
  * recorded state through the copy.
  *
  * `getServers` hands out a copy of every server. A shallow copy of the
  * server would still share this nested graph, so the copy is made here.
- *
- * @param variables - The recorded variables
- * @returns A copy the caller may change
  */
 export function copyServerVariables(
   variables: Record<string, AsyncAPIServerVariableState>,
