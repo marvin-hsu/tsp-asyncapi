@@ -21,6 +21,12 @@
  * `@useSecurity`. `components.securitySchemes` is a registry, and a document
  * may publish an authentication method before any channel requires it.
  *
+ * This repository's `examples/06-servers-and-security` example does this.
+ * It declares four schemes to show four kinds. It names two of them. It
+ * comments one of the remaining schemes as kept for a legacy bridge. A rule
+ * that fires on the project's own example states a preference. A
+ * preference belongs behind an opt-in.
+ *
  * ## Why it needs the whole program
  *
  * A scheme is declared on one namespace and used from another, and

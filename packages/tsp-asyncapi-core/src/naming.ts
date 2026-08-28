@@ -349,8 +349,8 @@ function typeNameOptions(program: Program): TypeNameOptions {
 
 /**
  * Builds the last-resort `components.schemas` key for a named declaration
- * with no compact composed name, that is, a template instantiation with an
- * unspeakable argument.
+ * with no compact composed name. That declaration is a template
+ * instantiation with an unspeakable argument.
  *
  * The key keeps the shape a compact key has, namespace prefix plus own name
  * plus one segment per template argument. Only the argument segments
