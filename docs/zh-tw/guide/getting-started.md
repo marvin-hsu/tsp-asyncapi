@@ -1,11 +1,11 @@
 ---
 title: "快速開始"
-description: "tsp-asyncapi 是 TypeSpec 的 AsyncAPI 3.1 emitter。本頁從安裝開始，產出第一份文件，並說明輸出的每個欄位從哪裡來。"
+description: "安裝 tsp-asyncapi，用 TypeSpec 編譯出第一份 AsyncAPI 3.1 文件。"
 ---
 
 # 快速開始
 
-`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。本頁從安裝開始，產出第一份文件，並說明輸出的每個欄位從哪裡來。
+`tsp-asyncapi` 是 [TypeSpec](https://typespec.io/) 的 [AsyncAPI 3.1](https://www.asyncapi.com/) emitter。裝好、編譯一個小 service，emitter 就會寫出文件。
 
 ## 環境需求
 
@@ -31,14 +31,31 @@ using AsyncAPI;
 @service(#{ title: "Order Service API" })
 @info(#{
   version: "1.0.0",
-  description: "This is a sample Order Service event-driven API.",
-  contact: #{ name: "API Support", email: "support@example.com" },
-  license: #{ name: "MIT", url: "https://opensource.org/licenses/MIT" }
+  description: "A sample event-driven order API.",
 })
-@tag("orders")
-@tag("payment")
-@externalDocs("https://example.com/docs", "Service Documentation")
 namespace Orders;
+
+@message
+@doc("An order a customer placed.")
+model OrderCreated {
+  @header
+  correlationId: string;
+
+  orderId: string;
+  amount: float64;
+}
+
+@channel("orders.created")
+@doc("Every order a customer places lands here.")
+interface OrderChannel {
+  @send
+  @summary("Publish an order event")
+  op sendOrderCreated(event: OrderCreated): void;
+
+  @receive
+  @summary("Consume an order event")
+  op onOrderCreated(): OrderCreated;
+}
 ```
 
 在 `tspconfig.yaml` 設定 emitter：
@@ -48,8 +65,8 @@ emit:
   - "tsp-asyncapi"
 options:
   "tsp-asyncapi":
-    asyncapi-id: "urn:com:example:orders"
-    default-content-type: "application/json"
+    output-file: "asyncapi.yaml"
+    file-type: "yaml"
 ```
 
 執行編譯：
@@ -58,56 +75,83 @@ options:
 tsp compile .
 ```
 
-產出 `tsp-output/tsp-asyncapi/asyncapi.yaml`，內容如下：
+產出 `tsp-output/tsp-asyncapi/asyncapi.yaml`：
 
 ```yaml
 asyncapi: 3.1.0
-id: urn:com:example:orders
 info:
   title: Order Service API
   version: 1.0.0
-  description: This is a sample Order Service event-driven API.
-  contact:
-    name: API Support
-    email: support@example.com
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-  tags:
-    - $ref: "#/components/tags/payment"
-    - $ref: "#/components/tags/orders"
-  externalDocs:
-    url: https://example.com/docs
-    description: Service Documentation
-defaultContentType: application/json
-channels: {}
-operations: {}
+  description: A sample event-driven order API.
+channels:
+  orders.created:
+    address: orders.created
+    description: Every order a customer places lands here.
+    messages:
+      OrderCreated:
+        $ref: "#/components/messages/OrderCreated"
+operations:
+  sendOrderCreated:
+    action: send
+    channel:
+      $ref: "#/channels/orders.created"
+    title: Publish an order event
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
+  onOrderCreated:
+    action: receive
+    channel:
+      $ref: "#/channels/orders.created"
+    title: Consume an order event
+    messages:
+      - $ref: "#/channels/orders.created/messages/OrderCreated"
 components:
-  tags:
-    payment:
-      name: payment
-    orders:
-      name: orders
+  schemas:
+    OrderCreatedPayload:
+      type: object
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          format: double
+      required:
+        - orderId
+        - amount
+      description: An order a customer placed.
+  messages:
+    OrderCreated:
+      name: OrderCreated
+      description: An order a customer placed.
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+        required:
+          - correlationId
+      payload:
+        $ref: "#/components/schemas/OrderCreatedPayload"
 ```
 
-## 每一行從哪來
+## `info` 欄位從哪來
 
 | 輸出欄位                                                              | 來源                                                                                   |
 | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `id`                                                                  | `tspconfig.yaml` 的 `asyncapi-id` 選項                                                 |
 | `info.title`                                                          | `@service(#{ title: ... })`                                                            |
 | `info.version`、`description`、`contact`、`license`、`termsOfService` | `@info(#{ ... })`                                                                      |
 | `info.description`（備用）                                            | namespace 上的 `@doc` 或 `/** ... */` 文件註解。只在 `@info` 沒給 description 時採用。 |
 | `info.tags`                                                           | 每個 `@tag` 產生一筆                                                                   |
 | `info.externalDocs`                                                   | `@externalDocs(url, description?)`                                                     |
+| `id`                                                                  | `tspconfig.yaml` 的 `asyncapi-id` 選項                                                 |
 | `defaultContentType`                                                  | `tspconfig.yaml` 的 `default-content-type` 選項                                        |
 
 寫了多個 `@service` 時以第一個為準，並回報 `multiple-services` 警告。要為多個
 service 各產一份文件，建議拆成多個專案、共用同一份 TypeSpec 原始碼。
 
+這個區塊上的 decorator 完整列表見 [Document Info](../reference/decorators/document-info)。
+
 ## 下一步
 
-- 依 [Schema 轉換](./schema-conversion/) 的規則設計事件 payload model。每個寫法都附輸入與實際輸出的對照。
-- 到 [Emitter 選項](../reference/emitter-options) 查看所有設定。
-- 到 [Decorator](../reference/decorators/) 查看精確的簽章。
-- 遇到警告或錯誤時，查 [診斷訊息](../reference/diagnostics)。
+- 依 [Schema 轉換](./schema-conversion/) 的規則設計 payload model。
+- 到[範例](./examples)看各通訊協定的完整專案。
