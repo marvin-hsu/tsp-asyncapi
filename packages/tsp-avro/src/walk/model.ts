@@ -64,6 +64,14 @@ import { applyLogicalType, namedTypeOf } from "./logical-types.js";
 import { avroScalarFor, scalarTableFor, type AvroScalarTable } from "./scalars.js";
 
 /**
+ * A TypeSpec declaration that can take an Avro full name.
+ *
+ * Avro names three kinds of type. A model becomes a record, an enum becomes an
+ * enum, and a scalar becomes a fixed type.
+ */
+type AvroDeclaration = Model | Enum | Scalar;
+
+/**
  * What the walk carries from one type to the next.
  *
  * `defined` maps every full name already written into the file being built to
@@ -81,8 +89,6 @@ import { avroScalarFor, scalarTableFor, type AvroScalarTable } from "./scalars.j
  * is what lets an emitter in another package read a reason and say it under
  * its own name.
  */
-type AvroDeclaration = Model | Enum | Scalar;
-
 interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
