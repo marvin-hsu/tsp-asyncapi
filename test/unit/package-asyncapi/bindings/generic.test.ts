@@ -189,6 +189,8 @@ describe("Unit: the generic @binding decorator", () => {
     expect(doc).toBeNull();
     // The document is not written here, so the state is the only place that
     // can confirm nothing was recorded for the blank protocol name.
+    // A recorded entry here would reach the document if this diagnostic
+    // ever becomes a warning.
     expect(listAllBindings(program)).toEqual([]);
   });
 
