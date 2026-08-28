@@ -6,16 +6,17 @@
  * re-implements that walk, since `tsp-avro` already owns one.
  *
  * The library loads dynamically. It is experimental and optional, so a
- * static import would force every installer to pull an unstable dependency;
- * the import runs only when the `avro` preview feature is on.
+ * static import would force every installer to pull an unstable dependency.
+ * The import runs only when the `avro` preview feature is on.
  *
  * A payload is built only for a model the document asks about, one that
  * also carries `@AsyncAPI.message`. A model this cannot answer for is a
- * refusal, and the caller stops on one rather than falling back to the
- * plain JSON Schema its TypeSpec type would otherwise produce. The walk's
- * own diagnostics are collapsed into one reason per refusal and reported
- * through this provider's own diagnostic, so one compile speaks with one
- * voice instead of doubling up with the Avro emitter's diagnostics.
+ * refusal. The caller stops on one rather than falling back to the plain
+ * JSON Schema its TypeSpec type would otherwise produce. The walk's own
+ * diagnostics are collapsed into one reason per refusal. That reason is
+ * reported through this provider's own diagnostic. One compile then speaks
+ * with one voice, instead of doubling up with the Avro emitter's
+ * diagnostics.
  */
 
 import type { Diagnostic, Model, Program } from "@typespec/compiler";
@@ -153,8 +154,8 @@ async function collectAvroArtifacts(
  * The walk keeps going after the first problem, so several can pile up.
  * Only the first is used: a diagnostic says one thing, and the author reads
  * the rest by running the Avro emitter directly. The fallback text guards
- * against a walk that breaks its promise of at least one diagnostic, so the
- * reason never goes missing from the middle of a sentence.
+ * against a walk that breaks its promise of at least one diagnostic. It
+ * keeps the reason from going missing from the middle of a sentence.
  */
 function firstReason(diagnostics: readonly Diagnostic[]): string {
   const first = diagnostics.length === 0 ? "" : diagnostics[0].message;

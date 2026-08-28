@@ -1,13 +1,13 @@
 /**
  * The Protobuf provider, as the registry holds it.
  *
- * This file joins existing parts over a whole program: the state reader
+ * This file joins existing parts over a whole program. The state reader
  * says which models the official decorators marked and which package each
- * belongs to, the walk builds one model's closure, and the printer renders
+ * belongs to. The walk builds one model's closure, and the printer renders
  * that closure as proto3 text. One model is one payload, carrying the
  * message the model names plus every declaration it reaches; two messages
  * of one package get two separate texts. A text's root is the message its
- * payload was built for; a Protobuf reader finds that root as the
+ * payload was built for. A Protobuf reader finds that root as the
  * declaration nothing else references, unless two messages reference each
  * other.
  *

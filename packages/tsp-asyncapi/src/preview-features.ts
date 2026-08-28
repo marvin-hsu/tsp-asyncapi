@@ -1,11 +1,10 @@
 /**
  * Answers a request for a preview feature this release cannot honor.
  *
- * A name is reserved in `emitter-options.ts` before the provider behind it
- * exists, so a project that writes `protobuf` gets an answer about the
- * feature instead of a schema error about an unknown value. The registry of
- * providers decides which names currently work; this file is handed that
- * set.
+ * A name is reserved in `emitter-options.ts` before its provider exists.
+ * So a project that writes `protobuf` gets an answer about the feature,
+ * not a schema error about an unknown value. The registry of providers
+ * decides which names currently work; this file is handed that set.
  *
  * An unavailable feature is an error, not a warning. A project that asks for
  * a feature expects the output to change, and a diagnostic alone does not

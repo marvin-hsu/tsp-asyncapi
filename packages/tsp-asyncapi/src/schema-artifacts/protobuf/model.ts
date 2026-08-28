@@ -6,9 +6,9 @@
  * reaches, because the text stands alone and a reader resolves no imports.
  * The walk builds this closure: starting at the root, it follows every
  * field and records each declaration it reaches. A declaration enters the
- * map before its own fields are walked, so a model that reaches itself
- * finds its name already there and stops; nothing here needs a second pass
- * to prune or check.
+ * map before its own fields are walked. A model that reaches itself finds
+ * its name already there and stops. Nothing here needs a second pass to
+ * prune or check.
  *
  * The root is the model the caller asks for. A reader of the finished text
  * has no such argument, so the official AsyncAPI Protobuf parser infers the
@@ -336,7 +336,7 @@ interface Reservations {
  * `@Protobuf.reserve` stores field numbers, ranges, and names in a list
  * that belongs to another library, which promises nothing about its shape.
  * Every entry is checked, and any entry of an unrecognized shape ends the
- * walk: skipping it would drop a reservation, letting a later author reuse
+ * walk. Skipping it would drop a reservation, letting a later author reuse
  * a number a released message already spent.
  */
 function reservationsOf(walk: Walk, model: Model, name: string): Reservations | undefined {
@@ -393,7 +393,7 @@ function isFieldRange(value: unknown): value is [number, number] {
  * Checks that a declaration the walk reached lives in the package of the
  * root, and reports why it does not.
  *
- * A declaration of another package needs an `import` line to reach, but one
+ * A declaration of another package needs an `import` line to reach. One
  * payload carries no imports, so this emitter refuses rather than writing a
  * name that resolves to nothing. Packages are compared by the namespace
  * that declares them, not by name, since two namespaces can declare one
@@ -414,8 +414,8 @@ function checkPackage(walk: Walk, type: Model | Enum, kind: string, name: string
  * Takes a rendered name for one declaration, or reports that it is taken.
  *
  * proto3 gives one file one name per declaration. Two declarations of one
- * package can still render to one name: two sub-namespaces may each declare
- * `Foo`, or a model and an enum may converge once the model name is
+ * package can still render to one name. Two sub-namespaces may each declare
+ * `Foo`. Or a model and an enum may converge once the model name is
  * capitalized. Writing either pair would describe two declarations as one.
  */
 function claimName(walk: Walk, type: Model | Enum, name: string): boolean {
@@ -459,9 +459,9 @@ function fieldOf(walk: Walk, property: ModelProperty): ProtoField | undefined {
 /**
  * The type to write for one field, which is the one place a map may appear.
  *
- * proto3 gives a map field no label: it is neither repeated nor optional,
- * and it cannot be the element of a list or the value of another map. So a
- * map is read here, at the top of a field, and refused everywhere else.
+ * proto3 gives a map field no label. It cannot be repeated, optional, a
+ * list element, or a map value. So a map is read here, at the top of a
+ * field, and refused everywhere else.
  */
 function fieldTypeOf(
   walk: Walk,
