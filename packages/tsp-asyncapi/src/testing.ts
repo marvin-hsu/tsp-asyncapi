@@ -1,13 +1,13 @@
 /**
  * The test host for this emitter.
  *
- * `tsp-asyncapi-core` ships a tester too, and that one loads the decorators
- * alone. This one loads this package, whose `lib/main.tsp` forwards to core, so
- * a test gets the decorators and the emitter together.
+ * `tsp-asyncapi-core` ships a decorators-only tester. This one loads this
+ * package instead, whose `lib/main.tsp` forwards to core, so a test gets
+ * both the decorators and the emitter.
  *
- * The library is named by package name, because that is how the compiler
- * resolves one. `findPackageRoot` walks up from this file, so it finds this
- * package rather than the workspace root.
+ * The library is named by package name, the way the compiler resolves one.
+ * `findPackageRoot` walks up from this file to find this package, not the
+ * workspace root.
  */
 
 import { normalizePath, getDirectoryPath } from "@typespec/compiler";
@@ -29,8 +29,7 @@ function findPackageRoot(fromUrl: string): string {
 }
 
 /**
- * Tester pre-configured with this emitter imported and the `AsyncAPI` namespace
- * in scope.
+ * Tester pre-configured with this emitter and the `AsyncAPI` namespace in scope.
  *
  * @public
  */

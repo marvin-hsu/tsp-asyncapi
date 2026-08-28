@@ -1,19 +1,15 @@
 /**
  * The AsyncAPI document object tree.
  *
- * `document.ts` holds the objects the lower stage writes. The rest come from
- * `tsp-asyncapi-core`, and this file re-exports them.
+ * `document.ts` holds the objects the lower stage writes; the rest re-export
+ * from `tsp-asyncapi-core`.
  *
- * The re-export is deliberate, and it has a limit. This package's public API
- * describes the document it emits, completely. `ChannelObject` carries `tags`,
- * and a caller reading a lowered document should not need a second dependency
- * to name the type of that field. The same holds for every protocol binding
- * object, because a lowered channel carries them.
+ * This package's public API describes the emitted document in full. A caller
+ * should not need a second dependency to name `ChannelObject`, `tags`, or any
+ * protocol binding object a lowered channel carries.
  *
- * What this package does not re-export is the other half of core's API: the
- * readers for decorator state, and the state types. Those describe the input
- * language, not this document. A tool that reads what the author declared
- * depends on `tsp-asyncapi-core` directly.
+ * Decorator-state readers and state types stay in `tsp-asyncapi-core`. They
+ * describe the input language, not the emitted document.
  */
 
 export * from "./document.js";
