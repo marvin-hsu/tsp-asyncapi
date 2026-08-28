@@ -6,8 +6,8 @@ import { createRuleTester } from "../../../utils/linter.js";
  * Unit tests of `tsp-asyncapi/unused-security-scheme`.
  *
  * The emitter writes every declared scheme into
- * `components.securitySchemes` whether or not anything names it, so a
- * forgotten `@useSecurity` produces a document that advertises an
+ * `components.securitySchemes`, whether or not anything names it. A
+ * forgotten `@useSecurity` leaves the document advertising an
  * authentication method nothing requires.
  */
 describe("Unit: the unused-security-scheme rule", () => {

@@ -5,8 +5,8 @@ import { present, trimmed } from "#core/optional-fields.js";
  * The finite inputs of `present`, written out.
  *
  * `present` is the one rule that decides whether an optional field with a
- * value reaches the document. The two enumerable spaces below used to be
- * sampled as properties; the open-ended halves of the same module — the
+ * value reaches the document. The two enumerable spaces below are checked
+ * here as fixed tables. The open-ended halves of the same module — the
  * idempotence of `trimmed` and the spread shape of `text` — remain properties
  * in `test/property-based/optional-fields.test.ts`.
  */
@@ -58,16 +58,9 @@ describe("Unit: optional fields — present", () => {
  * closed set, and a run can sit in three places, so the table below is the
  * whole of what the rule decides.
  *
- * A property once stated this by drawing padded strings two thousand times.
- * Its third claim — the answer equals its own trim — is what killed the
- * `trimStart` mutation; its first — applying the rule twice changes nothing —
- * follows from the other two for any implementation that trims and then maps
- * the empty string, so it killed nothing of its own.
- *
- * The dimension that stays open is what happens to whitespace *inside* the
- * text, and that is guarded next door: the `text` property draws bodies and
- * compares the spread entry, and it is what fails when `trim` is written as
- * a global `replaceAll`.
+ * The dimension that stays open is whitespace *inside* the text. The `text`
+ * property next door draws bodies and compares the spread entry, and it is
+ * what fails when `trim` is written as a global `replaceAll`.
  */
 describe("Unit: optional fields — trimmed", () => {
   const RUNS = [" ", "\t", "\n", "\r", "\f", "\v", "\u00a0", "\u2028", "\ufeff"];

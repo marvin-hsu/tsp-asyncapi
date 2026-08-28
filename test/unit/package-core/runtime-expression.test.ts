@@ -4,15 +4,14 @@ import { isRuntimeExpression } from "#core/decorators/runtime-expression.js";
 /**
  * The four line terminators a pointer token may hold.
  *
- * The pattern used to spell the pointer as `(?:\/.*)?$`, and `.` matches no
- * line terminator without the `s` flag, so `$message.payload#/a\nb` was
- * refused along with any body carrying `\r`, U+2028 or U+2029. RFC 6901 puts
- * no such limit on a reference token, and both JSON and YAML carry those
- * characters inside a member name.
+ * RFC 6901 puts no limit on a reference token, and both JSON and YAML carry
+ * these characters inside a member name. A naive pattern spelled as
+ * `(?:\/.*)?$` would refuse them, since `.` matches no line terminator
+ * without the `s` flag.
  *
  * JavaScript defines exactly these four as line terminators, so the set is
- * closed and written out, for both halves of the message. The open-ended
- * bodies around the same fix — terminators mixed into drawn tokens, with a
+ * closed and written out here for both halves of the message. The open-ended
+ * bodies around the same rule — terminators mixed into drawn tokens, with a
  * counter proving they were drawn — are the grammar property in
  * `test/property-based/format-validators.test.ts`, and the corpus case
  * `pointer-token-newline` pins the emitted document.
