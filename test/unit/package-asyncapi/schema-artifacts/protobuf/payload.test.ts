@@ -2,20 +2,18 @@
  * What a generated Protobuf payload looks like in the emitted document.
  *
  * Everything below runs the whole emitter. The official decorators write
- * their state, and the provider walks that state and renders proto3 text.
- * These cases read the text of the file this emitter writes. Nothing is
- * asserted against an index or a pipeline call, because what a project gets
- * is the file.
+ * their state, and the provider walks it and renders proto3 text. These
+ * cases read the file text this emitter writes, not an index or a
+ * pipeline call, because that file is what a project gets.
  *
- * Four answers are settled here. Two messages of one package are two
- * payloads. A model a message only reaches through a field rides inside that
- * message's payload and gets none of its own. A schema the author wrote wins
- * over a generated one, and the author is told. A model the provider cannot
- * answer for stops the emit.
+ * Four answers are settled here. Two messages of one package get two
+ * payloads. A model reached only through a field rides inside that
+ * message's payload, with none of its own. An author-written schema wins
+ * over a generated one, and the author is told. A model the provider
+ * cannot answer for stops the emit.
  *
- * The official Protobuf decorators are written qualified. Both libraries
- * export a decorator named `message`, and the AsyncAPI one is the one these
- * sources reach for most.
+ * Both official libraries export a decorator named `message`. These
+ * sources write the Protobuf one qualified.
  */
 
 import { describe, expect, it } from "vitest";
@@ -227,12 +225,6 @@ describe("Unit: Protobuf generated payloads", () => {
     await expect(doc).toBeValidAsyncAPI();
   });
 
-  /**
-   * A model a message reaches through a field is part of that message's
-   * schema. It is not a message of the document, so it gets no payload of its
-   * own, and it must not leak into the payload of a message that never
-   * reaches it.
-   */
   it("carries a field-only model inside the payload that reaches it", async () => {
     const doc = await emitClean(FIELD_ONLY);
 
@@ -292,13 +284,9 @@ describe("Unit: Protobuf generated payloads", () => {
   });
 
   /**
-   * A model the provider cannot answer for stops the emit.
-   *
-   * The payload of such a model falls back to the schema its TypeSpec type
-   * produces. That document describes the model with ordinary JSON Schema
-   * while the project asked for proto3, and nothing in the file says so.
-   * Reporting the error does not prevent it, because the emitter writes the
-   * file whatever the diagnostics say.
+   * The provider cannot build a payload without a package, so the walk
+   * reports the model unavailable. The emitter writes no file at all,
+   * rather than fall back to a schema in the wrong format.
    */
   it("writes no document when an artifact is unavailable", async () => {
     const { doc, diagnostics } = await emit(`

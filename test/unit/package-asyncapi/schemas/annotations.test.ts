@@ -233,15 +233,15 @@ describe("Unit: Schemas — annotations", () => {
       // A property re-declaring a keyword its scalar already carries makes the
       // builder wrap the scalar's shape in `allOf`, so both constraints hold.
       expect(schemaOf(props.p).allOf).toBeDefined();
-      // `externalDocs` describes the value, it does not constrain it. Left
+      // `externalDocs` describes the value. It does not constrain it. Left
       // inside the `allOf` branch, a reader looking at this property would
       // never see the link.
       expect(schemaOf(props.p).externalDocs).toEqual({
         url: "https://example.com/wrapped",
         description: "Wrapped docs",
       });
-      // The branch is a schema rather than a reference here, and that is the
-      // claim: the wrapper carries the docs, the branch does not.
+      // The branch is a schema here, not a reference. The wrapper carries
+      // the docs; the branch does not.
       const branch = present(schemaOf(props.p).allOf, "allOf")[0] as SchemaObject;
       expect(branch.externalDocs).toBeUndefined();
     });
