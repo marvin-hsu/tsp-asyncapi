@@ -54,8 +54,7 @@ interface Variant {
  * emitted more than one way — `info` is emitted as both YAML and JSON — and
  * for one that needs options at all.
  *
- * @param name - The base name of the spec
- * @returns Every variant to emit, in the order the sidecar lists them
+ * @returns Every variant of `name` to emit, in the order the sidecar lists them
  */
 function variantsOf(name: string): Variant[] {
   let raw: unknown[];

@@ -57,20 +57,12 @@ function carriesMarkerRun(name: string): boolean {
 
 describe("Unit: Schemas — key sanitizer properties", () => {
   /**
-   * Reachability. The generator is instrumented for three shapes: draws
-   * already inside the key charset, draws reaching `sanitizeNameSegment`,
-   * and draws carrying the marker inside an alphanumeric run so the
-   * `SepSep` escape runs.
-   *
-   * The last one is why the pool is shaped the way it is. The `SepSep`
-   * escape is the most delicate line in the sanitizer, and an earlier
-   * version of this property drew `fc.string({ minLength: 1 })` alone, which
-   * never reached that line at all while sending a large share of its draws
-   * back from the sanitizer's first line. A draw that returns early makes
-   * the assertion restate that line rather than test it.
-   *
-   * The counters are asserted below, so the claim stays honest if the
-   * generator or the sanitizer moves.
+   * Reachability: the generator is shaped to reach three cases — a name
+   * already inside the key charset, a name that reaches `sanitizeNameSegment`,
+   * and a name carrying the marker inside an alphanumeric run so the
+   * `SepSep` escape runs. A draw that returns from the sanitizer's first line
+   * only restates that a legal name is legal, so the counters below keep the
+   * claim honest as the generator or the sanitizer changes.
    */
   it("produces a key inside the Components Object charset for any name", () => {
     let sanitized = 0;
@@ -101,17 +93,16 @@ describe("Unit: Schemas — key sanitizer properties", () => {
   /**
    * Two different names never claim one key.
    *
-   * The encoding turns an unsafe character into the marker `Sep` followed
-   * by its code point, so a name that spells the marker itself has to be
-   * escaped or it reads back as an encoded character. That escape used to
-   * run only for names that needed encoding, and a name already inside the
-   * key charset skipped it. `` `/` `` encoded to `Sep47`, the declaration
-   * `Sep47` passed through untouched, and the two met on one key.
+   * The encoding turns an unsafe character into the marker `Sep` followed by
+   * its code point, so a name that spells the marker itself must be escaped
+   * or it reads back as an encoded character. Without that escape, `` `/` ``
+   * encodes to `Sep47` and collides with a declaration literally named
+   * `Sep47`, which passes through the charset untouched.
    *
-   * A generic string generator almost never reaches that region, so a broad
-   * property would pass and say nothing. This one builds names out of the
-   * pieces that matter, and asserts how many draws carried the marker so a
-   * later change to the generator cannot quietly stop reaching it.
+   * A generic string generator almost never reaches that region, so this one
+   * builds names out of the pieces that matter and asserts how many draws
+   * carried the marker, so a later change to the generator cannot quietly
+   * stop reaching it.
    */
   it("keeps two names apart when one of them spells the marker", () => {
     fc.assert(

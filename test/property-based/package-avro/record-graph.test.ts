@@ -10,35 +10,25 @@ import {
 /**
  * Properties of a graph of records, driven through `avsc`.
  *
- * One Avro schema file holds every named type the record reaches, because
- * Avro has no import. So the interesting question is not what one record
- * looks like: it is whether a file the walk assembled out of many
- * declarations is still a schema a reader can use. `avsc` answers that, and
- * it answers it twice. It builds a type from the file, and it encodes and
- * decodes an instance of that type.
+ * One Avro file holds every named type a record reaches, because Avro has no
+ * import. `avsc` builds a type from the file, then encodes and decodes an
+ * instance of it, so both the type and an encoded value get checked.
  *
- * The generator draws a directed acyclic graph. Record `Mi` may hold a field
- * of `Mj` only where `j` is smaller, so a drawn program never reaches itself.
- * That is a limit of the oracle rather than of the emitter: `random` walks a
- * plain field that reaches back until the stack runs out, so a cycle has no
- * random instance to try.
+ * The generator draws a directed acyclic graph: record `Mi` may hold a field
+ * of `Mj` only where `j` is smaller. `random` walks a plain field back until
+ * the stack overflows, so a cycle has no random instance to try; that limit
+ * belongs to the oracle, not the emitter. Recursion, mutual recursion, a node
+ * two records share, and an optional field are each pinned by hand below.
  *
- * The shapes a random draw reaches rarely are pinned by hand below instead.
- * Recursion, mutual recursion, a node two records share, and an optional
- * field each have a written source and a written instance.
- *
- * The shapes the draws are about are counted as they are rendered, and the
- * counts are asserted after the run. A record with no field is a legal draw,
- * so a generator that stopped producing a cross-record reference, an array or
- * a map would still round-trip everything it drew. The counters are what says
- * the run was about anything. The seed is fixed, so the counts are the same on
- * every run.
+ * Counters track the shapes a draw produces and are asserted after the run.
+ * A record with no fields is a legal draw that would still round-trip even
+ * if the generator stopped producing cross-record references, arrays, or
+ * maps, so the counters are what proves the run was about anything. The
+ * seed is fixed, so the counts are the same on every run.
  */
 
-/** The Avro namespace every generated program declares. */
 const NAMESPACE = "com.example.generated";
 
-/** The primitive types a generated field may hold. */
 const PRIMITIVES = ["string", "int32", "int64", "float64", "boolean", "bytes"] as const;
 
 /**
@@ -62,17 +52,13 @@ type Wrapper = "plain" | "array" | "map";
 
 /** One field of a generated record. */
 interface FieldDecl {
-  /** The type the field is built from. */
   readonly base: string;
-  /** What the field wraps that type in. */
   readonly wrapper: Wrapper;
-  /** Whether the field is optional. */
   readonly optional: boolean;
   /** The default the field declares, as source text, or none. */
   readonly initializer: string | undefined;
 }
 
-/** One record of a generated program. */
 interface RecordDecl {
   readonly fields: readonly FieldDecl[];
 }
@@ -138,20 +124,13 @@ const recordGraph: fc.Arbitrary<readonly RecordDecl[]> = fc
     ),
   );
 
-/**
- * How many draws reached each shape this property is about.
- *
- * The counts are taken while a draw is written out, so they say what the run
- * actually contained. The property asserts them after the run.
- */
+/** How many draws reached each shape this property is about, tallied as a draw is rendered. */
 const reached = { crossRecord: 0, array: 0, map: 0, optional: 0, defaulted: 0 };
 
-/** Whether a base type names another record of the same program. */
 function isRecordReference(base: string): boolean {
   return /^M\d+$/.test(base);
 }
 
-/** Writes the type expression of one field. */
 function renderType(field: FieldDecl): string {
   if (field.wrapper === "array") return `${field.base}[]`;
   if (field.wrapper === "map") return `Record<${field.base}>`;

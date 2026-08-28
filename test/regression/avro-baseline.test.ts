@@ -44,8 +44,7 @@ const names = readdirSync(SPECS)
  * The emitter writes a file per Avro namespace segment, so the committed
  * baselines sit several directories deep and a flat read would miss them.
  *
- * @param directory - The directory to walk
- * @returns Every file below it, with the directory prefix removed
+ * @returns Every file below `directory`, with the directory prefix removed
  */
 function filesUnder(directory: URL): string[] {
   const found: string[] = [];

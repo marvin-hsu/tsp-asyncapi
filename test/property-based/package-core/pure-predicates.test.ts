@@ -64,11 +64,8 @@ describe("Unit: missingFields — set semantics", () => {
       fc.property(writtenObject, requiredList, (value, required) => {
         const answer = missingFields(value, required);
 
-        // Which values say nothing is enumerated in
-        // `test/unit/package-core/bindings/fields.test.ts`. Restating that
-        // rule here as an oracle would assert that the code does what the code
-        // does; what is drawn here is the field sets and their order, which
-        // the rule says nothing about.
+        // Which values say nothing is enumerated elsewhere. This property draws
+        // field sets and order instead, which that rule says nothing about.
         if (answer.length > 0) reportedSome++;
         else reportedNone++;
 
@@ -100,11 +97,10 @@ describe("Unit: localRef — a sibling key beside the reference", () => {
     .map((ref) => ({ $ref: ref }));
 
   /**
-   * Which shapes are read back and which are refused is enumerated in
-   * `test/unit/package-asyncapi/messages/raw-schema/refs.test.ts`. What is
-   * drawn here is the dimension that rule says nothing about: a raw schema is
-   * written by an author, so a `$ref` can arrive with other keys beside it,
-   * and the answer must not depend on them.
+   * Which shapes are read back and which are refused is enumerated elsewhere.
+   * What is drawn here is the dimension that rule says nothing about: a raw
+   * schema is written by an author, so a `$ref` can arrive with other keys
+   * beside it, and the answer must not depend on them.
    */
   it("answers the same whatever keys sit beside the reference", () => {
     let withSiblings = 0;

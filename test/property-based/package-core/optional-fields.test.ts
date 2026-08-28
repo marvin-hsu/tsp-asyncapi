@@ -37,8 +37,8 @@ describe("Unit: optional fields — text", () => {
   /**
    * The expected answer is the drawn body itself, never computed from the
    * input. An oracle that trimmed the input here would restate the rule the
-   * module already states, and a change to that rule would move both sides
-   * together — which is how this property read before.
+   * module already states, so a change to that rule could move both sides
+   * together and hide a regression.
    */
   it("holds the drawn body whatever whitespace is wrapped around it", () => {
     let padded = 0;
