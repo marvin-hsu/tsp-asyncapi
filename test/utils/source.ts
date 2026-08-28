@@ -2,15 +2,14 @@
  * TypeSpec fragments more than one suite declares.
  *
  * Only a fragment that was already a named constant belongs here. A test's
- * input should be readable at the call site, so the inline `@service` header
- * that most suites write out stays where it is written, however often it
- * repeats. What these replace is the same *named* constant declared again in
- * each of several files, where the name was already standing between the
- * reader and the source.
+ * input stays readable at the call site, so the inline `@service` header
+ * most suites write out stays where it is, however often it repeats. This
+ * file only replaces a named constant that several files declared again,
+ * identically.
  *
- * A suite whose fragment differs, even by one identifier, keeps its own. The
- * AMQP suite publishes an `EventCreated` rather than an `OrderCreated`, so it
- * declares its own operation.
+ * A suite whose fragment differs, even by one identifier, keeps its own.
+ * The AMQP suite publishes an `EventCreated` rather than an `OrderCreated`,
+ * so it declares its own operation.
  */
 
 /** A message model the binding suites publish. */

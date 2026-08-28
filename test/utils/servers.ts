@@ -9,11 +9,10 @@ import { noPromotions } from "./promotions.js";
 /**
  * Builds the `servers` map the way the document builder does.
  *
- * `resolveServers` needs the keys of `components.securitySchemes`, because a
- * `@useSecurity` naming anything else is dropped. The document builder reads
- * that set from the components it has just built. A test that wrote the set
- * by hand could hand the builder a scheme the document does not carry, and
- * would then assert against a document the emitter never produces.
+ * `resolveServers` needs the keys of `components.securitySchemes`, because
+ * `@useSecurity` naming any other scheme is dropped. The document builder
+ * reads that set from the components it just built, so a hand-written set
+ * could name a scheme the real document never carries.
  *
  * @param program - The compiled program
  * @param namespace - The service namespace to read the servers from
