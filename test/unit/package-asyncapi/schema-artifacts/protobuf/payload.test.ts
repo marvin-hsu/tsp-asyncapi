@@ -4,16 +4,14 @@
  * Everything below runs the whole emitter. The official decorators write
  * their state, and the provider walks it and renders proto3 text. These
  * cases read the file text this emitter writes, not an index or a
- * pipeline call, because that file is what a project gets.
+ * pipeline call, because that file is what a project gets. Both official
+ * libraries export a decorator named `message`, and these sources write
+ * the Protobuf one qualified.
  *
- * Four answers are settled here. Two messages of one package get two
- * payloads. A model reached only through a field rides inside that
- * message's payload, with none of its own. An author-written schema wins
- * over a generated one, and the author is told. A model the provider
- * cannot answer for stops the emit.
- *
- * Both official libraries export a decorator named `message`. These
- * sources write the Protobuf one qualified.
+ * Two messages of one package get two payloads. A model reached only
+ * through a field rides inside that message's payload, with none of its
+ * own. An author-written schema wins over a generated one, and the
+ * author is told. A model the provider cannot answer for stops the emit.
  */
 
 import { describe, expect, it } from "vitest";

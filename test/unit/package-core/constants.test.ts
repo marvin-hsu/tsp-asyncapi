@@ -11,7 +11,7 @@ import { isSafeComponentsKey } from "#core/naming.js";
  * `naming.ts` is the reader of the second one.
  *
  * Both are one `^[...]+$` class, so a single character decides the whole
- * relationship; neither its neighbours nor the name's length matter. The
+ * relationship. Neither its neighbours nor the name's length matter. The
  * rows below enumerate every character that separates or joins the charsets.
  */
 describe("Unit: the two name charsets", () => {

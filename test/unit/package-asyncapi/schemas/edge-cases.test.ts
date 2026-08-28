@@ -92,8 +92,9 @@ describe("Unit: Schemas edge cases (regression)", () => {
   it("registers a built-in model of the TypeSpec namespace that is neither an array nor a record", async () => {
     // The early inline path checks two things: is the model from the
     // TypeSpec namespace, and does it have a collection shape (`Array` or
-    // `Record`)? `TypeSpec.ServiceOptions` is neither, so the build falls
-    // through to the named-declaration path and registers a component.
+    // `Record`)? `TypeSpec.ServiceOptions` satisfies only the first check.
+    // The build falls through to the named-declaration path and registers
+    // a component.
     const { builder, M } = await compileSchemas(t.code`
       model ${t.model("M")} {
         options: TypeSpec.ServiceOptions;
