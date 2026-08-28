@@ -49,6 +49,7 @@ readonly indexer: CallableMessage<["name"]>;
 readonly fixedRecord: CallableMessage<["name"]>;
 readonly fixedFields: CallableMessage<["name"]>;
 readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
+readonly emptyUnion: CallableMessage<["name"]>;
 readonly notRecord: CallableMessage<["name"]>;
 };
 "aliases-target": {
