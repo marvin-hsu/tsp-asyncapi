@@ -645,7 +645,27 @@ function namedModelFor(
  * of an array and the values of a map are spelled the same way. A union index
  * the reader does not need is a byte on the wire.
  */
-function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroSchema {
+function unionFor(
+  context: WalkContext,
+  union: Union,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  // A reader picks a branch of a union by its index, so a union of no branch
+  // leaves nothing to pick. Only a declared union reaches here empty, because
+  // a union written inline names two types or more.
+  if (union.variants.size === 0) {
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "emptyUnion",
+        format: { name: union.name ?? getTypeName(union) },
+        target,
+      }),
+    );
+    return undefined;
+  }
+
   const branches: AvroBranch[] = [];
   const keys = new Set<string>();
 

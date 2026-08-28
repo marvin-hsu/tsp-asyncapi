@@ -311,5 +311,6 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - `@Avro.aliases` on a scalar that carries no `@Avro.fixed`. An alias stands for a name, and a primitive has none.
 - A scalar that carries `@Avro.fixed` and extends an Avro type other than `bytes`. An Avro fixed type holds bytes. A scalar that extends nothing is written as the fixed type, because it says nothing else.
 - A union that names one type twice, such as `string[] | int32[]`.
+- A union that holds no branch, such as `union Nothing {}`. A reader picks one branch of a union, and there is none to pick.
 - Two declarations that resolve to one Avro full name.
 - A record, an enum or a fixed type named after an Avro primitive: `null`, `boolean`, `int`, `long`, `float`, `double`, `bytes` or `string`. A schema spells a primitive by name alone, so a type of that name reads back as the primitive. A name such as `record` or `map` is free, because Avro spells a complex type as an object rather than by the keyword alone.

@@ -360,6 +360,22 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
+  it("refuses a union that holds no branch", async () => {
+    // An Avro union is a list of branches, and a reader picks one of them by
+    // its index. An empty list leaves nothing to pick, so it is not a schema
+    // any reader can take. It was written out as `[]` before.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        union Nothing {}
+        @Avro.avroRecord model Event { value: Nothing; }
+      }
+      `,
+      `unsupported-type: The union "Nothing" holds no branch. An Avro union is a list a reader picks one branch from, and an empty list leaves nothing to pick.`,
+    );
+  });
+
   it("refuses a fixed model that declares fields", async () => {
     await expectRefusal(
       `
