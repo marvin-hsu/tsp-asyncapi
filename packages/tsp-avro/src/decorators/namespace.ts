@@ -29,6 +29,8 @@ const [getNamespaceInternal, setNamespaceInternal] = useStateMap<Namespace, stri
  * A name that breaks the Avro rules is reported here, at the place the author
  * wrote it, and nothing is recorded.
  *
+ * @param context - The decorator context
+ * @param target - The namespace this Avro namespace covers
  * @param name - The Avro namespace, such as `com.example.orders`
  *
  * @example
@@ -57,6 +59,9 @@ export function $namespace(context: DecoratorContext, target: Namespace, name: s
 /**
  * Reads the Avro namespace declared directly on a TypeSpec namespace.
  *
+ * @param program - The program to read the state from
+ * @param target - The namespace to read
+ *
  * @returns The declared name, or undefined when the namespace carries none
  *
  * @public
@@ -72,8 +77,10 @@ export function getAvroNamespace(program: Program, target: Namespace): string | 
  * declares a name. A type with no declared namespace above it has none, and
  * the caller refuses it.
  *
+ * @param program - The program to read the state from
  * @param target - The declaration to place. A scalar is one, because `@fixed`
- *   turns a scalar into a named Avro type.
+ * turns a scalar into a named Avro type.
+ *
  * @returns The covering name, or undefined when no ancestor declares one
  *
  * @public

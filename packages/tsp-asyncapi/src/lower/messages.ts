@@ -29,7 +29,13 @@ import type { DocumentPromotions } from "./components/survey.js";
 import { sharedSiteFields } from "./components/survey.js";
 import { componentRef, refFor } from "./json-pointer.js";
 
-/** Builds the `headers` of one Message Object. */
+/**
+ *  Builds the `headers` of one Message Object.
+ *
+ * @param schemas - The schema builder the payloads expand into
+ * @param promoted - The fields already lifted into `components`
+ * @param node - The resolved node being lowered
+ */
 function lowerHeaders(
   schemas: SchemaBuilder,
   promoted: DocumentPromotions,
@@ -49,7 +55,13 @@ function lowerHeaders(
   }
 }
 
-/** Builds the `payload` of one Message Object. */
+/**
+ *  Builds the `payload` of one Message Object.
+ *
+ * @param schemas - The schema builder the payloads expand into
+ * @param promoted - The fields already lifted into `components`
+ * @param node - The resolved node being lowered
+ */
 function lowerPayload(
   schemas: SchemaBuilder,
   promoted: DocumentPromotions,
@@ -73,6 +85,9 @@ function lowerPayload(
  * A Correlation ID Object has no name of its own, so two messages share one
  * only when they state the same location. One message stating it alone keeps
  * it in place.
+ *
+ * @param promoted - The fields already lifted into `components`
+ * @param node - The resolved node being lowered
  */
 function lowerCorrelationId(
   promoted: DocumentPromotions,
@@ -87,6 +102,10 @@ function lowerCorrelationId(
  * Builds one Message Object.
  *
  * The field order follows the Message Object table of the specification.
+ *
+ * @param schemas - The schema builder the payloads expand into
+ * @param promoted - The fields already lifted into `components`
+ * @param node - The resolved node being lowered
  */
 function lowerMessage(
   schemas: SchemaBuilder,
@@ -121,7 +140,9 @@ function lowerMessage(
  * message reaches gets no `components.schemas` entry.
  *
  * @param schemas - The schema builder the payloads expand into
+ * @param promoted - The fields already lifted into `components`
  * @param nodes - The resolved messages, in source order
+ *
  * @returns The `components.messages` map, or `undefined` when there is no
  * message. An empty map is never emitted.
  * @internal

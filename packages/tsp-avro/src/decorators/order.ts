@@ -43,6 +43,8 @@ function isOrder(mode: string): mode is AvroFieldOrder {
  * Avro writes `ascending` when a field says nothing, so declaring `ascending`
  * here changes the schema text and nothing else.
  *
+ * @param context - The decorator context
+ * @param target - The field to order by
  * @param mode - One of `ascending`, `descending` or `ignore`
  *
  * @example
@@ -68,6 +70,9 @@ export function $order(context: DecoratorContext, target: ModelProperty, mode: s
 
 /**
  * Reads the order declared on a field.
+ *
+ * @param program - The program to read the state from
+ * @param target - The field to read
  *
  * @returns The order, or undefined when the field declares none
  *

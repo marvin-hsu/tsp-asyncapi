@@ -39,6 +39,10 @@ import { SchemaDiagnostics } from "./diagnostics.js";
  * The warning is reported once per property, since a model reachable from
  * two messages is built twice.
  *
+ * @param program - The program the property belongs to
+ * @param prop - The property whose visibility is read
+ * @param diagnostics - Where the restricted-visibility warning is reported
+ *
  * @internal
  */
 export function shouldEmitProperty(

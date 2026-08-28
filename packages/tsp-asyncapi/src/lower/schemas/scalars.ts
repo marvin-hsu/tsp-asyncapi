@@ -31,6 +31,9 @@ import { applyEncoding } from "./encoding.js";
 /**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
  * formatted primitive schema.
+ *
+ * @param type - The type to inspect
+ * @param formats - The format names this scalar may carry
  */
 function withFormat(type: string, formats: Record<string, string>): Record<string, SchemaObject> {
   return Object.fromEntries(
@@ -84,6 +87,8 @@ export const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
  * for example `namespace MyLib { scalar duration extends int32; }`. Only a
  * built-in should be looked up directly in `SCALAR_SCHEMAS` by name; a user
  * scalar must walk `baseScalar` instead.
+ *
+ * @param scalar - The scalar to inspect
  */
 export function isBuiltinScalar(scalar: Scalar): boolean {
   return isGlobalTypeSpecNamespace(scalar.namespace);
@@ -99,6 +104,8 @@ export function isBuiltinScalar(scalar: Scalar): boolean {
  * named alias is a real declaration and registers like any other named
  * model. TypeSpec's built-in templates live in the global `TypeSpec`
  * namespace; a user-declared alias never does.
+ *
+ * @param model - The model to inspect
  */
 export function isBuiltinCollectionInstantiation(model: Model): boolean {
   return isGlobalTypeSpecNamespace(model.namespace);
@@ -111,6 +118,8 @@ export function isBuiltinCollectionInstantiation(model: Model): boolean {
  * `findDiscriminatingProperty` below shares this check.
  * This makes a `never`-typed discriminating property count as "does not
  * exist", matching how it does not exist in the emitted schema.
+ *
+ * @param prop - The property to inspect
  */
 export function isNeverTypedProperty(prop: ModelProperty): boolean {
   return prop.type.kind === "Intrinsic" && prop.type.name === "never";
@@ -119,6 +128,8 @@ export function isNeverTypedProperty(prop: ModelProperty): boolean {
 /**
  * TypeSpec intrinsic type (`null`, `never`, `void`, `unknown`, error type)
  * → AsyncAPI schema.
+ *
+ * @param type - The type to inspect
  */
 export function buildIntrinsicSchema(type: IntrinsicType): SchemaObject {
   switch (type.name) {
@@ -150,6 +161,8 @@ export function buildIntrinsicSchema(type: IntrinsicType): SchemaObject {
  * valid, rather than `{}`, meaning anything is valid. `enum: []` would be
  * the literally correct encoding of "no value", but it is not a valid
  * draft-07 schema. `{ not: {} }` stands in as the closest valid equivalent.
+ *
+ * @param type - The type to inspect
  */
 export function buildEnumSchemaBody(type: Enum): SchemaObject {
   if (type.members.size === 0) {
@@ -175,6 +188,8 @@ export function buildEnumSchemaBody(type: Enum): SchemaObject {
  * as `Color.Red | Color.Green`.
  * This has the same shape as a `string`/`number` literal type: a schema
  * constrained to exactly one value.
+ *
+ * @param member - The union or enum member
  */
 export function buildEnumMemberSchema(member: EnumMember): SchemaObject {
   const value = member.value ?? member.name;
@@ -184,6 +199,9 @@ export function buildEnumMemberSchema(member: EnumMember): SchemaObject {
 /**
  * Whether a property says something of its own that would replace, rather
  * than add to, what the scalar says.
+ *
+ * @param program - The compiled program
+ * @param prop - The property to inspect
  */
 export function propertyStatesItsOwnShape(program: Program, prop: ModelProperty): boolean {
   return (
@@ -232,6 +250,10 @@ export function buildScalarSchema(
  * more-derived `@doc`/`@summary`/`@example` wins. Built-ins contribute no
  * documentation, only the shape. `withPropertyDocs` on the use site can
  * still override the result with the property's own documentation.
+ *
+ * @param program - The compiled program
+ * @param diagnostics - The diagnostic sink for this build
+ * @param scalar - The scalar to inspect
  */
 export function buildScalarShapeWithDocs(
   program: Program,

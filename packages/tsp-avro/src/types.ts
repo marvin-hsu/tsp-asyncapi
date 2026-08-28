@@ -239,6 +239,8 @@ export type AvroSchema = AvroBranch | AvroUnion;
  * Avro gives a union no keyword. It is a JSON array, and that array is the
  * only member of {@link AvroSchema} spelled as one.
  *
+ * @param schema - Any schema
+ *
  * @public
  */
 export function isAvroUnion(schema: AvroSchema): schema is AvroUnion {
@@ -262,6 +264,8 @@ const AVRO_KEYWORDS: ReadonlySet<string> = new Set(["record", "enum", "fixed", "
  *
  * A fixed type carries an annotation too, and it is not this: it is a named
  * type first, and the annotation is one more member of it.
+ *
+ * @param schema - Any schema that is not a union
  *
  * @public
  */

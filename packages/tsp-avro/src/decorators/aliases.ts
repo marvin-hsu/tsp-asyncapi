@@ -42,6 +42,8 @@ const [getAliasesInternal, setAliasesInternal] = useStateMap<AvroAliasTarget, re
  * A name that breaks the Avro rules is reported here, where the author wrote
  * it, and nothing is recorded.
  *
+ * @param context - The decorator context
+ * @param target - The record, enum, fixed type or field the names belong to
  * @param names - The alternate names, in the order Avro writes them
  *
  * @example
@@ -93,6 +95,9 @@ export function $aliases(
  *
  * A scalar carries aliases where `@fixed` turns one into a named Avro type.
  * The walk reads the aliases of every named type through this one call.
+ *
+ * @param program - The program to read the state from
+ * @param target - The declaration to read
  *
  * @returns The names, or undefined when the declaration carries none
  *

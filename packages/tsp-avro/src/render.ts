@@ -28,6 +28,8 @@ interface JsonObject {
  * YAML writer: that writer keeps an undefined member and writes it as null,
  * and null states something the author never wrote. An Avro record with no
  * namespace has no `namespace` member; it does not have a null one.
+ *
+ * @param object - The object
  */
 function prune(object: JsonObject): JsonObject {
   const kept: Record<string, JsonValue> = {};
@@ -44,6 +46,8 @@ function prune(object: JsonObject): JsonObject {
  *
  * Null is a default Avro allows, so a null default is written and an unset
  * default is dropped.
+ *
+ * @param field - The field
  */
 function renderField(field: AvroField): JsonObject {
   return prune({
@@ -58,6 +62,8 @@ function renderField(field: AvroField): JsonObject {
 
 /**
  * Renders one schema as a JSON value.
+ *
+ * @param schema - The schema object under construction
  */
 function renderSchema(schema: AvroSchema): JsonValue {
   if (typeof schema === "string") {
@@ -122,6 +128,8 @@ function renderSchema(schema: AvroSchema): JsonValue {
  * it. A caller that embeds the value in another document needs this rather
  * than the rendered text below.
  *
+ * @param schema - The schema to render
+ *
  * @internal
  */
 export function renderAvroSchema(schema: AvroSchema): unknown {
@@ -132,6 +140,8 @@ export function renderAvroSchema(schema: AvroSchema): unknown {
  * Renders one schema as the text of an `.avsc` file.
  *
  * The text ends with a newline, so the file is well formed.
+ *
+ * @param schema - The schema object under construction
  *
  * @internal
  */

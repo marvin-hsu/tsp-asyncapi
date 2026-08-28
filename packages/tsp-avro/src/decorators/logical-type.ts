@@ -55,6 +55,8 @@ const [getLogicalTypeInternal, setLogicalTypeInternal] = useStateMap<
  * Use `@decimal` for `decimal`. It is the one logical type that takes
  * parameters, and it is unreadable without them.
  *
+ * @param context - The decorator context
+ * @param target - The scalar or field the meaning belongs to
  * @param name - The logical type name, such as `uuid` or `timestamp-millis`
  *
  * @example
@@ -81,6 +83,10 @@ export function $logicalType(
  * whichever decorator ran last, and the compiler runs them from the
  * declaration outwards. Refusing says which two were written, rather than
  * dropping one without a word.
+ *
+ * @param context - The decorator context
+ * @param target - The type this applies to
+ * @param annotation - The annotation
  */
 function recordLogicalType(
   context: DecoratorContext,
@@ -108,9 +114,11 @@ function recordLogicalType(
  * them sit after the point. Both are part of the schema, because a reader
  * cannot place the point without them.
  *
+ * @param context - The decorator context
+ * @param target - The scalar or field the decimal belongs to
  * @param precision - How many digits, which is a positive number
  * @param scale - How many digits sit after the point. It defaults to zero, and
- *   it is never larger than the precision.
+ * it is never larger than the precision.
  *
  * @example
  * ```typespec
@@ -152,6 +160,9 @@ export function $decimal(
 
 /**
  * Reads the logical type declared on a scalar or a field.
+ *
+ * @param program - The program to read the state from
+ * @param target - The scalar or field to read
  *
  * @returns The annotation, or undefined when the target carries none
  *

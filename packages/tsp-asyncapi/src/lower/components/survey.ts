@@ -42,6 +42,8 @@ import { RawSchemaPromoter } from "./raw-schemas.js";
  * `sanitizeDeclarationName` already owns this decision for
  * `components.schemas` and `components.messages`, and one document should
  * not clean its keys two ways.
+ *
+ * @param site - The survey site
  */
 function keyFromSite(site: string): string {
   const cleaned = sanitizeDeclarationName(site);
@@ -98,7 +100,9 @@ function anonymous<T>(): Promoter<T> {
 /**
  * Walks every site of the document and closes each survey.
  *
+ * @param service - The semantic model
  * @param schemas - The builder, asked whether a schema key is already claimed
+ *
  * @internal
  */
 export function surveyDocument(
@@ -199,8 +203,12 @@ export function surveyDocument(
  * Only the shared branch hands out the object `components` holds, and it is
  * the same object every site of that fragment points at.
  *
+ * @param promoter - The closed survey for this kind of fragment
+ * @param section - The `components` section the reference points into
+ * @param value - The fragment this site carries
  * @param site - The site's own name, needed only for a fragment whose name
  * lives outside it, such as a Parameter Object
+ *
  * @internal
  */
 export function shared<T>(
@@ -215,6 +223,10 @@ export function shared<T>(
 
 /**
  * {@link shared}, for a field the site may not carry at all.
+ *
+ * @param promoter - The closed survey for this kind of fragment
+ * @param section - The `components` section the reference points into
+ * @param value - The fragment this site carries, if any
  *
  * @returns `undefined` when the site carries no value
  * @internal
@@ -233,6 +245,10 @@ export function sharedOptional<T>(
  * A list is shared entry by entry rather than as a whole: two sites can
  * carry one tag in common and differ in the rest, and the specification puts
  * the reference at the entry.
+ *
+ * @param promoter - The closed survey for this kind of fragment
+ * @param section - The `components` section the references point into
+ * @param values - The fragments this site carries
  *
  * @returns `undefined` when the site carries no fragment
  * @internal
@@ -262,7 +278,10 @@ export type BindingsSection =
  * spread. Each site writes them in the order its own specification table
  * lists, and those orders differ.
  *
+ * @param promoted - The closed surveys
  * @param section - The bindings section of this kind of site
+ * @param node - The resolved site
+ *
  * @internal
  */
 export function sharedSiteFields(

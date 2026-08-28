@@ -55,6 +55,8 @@ export interface PromotionPolicy<T> {
  * Keys are sorted, so two fragments built in different orders still match.
  * The fragment is already lowered when this runs, so what is compared is what
  * would be written.
+ *
+ * @param value - The value to inspect
  */
 function identityOf(value: unknown): string {
   return JSON.stringify(value, (_key, item: unknown) => {

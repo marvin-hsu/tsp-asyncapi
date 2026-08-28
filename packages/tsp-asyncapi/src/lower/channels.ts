@@ -17,7 +17,12 @@ import { lowerParameter } from "./channels/parameters.js";
 import type { DocumentPromotions } from "./components/survey.js";
 import { shared, sharedSiteFields } from "./components/survey.js";
 
-/** Turns the resolved parameters of one channel into the `parameters` map. */
+/**
+ *  Turns the resolved parameters of one channel into the `parameters` map.
+ *
+ * @param nodes - The resolved nodes, in source order
+ * @param promoted - The fields already lifted into `components`
+ */
 function lowerParameters(
   nodes: readonly ChannelParameterNode[],
   promoted: DocumentPromotions,
@@ -33,7 +38,11 @@ function lowerParameters(
   );
 }
 
-/** Turns the resolved messages of one channel into the `messages` map. */
+/**
+ *  Turns the resolved messages of one channel into the `messages` map.
+ *
+ * @param node - The resolved node being lowered
+ */
 function lowerMessages(node: ChannelNode): Record<string, ReferenceObject> | undefined {
   if (node.messages.length === 0) return undefined;
   return Object.fromEntries(
@@ -53,6 +62,9 @@ function lowerMessages(node: ChannelNode): Record<string, ReferenceObject> | und
  * required, and a dynamic channel emits the literal `null` rather than no
  * field at all, so a reader can tell "the address is unknown" from "the
  * emitter had nothing to say".
+ *
+ * @param node - The resolved node being lowered
+ * @param promoted - The fields already lifted into `components`
  */
 function lowerChannel(node: ChannelNode, promoted: DocumentPromotions): ChannelObject {
   const site = sharedSiteFields(promoted, "channelBindings", node);

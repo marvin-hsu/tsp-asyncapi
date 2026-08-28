@@ -94,6 +94,11 @@ type DocFields = Pick<
  *
  * Every field whose decorator was not applied is omitted, per the emitter's
  * omit-empty convention.
+ *
+ * @param program - The compiled program
+ * @param target - The type this applies to
+ * @param exampleValueType - The type examples are serialized against
+ * @param diagnostics - The diagnostic sink for this build
  */
 function buildDocFields(
   program: Program,
@@ -140,6 +145,13 @@ function buildDocFields(
  * "decorator absent". draft-07 has no keyword for a bound on a
  * `string`-typed schema, such as one with `format: date-time`, so this case
  * can only ever be diagnosed, never emitted.
+ *
+ * @param program - The compiled program
+ * @param target - The type this applies to
+ * @param diagnostics - The diagnostic sink for this build
+ * @param decorator - The decorator that stated the bound
+ * @param numeric - The numeric argument the decorator stored
+ * @param scalarValue - The scalar the bound is compared on
  */
 function resolveRangeBound(
   program: Program,
@@ -186,6 +198,12 @@ function resolveRangeBound(
  * and checking `asNumber()` for `null` recovers that distinction the same
  * way. Unlike `@minValue`/`@maxValue`, none of these four may legally
  * target a temporal scalar, so there is no `ScalarValue` sibling case here.
+ *
+ * @param program - The compiled program
+ * @param target - The type this applies to
+ * @param diagnostics - The diagnostic sink for this build
+ * @param decorator - The decorator that stated the bound
+ * @param numeric - The numeric argument the decorator stored
  */
 function resolveLengthBound(
   program: Program,
@@ -221,6 +239,11 @@ function resolveLengthBound(
  * A target with two independently overflowing constraints must still get
  * one diagnostic per constraint, not have the second swallowed by the
  * first's dedup entry.
+ *
+ * @param diagnostics - The diagnostic sink for this build
+ * @param code - The diagnostic code
+ * @param target - The type this applies to
+ * @param decorator - The decorator that stated the bound
  */
 function reportRangeDiagnosticOnce(
   diagnostics: SchemaDiagnostics,
@@ -255,6 +278,10 @@ function reportRangeDiagnosticOnce(
  * emitter's omit-empty convention. `@typespec/compiler`'s standard library
  * has no `@uniqueItems` or equivalent decorator for arrays, so this
  * function never produces `uniqueItems`.
+ *
+ * @param program - The compiled program
+ * @param target - The type this applies to
+ * @param diagnostics - The diagnostic sink for this build
  */
 export function buildValidationKeywords(
   program: Program,
@@ -354,6 +381,10 @@ export function buildValidationKeywords(
  * no way for the user to find out.
  *
  * A property with no default contributes `{}`, a no-op when merged in.
+ *
+ * @param program - The compiled program
+ * @param prop - The property to inspect
+ * @param diagnostics - The diagnostic sink for this build
  */
 function buildDefaultField(
   program: Program,
@@ -376,6 +407,9 @@ function buildDefaultField(
  * object for a scalar such as `utcDateTime`. The value goes through
  * `toPlainValue` here, the same rule every binding decorator uses, so the
  * schema never emits the compiler's internals directly.
+ *
+ * @param program - The compiled program
+ * @param extensions - The JSON Schema extensions
  */
 function buildJsonSchemaExtensionFields(
   program: Program,
@@ -429,6 +463,11 @@ function withoutFormat(schema: SchemaObject): SchemaObject {
  * branch saying `uuid` under a wrapper saying `email` is a contradiction,
  * not two constraints that both hold. A base format this level says
  * nothing about stays in the branch, where it already describes the value.
+ *
+ * @param schema - The schema object under construction
+ * @param docs - The documentation fields
+ * @param restValidation - The remaining validation keywords
+ * @param format - The format keyword, if any
  */
 function hoistAnnotationsAboveAllOf(
   schema: SchemaObject,
@@ -472,6 +511,11 @@ function hoistAnnotationsAboveAllOf(
  * never a legal target of a validation decorator, so merging
  * `buildValidationKeywords` in for them is a no-op, done unconditionally so
  * every named-declaration kind shares this one function.
+ *
+ * @param program - The compiled program
+ * @param target - The type this applies to
+ * @param schema - The schema object under construction
+ * @param diagnostics - The diagnostic sink for this build
  */
 export function withDocs(
   program: Program,
@@ -560,6 +604,11 @@ export function withDocs(
  * constraints without a per-keyword intersection rule; numeric min/max,
  * regex `pattern`, and so on all fall out of the same wrap. With no
  * collision, the keywords still merge in directly.
+ *
+ * @param program - The compiled program
+ * @param prop - The property to inspect
+ * @param schema - The schema object under construction
+ * @param diagnostics - The diagnostic sink for this build
  */
 export function withPropertyDocs(
   program: Program,

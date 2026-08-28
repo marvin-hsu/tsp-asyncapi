@@ -29,6 +29,8 @@ const INDENT = "  ";
 /**
  * Renders one payload as proto3 text.
  *
+ * @param payload - The payload structure to print
+ *
  * @returns The proto3 text, ending in exactly one newline
  * @internal
  */
@@ -43,12 +45,20 @@ export function renderProtoFile(payload: ProtoPayloadModel): string {
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
-/** Renders one top level declaration. */
+/**
+ *  Renders one top level declaration.
+ *
+ * @param declaration - The message or enum to print
+ */
 function renderDeclaration(declaration: ProtoDeclaration): string[] {
   return declaration.kind === "message" ? renderMessage(declaration) : renderEnum(declaration);
 }
 
-/** Renders one `message` block. */
+/**
+ *  Renders one `message` block.
+ *
+ * @param message - The message to print
+ */
 function renderMessage(message: ProtoMessage): string[] {
   const lines = renderDoc(message.doc, "");
   const reserved = renderReservations(message);
@@ -76,6 +86,8 @@ function renderMessage(message: ProtoMessage): string[] {
  * proto3 keeps reserved numbers and reserved names apart, so a message that
  * reserves both gets two lines. A range is written with the `to` keyword,
  * proto3's spelling for an inclusive range.
+ *
+ * @param message - The message to read the reservations of
  */
 function renderReservations(message: ProtoMessage): string[] {
   const lines: string[] = [];
@@ -97,13 +109,19 @@ function renderReservations(message: ProtoMessage): string[] {
  *
  * A repeated field never also takes `optional`. The walk already applies
  * that rule, so this only writes down what the field says.
+ *
+ * @param field - The field to label
  */
 function labelOf(field: ProtoField): string {
   if (field.repeated) return "repeated ";
   return field.optional ? "optional " : "";
 }
 
-/** Renders one `enum` block. */
+/**
+ *  Renders one `enum` block.
+ *
+ * @param target - The enum to print
+ */
 function renderEnum(target: ProtoEnum): string[] {
   const lines = renderDoc(target.doc, "");
   lines.push(`enum ${target.name} {`);
@@ -124,6 +142,9 @@ function renderEnum(target: ProtoEnum): string[] {
  * Each line of the documentation gets its own comment line, so a paragraph
  * written over several lines stays several lines. A type with no
  * documentation renders as nothing, not an empty comment.
+ *
+ * @param doc - The documentation, if the type has any
+ * @param indent - The indent the block sits at
  */
 function renderDoc(doc: string | undefined, indent: string): string[] {
   if (doc === undefined || doc === "") return [];
