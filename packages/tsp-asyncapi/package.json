@@ -1,6 +1,6 @@
 {
   "name": "tsp-asyncapi",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "type": "module",
   "description": "AsyncAPI emitter for TypeSpec",
   "main": "dist/src/index.js",
