@@ -50,6 +50,13 @@ const PAYLOAD_FORMAT_VALUES = [0, 1];
  * MQTT states that the value must be `0`, `1` or `2`. A value outside that
  * set names a delivery mode no broker implements.
  *
+ * @param context - The decorator context
+ * @param field - The field name, for the diagnostic
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function qos(
@@ -66,6 +73,12 @@ export function qos(
  *
  * MQTT 5 states that `0` means unspecified bytes and `1` means UTF-8. There
  * is no third format.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
  *
  * @internal
  */
@@ -97,6 +110,13 @@ export function payloadFormatIndicator(
  *
  * A will with nothing left in it is dropped. An empty object states no will
  * at all, so emitting it would claim the client configured one.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The Last Will object, or `undefined` when it was absent, empty, or
+ * not an object
  *
  * @internal
  */

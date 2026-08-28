@@ -133,7 +133,11 @@ export function $asyncTag(
   setAsyncTags(context.program, target, tags);
 }
 
-/** Records one `externalDocs` value, without an empty description. */
+/**
+ *  Records one `externalDocs` value, without an empty description.
+ *
+ * @param externalDocs - The external docs object the author wrote
+ */
 function toExternalDocs(externalDocs: AsyncTagExternalDocs): AsyncTagExternalDocs {
   return {
     url: externalDocs.url,

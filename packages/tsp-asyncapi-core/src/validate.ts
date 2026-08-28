@@ -27,6 +27,8 @@ import { listAvroRecordModels } from "./avro-state.js";
 /**
  * Runs every whole program check.
  *
+ * @param program - The compiled program
+ *
  * @internal
  */
 export function $onValidate(program: Program): void {
@@ -57,6 +59,8 @@ const AVRO = "@Avro.avroRecord";
  * `@headers` has neither problem. A separate model holds the headers, the
  * message model holds the payload, and every writer of every file agrees
  * about which fields belong where.
+ *
+ * @param program - The compiled program
  */
 function reportHeadersOnGeneratedPayloads(program: Program): void {
   const declares = new Map<Model, string>();

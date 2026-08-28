@@ -46,6 +46,10 @@ export interface NatsOperationBindingConfig {
  *
  * NATS has no server, channel or message binding.
  *
+ * @param context - The decorator context
+ * @param target - The operation
+ * @param config - The NATS operation binding fields
+ *
  * @example
  * ```typespec
  * @natsOperation(#{ queue: "readings-workers" })

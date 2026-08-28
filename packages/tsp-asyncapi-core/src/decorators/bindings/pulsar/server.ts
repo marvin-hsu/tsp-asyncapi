@@ -26,6 +26,10 @@ export interface PulsarServerBindingConfig {
  * `<tenant>/<namespace>/<topic>`, so the tenant here and the namespace on the
  * channel binding are two parts of one address.
  *
+ * @param context - The decorator context
+ * @param target - The service namespace
+ * @param config - The Pulsar server binding fields
+ *
  * @example
  * ```typespec
  * @pulsarServer(#{ tenant: "orders" })

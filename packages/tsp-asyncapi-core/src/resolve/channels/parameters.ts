@@ -123,6 +123,8 @@ type ParameterFieldReader = (property: ModelProperty) => ParameterFields;
  * reports the diagnostic of an example that cannot be serialized. So a
  * second read would report that one mistake a second time. The cache lives
  * for one channel, so nothing is carried between channels or between emits.
+ *
+ * @param program - The program to read the state from
  */
 function parameterFieldReader(program: Program): ParameterFieldReader {
   const read = new Map<ModelProperty, ParameterFields>();
@@ -149,6 +151,12 @@ function parameterFieldReader(program: Program): ParameterFieldReader {
  * is reported on the property that declares it. Two operations may both
  * declare one unused name, and each of them is a property the author has to
  * fix, so each one is reported.
+ *
+ * @param program - The program to read the state from
+ * @param record - The application that is running now
+ * @param channelId - The channel id in the document
+ * @param names - The template names written in the address
+ * @param declared - The parameter names the channel already declared
  */
 function reportAddressMismatch(
   program: Program,
@@ -196,6 +204,12 @@ function reportAddressMismatch(
  * usable to describe it. An empty Parameter Object still satisfies the rule
  * that the map covers the whole address, so the rest of the document stays
  * readable while the mistake is unresolved.
+ *
+ * @param program - The program to read the state from
+ * @param name - The name to use
+ * @param properties - The model properties that may become parameters
+ * @param readFields - The parameter fields already collected
+ * @param channel - The channel to inspect
  */
 function describeParameter(
   program: Program,
@@ -228,6 +242,12 @@ function describeParameter(
  *
  * Every declaration is kept in the list, not only the first, so the caller
  * can check each one and report a mistake in a later declaration too.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ * @param channelId - The channel id in the document
+ * @param readFields - The parameter fields already collected
+ * @param messages - The messages this channel carries
  */
 function collectDeclarations(
   program: Program,
@@ -276,6 +296,9 @@ function collectDeclarations(
  * A type that is not a string type at all contributes no values, so two of
  * them never disagree here. Each is reported as a non-string parameter
  * instead.
+ *
+ * @param kept - The values already collected, in source order
+ * @param added - The values this pass is adding
  */
 function conflictingFields(kept: ParameterFields, added: ParameterFields): string[] {
   const fields: string[] = [];
@@ -291,6 +314,9 @@ function conflictingFields(kept: ParameterFields, added: ParameterFields): strin
  * Tells whether two value lists hold the same values in the same order.
  * An absent list equals only another absent list. The order matters,
  * because it is the order the emitted array carries.
+ *
+ * @param left - The first value to compare
+ * @param right - The second value to compare
  */
 function sameValues(left: string[] | undefined, right: string[] | undefined): boolean {
   if (left === undefined || right === undefined) return left === right;
@@ -299,6 +325,11 @@ function sameValues(left: string[] | undefined, right: string[] | undefined): bo
 
 /**
  * Checks one matched declaration, and reports what is wrong with it.
+ *
+ * @param program - The program to read the state from
+ * @param name - The name to use
+ * @param property - The property to inspect
+ * @param fields - The fields already collected
  *
  * @returns True when the declaration can be emitted as a Parameter Object
  */
@@ -338,6 +369,8 @@ function checkDeclaration(
  * The object holds five fields and nothing else. AsyncAPI 3 defines no
  * `schema` field here, so the declared type reaches the document only
  * through `enum`, and only when the type names a limited set of values.
+ *
+ * @param fields - The fields already collected
  */
 function buildParameter(fields: ParameterFields): Omit<ChannelParameterNode, "target" | "name"> {
   const values = fields.values;
@@ -357,6 +390,8 @@ function buildParameter(fields: ParameterFields): Omit<ChannelParameterNode, "ta
  * contributes the value that member carries. Any other default has no place
  * in a Parameter Object, whose `default` is typed as a string, so it is left
  * out.
+ *
+ * @param property - The property to inspect
  */
 function defaultOf(property: ModelProperty): string | undefined {
   const value = property.defaultValue;
@@ -378,6 +413,9 @@ function defaultOf(property: ModelProperty): string | undefined {
  * Neither drop is silent. A parameter reaches the document only when its
  * type is a string type. A parameter of any other type is reported as
  * `non-string-channel-param` and left out along with its examples.
+ *
+ * @param program - The program to read the state from
+ * @param property - The property to inspect
  */
 function buildParameterExamples(program: Program, property: ModelProperty): string[] | undefined {
   // An example that carries no usable value is dropped rather than left to
@@ -398,6 +436,9 @@ function buildParameterExamples(program: Program, property: ModelProperty): stri
  * emitted parameter carries no `enum`. A string literal, a union of string
  * literals, and a string-backed enum each name their values, and those
  * values become the `enum`.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  *
  * @returns The allowed values, an empty array when the type is a string with
  * no limited set, or `undefined` when the type is not a string type at all
@@ -429,6 +470,8 @@ function stringValuesOf(program: Program, type: Type): string[] | undefined {
  * type, so the whole chain is walked rather than the name alone. A user
  * scalar that happens to be named `string` in its own namespace is not one,
  * which is why the built-in check is by namespace.
+ *
+ * @param scalar - The scalar to inspect
  */
 function isStringScalar(scalar: Scalar): boolean {
   let current: Scalar | undefined = scalar;
@@ -444,6 +487,8 @@ function isStringScalar(scalar: Scalar): boolean {
  * A member with no explicit value carries its own name, the same rule the
  * schema layer follows. A member backed by a number makes the whole enum a
  * non-string type, so the enum is rejected rather than half emitted.
+ *
+ * @param target - The type the decorator was applied to
  */
 function enumValues(target: Enum): string[] | undefined {
   const values: string[] = [];
@@ -454,7 +499,11 @@ function enumValues(target: Enum): string[] | undefined {
   return values;
 }
 
-/** The string one enum member stands for. */
+/**
+ *  The string one enum member stands for.
+ *
+ * @param member - The union variant to inspect
+ */
 function enumMemberValue(member: { name: string; value?: string | number }): string {
   return typeof member.value === "string" ? member.value : member.name;
 }
@@ -464,6 +513,9 @@ function enumMemberValue(member: { name: string; value?: string | number }): str
  * A union that mixes a plain string scalar into its variants is still a
  * string type, but it no longer names a limited set, so the result is empty
  * and no `enum` is emitted.
+ *
+ * @param program - The program to read the state from
+ * @param union - The union to inspect
  */
 function unionValues(program: Program, union: Union): string[] | undefined {
   const values: string[] = [];

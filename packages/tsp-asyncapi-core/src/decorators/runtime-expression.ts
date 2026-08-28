@@ -44,6 +44,7 @@ const RUNTIME_EXPRESSION_PATTERN = /^\$message\.(?:header|payload)#(?:\/[\s\S]*)
  * schemas never define. A check would reject documents the specification
  * allows.
  *
+ * @param expression - The text the author wrote
  * @returns True when the expression is one an AsyncAPI tool can follow
  */
 export function isRuntimeExpression(expression: string): boolean {

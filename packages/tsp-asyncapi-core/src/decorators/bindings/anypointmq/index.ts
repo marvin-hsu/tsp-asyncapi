@@ -45,6 +45,10 @@ export interface AnypointMqChannelBindingConfig {
  * `destinationType` is `exchange`, `queue` or `fifo-queue`. Any other value
  * is reported and dropped.
  *
+ * @param context - The decorator context
+ * @param target - The channel interface or namespace
+ * @param config - The Anypoint MQ channel binding fields
+ *
  * @example
  * ```typespec
  * @anypointMqChannel(#{ destination: "orders", destinationType: "queue" })
@@ -106,6 +110,10 @@ export interface AnypointMqMessageBindingConfig {
  * `headers` is a Schema Object. Anypoint MQ states no rule about its shape,
  * unlike the HTTP and WebSocket bindings, so only the object itself is
  * checked.
+ *
+ * @param context - The decorator context
+ * @param target - The message model
+ * @param config - The Anypoint MQ message binding fields
  *
  * @example
  * ```typespec

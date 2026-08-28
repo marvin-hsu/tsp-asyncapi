@@ -69,7 +69,7 @@ const [getMessageExamplesInternal, setMessageExamples] = useStateMap<Model, Mess
  *
  * @param context - The decorator context
  * @param target - The message model
- * @param example - The example content: `headers`, `payload`, or both
+ * @param _example - The example content. The marshalled value is unused.
  * @param options - The `name` and `summary` of this example
  *
  * @example
@@ -136,9 +136,9 @@ export function $messageExample(
  *
  * @param program - The program to read the state from
  * @param target - The model the decorator was applied to
- * @returns A copy of the recorded examples, empty when the decorator was
- * never applied. The example values themselves are compiler values, shared
- * rather than copied.
+ * @returns A copy of the recorded examples. The array is empty when the
+ * decorator was never applied. The example values themselves are compiler
+ * values, which are shared rather than copied.
  *
  * @public
  */

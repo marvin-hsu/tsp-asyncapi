@@ -15,6 +15,11 @@ export type { OperationAction, OperationActionState } from "./state.js";
  * Records one action on an operation.
  * The two decorators differ only in the action they carry, so they share
  * everything else.
+ *
+ * @param context - The decorator context
+ * @param target - The type the decorator was applied to
+ * @param action - The action to record
+ * @param operationId - The operation id, if the author gave one
  */
 function recordAction(
   context: DecoratorContext,
@@ -46,6 +51,8 @@ function recordAction(
  * Apply this decorator only once per operation, and never together with
  * `@receive`. Both mistakes are reported.
  *
+ * @param context - The decorator context
+ * @param target - The operation this action describes
  * @param operationId - Overrides the key of this operation in the emitted
  * `operations` map. Without it, the key is the name of the operation.
  *
@@ -78,6 +85,8 @@ export function $send(context: DecoratorContext, target: Operation, operationId?
  * Apply this decorator only once per operation, and never together with
  * `@send`. Both mistakes are reported.
  *
+ * @param context - The decorator context
+ * @param target - The operation this action describes
  * @param operationId - Overrides the key of this operation in the emitted
  * `operations` map. Without it, the key is the name of the operation.
  *
@@ -95,7 +104,14 @@ export function $receive(context: DecoratorContext, target: Operation, operation
   applyAction(context, target, "receive", operationId);
 }
 
-/** The body both action decorators share. */
+/**
+ *  The body both action decorators share.
+ *
+ * @param context - The decorator context
+ * @param target - The type the decorator was applied to
+ * @param action - The action to record
+ * @param operationId - The operation id, if the author gave one
+ */
 function applyAction(
   context: DecoratorContext,
   target: Operation,
@@ -114,6 +130,9 @@ function applyAction(
 
 /**
  * Reads back the action declared on one operation.
+ *
+ * @param program - The program to read the state from
+ * @param target - The operation the decorator was applied to
  *
  * @returns A copy of the recorded state, or `undefined` when neither action
  * decorator was applied, and when the declaration was dropped

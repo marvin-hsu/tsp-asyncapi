@@ -25,6 +25,10 @@ import { orderBySourceNodes } from "../../source-order.js";
  * than in the decorator, because a `@server` can arrive after `@useServer`
  * runs.
  *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ * @param declaredServers - The servers the service namespace declared
+ *
  * @returns The `servers` array, or `undefined` when the channel names no
  * server. The caller then leaves the field out, which AsyncAPI reads as
  * "available on every server".

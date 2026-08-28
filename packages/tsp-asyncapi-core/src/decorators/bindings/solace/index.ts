@@ -64,6 +64,10 @@ export interface SolaceServerBindingConfig {
  * The emitted field is `msgVpn`. Version 0.2.0 of the Solace binding spells
  * it `msvVpn`, and this library emits 0.4.0, which spells it `msgVpn`.
  *
+ * @param context - The decorator context
+ * @param target - The service namespace
+ * @param config - The Solace server binding fields
+ *
  * @example
  * ```typespec
  * @solaceServer(#{ msgVpn: "orders-vpn", clientName: "order-service" })
@@ -94,7 +98,13 @@ export function $solaceServer(
   });
 }
 
-/** Checks the length limit Solace states for a client name. */
+/**
+ *  Checks the length limit Solace states for a client name.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ */
 function clientName(
   context: DecoratorContext,
   value: string | undefined,
@@ -140,6 +150,10 @@ export interface SolaceOperationBindingConfig {
  * `priority` is zero or more. A list left with no entry is dropped, because
  * an empty list names no destination.
  *
+ * @param context - The decorator context
+ * @param target - The operation
+ * @param config - The Solace operation binding fields
+ *
  * @example
  * ```typespec
  * @solaceOperation(#{
@@ -177,7 +191,13 @@ export function $solaceOperation(
   });
 }
 
-/** Checks the `priority` field, which Solace states as zero or more. */
+/**
+ *  Checks the `priority` field, which Solace states as zero or more.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ */
 function priority(
   context: DecoratorContext,
   value: number | undefined,
@@ -186,7 +206,13 @@ function priority(
   return nonNegativeField(context, SOLACE_BINDING_PROTOCOL, "priority", value, undefined, target);
 }
 
-/** Reads the destination list, checking the one rule an entry shares. */
+/**
+ *  Reads the destination list, checking the one rule an entry shares.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ */
 function destinations(
   context: DecoratorContext,
   value: unknown,

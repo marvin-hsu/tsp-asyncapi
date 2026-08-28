@@ -718,6 +718,11 @@ export function resolveService(
  * its extensions reached the object another declaration built: the message
  * whose key it lost, the channel whose id it lost, or the copy of it an
  * extending interface carries.
+ *
+ * @param service - The service namespace
+ * @param channels - The channels already resolved
+ * @param messages - The messages this channel carries
+ * @param operations - The operations already resolved
  */
 function extensionCarriers(
   service: Service | undefined,

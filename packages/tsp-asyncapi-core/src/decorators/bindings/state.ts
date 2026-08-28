@@ -109,7 +109,9 @@ const [getEntries, setEntries, getEntryMap] = useStateMap<Type, BindingEntry[]>(
  * identity that separates the two cases. Recording such a rerun twice would
  * make the builder report a clash the author never wrote.
  *
+ * @param context - The decorator context
  * @param entry - The application to record, without its position
+ *
  * @internal
  */
 export function claimBinding(
@@ -135,7 +137,12 @@ export function claimBinding(
  * The list is in the order the applications ran, which is not source order.
  * The builder sorts it.
  *
- * @returns The recorded entries, empty when the target carries no binding.
+ * @param program - The program to read the state from
+ * @param target - The type the decorators were applied to
+ *
+ * @returns The recorded entries. The list is empty when the target carries no
+ * binding.
+ *
  * @internal
  */
 export function listBindings(program: Program, target: Type): readonly BindingEntry[] {
@@ -148,7 +155,10 @@ export function listBindings(program: Program, target: Type): readonly BindingEn
  * Only the unattached-binding report needs this. It asks a question about
  * the program rather than about one target.
  *
+ * @param program - The program to read the state from
+ *
  * @returns Every recorded entry, across every target
+ *
  * @internal
  */
 export function listAllBindings(program: Program): BindingEntry[] {

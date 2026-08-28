@@ -25,6 +25,12 @@ import { EmittedChannel } from "../channels.js";
  * `messages` as "every message of the channel". An empty array would say the
  * opposite, because it requires every message to match one entry of a list
  * with no entry in it.
+ *
+ * @param models - The models of this side of the signature, in source order
+ * @param channel - The channel these references point into
+ * @param messageKeys - The key each emitted message model was given
+ * @returns The references, in signature order, or `undefined` when none
+ * survives
  */
 export function resolveMessageRefs(
   models: readonly Model[],

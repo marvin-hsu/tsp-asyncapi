@@ -68,7 +68,9 @@ export { getReplyAddressInternal, getReplyChannelInternal, setReplyAddress, setR
  * The result order is application order, not source order. Sort it if the
  * caller needs a specific order.
  *
+ * @param program - The program to read the state from
  * @param channel - The interface or namespace the reply channel sits on
+ *
  * @returns The operations that name that target, unordered
  */
 export function listOperationsReplyingOver(program: Program, channel: ChannelTarget): Operation[] {
@@ -96,6 +98,8 @@ export interface StrayReplyRecord {
  * Both decorators are listed, because either one on its own emits a reply.
  * The caller keeps the ones whose operation carries no action and reports
  * each of them.
+ *
+ * @param program - The program to read the state from
  *
  * @returns One entry per application of either reply decorator
  */

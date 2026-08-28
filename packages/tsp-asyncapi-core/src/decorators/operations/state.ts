@@ -72,7 +72,10 @@ const actionGuards: Record<OperationAction, ApplicationGuard> = {
  * records the application first. An application whose id gets rejected
  * still blocks a later one.
  *
+ * @param context - The decorator context
+ * @param target - The operation the decorator was applied to
  * @param action - Which of the two decorators is running
+ *
  * @returns True when the caller may record its action
  */
 export function claimAction(
@@ -99,6 +102,8 @@ export function claimAction(
  *
  * The order is global, not per channel, since operation keys can clash
  * across the whole document.
+ *
+ * @param program - The program to read the state from
  *
  * @returns The marked operations, each with its record, in source order
  */

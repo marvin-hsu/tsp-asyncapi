@@ -67,6 +67,18 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * shape this emitter can check for them. An empty one is dropped.
  *
  * Pass `binding` as `loss` where the binding requires the queue.
+ *
+ * @param context - The decorator context
+ * @param field - The path of this queue, for the diagnostics
+ * @param value - The queue as the author wrote it, still marshalled
+ * @param required - The fields this level requires
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected queue costs. Pass `binding` where the binding
+ * requires the queue.
+ *
+ * @returns The queue, `dropped` when it was not an object, or `incomplete` when
+ * a required field is absent
+ *
  * @internal
  */
 export function readQueue(
@@ -134,6 +146,12 @@ export function readQueue(
  *
  * A length of time is never negative. Zero is a value on all four: it turns
  * the delay, the timeout or the wait off.
+ *
+ * @param context - The decorator context
+ * @param queueField - The path of the queue object, for the diagnostic
+ * @param field - The field name
+ * @param plain - The plain object the author wrote
+ * @param target - Where a problem is reported
  */
 function seconds(
   context: DecoratorContext,
@@ -165,6 +183,12 @@ function seconds(
  * cannot represent fails the whole queue one level up, where `readQueue`
  * reports the queue itself. The call stays as a guard on the type this
  * function accepts.
+ *
+ * @param context - The decorator context
+ * @param queueField - The path of the queue object, for the diagnostic
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function openObject(
   context: DecoratorContext,

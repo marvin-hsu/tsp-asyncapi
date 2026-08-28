@@ -48,7 +48,11 @@ const rules = [
   unusedSecuritySchemeRule,
 ];
 
-/** Builds the `<library>/<rule>` reference a rule set entry needs. */
+/**
+ *  Builds the `<library>/<rule>` reference a rule set entry needs.
+ *
+ * @param name - The name to use
+ */
 function ref(name: string): `${string}/${string}` {
   return `${LIBRARY_NAME}/${name}`;
 }

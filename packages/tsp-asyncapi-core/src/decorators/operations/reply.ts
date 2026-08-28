@@ -40,6 +40,10 @@ const replyAddressGuard = singleApplication(
  *
  * Apply this decorator only once per operation.
  *
+ * @param context - The decorator context
+ * @param target - The operation whose reply this describes
+ * @param channel - The interface or namespace that carries the reply channel
+ *
  * @example
  * ```typespec
  * @channel("orders.create")
@@ -82,6 +86,11 @@ export function $replyChannel(
  *
  * Apply this decorator only once per operation.
  *
+ * @param context - The decorator context
+ * @param target - The operation whose reply this describes
+ * @param location - The runtime expression that names the address
+ * @param description - A description of the reply address
+ *
  * @example
  * ```typespec
  * @send
@@ -119,6 +128,9 @@ export function $replyAddress(
 /**
  * Reads back the reply channel named on one operation.
  *
+ * @param program - The program to read the state from
+ * @param target - The operation the decorator was applied to
+ *
  * @returns The interface or namespace that carries the reply channel, or
  * `undefined` when the decorator was never applied
  *
@@ -131,8 +143,11 @@ export function getReplyChannel(program: Program, target: Operation): ChannelTar
 /**
  * Reads back the reply address declared on one operation.
  *
- * @returns A copy of the recorded state, or `undefined` when the decorator
- * was never applied, and when the application was dropped
+ * @param program - The program to read the state from
+ * @param target - The operation the decorator was applied to
+ *
+ * @returns A copy of the recorded state, or `undefined` when the decorator was
+ * never applied, and when the application was dropped
  *
  * @public
  */

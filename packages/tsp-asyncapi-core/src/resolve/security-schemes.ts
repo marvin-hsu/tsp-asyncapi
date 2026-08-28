@@ -19,6 +19,10 @@ import { SecuritySchemeNode } from "./service.js";
  * an unusable set of OAuth flows. So every record here is safe to use as a
  * key.
  *
+ * @param program - The program to read the schemes from
+ *
+ * @returns The schemes, in source order
+ *
  * @internal
  */
 export function resolveSecuritySchemes(program: Program): readonly SecuritySchemeNode[] {

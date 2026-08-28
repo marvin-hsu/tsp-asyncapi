@@ -31,6 +31,10 @@ export interface KafkaServerBindingConfig {
  * A namespace that declares no emitted server is reported once the document
  * is built.
  *
+ * @param context - The decorator context
+ * @param target - The service namespace
+ * @param config - The Kafka server binding fields
+ *
  * @example
  * ```typespec
  * @kafkaServer(#{

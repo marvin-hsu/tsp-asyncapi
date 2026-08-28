@@ -55,6 +55,10 @@ export interface HttpOperationBindingConfig {
  * `query` is a Schema Object. Write it as an object literal of type `object`
  * with a `properties` key. AsyncAPI states both requirements.
  *
+ * @param context - The decorator context
+ * @param target - The operation
+ * @param config - The HTTP operation binding fields
+ *
  * @example
  * ```typespec
  * @httpOperation(#{

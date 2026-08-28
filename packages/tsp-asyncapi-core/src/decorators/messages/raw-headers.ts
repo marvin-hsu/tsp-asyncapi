@@ -29,6 +29,8 @@ const slot = rawSchemaSlot(
  * the same rule `@headers` follows. A message carries one headers schema, so
  * the user has no way to tell which application won.
  *
+ * @param context - The decorator context
+ * @param target - The message model
  * @param schemaFormat - The format of `schema`, such as
  * `application/vnd.apache.avro;version=1.9.0`
  * @param schema - The schema definition, emitted as written
@@ -58,6 +60,9 @@ export function $rawHeaders(
 
 /**
  * Reads back the raw headers schema that `@rawHeaders` records.
+ *
+ * @param program - The program to read the state from
+ * @param target - The model the decorator was applied to
  *
  * @returns The recorded format and schema, or `undefined` when the decorator
  * was never applied with a valid value

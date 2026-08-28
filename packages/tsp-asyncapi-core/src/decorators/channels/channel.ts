@@ -28,6 +28,11 @@ export type { ChannelState } from "./state.js";
  * Records one channel on a target.
  * The two decorators differ only in the address they carry, so they share
  * everything that happens after the address is settled.
+ *
+ * @param context - The decorator context
+ * @param target - The type the decorator was applied to
+ * @param state - The state to store
+ * @param addressTarget - The node to report an address problem on
  */
 function recordChannel(
   context: DecoratorContext,

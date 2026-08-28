@@ -19,6 +19,9 @@ import { present, text } from "../../optional-fields.js";
  *
  * A field with nothing to say is left out. Every entry carries at least one
  * of `headers` and `payload`, which the decorator already enforces.
+ *
+ * @param program - The program to read the state from
+ * @param model - The model to inspect
  */
 export function buildMessageExamples(
   program: Program,
@@ -45,6 +48,9 @@ export function buildMessageExamples(
  * Returns `undefined` when the example cannot be serialized. The whole entry
  * is dropped in that case. An entry that lost its only content field would
  * otherwise claim the message has an example that shows nothing.
+ *
+ * @param program - The program to read the state from
+ * @param example - The example the author wrote
  */
 function buildMessageExample(
   program: Program,
@@ -83,6 +89,9 @@ function buildMessageExample(
  * the author wrote, and it still resolves each scalar through its own type. So
  * a `utcDateTime` reaches the document as an ISO string rather than as the
  * compiler's internal value object.
+ *
+ * @param program - The program to read the state from
+ * @param value - The field as the author wrote it
  */
 function serializeExampleValue(program: Program, value: Value | undefined): unknown {
   if (value === undefined) {

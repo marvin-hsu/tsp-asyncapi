@@ -54,7 +54,14 @@ const CLEANUP_POLICY_KEY = "cleanup.policy";
 /** The two places the Kafka binding allows a schema id to sit. */
 const SCHEMA_ID_LOCATIONS = ["header", "payload"];
 
-/** Reports one field of a Kafka binding, naming the protocol for the caller. */
+/**
+ *  Reports one field of a Kafka binding, naming the protocol for the caller.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param expected - What the field expects, in the author's words
+ * @param target - Where a problem is reported
+ */
 function reportField(
   context: DecoratorContext,
   field: string,
@@ -70,6 +77,14 @@ function reportField(
  * The Kafka binding states that `partitions` and `replicas` are positive
  * integers. Zero partitions describe no topic at all. The declared type is
  * `int32`, so the value is already whole and only the sign is checked here.
+ *
+ * @param context - The decorator context
+ * @param field - The field name, for the diagnostic
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function positiveCount(
@@ -91,6 +106,13 @@ export function positiveCount(
  *
  * The Kafka binding allows `header` and `payload` and nothing else. A value
  * outside that set names a place no consumer looks in.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function schemaIdLocation(
@@ -112,6 +134,14 @@ export function schemaIdLocation(
  * Checks one Schema Object field of a Kafka binding.
  *
  * `key`, `groupId` and `clientId` are Schema Objects in the Kafka binding.
+ *
+ * @param context - The decorator context
+ * @param field - The field name, for the diagnostic
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The plain JSON object, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function kafkaSchemaField(
@@ -141,6 +171,14 @@ export function kafkaSchemaField(
  * field is dropped. A single value in place of a list is accepted and
  * emitted as a one-entry list, since the binding types this field as an
  * array.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The plain JSON object, or `undefined` when it was absent, empty, or
+ * rejected by the `cleanup.policy` rule
+ *
  * @internal
  */
 export function topicConfiguration(

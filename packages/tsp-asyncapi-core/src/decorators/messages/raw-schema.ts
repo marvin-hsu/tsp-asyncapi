@@ -25,6 +25,8 @@ import { trimmed } from "../../optional-fields.js";
  *
  * Tells serialized-text schemas from a JSON string that is a schema on its
  * own (e.g. Avro's `"string"` primitive).
+ *
+ * @param value - The field as the author wrote it
  */
 function looksLikeSerializedJson(value: unknown): boolean {
   if (typeof value !== "string") return false;
@@ -76,6 +78,11 @@ export interface RawSchemaSlot {
  * Builds the slot one raw schema decorator uses, so a rule about
  * `schemaFormat` or about the schema value has one definition shared by
  * both slots.
+ *
+ * @param stateKey - A symbol private to the calling decorator
+ * @param appliedKey - A second symbol, for the single-application guard
+ * @param duplicateCode - The diagnostic reported for a second application
+ * @returns The slot for that decorator
  */
 export function rawSchemaSlot(
   stateKey: symbol,
@@ -123,6 +130,11 @@ export function rawSchemaSlot(
  * Every violation is only reported; the schema is still recorded, the same
  * choice `unknown-schema-format` makes. The value is never read any deeper
  * than these rules need, since a raw schema is opaque by design.
+ *
+ * @param context - The decorator context
+ * @param target - The model the decorator sits on
+ * @param format - The resolved format
+ * @param value - The schema, converted to plain JSON
  */
 function reportSchemaValueRules(
   context: DecoratorContext,
@@ -173,6 +185,9 @@ function reportSchemaValueRules(
  * decorator's format check and the document builder's target resolution
  * read this one answer, so the form of a local reference has one definition.
  *
+ * @param value - The schema, converted to plain JSON
+ * @returns The reference, or `undefined` when the top level makes none
+ *
  * @internal
  */
 export function localRef(value: unknown): string | undefined {
@@ -197,6 +212,11 @@ export function localRef(value: unknown): string | undefined {
  * A format outside the AsyncAPI list is only warned about: the specification
  * allows a custom value, but also forbids it from colliding with a listed
  * one, a rule this emitter cannot itself verify.
+ *
+ * @param context - The decorator context
+ * @param schemaFormat - The argument as the author wrote it
+ *
+ * @returns The format to record, or `undefined` when the decorator is dropped
  */
 function resolveSchemaFormat(context: DecoratorContext, schemaFormat: string): string | undefined {
   const formatTarget = context.getArgumentTarget(0) ?? context.decoratorTarget;

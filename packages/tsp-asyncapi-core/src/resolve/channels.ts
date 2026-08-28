@@ -155,6 +155,9 @@ export function resolveChannels(
  *
  * Only the second channel of a pair is reported, and it names the first. One
  * mistake gets one report.
+ *
+ * @param program - The program to read the state from
+ * @param channels - The channels already resolved
  */
 function reportDuplicateAddresses(program: Program, channels: readonly ChannelNode[]): void {
   const byAddress = new Map<string, ChannelNode>();
@@ -179,6 +182,8 @@ function reportDuplicateAddresses(program: Program, channels: readonly ChannelNo
  * Only a channel carries a `servers` field, so such an application reaches no
  * part of the document. Dropping it in silence hides an author mistake, so
  * each one names the server it wanted.
+ *
+ * @param program - The program to read the state from
  */
 function reportUseServerWithoutChannel(program: Program): void {
   const channels = new Set(listChannelsInternal(program).map(({ target }) => target));

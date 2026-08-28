@@ -37,6 +37,10 @@ export interface GooglePubSubMessageBindingConfig {
  * written without a `name` names no schema. That is reported as an error, and
  * the whole binding goes with it.
  *
+ * @param context - The decorator context
+ * @param target - The message model
+ * @param config - The Google Cloud Pub/Sub message binding fields
+ *
  * @example
  * ```typespec
  * @googlePubSubMessage(#{

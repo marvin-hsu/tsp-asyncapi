@@ -27,9 +27,14 @@ type EmptyIdCode = Parameters<typeof reportDiagnostic>[1]["code"];
  * AsyncAPI JSON Schema puts no pattern on a key of the Channels Object or the
  * Operations Object.
  *
- * @param idTarget - Where to report a blank id, so the author is pointed at
- * the text they wrote
+ * @param context - The decorator context
+ * @param id - The id argument, as the author wrote it
+ * @param idTarget - Where to report a blank id. It is the argument node, so the
+ * author is pointed at the text they wrote.
  * @param code - The diagnostic this decorator reports for a blank id
+ *
+ * @returns The trimmed id, `undefined` when the author gave none, or `null`
+ * when the id was blank and the caller must drop the declaration
  */
 export function resolveExplicitId(
   context: DecoratorContext,

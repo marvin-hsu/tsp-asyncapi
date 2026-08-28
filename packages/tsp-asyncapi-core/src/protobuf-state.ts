@@ -82,7 +82,10 @@ export interface UnreadableProtobufPackage {
  * Protobuf service, is not one of them. Such a model has no AsyncAPI message
  * of its own to describe.
  *
+ * @param program - The compiled program
+ *
  * @returns Every model that carries the official decorator
+ *
  * @internal
  */
 export function listProtobufMessageModels(program: Program): Model[] {
@@ -104,11 +107,13 @@ const UNREADABLE = Symbol("unreadable package details");
  * namespace that carries `@Protobuf.package`. That is the rule the official
  * emitter follows, so an inner package wins over an outer one.
  *
+ * @param program - The compiled program
  * @param type - A declaration the walk reached. An enum belongs to a package
- *   the same way a model does, so both are read here.
- * @returns The nearest package, that package marked unreadable when its
- *   details have an unknown shape, or `undefined` when no namespace declares
- *   one
+ * the same way a model does, so both are read here.
+ *
+ * @returns The nearest package, that package marked unreadable when its details
+ * have an unknown shape, or `undefined` when no namespace declares one
+ *
  * @internal
  */
 export function resolveProtobufPackage(
@@ -141,7 +146,7 @@ export function resolveProtobufPackage(
  *
  * @param details - The value the decorator stored, if it stored one
  * @returns The declared name, `undefined` when the author declared none, or
- *   `UNREADABLE` when the shape is one this reader does not know
+ * `UNREADABLE` when the shape is one this reader does not know
  */
 function packageNameOf(details: unknown): string | undefined | typeof UNREADABLE {
   if (details === undefined) return undefined;
@@ -165,8 +170,11 @@ function packageNameOf(details: unknown): string | undefined | typeof UNREADABLE
  * annotate another message. Refusing keeps the model on the JSON Schema path
  * with a diagnostic, which a later change can lift deliberately.
  *
+ * @param program - The compiled program
  * @param model - A model that carries `@Protobuf.message`
+ *
  * @returns The message name, or `undefined` for a template instantiation
+ *
  * @internal
  */
 export function protoMessageNameOf(program: Program, model: Model): string | undefined {
@@ -194,7 +202,11 @@ const RESERVE_STATE = Symbol.for("@typespec/protobuf.reserve");
  * The value is returned as it was stored. Deciding whether it is a number a
  * proto3 field may take belongs to the caller that writes the field.
  *
+ * @param program - The compiled program
+ * @param property - The property to read
+ *
  * @returns What the decorator stored, or `undefined` when it carries none
+ *
  * @internal
  */
 export function protobufFieldIndexOf(program: Program, property: ModelProperty): unknown {
@@ -205,7 +217,11 @@ export function protobufFieldIndexOf(program: Program, property: ModelProperty):
  * Whether a type is an `@Protobuf.externRef`, which names a declaration of
  * another file.
  *
+ * @param program - The compiled program
+ * @param type - The type to ask about
+ *
  * @returns Whether the decorator marked it
+ *
  * @internal
  */
 export function isProtobufExternRef(program: Program, type: Type): boolean {
@@ -215,7 +231,11 @@ export function isProtobufExternRef(program: Program, type: Type): boolean {
 /**
  * Whether a type is an instantiation of `Protobuf.Map`.
  *
+ * @param program - The compiled program
+ * @param type - The type to ask about
+ *
  * @returns Whether the library marked it
+ *
  * @internal
  */
 export function isProtobufMap(program: Program, type: Type): boolean {
@@ -228,7 +248,11 @@ export function isProtobufMap(program: Program, type: Type): boolean {
  * The value is returned as it was stored, for the same reason the field
  * number is: what a reservation may hold is the writer's rule.
  *
+ * @param program - The compiled program
+ * @param model - The model to read
+ *
  * @returns What the decorator stored, or `undefined` when it carries none
+ *
  * @internal
  */
 export function protobufReservationsOf(program: Program, model: Model): unknown {

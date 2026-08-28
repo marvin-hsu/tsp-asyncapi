@@ -27,6 +27,8 @@ import { BindingNode, JsonObject } from "./service.js";
  * A namespace, an interface, an operation and a model all carry a name. An
  * anonymous target carries none, and then the component that shares this
  * binding is named after the first site instead.
+ *
+ * @param target - The type the decorator was applied to
  */
 function carrierOf(target: Type): string | undefined {
   if (!("name" in target) || typeof target.name !== "string" || target.name.length === 0) {
@@ -70,6 +72,10 @@ export class BindingPlacements {
  *
  * A level takes its own bindings and the level-less ones. Both `resolve` and
  * `markBindingsPlaced` need the same filter, so the filter has one definition.
+ *
+ * @param program - The program to read the state from
+ * @param level - The document level this binding belongs to
+ * @param target - The type the decorator was applied to
  */
 function applicableBindings(
   program: Program,

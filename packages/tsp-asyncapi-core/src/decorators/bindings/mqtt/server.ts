@@ -44,6 +44,10 @@ export interface MqttServerBindingConfig {
  * `sessionExpiryInterval` and `maximumPacketSize` are MQTT 5 fields. Write
  * each one as a number, or as a Schema Object describing the number.
  *
+ * @param context - The decorator context
+ * @param target - The service namespace
+ * @param config - The MQTT server binding fields
+ *
  * @example
  * ```typespec
  * @mqttServer(#{

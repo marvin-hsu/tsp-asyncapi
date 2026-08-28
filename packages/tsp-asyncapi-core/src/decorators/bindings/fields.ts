@@ -46,6 +46,15 @@ export type FieldLoss = "field" | "binding";
  * Reports one field of a binding that carries a value the binding
  * specification forbids. Costs only the field unless the caller passes
  * `binding` as `loss`.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to, such as `kafka`
+ * @param field - The field name
+ * @param expected - What the field expects, in the author's words
+ * @param target - Where the problem is reported
+ * @param loss - What the rejected field costs. It is the field alone unless the
+ * caller says otherwise.
+ *
  * @internal
  */
 export function reportBindingField(
@@ -69,6 +78,18 @@ export function reportBindingField(
  * The value is trimmed before the check, so `" payload "` matches `payload`
  * instead of being rejected over its spacing. Returns `undefined` when the
  * value was absent or rejected.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param allowed - The values the binding specification allows
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected value costs. Pass `binding` where the binding
+ * requires the field.
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function enumeratedField<T extends string>(
@@ -100,6 +121,17 @@ export function enumeratedField<T extends string>(
  * This check never drops an empty object on its own. A caller that reads
  * required fields out of the object reports those first. Pass the result
  * through `nonEmptyObject` where an empty object states nothing.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected object costs. Pass `binding` where the binding
+ * requires the object.
+ *
+ * @returns The plain JSON object, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function objectField(
@@ -127,6 +159,10 @@ export function objectField(
  * same source in different ways. An object arrives empty because the
  * author wrote it empty, or because every field in it was reported and
  * dropped.
+ *
+ * @param value - The object to check
+ * @returns The object, or `undefined` when it is absent or has no field
+ *
  * @internal
  */
 export function nonEmptyObject<T extends object>(value: T | undefined): T | undefined {
@@ -143,6 +179,17 @@ export function nonEmptyObject<T extends object>(value: T | undefined): T | unde
  * a negative value is reported. `measure` names the unit, such as
  * `seconds`, for the diagnostic. Pass `undefined` where the binding states
  * no unit.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param measure - What the number counts, such as `seconds`. Pass `undefined`
+ * where the binding states no unit.
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function nonNegativeField(
@@ -169,6 +216,18 @@ export function nonNegativeField(
  * them, and some state none at all. This check answers one question only:
  * whether the author wrote a list. `expected` names what the list holds, so
  * AMQP can report `a list of routing keys` rather than `a list`.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected list costs. Pass `binding` where the binding
+ * requires the list.
+ *
+ * @returns The entries, or `undefined` when the field was absent or rejected
+ *
  * @internal
  */
 export function listField(
@@ -197,6 +256,17 @@ export function listField(
  * A blank entry names nothing, so it is dropped. A list left with no entry
  * is dropped too, since an empty list states no routing, no replication and
  * no region, the same as an absent field.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ *
+ * @returns The names, or `undefined` when the field was absent, empty, or
+ * rejected
+ *
  * @internal
  */
 export function stringListField(
@@ -221,6 +291,17 @@ export function stringListField(
  * AMQP allows 255 characters in the name of an exchange or a queue. Solace
  * allows 160 in a client name. A broker refuses a longer name at connect
  * time, so emitting one would describe a topology no broker builds.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param maxLength - The longest name the binding allows
+ * @param target - Where a problem is reported
+ *
+ * @returns The trimmed name, or `undefined` when it was absent, blank, or too
+ * long
+ *
  * @internal
  */
 export function boundedName(
@@ -245,6 +326,15 @@ export function boundedName(
  *
  * The value is written as an object literal and is emitted as written. A
  * scalar or an array is not a Schema Object, so it is reported and dropped.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The plain JSON object, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function schemaField(
@@ -270,6 +360,16 @@ export function schemaField(
  * format indicator as `0` or `1`. A value outside the set names a mode no
  * broker implements. The declared type is `int32`, so the value is already
  * whole by the time it arrives. Only membership is checked here.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param allowed - The values the binding specification allows
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function numericField(
@@ -294,7 +394,16 @@ export function numericField(
  * MQTT 5 states four fields this way. Each one holds a fixed value, or a
  * schema that describes the value, and both reach the document as written.
  * A string, a boolean or an array is neither, so it is reported and dropped.
- * @returns The number or the plain JSON object, as the binding allows.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The number or the plain JSON object, or `undefined` when the field
+ * was absent or rejected
+ *
  * @internal
  */
 export function numberOrSchemaField(
@@ -319,7 +428,16 @@ export function numberOrSchemaField(
  * that describes the name, and both reach the document as written. A blank
  * string is dropped without a report, since an author who wrote spaces
  * meant no topic rather than a topic called spaces.
- * @returns The string or the plain JSON object, as the binding allows.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The string or the plain JSON object, or `undefined` when the field
+ * was absent, blank, or rejected
+ *
  * @internal
  */
 export function stringOrSchemaField(
@@ -346,6 +464,15 @@ export function stringOrSchemaField(
  * describes no parameter, so a generator reading it produces a request with
  * nothing in it. A `$ref` passes without either key, since the reference
  * names a schema that lives elsewhere and this emitter does not follow it.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The plain JSON object, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function namedValuesSchemaField(
@@ -377,6 +504,12 @@ export function namedValuesSchemaField(
  * The caller drops the whole binding after this call. AsyncAPI would reject
  * the emitted document if it kept a binding missing a required field, and
  * the resulting error would name the emitter rather than the source.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field the specification requires
+ * @param target - Where the problem is reported
+ *
  * @internal
  */
 export function reportMissingField(
@@ -419,6 +552,16 @@ export type NestedRead<T> =
  * The diagnostic names the path rather than the field alone. A queue of an
  * SQS channel reports `deadLetterQueue.name`, so the author reads which of
  * the two queues is short of a name.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the object belongs to
+ * @param path - The path of the object, such as `deadLetterQueue`
+ * @param value - The object the author wrote
+ * @param required - The field names the specification requires
+ * @param target - Where the problems are reported
+ *
+ * @returns Whether the object carries every required field
+ *
  * @internal
  */
 export function requiredFields(
@@ -445,6 +588,11 @@ export function requiredFields(
  *
  * A blank string counts as absent, since a broker or a generator can do no
  * more with it than with no field at all.
+ *
+ * @param value - The object the author wrote
+ * @param required - The field names the specification requires
+ * @returns The required fields the object does not carry, in the order given
+ *
  * @internal
  */
 export function missingFields(

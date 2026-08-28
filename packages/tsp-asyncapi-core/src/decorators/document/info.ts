@@ -46,6 +46,13 @@ const guard = singleApplication(
  * parser checks that format, and it rejects the whole document when a value
  * fails it. A relative reference such as `/terms` fails it, so only that
  * field is dropped; the rest of `@info` is not at fault.
+ *
+ * @param context - The decorator context
+ * @param value - The value the author wrote
+ * @param field - The name to report, such as `license.url`
+ * @param target - Where to report a problem about this field
+ *
+ * @returns The trimmed URL, or `undefined` when there is none to keep
  */
 function urlField(
   context: DecoratorContext,
@@ -71,6 +78,10 @@ function urlField(
  * A contact whose every field is blank is left out altogether. An empty
  * Contact Object names nobody, and a reader cannot tell it from a contact
  * the author meant to leave blank.
+ *
+ * @param context - The decorator context
+ * @param contact - The contact object the author wrote
+ * @param target - Where a problem is reported
  */
 function contactOf(
   context: DecoratorContext,
@@ -92,6 +103,10 @@ function contactOf(
  * `name` is the one required field of a License Object. A blank one names no
  * license, so it is reported and the whole object is dropped. The URL is not
  * checked in that case, because the license it would point at is gone.
+ *
+ * @param context - The decorator context
+ * @param license - The license object the author wrote
+ * @param target - Where a problem is reported
  */
 function licenseOf(
   context: DecoratorContext,
@@ -182,8 +197,8 @@ export function $info(context: DecoratorContext, target: Namespace, info: AsyncA
  *
  * @param program - The program to read the state from
  * @param target - The namespace the decorator was applied to
- * @returns A copy of the recorded info state, or `undefined` when the
- * decorator was never applied
+ * @returns A copy of the recorded info state, or `undefined` when the decorator
+ * was never applied
  *
  * @public
  */

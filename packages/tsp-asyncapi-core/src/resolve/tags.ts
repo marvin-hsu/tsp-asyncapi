@@ -79,6 +79,9 @@ export function reportTagConflicts(program: Program): void {
  * The built-in tags come first, in the order the compiler records them. Each
  * remaining `@asyncTag` name follows, in source order. A name appears once,
  * since AsyncAPI requires the names in one `tags` array to be unique.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 export function buildTags(program: Program, target: Type): TagObject[] | undefined {
   const merged = mergeAsyncTags(program, target).merged;
@@ -103,6 +106,9 @@ export function buildTags(program: Program, target: Type): TagObject[] | undefin
  * Builds one Tag Object.
  * A field the tag does not declare is left out. An empty string would claim
  * the tag has a blank description rather than none.
+ *
+ * @param name - The name to use
+ * @param metadata - The tag metadata the author wrote
  */
 function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObject {
   return {
@@ -136,6 +142,9 @@ function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObje
  *
  * A tag of the same name on a *different* type is not a conflict. AsyncAPI
  * gives every object its own `tags` array, and those arrays are independent.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 function mergeAsyncTags(program: Program, target: Type): MergedTags {
   const clashes: TagClash[] = [];
@@ -180,6 +189,9 @@ function mergeAsyncTags(program: Program, target: Type): MergedTags {
  * The caller has already established that they agree, so the two `url` values
  * are the same. A `description` that only one of them carries is taken from
  * that one, the same rule the tag's own fields follow.
+ *
+ * @param kept - The values already collected, in source order
+ * @param added - The values this pass is adding
  */
 function mergeExternalDocs(
   kept: AsyncTagExternalDocs | undefined,
@@ -205,6 +217,9 @@ function mergeExternalDocs(
  * `url` values disagree, since a Tag Object holds one link, and so do two
  * different descriptions of that link. A description only one side carries
  * is not a disagreement.
+ *
+ * @param kept - The values already collected, in source order
+ * @param added - The values this pass is adding
  */
 function conflictingFields(kept: AsyncTagState, added: AsyncTagState): string[] {
   const fields: string[] = [];

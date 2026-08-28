@@ -70,7 +70,11 @@ export function resolveSecuritySchemeNames(
   return names;
 }
 
-/** Turns the recorded variables of one server into resolved nodes. */
+/**
+ *  Turns the recorded variables of one server into resolved nodes.
+ *
+ * @param variables - The recorded server variables
+ */
 function resolveServerVariables(
   variables: Record<string, AsyncAPIServerVariableState>,
 ): ReadonlyMap<string, ServerVariableNode> {

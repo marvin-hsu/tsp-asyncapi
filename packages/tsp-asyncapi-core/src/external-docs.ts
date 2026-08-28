@@ -7,6 +7,9 @@ import { getExternalDocs } from "./decorators/index.js";
  * carries no `@externalDocs`. The caller leaves the field out of the emitted
  * object in that case.
  *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
+ *
  * @public
  */
 export function buildExternalDocs(

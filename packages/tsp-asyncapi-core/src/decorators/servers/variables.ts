@@ -17,7 +17,12 @@ export type ServerVariablesArgument = Record<string, AsyncAPIServerVariableState
  */
 const TEMPLATE_PATTERN = /\{[^/{}]+\}/g;
 
-/** Lists the template names one field uses, in the order they appear. */
+/**
+ * Lists the template names one field uses, in the order they appear.
+ *
+ * @param text - The `host` or `pathname` to scan
+ * @returns The names written inside the braces
+ */
 function extractTemplateNames(text: string): string[] {
   return (text.match(TEMPLATE_PATTERN) ?? []).map((match) => match.slice(1, -1));
 }
@@ -33,6 +38,13 @@ function extractTemplateNames(text: string): string[] {
  * otherwise vanish whole, leaving the variable with no constraint at all,
  * the opposite of what the author wrote. The `default`-not-in-`enum` check
  * reads this list afterward, so a lost list would silence that check too.
+ *
+ * @param context - The decorator context
+ * @param name - The name of this variable, for the diagnostic
+ * @param variable - One entry of the `variables` argument
+ * @param configTarget - The node to report a problem on
+ *
+ * @returns The entry to store
  */
 function normalizeVariable(
   context: DecoratorContext,
@@ -79,6 +91,12 @@ function normalizeVariable(
  *
  * The first occurrence wins, so the order the author wrote survives. A value
  * that repeats three times is one mistake, so it is reported once.
+ *
+ * @param context - The decorator context, used to report
+ * @param name - The variable the list belongs to, used in the message
+ * @param values - The trimmed, non-blank entries
+ *
+ * @returns The entries with every repeat removed
  */
 function dropRepeats(context: DecoratorContext, name: string, values: string[]): string[] {
   const seen = new Set<string>();
@@ -111,6 +129,16 @@ function dropRepeats(context: DecoratorContext, name: string, values: string[]):
  * and then keeps the rest of the server. A template with no declaration
  * stays in the emitted text, because rewriting the host would change the
  * address the author wrote.
+ *
+ * @param context - The decorator context
+ * @param host - The `host` of this server, already trimmed
+ * @param pathname - The `pathname` of this server, already trimmed, or
+ * `undefined` when the author gave none
+ * @param variables - The recorded server variables, or `undefined` when the author
+ * gave none
+ * @param configTarget - The node to report a variable problem on
+ *
+ * @returns The variables to store, or `undefined` when there is none
  */
 export function resolveServerVariables(
   context: DecoratorContext,
@@ -165,6 +193,9 @@ export function resolveServerVariables(
  *
  * `getServers` hands out a copy of every server. A shallow copy of the
  * server would still share this nested graph, so the copy is made here.
+ *
+ * @param variables - The recorded variables
+ * @returns A copy the caller may change
  */
 export function copyServerVariables(
   variables: Record<string, AsyncAPIServerVariableState>,

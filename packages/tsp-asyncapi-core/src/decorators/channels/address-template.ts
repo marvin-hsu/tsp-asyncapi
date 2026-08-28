@@ -84,6 +84,8 @@ export function checkAddress(address: string): AddressProblem | undefined {
  * remainder belongs to no pair, which covers an unclosed `{`, a stray `}`,
  * and a nested pair alike without a character walk. Names then come from
  * the same parser the emitter uses.
+ *
+ * @param address - The address template to check
  */
 function checkAddressBraces(address: string): AddressProblem | undefined {
   const remainder = address.replaceAll(/\{[^{}]*\}/g, "");

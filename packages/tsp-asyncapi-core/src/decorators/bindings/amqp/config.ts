@@ -65,6 +65,13 @@ const MAX_NAME_LENGTH = 255;
 
 /**
  * Checks the `is` field of the channel binding.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function channelKind(
@@ -80,6 +87,13 @@ export function channelKind(
  *
  * AMQP states `1` for transient and `2` for persistent. There is no third
  * mode.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function deliveryMode(
@@ -102,6 +116,13 @@ export function deliveryMode(
  *
  * AMQP states the value as a number of milliseconds, and a length of time is
  * never negative.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function expiration(
@@ -118,6 +139,15 @@ export function expiration(
  * `cc` and `bcc` each hold routing keys. A blank entry names no key, so it is
  * dropped. A list left with nothing in it is dropped as well, because an
  * empty list states no extra routing at all.
+ *
+ * @param context - The decorator context
+ * @param field - The field name, for the diagnostic
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The routing keys, or `undefined` when the field was absent, empty,
+ * or rejected
+ *
  * @internal
  */
 export function routingKeys(
@@ -141,6 +171,11 @@ export function routingKeys(
  *
  * AMQP limits the name to 255 characters. A longer one is reported and
  * dropped, and the rest of the object is kept.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function topologyName(
   context: DecoratorContext,
@@ -168,6 +203,12 @@ function topologyName(
  *
  * A nested object with nothing left in it is dropped. An empty object states
  * no exchange or queue at all.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ * @param read - The function that reads the nested object's fields
  */
 function topology<T extends object>(
   context: DecoratorContext,
@@ -183,6 +224,14 @@ function topology<T extends object>(
 
 /**
  * Checks the `exchange` field of the channel binding.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The exchange, or `undefined` when it was absent, empty, or not an
+ * object
+ *
  * @internal
  */
 export function exchange(
@@ -211,6 +260,14 @@ export function exchange(
 
 /**
  * Checks the `queue` field of the channel binding.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The queue, or `undefined` when it was absent, empty, or not an
+ * object
+ *
  * @internal
  */
 export function queue(

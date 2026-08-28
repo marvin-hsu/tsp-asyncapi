@@ -102,6 +102,10 @@ export function $jmsServer(
  *
  * JMS states it as a list and puts no rule on the entries, so each one passes
  * through as written. An empty list is dropped, because it states nothing.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - The type the decorator was applied to
  */
 function properties(
   context: DecoratorContext,

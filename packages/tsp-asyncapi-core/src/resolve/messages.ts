@@ -87,6 +87,10 @@ export interface ResolvedMessages {
  * A plain TypeSpec identifier is already inside the charset, so an ordinary
  * model reports nothing. The derived segments of a template instantiation
  * report nothing either, because the author did not write that text.
+ *
+ * @param program - The program to read the state from
+ * @param model - The model to inspect
+ * @param state - The state to store
  */
 function messageKeyFor(program: Program, model: Model, state: MessageState): string {
   if (state.name === undefined) {
@@ -115,7 +119,12 @@ function messageKeyFor(program: Program, model: Model, state: MessageState): str
   return emitted;
 }
 
-/** The key of a message that carries no `@message` argument. */
+/**
+ *  The key of a message that carries no `@message` argument.
+ *
+ * @param program - The program to read the state from
+ * @param model - The model to inspect
+ */
 function derivedMessageKey(program: Program, model: Model): string {
   const emitted = unqualifiedDeclarationName(program, model);
   const requested = getFriendlyName(program, model) ?? model.name;
@@ -135,6 +144,9 @@ function derivedMessageKey(program: Program, model: Model): string {
  * Whether a model earns a schema key at all is decided while the type graph
  * is walked, and that happens in the lower half. What the key would be is a
  * property of the model, so it can be computed here.
+ *
+ * @param program - The program to read the state from
+ * @param model - The model to inspect
  */
 function schemaKeyCandidate(program: Program, model: Model): string {
   return declarationNameFor(program, model) ?? fallbackDeclarationName(program, model);
@@ -150,6 +162,10 @@ function schemaKeyCandidate(program: Program, model: Model): string {
  * types that describe one shape. Reporting a key collision between them would
  * name a mistake the author cannot fix: no `@message` argument separates two
  * things the document cannot tell apart.
+ *
+ * @param program - The program to read the state from
+ * @param left - The first value to compare
+ * @param right - The second value to compare
  */
 function isSameDeclaration(program: Program, left: Model, right: Model): boolean {
   if (left.templateMapper === undefined || right.templateMapper === undefined) {
@@ -170,12 +186,20 @@ function isSameDeclaration(program: Program, left: Model, right: Model): boolean
  *
  * The tags need no call of their own. `reportTagConflicts` walks every type
  * that carries the decorator, so a dropped model is covered there.
+ *
+ * @param program - The program to read the state from
+ * @param model - The model to inspect
  */
 function reportDroppedMessage(program: Program, model: Model): void {
   buildMessageExamples(program, model);
 }
 
-/** How the headers of one message are described. */
+/**
+ *  How the headers of one message are described.
+ *
+ * @param plan - The payload plan for this message
+ * @param model - The model to inspect
+ */
 function resolveHeaders(plan: MessageHeaderPlan, model: Model): MessageHeadersNode {
   const source = headerSourceOf(plan, model);
   if (source === undefined) return { kind: "none" };
@@ -200,6 +224,11 @@ function resolveHeaders(plan: MessageHeaderPlan, model: Model): MessageHeadersNo
  * The author is told which of the two the document carries. The generated
  * schema leaves the document, and a warning names the feature that produced
  * it, so the author can drop their own text or turn the feature off.
+ *
+ * @param program - The program to read the state from
+ * @param plan - The payload plan for this message
+ * @param model - The model to inspect
+ * @param artifacts - The generated schema artifacts
  */
 function resolvePayload(
   program: Program,

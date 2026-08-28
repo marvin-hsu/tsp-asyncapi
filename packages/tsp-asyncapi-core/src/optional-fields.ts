@@ -20,6 +20,7 @@
  * Use this where the caller needs the value itself rather than a field to
  * spread, such as a decorator that stores or validates it.
  *
+ * @param value - The text as the author wrote it
  * @returns The trimmed text, or `undefined` when there is nothing to say
  */
 export function trimmed(value: string | undefined): string | undefined {
@@ -39,8 +40,9 @@ export function trimmed(value: string | undefined): string | undefined {
  * `trimmed` decides both halves, so a field spread through here and a field
  * a decorator stored through `trimmed` cannot disagree about `"  x  "`.
  *
- * @returns A single-entry object, or an empty one when there is nothing to
- * say
+ * @param key - The field name in the emitted document
+ * @param value - The text, which may be absent or blank
+ * @returns A single-entry object, or an empty one when there is nothing to say
  *
  * @public
  */
@@ -58,6 +60,8 @@ export function text<K extends string>(
  * out. `false` and `0` are real values and are kept, which is why this
  * cannot be a plain truthiness test.
  *
+ * @param key - The field name in the emitted document
+ * @param value - The value, which may be absent
  * @returns A single-entry object, or an empty one when the value is absent
  *
  * @public

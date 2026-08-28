@@ -28,6 +28,8 @@ import { Program, Value, serializeValueAsJson } from "@typespec/compiler";
  *
  * The compiler tags every value object with `entityKind`, so the tag is the
  * test. A plain object the marshaller already produced carries no such field.
+ *
+ * @param value - The field as the author wrote it
  */
 function isTypeSpecValue(value: object): value is Value {
   return "entityKind" in value && value.entityKind === "Value";
@@ -48,6 +50,9 @@ const UNREPRESENTABLE = Symbol("unrepresentable");
  *
  * One failed element fails the array. Dropping it would leave a hole, and a
  * hole reaches the writer as `null`.
+ *
+ * @param program - The program to read the state from
+ * @param value - The field as the author wrote it
  */
 function convertArray(program: Program, value: readonly unknown[]): unknown {
   const elements: unknown[] = [];
@@ -67,6 +72,9 @@ function convertArray(program: Program, value: readonly unknown[]): unknown {
  *
  * One failed member fails the object. A truncated object would claim the
  * author wrote fewer members than they did.
+ *
+ * @param program - The program to read the state from
+ * @param value - The field as the author wrote it
  */
 function convertObject(program: Program, value: object): unknown {
   const result: Record<string, unknown> = {};
@@ -85,6 +93,9 @@ function convertObject(program: Program, value: object): unknown {
  * A string, a number and a boolean pass through. A value the compiler did
  * not flatten is serialized against its own type. That is what turns a
  * `utcDateTime` into an ISO string.
+ *
+ * @param program - The program to read the state from
+ * @param value - The field as the author wrote it
  */
 function convert(program: Program, value: unknown): unknown {
   switch (typeof value) {
@@ -117,8 +128,12 @@ function convert(program: Program, value: unknown): unknown {
  * already lost the pair, and `Object.entries` skips whatever the prototype
  * now holds. Nothing here can recover the name.
  *
+ * @param program - The program the value belongs to
+ * @param value - One marshalled decorator argument
+ *
  * @returns The same data as plain JSON, or `undefined` when the serializer
  * cannot represent some part of the value
+ *
  * @internal
  */
 export function toPlainValue(program: Program, value: unknown): unknown {
@@ -132,7 +147,9 @@ export function toPlainValue(program: Program, value: unknown): unknown {
  * Every member of a Bindings Object is an object. An array and a scalar are
  * both rejected, so the test cannot be a plain `typeof` check.
  *
+ * @param value - A value that already went through `toPlainValue`
  * @returns Whether the value can be written as a Bindings Object member
+ *
  * @internal
  */
 export function isPlainObject(value: unknown): value is Record<string, unknown> {

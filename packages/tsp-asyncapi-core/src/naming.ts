@@ -36,7 +36,11 @@ import {
 } from "@typespec/compiler";
 import { COMPONENTS_KEY_PATTERN, isGlobalTypeSpecNamespace } from "./constants.js";
 
-/** Upper-cases just the first character, leaving the rest of `text` as-is. */
+/**
+ * Upper-cases just the first character, leaving the rest of `text` as-is.
+ *
+ * @param text - The text to process
+ */
 function capitalizeFirst(text: string): string {
   return text.length === 0 ? text : text[0].toUpperCase() + text.slice(1);
 }
@@ -62,6 +66,9 @@ function capitalizeFirst(text: string): string {
  * the global namespace collides with `model B` inside `namespace A`.
  * `SchemaKeyRegistry` reports that as `duplicate-schema-key`, the same as any
  * other collision.
+ *
+ * @param program - The program to read the state from
+ * @param namespace - The namespace to look at
  */
 function namespacePrefix(program: Program, namespace: Namespace | undefined): string {
   const parts: string[] = [];
@@ -123,6 +130,8 @@ const MARKER_BEFORE_DIGIT = /Sep(?=\d)/g;
  *
  * An empty result, including an all-empty input, falls back to a fixed
  * non-empty token so the key never collapses to nothing.
+ *
+ * @param raw - The text to encode as a key segment
  */
 function sanitizeNameSegment(raw: string): string {
   if (raw.length === 0) {
@@ -151,6 +160,8 @@ function sanitizeNameSegment(raw: string): string {
  * A caller that takes a key straight from the author, such as the
  * `@message` argument, uses this to warn before `sanitizeDeclarationName`
  * rewrites the text into something the author never asked for.
+ *
+ * @param name - The candidate Components Object key
  */
 export function isSafeComponentsKey(name: string): boolean {
   return COMPONENTS_KEY_PATTERN.test(name);
@@ -222,6 +233,9 @@ export function sanitizeDeclarationName(name: string): string {
  * whether the parameter is used as a type or a value. Its `.type` is always
  * a real `Type` with a `kind`, so unwrapping it and recursing here gives a
  * bare literal argument the same handling a directly-typed one gets.
+ *
+ * @param program - The program to read the state from
+ * @param arg - The template argument to name
  */
 function templateArgDisplayName(
   program: Program,
@@ -301,6 +315,9 @@ function templateArgDisplayName(
  *
  * The caller, `declarationNameFor`, adds the namespace qualification and
  * handles `@friendlyName`. This function is purely structural.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  */
 function templateInstanceName(program: Program, type: Model | Union): string | undefined {
   const mapper = type.templateMapper;
@@ -321,6 +338,8 @@ function templateInstanceName(program: Program, type: Model | Union): string | u
  * shape, so the caller emits the unconstrained schema instead of
  * registering a bogus key. `Model` and `Union` both share this check.
  *
+ * @param type - The type to inspect
+ *
  * @public
  */
 export function isUninstantiatedTemplateDeclaration(type: Model | Union): boolean {
@@ -340,6 +359,8 @@ export function isUninstantiatedTemplateDeclaration(type: Model | Union): boolea
  * fallback key qualifies a declaration the same way a composed key does.
  * `@typespec/openapi3` builds the same filter, comparing each namespace's
  * full name against its own `serviceNamespaceName`.
+ *
+ * @param program - The program to read the state from
  */
 function typeNameOptions(program: Program): TypeNameOptions {
   return {
@@ -367,6 +388,9 @@ function typeNameOptions(program: Program): TypeNameOptions {
  * The result is long and hard to read. The caller only reaches this name
  * when inlining cannot express the type.
  *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
+ *
  * @public
  */
 export function fallbackDeclarationName(program: Program, type: Model | Union): string {
@@ -378,6 +402,9 @@ export function fallbackDeclarationName(program: Program, type: Model | Union): 
  * segment per template argument, with no namespace prefix.
  * `unqualifiedDeclarationName` shares it, so a message key and a schema key
  * describe the same instantiation with the same text.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  */
 function fallbackInstanceName(program: Program, type: Model | Union): string {
   const options = typeNameOptions(program);
@@ -399,6 +426,9 @@ function fallbackInstanceName(program: Program, type: Model | Union): string {
  * argument names, or falls back to the same per-argument text
  * `fallbackDeclarationName` uses. Taking the raw `Model.name` instead would
  * give every instantiation of one template the same bare name.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  */
 export function unqualifiedDeclarationName(program: Program, type: Model | Union): string {
   const friendlyName = getFriendlyName(program, type);
@@ -432,6 +462,9 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  * `SchemaBuilder.registerNamed` (via `SchemaKeyRegistry`), which decides
  * whether it is actually free. Two declarations resolving to the same
  * candidate are reported there as `duplicate-schema-key`.
+ *
+ * @param program - The program to read the state from
+ * @param type - The type to inspect
  *
  * @public
  */

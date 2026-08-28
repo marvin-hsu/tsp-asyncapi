@@ -58,8 +58,16 @@ export interface ResolvedOperations {
  * declaration already carries it in. A repeated key is reported and dropped,
  * the same rule every other key collision follows.
  *
+ * @param program - The program to read the operations from
+ * @param channels - The channel each target contributed
+ * @param messageKeys - The `components.messages` key each model claimed
+ * @param declaredSchemes - The keys of `components.securitySchemes`
  * @param placements - Where the binding applications this build placed are
  * recorded
+ *
+ * @returns The operations in source order, and every operation whose extensions
+ * reached an Operation Object
+ *
  * @internal
  */
 export function resolveOperations(
@@ -159,6 +167,8 @@ export function resolveOperations(
  * interface, and each copy shares the declaration node of the original. The
  * original itself sits on no channel, so it would otherwise be reported as
  * reaching nothing.
+ *
+ * @param placed - The binding placements already recorded
  */
 function emittedDeclarationNodes(placed: readonly PlacedOperation[]): ReadonlySet<object> {
   const nodes = new Set<object>();
@@ -174,6 +184,8 @@ function emittedDeclarationNodes(placed: readonly PlacedOperation[]): ReadonlySe
  * A reply belongs to an operation, and an operation reaches the document only
  * through `@send` or `@receive`. So a reply decorator beside neither has
  * nowhere to go and changes nothing.
+ *
+ * @param program - The program to read the state from
  */
 function reportRepliesWithoutAction(program: Program): void {
   for (const { operation, target } of listReplyDeclarations(program)) {

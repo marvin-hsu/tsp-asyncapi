@@ -44,6 +44,13 @@ const PERSISTENCE_VALUES = ["persistent", "non-persistent"];
  * The binding requires the field, so a rejected value costs the whole
  * binding. The loss is `binding` for that reason. A warning about one dropped
  * field would promise the author a document the emitter never writes.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function persistence(
@@ -67,6 +74,11 @@ export function persistence(
  *
  * Pulsar states both as zero or more. Zero disables retention on that
  * measure, so it is a value rather than an absent field.
+ *
+ * @param context - The decorator context
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function retentionMeasure(
   context: DecoratorContext,
@@ -89,6 +101,14 @@ function retentionMeasure(
  *
  * A policy with nothing left in it is dropped. An empty object states no
  * retention policy at all, which is not what a zero says.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The retention policy, or `undefined` when it was absent, empty, or
+ * not an object
+ *
  * @internal
  */
 export function retention(
@@ -109,6 +129,13 @@ export function retention(
  * Checks the `compaction` field of the channel binding.
  *
  * Pulsar states the threshold in megabytes, and a size is never negative.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
+ *
+ * @returns The value, or `undefined` when it was absent or rejected
+ *
  * @internal
  */
 export function compaction(
@@ -124,6 +151,14 @@ export function compaction(
  *
  * A blank entry names no cluster, so it is dropped. A list left with nothing
  * in it is dropped as well, because an empty list states no replication.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ *
+ * @returns The cluster names, or `undefined` when the field was absent, empty,
+ * or not a list
+ *
  * @internal
  */
 export function geoReplication(

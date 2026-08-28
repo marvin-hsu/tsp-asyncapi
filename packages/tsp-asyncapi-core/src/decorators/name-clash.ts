@@ -37,6 +37,13 @@ export interface NamedApplication extends SourcePosition {
  * The winner replaces the loser in `records`, in place, so the list keeps
  * the order names were first claimed.
  *
+ * @param program - The program the applications belong to
+ * @param records - The recorded applications, which this may change
+ * @param clashIndex - Where in `records` the earlier claim to the name sits
+ * @param record - The application that is running now
+ * @param code - The diagnostic reported for the dropped application
+ * @param name - The name both applications claim
+ *
  * @internal
  */
 export function settleNameClash<T extends NamedApplication>(

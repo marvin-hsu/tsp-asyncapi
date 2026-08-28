@@ -47,6 +47,10 @@ export interface GooglePubSubChannelBindingConfig {
  * `labels` is an open map. Pub/Sub puts no rule on its keys or values, so it
  * is emitted as written.
  *
+ * @param context - The decorator context
+ * @param target - The channel interface or namespace
+ * @param config - The Google Cloud Pub/Sub channel binding fields
+ *
  * @example
  * ```typespec
  * @googlePubSubChannel(#{

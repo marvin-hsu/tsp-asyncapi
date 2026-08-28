@@ -30,6 +30,9 @@ import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source
  *
  * The resolver below takes the winners. `reportExtensionProblems` takes the
  * losers to report.
+ *
+ * @param program - The program to read the state from
+ * @param target - The type the decorator was applied to
  */
 function pickExtensions(
   program: Program,
@@ -115,6 +118,8 @@ export function reportExtensionProblems(program: Program, emittedTargets: Readon
  * Ranks every target that carries entries by where it was declared, not by
  * an application's position. A misplaced target's one report then points at
  * the declaration.
+ *
+ * @param program - The program to read the state from
  */
 function targetsInSourceOrder(program: Program): [Type, readonly ExtensionEntry[]][] {
   const compare = bySourcePosition(program);

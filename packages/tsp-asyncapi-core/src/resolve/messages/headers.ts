@@ -71,7 +71,12 @@ export interface HeaderSource {
  */
 const WHOLE_HEADER_MEMBERS = ["model", "raw"] as const;
 
-/** Reads the two decorators that each describe the whole headers object. */
+/**
+ *  Reads the two decorators that each describe the whole headers object.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ */
 function wholeHeaderDecorators(program: Program, message: Model): Partial<HeaderSource> {
   return {
     model: getHeadersModel(program, message),
@@ -86,6 +91,8 @@ function wholeHeaderDecorators(program: Program, message: Model): Partial<Header
  * carries. The two answer different questions. A message can carry
  * `@rawHeaders` and still have no source, because a
  * `duplicate-message-headers` error dropped it.
+ *
+ * @param source - The type that declared the headers
  */
 function describesWholeHeaders(source: Partial<HeaderSource> | undefined): boolean {
   return source !== undefined && WHOLE_HEADER_MEMBERS.some((key) => source[key] !== undefined);
@@ -97,6 +104,9 @@ function describesWholeHeaders(source: Partial<HeaderSource> | undefined): boole
  * A count above one is the conflict `duplicate-message-headers` names. The
  * lifted fields count as one source together, because they describe one
  * headers object between them.
+ *
+ * @param fields - The fields already collected
+ * @param declared - The parameter names the channel already declared
  */
 function countHeaderSources(
   fields: readonly ModelProperty[],
@@ -140,6 +150,9 @@ export interface MessageHeaderPlan {
  * conflict is reported instead. The fields stay in the payload while the
  * error is unresolved, so nothing the author wrote disappears from the
  * document.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
  */
 export function planMessageHeaders(program: Program, messages: Iterable<Model>): MessageHeaderPlan {
   const sources = new Map<Model, HeaderSource>();
@@ -230,6 +243,10 @@ export function planMessageHeaders(program: Program, messages: Iterable<Model>):
  *
  * This runs after the inherited lifts are adopted, so a message that
  * inherits its header fields from a base message is reported too.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param sources - The types that declared headers
  */
 function reportRawPayloadLifting(
   program: Program,
@@ -271,6 +288,12 @@ function reportRawPayloadLifting(
  *
  * A message with an unresolved `duplicate-message-headers` error is left out
  * too. It is not reported, because neither mechanism takes effect there.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param sources - The types that declared headers
+ * @param lifted - The header fields already lifted from the payload
+ * @param contentTypeReported - Whether a content-type clash was already reported
  */
 function adoptInheritedLiftedFields(
   program: Program,
@@ -315,6 +338,10 @@ function adoptInheritedLiftedFields(
  * The diagnostic targets the derived message. That is where the `@headers`
  * sits, and it is the decorator the author chooses between keeping and
  * dropping.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ * @param inherited - The headers inherited from the channel
  */
 function reportOverriddenInheritedHeaders(
   program: Program,
@@ -371,6 +398,10 @@ function reportOverriddenInheritedHeaders(
  * author the mark stays in the payload schema, and that message builds no
  * payload schema from its model. A mark inside a model some other, non-raw
  * message also reaches is still reported from that message's walk.
+ *
+ * @param program - The program to read the state from
+ * @param messages - The messages this channel carries
+ * @param honoured - The messages whose headers were already applied
  */
 export function reportIgnoredNestedHeaders(
   program: Program,
@@ -416,6 +447,8 @@ export function reportIgnoredNestedHeaders(
  * A base model shared by two messages maps to the first of them. The message
  * name only makes the diagnostic concrete, and either name points the reader
  * at the same base model.
+ *
+ * @param messages - The messages this channel carries
  */
 function collectInheritedProperties(messages: Iterable<Model>): Map<ModelProperty, string> {
   const inherited = new Map<ModelProperty, string>();
@@ -450,6 +483,11 @@ function collectInheritedProperties(messages: Iterable<Model>): Map<ModelPropert
  * `reported` holds the fields already named, shared across every call of
  * one plan. A message that extends a lifting base adopts the same field, so
  * this keeps that field from being reported twice.
+ *
+ * @param program - The program to read the state from
+ * @param message - The message these headers belong to
+ * @param fields - The fields already collected
+ * @param reported - The header names already reported
  */
 function reportContentTypeHeaders(
   program: Program,
@@ -482,6 +520,8 @@ function reportContentTypeHeaders(
  * `additionalProperties` constraint. It is a legal headers schema.
  * The whole `baseModel` chain is walked. The array shape is inherited, so
  * only the chain shows it.
+ *
+ * @param model - The model to inspect
  */
 function isObjectBacked(model: Model): boolean {
   for (let current: Model | undefined = model; current !== undefined; current = current.baseModel) {

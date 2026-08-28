@@ -58,6 +58,10 @@ export interface WebSocketChannelBindingConfig {
  * literal of type `object` with a `properties` key. The emitter writes it
  * into the document as written.
  *
+ * @param context - The decorator context
+ * @param target - The channel interface or namespace
+ * @param config - The WebSocket channel binding fields
+ *
  * @example
  * ```typespec
  * @websocketChannel(#{

@@ -48,6 +48,10 @@ export interface HttpMessageBindingConfig {
  * Reply Object. This emitter does not check that rule, because it spans two
  * objects of the document.
  *
+ * @param context - The decorator context
+ * @param target - The message model
+ * @param config - The HTTP message binding fields
+ *
  * @example
  * ```typespec
  * @httpMessage(#{
@@ -96,6 +100,10 @@ export function $httpMessage(
  *
  * RFC 9110 defines status codes from 100 to 599. A number outside that range
  * is not a status code, so no client can act on it.
+ *
+ * @param context - The decorator context
+ * @param value - The field as the author wrote it
+ * @param target - Where a problem is reported
  */
 function statusCode(
   context: DecoratorContext,

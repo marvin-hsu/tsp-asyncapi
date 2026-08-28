@@ -34,6 +34,10 @@ export interface SqsChannelBindingConfig {
  * the whole binding goes with it. A required field left out and a value the
  * serializer cannot represent both count here.
  *
+ * @param context - The decorator context
+ * @param target - The channel interface or namespace
+ * @param config - The Amazon SQS channel binding fields
+ *
  * @example
  * ```typespec
  * @sqsChannel(#{

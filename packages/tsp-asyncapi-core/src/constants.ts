@@ -43,6 +43,8 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
  * namespace. Not true for any other namespace, including a user namespace
  * that happens to share the name.
  *
+ * @param ns - The namespace to test
+ *
  * @public
  */
 export function isGlobalTypeSpecNamespace(ns: Namespace | undefined): boolean {

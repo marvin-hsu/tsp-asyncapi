@@ -58,6 +58,11 @@ export { getServersInternal, setServers };
 /**
  * True when a namespace carries at least one server that survived its own
  * checks.
+ *
+ * @param program - The program to read the state from
+ * @param namespace - The namespace to look at
+ *
+ * @returns Whether `@server` recorded anything for that namespace
  */
 export function namespaceHasServers(program: Program, namespace: Namespace): boolean {
   return (getServersInternal(program, namespace)?.length ?? 0) > 0;
@@ -82,6 +87,12 @@ export interface StrayServerRecord {
  * The emitter reads servers from the service namespace only. Any other
  * server is dropped, so the caller reports it instead of dropping it in
  * silence. When `service` is `undefined`, every server is outside it.
+ *
+ * @param program - The program to read the state from
+ * @param service - The service namespace, or `undefined` when the program
+ * declares no service. Every server is then outside the service.
+ *
+ * @returns The stray servers, in source order.
  */
 export function listServersOutsideService(
   program: Program,

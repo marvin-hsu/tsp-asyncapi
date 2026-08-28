@@ -39,6 +39,11 @@ export interface ReplyContext {
  * out would make two of its own rules uncheckable. The subset rule for
  * `reply.messages` needs a channel, and so does the rule that a reply
  * address only sits on a channel with no address.
+ *
+ * @param program - The program to report on
+ * @param context - What this operation contributes to its reply
+ *
+ * @returns The reply object, or `undefined` when this operation has none
  */
 export function resolveOperationReply(
   program: Program,
@@ -97,6 +102,10 @@ export function resolveOperationReply(
  *
  * The address is dropped and the rest of the reply survives. A reply over a
  * static channel is still a valid document.
+ *
+ * @param program - The program to read the state from
+ * @param replyChannel - The channel the reply travels over
+ * @param declaredAddress - The address the reply channel declared
  */
 function resolveReplyAddress(
   program: Program,
@@ -115,7 +124,12 @@ function resolveReplyAddress(
   return { ...declaredAddress.state };
 }
 
-/** True when at least one of the models is a message of the channel. */
+/**
+ *  True when at least one of the models is a message of the channel.
+ *
+ * @param models - The models to walk
+ * @param channel - The channel to inspect
+ */
 function hasChannelMessage(models: readonly Model[], channel: EmittedChannel): boolean {
   return models.some((model) => channel.messageKeys.has(model));
 }

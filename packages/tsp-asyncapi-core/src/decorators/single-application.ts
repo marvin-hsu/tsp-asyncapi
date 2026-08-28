@@ -60,6 +60,10 @@ export interface ApplicationGuard {
  * in the source runs first and wins. Each caller's own documentation states
  * this rule, and holding the winner steady is why the guard has to run
  * before any validation.
+ *
+ * @param stateKey - A symbol private to the calling decorator
+ * @param code - The diagnostic reported for the second application
+ * @returns The guard for that decorator
  */
 export function singleApplication(stateKey: symbol, code: DuplicateCode): ApplicationGuard {
   const [claimedAt, recordClaim] = useStateMap<Type, SourcePosition>(stateKey);

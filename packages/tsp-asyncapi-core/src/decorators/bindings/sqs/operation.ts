@@ -31,6 +31,10 @@ export interface SqsOperationBindingConfig {
  * `fifoQueue` as well, which is the difference AsyncAPI states between the
  * two levels.
  *
+ * @param context - The decorator context
+ * @param target - The operation
+ * @param config - The Amazon SQS operation binding fields
+ *
  * @example
  * ```typespec
  * @sqsOperation(#{ queues: #[#{ name: "orders", fifoQueue: false }] })
