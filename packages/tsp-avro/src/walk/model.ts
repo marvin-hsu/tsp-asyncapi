@@ -85,6 +85,11 @@ type AvroDeclaration = Model | Enum | Scalar;
  * one, so the author sees every problem in one compile. A flag beside this
  * list would be a second answer to one question.
  *
+ * `refusedScalars` holds every scalar declaration a refusal already points at.
+ * Those refusals name what is wrong with the declaration rather than with the
+ * field, and every field of that scalar reaches the same line. Without this
+ * set, a record with two such fields reported the identical message twice.
+ *
  * Nothing here reports a diagnostic. The caller decides where they go, which
  * is what lets an emitter in another package read a reason and say it under
  * its own name.
@@ -93,6 +98,7 @@ interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
+  readonly refusedScalars: Set<Scalar>;
   readonly diagnostics: Diagnostic[];
 }
 
@@ -160,6 +166,7 @@ export function buildAvroRecordWithDiagnostics(
     program,
     scalars: scalarTableFor(program),
     defined: new Map(),
+    refusedScalars: new Set(),
     diagnostics,
   };
 
@@ -220,6 +227,26 @@ export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): read
  */
 function refuse(context: WalkContext, diagnostic: Diagnostic): void {
   context.diagnostics.push(diagnostic);
+}
+
+/**
+ * Collects one refusal that points at a scalar declaration, and collects it
+ * once.
+ *
+ * The refusal names what is wrong with the declaration, not with the field
+ * that holds it. Every field of that scalar sends the walk to the same line,
+ * so the second one has nothing new to say.
+ *
+ * @param context - The walk
+ * @param scalar - The declaration the refusal points at
+ * @param build - Builds the refusal, which the second field never calls
+ */
+function refuseScalarOnce(context: WalkContext, scalar: Scalar, build: () => Diagnostic): void {
+  if (context.refusedScalars.has(scalar)) {
+    return;
+  }
+  context.refusedScalars.add(scalar);
+  refuse(context, build());
 }
 
 /**
@@ -306,8 +333,7 @@ function scalarFor(
       getAvroAliases(context.program, one) === undefined ? undefined : one,
     );
     if (aliased !== undefined) {
-      refuse(
-        context,
+      refuseScalarOnce(context, aliased, () =>
         createDiagnostic({
           code: "aliases-target",
           format: { name: aliased.name },
@@ -325,8 +351,7 @@ function scalarFor(
     // the whole of what that type is, so the fixed type stands on its own.
     const underlying = avroScalarFor(context.scalars, scalar);
     if (underlying !== undefined && underlying !== "bytes") {
-      refuse(
-        context,
+      refuseScalarOnce(context, scalar, () =>
         createDiagnostic({
           code: "invalid-fixed",
           messageId: "underlying",

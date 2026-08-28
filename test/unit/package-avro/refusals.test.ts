@@ -333,6 +333,33 @@ describe("what the Avro walk refuses", () => {
     );
   });
 
+  it("refuses one scalar once, however many fields hold it", async () => {
+    // These two refusals point at the scalar declaration, not at the field.
+    // One declaration is wrong once, so a reader who opens that line sees one
+    // message there rather than a copy of it for every field.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { a: Age; b: Age; }
+      }
+      `,
+      `aliases-target: The scalar "Age" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+    );
+
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { a: Word; b: Word; }
+      }
+      `,
+      `invalid-fixed: The scalar "Word" carries @fixed and extends the Avro type "string". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
+    );
+  });
+
   it("refuses a fixed model that declares fields", async () => {
     await expectRefusal(
       `
