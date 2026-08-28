@@ -1,3 +1,14 @@
+/**
+ * The `@binding` decorator: the escape hatch for a protocol with no
+ * decorator of its own, or a field a newer binding version added.
+ *
+ * Unlike a protocol-specific decorator, it names no level and checks no
+ * field. It emits the config exactly as written, into whichever level the
+ * target reaches. One protocol claims one slot per level per target, and
+ * this decorator never merges its config with a protocol-specific decorator
+ * that already claimed the same slot.
+ */
+
 import { DecoratorContext, Type } from "@typespec/compiler";
 import { reportDiagnostic } from "../../lib.js";
 import { claimBinding } from "./state.js";
@@ -16,7 +27,7 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
  * cannot know which version the fields belong to. Write the field yourself
  * when the protocol needs it.
  *
- * The target is `unknown`, because all four positions that carry a Bindings
+ * The target is `unknown`, because all four levels that carry a Bindings
  * Object are reachable: a server namespace, a channel interface or namespace,
  * an operation, and a message model. This decorator names no level, so the
  * binding lands wherever the target emits an object. A namespace that is both
@@ -25,9 +36,10 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
  * is meant.
  *
  * One protocol claims one slot per level per target. A second application of
- * the same protocol name is reported and dropped, and so is a `@binding` that
- * names the protocol a protocol-specific decorator already claimed. The two
- * configurations are never merged.
+ * the same protocol name reports a diagnostic, and the whole binding is
+ * dropped. The same happens to a `@binding` that names the protocol a
+ * protocol-specific decorator already claimed. The two configurations are
+ * never merged.
  *
  * A binding whose target emits no object at all is reported once the document
  * is built.

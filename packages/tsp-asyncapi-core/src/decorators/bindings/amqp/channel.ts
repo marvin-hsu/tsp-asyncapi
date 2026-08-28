@@ -1,3 +1,11 @@
+/**
+ * The `@amqpChannel` decorator: the AMQP channel binding.
+ *
+ * It lands in `channels.<key>.bindings.amqp`. Field checks live in the
+ * sibling `config.ts`. `state.ts` claims the slot once the fields are
+ * checked.
+ */
+
 import { DecoratorContext, Interface, Namespace } from "@typespec/compiler";
 import { AMQP_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";

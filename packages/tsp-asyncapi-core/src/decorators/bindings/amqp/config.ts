@@ -181,15 +181,15 @@ function topologyName(
 }
 
 /**
- * Reads one sub-object of the channel binding.
+ * Reads one nested object of the channel binding.
  *
  * `exchange` and `queue` are the two, and neither is a Schema Object. Each
  * one is a fixed set of fields, so it is read field by field rather than
  * passed through. A key the author misspelled would otherwise reach the
  * document and describe a topology no broker builds.
  *
- * A sub-object with nothing left in it is dropped. An empty object states no
- * exchange or queue at all.
+ * A nested object with nothing left in it is dropped. An empty object states
+ * no exchange or queue at all.
  */
 function topology<T extends object>(
   context: DecoratorContext,
