@@ -18,12 +18,6 @@ const CODE = "tsp-asyncapi/header-on-generated-payload";
 
 const Base = createLibraryTester("@typespec/protobuf", "tsp-avro");
 
-/**
- * Compiles one source with no emitter and returns what it reported.
- *
- * @param code - The TypeSpec source of the case
- * @returns Every diagnostic the compilation reported
- */
 async function check(code: string): Promise<readonly Diagnostic[]> {
   const runner = await Base.createInstance();
   const [, diagnostics] = await runner.compileAndDiagnose(code);

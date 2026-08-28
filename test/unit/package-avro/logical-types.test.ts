@@ -18,13 +18,7 @@ import { emitAvroFiles, expectInstanceRoundTrip, fieldNamed } from "../../utils/
 
 const NAMESPACE = "com.example.a";
 
-/**
- * Emits one field carrying one logical type, and returns the schema of it.
- *
- * @param declaration - The TypeSpec declaration of the field's type
- * @param type - How the field refers to it
- * @returns The rendered type of the field
- */
+/** Emits one field carrying one logical type, and returns the schema of it. */
 async function fieldType(declaration: string, type: string): Promise<unknown> {
   const files = await emitAvroFiles(`
     @Avro.avroNamespace("${NAMESPACE}")
