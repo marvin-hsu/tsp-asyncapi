@@ -530,11 +530,11 @@ AsyncAPI defines every member of a Bindings Object as an object. A string, a num
 
 ### `invalid-required-binding-field`
 
-> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. AsyncAPI requires the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. The binding cannot be written without the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
 
-One field carries a value the binding specification forbids, and the binding requires that field. The binding cannot be written without it, so the whole binding is dropped rather than the field alone. That is the difference from [`invalid-binding-field`](#invalid-binding-field), which is a warning and keeps the rest of the binding.
+One field carries a value the binding specification forbids. The emitter cannot write the binding without that field, so the whole binding is dropped rather than the field alone. That is the difference from [`invalid-binding-field`](#invalid-binding-field), which is a warning and keeps the rest of the binding.
 
-Four fields report it. Two are the `queue` and the `deadLetterQueue` of an Amazon SQS channel. The other two are the `queues` of an SQS operation and the `schemaSettings` of a Google Cloud Pub/Sub channel. A `deadLetterQueue` is optional, and it still costs the binding. The author declared a queue, so a binding written without it describes less than the source does.
+Some fields report it. They are the `queue` and the `deadLetterQueue` of an Amazon SQS channel, the `queues` of an SQS operation, the `schemaSettings` of a Google Cloud Pub/Sub channel, and the `persistence` of a Pulsar channel. A `deadLetterQueue` is optional, and it still costs the binding. The author declared a queue, so a binding written without it describes less than the source does.
 
 **Fix:** write the field as the message names.
 
@@ -1090,7 +1090,7 @@ One field carries a value the binding specification forbids. The Kafka binding r
 
 `topicConfiguration` reports it when the serializer cannot represent a member of the map. A custom scalar with an `init` is one such member. That member fails the whole map, so the report names `topicConfiguration` rather than the member.
 
-The rest of the binding is emitted. A field the binding requires costs more, and it reports [`invalid-required-binding-field`](#invalid-required-binding-field) instead.
+The rest of the binding is emitted. A field the emitter cannot write the binding without costs more. It reports [`invalid-required-binding-field`](#invalid-required-binding-field) instead.
 
 **Fix:** give the field a value the message names.
 

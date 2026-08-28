@@ -530,11 +530,11 @@ AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與
 
 ### `invalid-required-binding-field`
 
-> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. AsyncAPI requires the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. The binding cannot be written without the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
 
-某個欄位的值違反 binding 規格，而該欄位又是這個 binding 必填的。少了它就寫不出這個 binding，所以丟掉的是整個 binding，不是單一欄位。這一點與 [`invalid-binding-field`](#invalid-binding-field) 不同，那個代碼是警告，而且會保留 binding 的其餘部分。
+某個欄位的值違反 binding 規格。少了這個欄位，emitter 就寫不出這個 binding，所以丟掉的是整個 binding，不是單一欄位。這一點與 [`invalid-binding-field`](#invalid-binding-field) 不同，那個代碼是警告，而且會保留 binding 的其餘部分。
 
-有四個欄位會回報它：Amazon SQS channel 的 `queue` 與 `deadLetterQueue`、SQS operation 的 `queues`，以及 Google Cloud Pub/Sub channel 的 `schemaSettings`。`deadLetterQueue` 雖然是選填，代價一樣是整個 binding。作者既然寫了這個佇列，少了它的 binding 就比原始碼描述得更少。
+會回報它的欄位有：Amazon SQS channel 的 `queue` 與 `deadLetterQueue`、SQS operation 的 `queues`、Google Cloud Pub/Sub channel 的 `schemaSettings`，以及 Pulsar channel 的 `persistence`。`deadLetterQueue` 雖然是選填，代價一樣是整個 binding。作者既然寫了這個佇列，少了它的 binding 就比原始碼描述得更少。
 
 **修法：** 依訊息指出的範圍填值。
 
@@ -1085,7 +1085,7 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 
 `topicConfiguration` 是在序列化器無法表示對應表中某個成員時回報。帶有 `init` 的自訂 scalar 就是這種成員。該成員會讓整份對應表失敗，所以回報指的是 `topicConfiguration`，不是那個成員。
 
-binding 的其餘部分照樣輸出。必填欄位的代價更高，它改為回報 [`invalid-required-binding-field`](#invalid-required-binding-field)。
+binding 的其餘部分照樣輸出。少了就寫不出 binding 的欄位代價更高，它改為回報 [`invalid-required-binding-field`](#invalid-required-binding-field)。
 
 **修法：** 依訊息指出的範圍填值。
 

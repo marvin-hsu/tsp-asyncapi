@@ -248,6 +248,11 @@ describe("Unit: the Amazon SQS binding decorators", () => {
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'deadLetterQueue'");
       expect(reported.message).toContain("the whole binding was dropped");
+      // `deadLetterQueue` is optional. The message has to state a reason that
+      // holds here as well, so it names what the emitter cannot do rather
+      // than what AsyncAPI requires.
+      expect(reported.message).toContain("cannot be written without the field");
+      expect(reported.message).not.toContain("AsyncAPI requires the field");
       expect(channelsOf(doc).orders.bindings).toBeUndefined();
     });
 
