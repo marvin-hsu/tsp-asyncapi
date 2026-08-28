@@ -32,8 +32,8 @@ interface Manifest {
  *
  * API Extractor writes it, and it names the TSDoc version the declarations
  * were written against. A TSDoc reader looks for it beside the types, so it
- * is published on purpose. Every build removes it with the rest of `dist`,
- * so only a later API Extractor run puts it back.
+ * is published on purpose. The packaging path removes it with the rest of
+ * `dist`, so only a later API Extractor run puts it back.
  */
 const WRITTEN_BY_API_EXTRACTOR = new Set(["src/tsdoc-metadata.json"]);
 
