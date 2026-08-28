@@ -43,10 +43,8 @@ export function lowerDocument(
 
   const document: AsyncAPIDocument = {
     asyncapi: ASYNCAPI_VERSION,
-    // The two head options answer to the rule every other text field in the
-    // document answers to. A blank option names nothing, so it is absent
-    // rather than emitted as blank, and a padded one is trimmed. The options
-    // schema sets no minimum length, so an author can write either.
+    // The two head options follow the rule every text field in the document
+    // follows: a blank value is absent, and a padded one is trimmed.
     ...text("id", options["asyncapi-id"]),
     info: lowerInfo(service.info, promoted),
     ...text("defaultContentType", options["default-content-type"]),
@@ -61,8 +59,8 @@ export function lowerDocument(
   };
 
   // A raw schema is copied verbatim, so a reference inside it can point at a
-  // location the document never got. Only the finished document answers that,
-  // so this check runs last.
+  // location the document never got. Only the finished document can confirm
+  // that, so this check runs last.
   reportUnresolvedRawSchemaRefs(program, document, new Map(service.messageKeys));
 
   return document;

@@ -1,3 +1,11 @@
+/**
+ * The lower half of the raw-schema reference check.
+ *
+ * A `@rawPayload` schema is copied verbatim, so a `#/`-prefixed reference
+ * inside it targets the emitted document, and the emitter can confirm
+ * whether that target exists. This reports every reference that does not.
+ */
+
 import { Model, Program } from "@typespec/compiler";
 import type { AsyncAPIDocument } from "../types/index.js";
 import { reportDiagnostic, localRef, isPlainObject } from "tsp-asyncapi-core";
@@ -8,11 +16,7 @@ const SCHEMA_KEY = "schema";
 
 /**
  * Reads the schema out of one slot of a message, when that slot holds a raw
- * schema.
- *
- * `payload` holds either a Multi Format Schema Object or an ordinary schema.
- * A `schema` field tells the two apart. Only a Multi Format Schema Object has
- * one, because the emitter builds it from a raw schema decorator alone.
+ * schema. Only a Multi Format Schema Object carries a `schema` field.
  *
  * @param slot - The value of `payload` or of `headers`
  * @returns The raw schema, or `undefined` when the slot holds no raw schema
@@ -25,31 +29,21 @@ function rawSchemaOf(slot: unknown): unknown {
 }
 
 /**
- * Reports every raw schema whose reference into this document reaches
+ * Reports every raw-schema reference into this document that resolves to
  * nothing.
  *
- * The emitter copies a raw schema exactly as written, so a reference inside
- * it is the author's, not the emitter's. A reference that starts with `#/`
- * points into the emitted document. The emitter owns the other end of such a
- * reference, so it can say whether that end exists.
+ * A `components.schemas` key depends on every message, channel, and
+ * operation, so only the finished document can answer whether a target
+ * exists. A `@rawPayload` model contributes nothing to `components.schemas`
+ * by itself, so `#/components/schemas/<ModelName>` can resolve to nothing
+ * even when the model is real.
  *
- * The check runs on the finished document. A `components.schemas` key comes
- * from the models the messages reach, and the messages are built before the
- * channels and the operations. So the answer is only settled once every
- * section is in place.
+ * Only the top level of the schema is read, the depth the decorator reads.
+ * A reference deeper inside uses the schema's own grammar, which the emitter
+ * does not parse.
  *
- * This is a trap in practice, which is why the check exists. A `@rawPayload`
- * model contributes nothing to `components.schemas`, so the obvious target
- * `#/components/schemas/<ModelName>` holds nothing unless another message
- * reaches that model.
- *
- * Only the top level of the schema is read, the same depth the decorator
- * reads. A reference deeper inside is written in the schema language itself,
- * and the emitter does not know that grammar.
- *
- * The rule is separate from `raw-schema-local-ref`. That one compares the two
- * `schemaFormat` values, and it needs a target to compare against. A target
- * that does not exist fails both rules, and both are reported.
+ * `raw-schema-local-ref` reports the matching `schemaFormat` mismatch. Both
+ * rules can fire on the same reference.
  *
  * @param program - The program the messages belong to
  * @param document - The finished document
@@ -63,11 +57,9 @@ export function reportUnresolvedRawSchemaRefs(
   const messages = document.components?.messages;
   if (messages === undefined) return;
 
-  // Every key of `messageKeys` names an emitted message. A model that a key
-  // collision dropped never reached that map. The lookup still guards,
-  // because this rule holds an invariant of another package. If that
-  // invariant breaks, this run must report nothing rather than throw a
-  // `TypeError`.
+  // A model a key collision dropped never reached this map. The lookup
+  // still guards: that invariant belongs to another package, and a break
+  // there must report nothing here rather than throw.
   for (const [model, key] of messageKeys) {
     const message = Object.hasOwn(messages, key) ? messages[key] : undefined;
     if (message === undefined) continue;
