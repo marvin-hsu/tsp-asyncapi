@@ -323,6 +323,53 @@ describe("Unit: Schemas — @encode", () => {
       });
     });
 
+    it("encodes the variant of a named union in place of a reference to it", async () => {
+      const props = await holderProperties(`
+        union Stamp {
+          at: utcDateTime,
+          none: null,
+        }
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Stamp;
+        }
+      `);
+
+      // A named union earns a component, and the component describes the
+      // un-encoded shape. A property that only refers to it carries no
+      // encoding at all, so the document declares a string where an integer
+      // travels.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("keeps the named union's component for a use site that does not encode it", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        union Stamp {
+          at: utcDateTime,
+          none: null,
+        }
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          encoded: Stamp;
+          plain: Stamp;
+        }
+      `);
+
+      // Only the encoded site is written in place. The component still
+      // describes the union as declared, and the plain site still refers
+      // to it.
+      const schemas = builder.getSchemas();
+      expect(schemas.M.properties).toEqual({
+        encoded: { anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }] },
+        plain: { $ref: "#/components/schemas/Stamp" },
+      });
+      expect(schemas.Stamp).toEqual({
+        anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+      });
+    });
+
     it("encodes every variant the encoding describes", async () => {
       const props = await holderProperties(`
         model Holder {

@@ -613,8 +613,9 @@ export function withPropertyDocs(
   // The property's own `@encode` rewrites the `type`/`format` it got from its
   // declared type, so it is applied before anything below. An explicit
   // `@format` on the property still wins, being merged in afterwards.
-  // A `$ref` is never reached here: a property typed as a named scalar is
-  // inlined rather than referenced.
+  // A `$ref` is never reached here: a property whose `@encode` reaches a
+  // named scalar, or a variant of a named union, is written in place rather
+  // than referenced.
   const encoded =
     prop.kind === "ModelProperty" && !("$ref" in schema)
       ? applyEncoding(program, prop, schema, diagnostics)

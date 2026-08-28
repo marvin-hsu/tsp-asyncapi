@@ -431,6 +431,18 @@ export class SchemaBuilder {
     if (type.name === undefined) {
       return this.declarations.guardAnonymous(type, build);
     }
+    // A named union earns a component, and that component describes the
+    // union as declared. An encoded variant is written in place, so a use
+    // site that encodes one cannot refer to the component: the reference
+    // would describe the un-encoded shape. Such a site writes the whole
+    // union in place instead.
+    //
+    // The build runs unguarded. A variant that names this union again
+    // reaches `declareNamed` below, which registers the component and
+    // answers with a reference, so the recursion ends there.
+    if (inlined.size > 0) {
+      return build();
+    }
     return this.declarations.declareNamed(type, build);
   }
 
@@ -682,6 +694,12 @@ export class SchemaBuilder {
    * A named model is not this case either. Its annotations sit at the
    * object level rather than being its shape, so a property over one has
    * always layered its own above an `allOf`, and still does.
+   *
+   * A union-typed property asks `encodedUnionVariants` which variants its
+   * `@encode` describes, and hands the answer to the union builder. A named
+   * union that has one is written in place for the same reason a scalar is:
+   * the component describes the union as declared, and a reference to it
+   * would carry no encoding at all.
    */
   private buildPropertyTypeSchema(prop: ModelProperty): SchemaObject | ReferenceObject {
     if (
@@ -691,7 +709,7 @@ export class SchemaBuilder {
     ) {
       return buildScalarShapeWithDocs(this.program, this.diagnostics, prop.type);
     }
-    if (prop.type.kind === "Union" && prop.type.name === undefined) {
+    if (prop.type.kind === "Union") {
       return this.buildUnionSchema(prop.type, encodedUnionVariants(this.program, prop));
     }
     return this.buildSchema(prop.type);
