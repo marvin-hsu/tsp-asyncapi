@@ -37,8 +37,9 @@ describe("Unit: Schemas — @discriminated unions", () => {
 
   /** Compiles the components into a real draft-07 validator for `Pet`. */
   function validatorFor(components: Record<string, SchemaObject>) {
-    // See the note in `models.test.ts` for why the formats are registered
-    // rather than the warning silenced.
+    // Draft-07 leaves `format` as an annotation. A bare Ajv does not
+    // implement it and logs a warning instead of enforcing it. Registering
+    // the formats makes the validator enforce them instead.
     const ajv = addFormats(new Ajv({ strict: false }));
     for (const [key, schema] of Object.entries(components)) {
       ajv.addSchema(schema, `#/components/schemas/${key}`);

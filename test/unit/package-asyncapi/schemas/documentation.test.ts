@@ -1,3 +1,18 @@
+/**
+ * A model's, property's, and scalar's `@doc`/`@summary`/`@example` reach the
+ * emitted schema as `description`, `title`, and `examples`.
+ *
+ * Each of the three keys is absent from the schema when the author gave it
+ * nothing; a value serializes into `examples` only when the type can encode
+ * it, and a value that cannot serialize is dropped with a diagnostic rather
+ * than silently. A scalar's own documentation and examples travel down the
+ * `baseScalar` chain to every property that uses it, and a property's own
+ * annotation overrides what it inherits.
+ *
+ * An `@example` is encoded the same way its schema is: a property under
+ * `@encode` produces both an encoded schema and an encoded example, so the
+ * example always validates against the schema next to it.
+ */
 import { describe, it, expect, vi } from "vitest";
 import { Model } from "@typespec/compiler";
 import { AsyncAPITester } from "#emitter/testing.js";
@@ -207,8 +222,8 @@ describe("Unit: Schemas — documentation and examples", () => {
     `);
 
     expect(Object.hasOwn(builder.getSchemas().M, "examples")).toBe(false);
-    // The whole example is dropped (even the sibling `name` field, which
-    // was itself perfectly serializable) -- that must not happen in total
+    // The whole example is dropped, even the sibling `name` field, which
+    // was itself perfectly serializable. That drop must not happen in
     // silence.
     expect(program.diagnostics).toHaveLength(1);
     expect(program.diagnostics[0].code).toBe("tsp-asyncapi/unserializable-example");
