@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { t } from "@typespec/compiler/testing";
-import { buildDocSchema, holderProperties } from "../../../utils/schema-host.js";
+import {
+  buildDocSchema,
+  holderProperties,
+  resolvedProperties,
+} from "../../../utils/schema-host.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 /**
  * `@encode` says how a value travels, which is a separate question from what
@@ -368,6 +373,23 @@ describe("Unit: Schemas — @encode", () => {
       expect(schemas.Stamp).toEqual({
         anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
       });
+    });
+
+    it("reports an encoding that describes no variant", async () => {
+      const { builder, program } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          @encode("ISO8601")
+          d: utcDateTime | null;
+        }
+      `);
+
+      // ISO 8601 names how a duration travels, and no variant here is a
+      // duration. The compiler validates no target for it, so nothing else
+      // tells the author the encoding reached the document nowhere.
+      expect(resolvedProperties(builder, "M").d).toEqual({
+        anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+      });
+      expect(diagnosticsWith(program.diagnostics, "encoding-describes-no-variant")).toHaveLength(1);
     });
 
     it("encodes every variant the encoding describes", async () => {

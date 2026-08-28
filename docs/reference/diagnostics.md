@@ -1040,6 +1040,14 @@ A `@minValue`/`@maxValue`/`@minLength`/... bound overflows or loses precision as
 
 **Fix:** remove the constraint, or express it as documentation (`@doc`).
 
+### `encoding-describes-no-variant`
+
+> @encode("\<encoding\>") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.
+
+`@encode` on a union-typed property, where no variant is a type the encoding describes — e.g. `@encode("ISO8601") d: utcDateTime | null`. ISO 8601 names how a `duration` travels, and neither variant is a `duration`. The compiler accepts the decorator, so this is the only report the author gets.
+
+**Fix:** use an encoding that names one of the variants, or change the property type to one the encoding describes.
+
 ### `missing-discriminator-property`
 
 > @discriminator("\<property\>") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so `discriminator` was omitted from the emitted schema.

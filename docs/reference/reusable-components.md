@@ -93,6 +93,8 @@ short:
   maxLength: 64
 ```
 
+A named union follows the same rule for `@encode`. Its component describes the union as declared, so a property whose encoding describes one of the variants writes the whole union in place. An encoding that describes no variant is reported as [`encoding-describes-no-variant`](./diagnostics#encoding-describes-no-variant), and every variant keeps the shape its own type states.
+
 ## What the emitter does not extract
 
 | Section                     | Why not                                                                                                                                                                |

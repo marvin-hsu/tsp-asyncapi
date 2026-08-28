@@ -39,7 +39,7 @@ export const PACKAGE_NAME = "tsp-asyncapi-core";
  * Registering two libraries under one name is supported. The emitter package
  * declares a second one, for its options schema alone.
  *
- * Eighteen of these diagnostics are reported by the emitter package rather than
+ * Some of these diagnostics are reported by the emitter package rather than
  * from here. They stay in this one list because a reader looking up a code
  * should find every code in one place.
  *
@@ -86,6 +86,12 @@ export const $lib = createTypeSpecLibrary({
       severity: "warning",
       messages: {
         default: paramMessage`This @${"decorator"} constraint targets a date/time/duration value, which draft-07 JSON Schema cannot express as a \`minimum\`/\`maximum\`, and was omitted from the emitted schema.`,
+      },
+    },
+    "encoding-describes-no-variant": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@encode("${"encoding"}") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.`,
       },
     },
     "missing-discriminator-property": {

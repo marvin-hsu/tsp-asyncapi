@@ -1035,6 +1035,14 @@ server 與 security scheme 就是這種 target。兩者都以具名參數宣告�
 
 **修法：** 移除該限制，或改以 `@doc` 用文字描述。
 
+### `encoding-describes-no-variant`
+
+> @encode("\<encoding\>") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.
+
+`@encode` 標在 union 型別的屬性上，但沒有任何一個 variant 是該編碼描述的型別，例如 `@encode("ISO8601") d: utcDateTime | null`。ISO 8601 描述的是 `duration` 的傳輸格式，這兩個 variant 都不是 `duration`。編譯器接受這個 decorator，所以這是作者唯一會收到的提示。
+
+**修法：** 改用能對應到其中一個 variant 的編碼，或把屬性型別換成該編碼描述的型別。
+
 ### `missing-discriminator-property`
 
 > @discriminator("\<property\>") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so `discriminator` was omitted from the emitted schema.

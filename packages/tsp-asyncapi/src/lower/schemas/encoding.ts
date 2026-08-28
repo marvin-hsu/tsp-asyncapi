@@ -211,12 +211,24 @@ function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
  * The answer is empty for a property with no `@encode`, and for one whose
  * declared type is not a union.
  *
+ * An `@encode` that describes no variant at all is reported. The encoding
+ * then reaches the document nowhere, and the schema says the value travels
+ * as its declared type does. `@encode("ISO8601") d: utcDateTime | null` is
+ * that case: ISO 8601 names how a duration travels, and neither variant is
+ * a duration. The compiler validates no target for `ISO8601`, so nothing
+ * else tells the author the encoding was dropped.
+ *
  * @param program - The program the property belongs to
  * @param prop - The property whose `@encode` and declared type are read
+ * @param diagnostics - The ledger a dropped encoding is reported through
  * @returns The variant types the encoding describes
  * @internal
  */
-export function encodedUnionVariants(program: Program, prop: ModelProperty): ReadonlySet<Type> {
+export function encodedUnionVariants(
+  program: Program,
+  prop: ModelProperty,
+  diagnostics: SchemaDiagnostics,
+): ReadonlySet<Type> {
   const described = new Set<Type>();
   const encodeData = getEncode(program, prop);
   if (encodeData === undefined || prop.type.kind !== "Union") {
@@ -227,6 +239,13 @@ export function encodedUnionVariants(program: Program, prop: ModelProperty): Rea
     if (type.kind === "Scalar" && encodingDescribes(encodeData, type)) {
       described.add(type);
     }
+  }
+  if (described.size === 0) {
+    diagnostics.reportOnce({
+      code: "encoding-describes-no-variant",
+      target: prop,
+      format: { encoding: encodeData.encoding ?? encodeData.type.name },
+    });
   }
   return described;
 }

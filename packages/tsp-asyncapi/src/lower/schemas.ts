@@ -710,7 +710,10 @@ export class SchemaBuilder {
       return buildScalarShapeWithDocs(this.program, this.diagnostics, prop.type);
     }
     if (prop.type.kind === "Union") {
-      return this.buildUnionSchema(prop.type, encodedUnionVariants(this.program, prop));
+      return this.buildUnionSchema(
+        prop.type,
+        encodedUnionVariants(this.program, prop, this.diagnostics),
+      );
     }
     return this.buildSchema(prop.type);
   }
