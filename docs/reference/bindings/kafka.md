@@ -66,7 +66,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `partitions` and `replicas` are positive integers. A value outside that range is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
 
-`topicConfiguration` is an open map. AsyncAPI states that the object may carry additional properties. Kafka names its topic settings with dots, so a vendor setting such as `confluent.value.schema.validation` stays legal. The emitter checks one value only. The entries of `cleanup.policy` must be `delete` or `compact`. The binding types that field as a list. Write a single value in place of the list, and the emitter writes it as a one-entry list.
+`topicConfiguration` is an open map. AsyncAPI states that the object may carry additional properties. Kafka names its topic settings with dots, so a vendor setting such as `confluent.value.schema.validation` stays legal. The emitter checks the map itself and one value in it. A map holding a member the serializer cannot represent is reported through `invalid-binding-field` and dropped whole. A custom scalar with an `init` is one such member. The one value checked is `cleanup.policy`. Its entries must be `delete` or `compact`. The binding types that field as a list. Write a single value in place of the list, and the emitter writes it as a one-entry list.
 
 ```typespec
 @kafkaChannel(#{

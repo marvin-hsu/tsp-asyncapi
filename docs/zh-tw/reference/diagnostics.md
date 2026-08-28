@@ -1029,7 +1029,9 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`topicConfiguration`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+
+`topicConfiguration` 是在序列化器無法表示對應表中某個成員時回報。帶有 `init` 的自訂 scalar 就是這種成員。該成員會讓整份對應表失敗，所以回報指的是 `topicConfiguration`，不是那個成員。
 
 binding 的其餘部分照樣輸出。必填欄位的代價更高，它改為回報 [`invalid-required-binding-field`](#invalid-required-binding-field)。
 

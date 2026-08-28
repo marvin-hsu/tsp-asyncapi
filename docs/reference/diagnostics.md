@@ -1034,7 +1034,9 @@ A binding sits on the object its target emits. A target that emits no object car
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `topicConfiguration`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+
+`topicConfiguration` reports it when the serializer cannot represent a member of the map. A custom scalar with an `init` is one such member. That member fails the whole map, so the report names `topicConfiguration` rather than the member.
 
 The rest of the binding is emitted. A field the binding requires costs more, and it reports [`invalid-required-binding-field`](#invalid-required-binding-field) instead.
 
