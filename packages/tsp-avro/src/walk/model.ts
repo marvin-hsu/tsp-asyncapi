@@ -74,25 +74,18 @@ type AvroDeclaration = Model | Enum | Scalar;
 /**
  * What the walk carries from one type to the next.
  *
- * `defined` maps every full name already written into the file being built to
- * the declaration that took it. It is per file, because each file stands
- * alone. The declaration is kept, not just the name: two TypeSpec declarations
- * can resolve to one Avro name, and a name alone cannot tell that apart from a
- * second visit to the same declaration.
+ * `defined` maps every full name already written into the file to the
+ * declaration that took it, keyed per file since each file stands alone. The
+ * declaration is kept, not just the name, because two TypeSpec declarations
+ * can resolve to one Avro name.
  *
- * `diagnostics` holds every refusal the walk built. It is also what says the
- * walk refused. A refusal collects a reason, and the walk keeps going after
- * one, so the author sees every problem in one compile. A flag beside this
- * list would be a second answer to one question.
+ * `diagnostics` holds every refusal so far; the walk keeps going after one, so
+ * the author sees every problem in one compile. `refusedScalars` holds every
+ * scalar a refusal already points at, so a record with two fields of that
+ * scalar reports the message once, not twice.
  *
- * `refusedScalars` holds every scalar declaration a refusal already points at.
- * Those refusals name what is wrong with the declaration rather than with the
- * field, and every field of that scalar reaches the same line. Without this
- * set, a record with two such fields reported the identical message twice.
- *
- * Nothing here reports a diagnostic. The caller decides where they go, which
- * is what lets an emitter in another package read a reason and say it under
- * its own name.
+ * Nothing here reports a diagnostic; the caller decides where they go, which
+ * lets an emitter in another package say the reason under its own name.
  */
 interface WalkContext {
   readonly program: Program;
@@ -122,17 +115,12 @@ export function buildAvroRecord(program: Program, model: Model): AvroRecord | un
  * Builds the Avro schema of one model marked with `@record`, and collects what
  * it refused.
  *
- * This is the walk. `buildAvroRecord` is this function plus a report, so there
- * is one walk and two ways to hear about a refusal.
- *
- * A caller in another package needs this one. A diagnostic carries the code of
- * the library that built it, and a user who asked for one emitter should not
- * read the codes of another. Worse, two emitters over one program would each
- * report the same refusal, and the author would read it twice. So the caller
- * takes the reason and says it under its own name.
- *
- * A refusal always carries at least one reason, so a caller can say why
- * without a fallback of its own.
+ * This is the walk; `buildAvroRecord` is this function plus a report, so there
+ * is one walk and two ways to hear about a refusal. A caller in another
+ * package needs this form: a diagnostic carries the code of the library that
+ * built it, and reporting through this package would have two emitters over
+ * one program each report the same refusal twice. So the caller takes the
+ * reason and reports it under its own name.
  *
  * @param program - The program the model belongs to
  * @param model - The marked model
@@ -191,10 +179,9 @@ export function buildAvroRecordWithDiagnostics(
  * Makes sure a refusal carries a reason.
  *
  * Only one of the four conditions that drop a record collects a diagnostic on
- * the way there. The other three read the type the walk answered with, and
- * they say nothing. A caller reads the first reason and says it under its own
- * name, so an empty list would leave an author with a payload missing from a
- * document and no word about why.
+ * the way there; the other three just read the type the walk answered with.
+ * Without this, an empty list would leave the author with a missing payload
+ * and no word about why.
  *
  * @param model - The model the walk was asked for
  * @param diagnostics - What the walk collected, which this may add to
@@ -322,13 +309,11 @@ function scalarFor(
       return undefined;
     }
 
-    // An alias stands for a name, and this scalar has none. It is written as
-    // an Avro primitive, and a primitive is the same type wherever it occurs.
-    // Only `@fixed` gives a scalar a name for an alias to stand for.
-    //
-    // The chain is read, the same way `@fixed` and `@logicalType` are. An
-    // alias written further up is dropped just as silently, so it is refused
-    // just as loudly, under the name of the scalar that carries it.
+    // An alias stands for a name, and this scalar has none: it is written as
+    // an Avro primitive, the same type wherever it occurs. Only `@fixed`
+    // gives a scalar a name for an alias to stand for. The chain is read the
+    // same way `@fixed` and `@logicalType` are, so an alias written further
+    // up is refused under the name of the scalar that carries it.
     const aliased = inheritedMark(scalar, (one) =>
       getAvroAliases(context.program, one) === undefined ? undefined : one,
     );
@@ -344,11 +329,9 @@ function scalarFor(
     }
   } else {
     // An Avro fixed type is a width of bytes. A scalar that carries @fixed and
-    // extends another Avro type says two things at once, and writing the fixed
-    // type would drop what the author wrote about the type underneath.
-    //
-    // A scalar that reaches no Avro type wrote nothing to drop. `@fixed` says
-    // the whole of what that type is, so the fixed type stands on its own.
+    // extends another Avro type says two things at once, and the fixed type
+    // would drop what the author wrote underneath. A scalar that reaches no
+    // Avro type wrote nothing to drop, so the fixed type stands on its own.
     const underlying = avroScalarFor(context.scalars, scalar);
     if (underlying !== undefined && underlying !== "bytes") {
       refuseScalarOnce(context, scalar, () =>
@@ -384,18 +367,15 @@ function scalarFor(
 /**
  * Reads a mark off a scalar, or off the nearest scalar it extends.
  *
- * A TypeSpec scalar carries what it extends. The primitive table already
- * matches through that chain, so `scalar Age extends int32` is an `int`. A
- * mark the author wrote is read the same way, because `scalar CreatedAt
- * extends Ts` means what `Ts` means. Reading the leaf alone dropped the mark
- * and wrote the type underneath it. That type is the same on the wire and a
- * different meaning to a reader.
+ * The primitive table already matches through the extends chain, so `scalar
+ * Age extends int32` is an `int`; a mark the author wrote is read the same
+ * way, because `scalar CreatedAt extends Ts` means what `Ts` means. Reading
+ * the leaf alone would drop the mark and write the type underneath instead,
+ * same on the wire but a different meaning to a reader.
  *
  * The nearest declaration wins, so a scalar restates a mark by writing its
- * own. The mark comes back on its own. A `@fixed` scalar becomes an Avro
- * named type. That type is named after the scalar being walked, the way a
- * record is named after its model. So nothing here needs to know where the
- * mark was written.
+ * own. A `@fixed` scalar becomes a named type, named after the scalar being
+ * walked, so nothing here needs to know where the mark was written.
  *
  * @param scalar - The scalar being walked
  * @param read - Reads the mark off one declaration
@@ -452,14 +432,10 @@ function fixedFor(
 /**
  * Reads the aliases of a fixed type.
  *
- * A model and a scalar both reach here, and `@aliases` targets both. A model
- * carries its own, the way a record and an enum do.
- *
- * A scalar is read along the chain it extends, the way `@fixed` itself is.
- * The fixed type is named after the scalar being walked. An alias written
- * further up stands for that same name, so reading the leaf alone dropped it
- * without a word. The nearest declaration wins, so a scalar restates the
- * aliases by writing its own.
+ * A model carries its own aliases, the way a record and an enum do. A scalar
+ * is read along the chain it extends, the way `@fixed` itself is: the fixed
+ * type is named after the scalar being walked, so an alias written further up
+ * stands for that same name. The nearest declaration wins.
  *
  * @param context - The walk in progress
  * @param declaration - The model or the scalar the fixed type comes from
@@ -632,18 +608,15 @@ function namedModelFor(
 /**
  * Translates a union into a flat Avro union.
  *
- * Avro states two rules and this holds both. A union may not hold another
- * union, so a nested one is flattened into the outer one. And a union may not
- * name one type twice, so a repeated branch is refused.
+ * Avro holds two rules here. A union may not hold another union, so a nested
+ * one is flattened into the outer one; flattening never fails. A union may
+ * not name one type twice, so a repeated branch is refused instead:
+ * `(string | int32) | string` flattens to three branches, two of them
+ * `string`.
  *
- * Flattening never fails, because a nested union always opens up. What fails
- * is the rule underneath it: `(string | int32) | string` flattens to three
- * branches, and two of them are `string`.
- *
- * A union of one branch is written as that branch. Avro spells a union of one
- * as the type itself. The fold is here, not at the field alone, so the items
- * of an array and the values of a map are spelled the same way. A union index
- * the reader does not need is a byte on the wire.
+ * A union of one branch is written as that branch, because Avro spells a
+ * union of one as the type itself. The fold happens here, not at the field
+ * alone, so an array's items and a map's values are spelled the same way.
  */
 function unionFor(
   context: WalkContext,
@@ -745,11 +718,10 @@ function branchKey(schema: AvroBranch): string {
 /**
  * Translates one model property into a field.
  *
- * Avro has no optional field. A property that may be absent becomes a union
- * with null, and the default that goes with it is null. A property default is
- * written as it stands, and it decides the order of the branches: Avro reads a
- * default against the first branch of a union and against no other, so the
- * branch the default belongs to has to lead.
+ * Avro has no optional field: a property that may be absent becomes a union
+ * with null, defaulting to null. A property default decides the order of the
+ * branches, because Avro reads a default against the first branch of a union
+ * and no other, so the branch the default belongs to has to lead.
  *
  * | TypeSpec           | Avro                               |
  * | ------------------ | ---------------------------------- |
@@ -849,15 +821,11 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
 /**
  * Reads a property default as the JSON value Avro writes.
  *
- * The compiler hands a default over as `unknown`. It is assignable to the
- * property type, and every type this walk accepts turns into a JSON value, so
- * this is the one place the shape is narrowed.
- *
- * Two answers are not values. The compiler throws where a value has no JSON
- * form, and it answers with nothing where a numeric fits no double. Neither is
- * a default, and null is not a stand in for either: null is a legal Avro
- * default, so taking the answer would write a field the author never asked
- * for.
+ * The compiler hands a default over as `unknown`, assignable to the property
+ * type; this is the one place the shape is narrowed to a JSON value. The
+ * compiler throws where a value has no JSON form, and answers with nothing
+ * where a numeric fits no double. Neither is a default, and null is not a
+ * stand-in for either: null is itself a legal Avro default.
  *
  * @returns The value in a wrapper, so a default of null is not the refusal,
  *   or undefined when the default was refused
@@ -893,15 +861,14 @@ function defaultOf(
  * The type a written default is serialized against.
  *
  * The compiler writes a value against the type it is handed. A property
- * declared `Inner | null` hands over the union, and the compiler has no form
- * for a union. It answers with `{}`, which satisfies no branch and which no
- * reader can use.
+ * declared `Inner | null` hands over the union, for which the compiler has no
+ * form; it answers with `{}`, which satisfies no branch and no reader can use.
  *
- * A union with one branch beside null leaves one place for the default. That
- * is the branch {@link soleBranchBesideNull} leads with, so the value is
- * serialized against it. Every other union keeps the property: a value that
- * names its own branch is already serialized as that branch, and a value that
- * names none is refused before it reaches a schema.
+ * A union with one branch beside null leaves one place for the default: the
+ * branch {@link soleBranchBesideNull} leads with. Every other union keeps the
+ * property, because a value that names its own branch is already serialized
+ * as that branch, and a value that names none is refused before it reaches a
+ * schema.
  *
  * @param property - The property that carries the default
  * @returns The branch to serialize against, or the property itself
@@ -934,13 +901,11 @@ function refuseDefault(context: WalkContext, property: ModelProperty, detail: st
 /**
  * Puts the branch the default belongs to at the front of a union.
  *
- * Avro reads the default of a field against the first branch and against no
- * other. So the branch that carries the default leads, and the rest keep the
- * order the author gave them.
- *
- * A default that belongs to no branch is refused. It has no place to sit, and
- * a union that led with any other branch would describe a default the author
- * never wrote.
+ * Avro reads the default of a field against the first branch and no other, so
+ * the branch that carries the default leads and the rest keep the order the
+ * author gave them. A default that belongs to no branch is refused: it has no
+ * place to sit, and leading with any other branch would describe a default
+ * the author never wrote.
  *
  * @param branches - The flattened branches
  * @param written - The default the author wrote, or undefined when the field
@@ -1115,8 +1080,8 @@ function enumFor(
 /**
  * Claims a full name for one declaration inside the file being built.
  *
- * The name is claimed before the fields are walked. That is what makes a type
- * that reaches itself end in a name rather than in another copy.
+ * The name is claimed before the fields are walked, which is what makes a
+ * type that reaches itself end in a name rather than in another copy.
  *
  * A name is claimed by one declaration. A second declaration that resolves to
  * the same name is refused, because writing it as a reference would give it
