@@ -115,10 +115,10 @@ export function enumeratedField<T extends string>(
  * scalar or an array describes neither, so it is reported and dropped.
  *
  * The object comes back as the author wrote it. An object with no field in it
- * comes back the same way. A caller that reads required fields out of the
- * object has to report those first, so this check cannot drop an empty one on
- * its own. Pass the result through `nonEmptyObject` where an empty object
- * states nothing.
+ * comes back the same way. A caller reads required fields out of the object,
+ * and it reports those first. So this check cannot drop an empty object on its
+ * own. Pass the result through `nonEmptyObject` where an empty object states
+ * nothing.
  *
  * @param context - The decorator context
  * @param protocol - The protocol the field belongs to

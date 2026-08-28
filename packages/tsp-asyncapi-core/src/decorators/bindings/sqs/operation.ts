@@ -66,8 +66,8 @@ export function $sqsOperation(
   );
   if (written === undefined) return;
 
-  // The reader is told the queue costs the binding, so an entry that is no
-  // object is reported as an error rather than as a warning about one field.
+  // The reader gets `binding` as the loss. An entry that is no object then
+  // reports an error, not a warning about one field.
   const read = written.map((entry, index) =>
     readQueue(
       context,
