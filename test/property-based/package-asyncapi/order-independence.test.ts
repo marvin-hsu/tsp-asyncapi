@@ -39,7 +39,7 @@ describe("Property: order independence", () => {
    * Swapping two messages leaves the document unchanged.
    *
    * A shape with no name of its own is inlined at the site that reaches it
-   * first, and promoted to a component when a second site reaches it. For
+   * first. A second site that reaches it promotes it to a component. For
    * example:
    *
    *   model Env<T> { data: T; }
@@ -50,11 +50,11 @@ describe("Property: order independence", () => {
    * Promotion rewrites both the first site's inline copy and the second
    * site's use into a reference, because the copy and the promoted
    * component are one object. Reordering the two messages must not change
-   * which site is first, so the output must not change either.
+   * which site is first. So the output must not change either.
    *
    * A plain named model is always registered, so it never meets the
    * promotion rule. The alias is what makes both messages reach one
-   * instantiation; writing the instantiation out twice would instead create
+   * instantiation. Writing the instantiation out twice would instead create
    * two separate types.
    */
   it("emits the same document when the two messages swap places", async () => {
@@ -97,14 +97,14 @@ describe("Property: order independence", () => {
    * rotates three messages whose payload shapes are disjoint, so the
    * promote-on-second-use asymmetry the swap property records cannot fire.
    * Every shape is used twice inside its own message, so the builder still
-   * runs its promote path, and the promotion stays symmetric under rotation
+   * runs its promote path. The promotion stays symmetric under rotation,
    * because both uses move together.
    *
    * A message declaration is the unit the emitter traverses, so moving one
    * changes the order the builder meets shapes in. An iteration order taken
-   * from object identity, or a component name taken from a creation-order
-   * counter, would show up here as a content difference, which is what the
-   * comparison checks.
+   * from object identity would show up here as a content difference. So
+   * would a component name taken from a creation-order counter. The
+   * comparison checks for exactly that difference.
    *
    * The comparison sorts keys first. Key order in `components.schemas`
    * follows declaration order and is expected to move; that movement is
@@ -118,9 +118,9 @@ describe("Property: order independence", () => {
    * Three counters below check reachability: runs whose rotation moved a
    * declaration, runs whose `components.schemas` key order moved, and runs
    * carrying a promoted `Env...` component. An offset that is a multiple of
-   * three moves nothing and compares a document with itself, so all three
-   * counters guard against a generator or emitter that silently stopped
-   * doing its job.
+   * three moves nothing. It would compare a document with itself, unnoticed.
+   * All three counters guard against a generator or emitter that silently
+   * stopped doing its job.
    */
   it("emits the same document when the message declarations rotate", async () => {
     let permuted = 0;

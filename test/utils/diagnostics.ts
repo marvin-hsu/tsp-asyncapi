@@ -7,6 +7,8 @@ import { $lib } from "#core/lib.js";
  *
  * The union comes from `$lib`, so an undefined code is a compile error rather
  * than a test that looks for something nothing can report.
+ * `createTypeSpecLibrary` declares its diagnostics parameter as `const`.
+ * That keeps these keys as literal types.
  *
  * The code stays spelled out at the call site on purpose: it is the part of
  * a diagnostic other code depends on, so naming it pins a public contract.

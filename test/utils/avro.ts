@@ -1,10 +1,10 @@
 /**
  * The Avro test harness.
  *
- * It compiles a source with the Avro emitter, hands back the files it wrote,
- * and runs each file past `avsc`, the reference Avro implementation, in the
- * two ways that implementation can judge a schema: acceptance and instance
- * round trip.
+ * It compiles a source with the Avro emitter and hands back the files it
+ * wrote. It then runs each file past `avsc`, the reference Avro
+ * implementation. `avsc` judges a schema in two ways: acceptance and
+ * instance round trip.
  *
  * Acceptance proves the schema is legal Avro: `Type.forSchema` builds a type,
  * or it throws. Round trip proves the schema is usable: a random instance of
