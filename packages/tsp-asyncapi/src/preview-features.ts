@@ -10,6 +10,10 @@
  * a feature expects the output to change, and a diagnostic alone does not
  * stop a misleading document from reaching disk. The caller stops before
  * writing anything, and this function tells it when to.
+ *
+ * A request naming both an available and an unavailable feature still fails
+ * the whole build. Only the refused names stop the emit, but that
+ * compilation writes nothing either.
  */
 
 import { NoTarget, Program } from "@typespec/compiler";

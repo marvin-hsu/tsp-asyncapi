@@ -11,11 +11,11 @@
  * prune or check.
  *
  * The root is the model the caller asks for. A reader of the finished text
- * has no such argument, so the official AsyncAPI Protobuf parser infers the
- * root as the declaration nothing else references, ignoring self
- * references. Two messages that reference each other leave that parser no
- * such declaration to pick; both payloads stay correct proto3 regardless,
- * each carrying both declarations.
+ * has no such argument. The official AsyncAPI Protobuf parser infers the
+ * root instead, as the declaration nothing else references. It ignores a
+ * self reference while doing so. Two messages that reference each other
+ * leave that parser no such declaration to pick; both payloads stay correct
+ * proto3 regardless, each carrying both declarations.
  *
  * The structure below is the smallest one the printer needs; every field it
  * has is one the printer reads. Where proto3 has no honest form for what the

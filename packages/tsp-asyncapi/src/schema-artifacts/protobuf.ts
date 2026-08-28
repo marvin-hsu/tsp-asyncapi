@@ -13,8 +13,8 @@
  *
  * A payload is built only for a model the document asks about, one that
  * also carries `@AsyncAPI.message`. A model this cannot answer for is a
- * refusal, and the caller stops on one rather than falling back to the
- * plain JSON Schema its TypeSpec type would otherwise produce.
+ * refusal. The caller stops on one rather than falling back to the plain
+ * JSON Schema its TypeSpec type would otherwise produce.
  */
 
 import type { Model, Program } from "@typespec/compiler";
