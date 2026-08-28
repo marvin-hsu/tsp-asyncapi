@@ -144,6 +144,7 @@ const ENCODING_TARGETS: Record<string, readonly string[]> = {
   rfc3339: ["utcDateTime", "offsetDateTime"],
   rfc7231: ["utcDateTime", "offsetDateTime"],
   unixTimestamp: ["utcDateTime"],
+  ISO8601: ["duration"],
   seconds: ["duration"],
   milliseconds: ["duration"],
   base64: ["bytes"],

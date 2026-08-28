@@ -272,6 +272,21 @@ describe("Unit: Schemas — @encode", () => {
       });
     });
 
+    it("leaves the string variant of an ISO8601 duration alone", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("ISO8601")
+          d: duration | string;
+        }
+      `);
+
+      // ISO 8601 names a duration, so it describes only that variant. The
+      // `string` variant carries no duration and keeps its plain shape.
+      expect(props.d).toEqual({
+        anyOf: [{ type: "string", format: "duration" }, { type: "string" }],
+      });
+    });
+
     it("encodes every variant the encoding describes", async () => {
       const props = await holderProperties(`
         model Holder {
