@@ -2,10 +2,10 @@
  * One banned term of the Traditional Chinese glossary, pinned across every
  * page of that locale.
  *
- * The glossary bans 實例 for "instance" and asks for 執行個體. The whole table
- * cannot be scanned this way, because several of its left column entries are
- * correct Taiwanese words in another sense. 文件 is the clearest of them: the
- * glossary bans it for "file" and every page here uses it for "document".
+ * The glossary bans 實例 for "instance" and asks for 執行個體. Other banned
+ * terms cannot scan this way, because they are valid words in another sense.
+ * For example, the glossary bans 文件 only for "file", but every page here
+ * uses it correctly for "document".
  *
  * 實例 has no such second sense in these pages, so it is safe to forbid
  * outright. It kept coming back one page at a time, which is what a test
@@ -42,12 +42,7 @@ describe("Integration: the Traditional Chinese glossary", () => {
   });
 });
 
-/**
- * Every Markdown page below one directory of the repository.
- *
- * @param directory - The directory, as a path from the repository root
- * @returns The path of each page, from the repository root
- */
+/** Every Markdown page below one directory of the repository, from the repository root. */
 async function markdownUnder(directory: string): Promise<string[]> {
   const root = fileURLToPath(new URL(directory, ROOT));
   const entries = await readdir(root, { withFileTypes: true, recursive: true });

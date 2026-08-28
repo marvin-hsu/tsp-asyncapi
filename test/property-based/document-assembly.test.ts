@@ -10,22 +10,18 @@ import { unusedProgram } from "../utils/program.js";
 /**
  * Properties of the document assembly.
  *
- * `lowerDocument` is the entry of the lower half. It decides which section
- * reaches the document, which one is emitted empty because the specification
- * requires it, and how the emitter options reach the head. Each section's own
- * transformation is tested in `lower-transforms.test.ts`; this file only tests
- * what happens between them.
+ * `lowerDocument` decides which section reaches the document, which section
+ * is emitted empty because the specification requires it, and how the
+ * emitter options reach the head. Each section's own transformation is
+ * tested elsewhere; this file only tests what happens between them.
  *
- * The input is a hand-written semantic model, which is the first thing the
- * three-stage pipeline was meant to buy. `document.test.ts` also checks whole
- * documents, but its models come out of a real compilation, so their shape is
- * limited by the TypeSpec grammar. A hand-written model reaches the
- * combinations resolve cannot produce: far more operations than channels, or
- * every section empty at once.
+ * The input is a hand-written semantic model, not a compiled one. A compiled
+ * model is limited by the TypeSpec grammar. A hand-written model reaches
+ * combinations resolve cannot produce, such as far more operations than
+ * channels or every section empty at once.
  *
- * The program is a stub. It is used for schema expansion and for reporting,
- * and neither happens here: every message carries a raw payload, so nothing
- * walks a type, and no check on that path reports.
+ * The program is a stub. No assertion here triggers schema expansion or
+ * diagnostic reporting, since every message carries a raw payload.
  */
 
 /** A program no assertion in this file lets the emitter reach. */
@@ -120,13 +116,10 @@ describe("Integration: document assembly — a section exists when the model has
         expect(ownKeys(components).length).toBeGreaterThan(0);
         expect(Object.hasOwn(components, "messages")).toBe(model.messages.length > 0);
         expect(Object.hasOwn(components, "securitySchemes")).toBe(model.securitySchemes.length > 0);
-        // A raw schema two messages share does claim a key, so `schemas` can
-        // appear without any model payload. The rule that decides which raw
-        // schemas share is stated once, in
-        // `test/unit/package-asyncapi/messages/raw-schema-sharing.test.ts`.
-        // Restating it here would assert that the code does what the code
-        // does. What holds without restating it: no raw schema anywhere means
-        // no `schemas` section.
+        // A raw schema two messages share still claims a key, so `schemas`
+        // can appear without any model payload. What holds without
+        // restating the sharing rule: no raw schema means no `schemas`
+        // section.
         const anyRaw = model.messages.some(
           (message) => message.payload.kind === "raw" || message.headers.kind === "raw",
         );
@@ -241,16 +234,14 @@ describe("Integration: document assembly — the options that reach the head", (
   /**
    * Draws an option and its answer at the same time.
    *
-   * Asking `trimmed` for the expected value would have stated the rule by
-   * running the function that implements it, so the input is built out of the
-   * answer instead: a core with nothing to strip, wrapped in padding that is
-   * nothing but strippable characters. The core is the trimmed form by
-   * construction, and no assertion below consults the module it checks.
+   * Asking `trimmed` for the expected value would restate the rule by
+   * running the function under test. Instead the input is built from the
+   * answer: a core with nothing to strip, wrapped in padding that is only
+   * strippable characters. No assertion below consults the module it checks.
    *
-   * Two of the three states an option can be in are single points -- absent,
-   * and blank in each of its spellings -- and both are written out in
-   * `test/unit/package-asyncapi/lower/document.test.ts`, which owns them. What
-   * is left for a property, and reachable only here, is arbitrary text.
+   * Two of the three states an option can be in are single points: absent,
+   * and blank in each spelling. A unit test covers both; this property
+   * reaches only the third state, arbitrary text.
    */
   const optionDraw = fc.oneof(
     { arbitrary: fc.constant<OptionDraw>({ input: undefined, expected: undefined }), weight: 2 },

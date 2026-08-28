@@ -1,18 +1,15 @@
 /**
- * The committed Avro payload example, read as a consumer reads it.
+ * The committed Avro payload example, read as a reader reads it.
  *
  * `examples/18-avro-payloads` is compiled by two emitters over one source.
- * `tsp-avro` writes the `.avsc` files. This one writes the AsyncAPI document,
- * and every payload in it is the schema that same walk returned.
+ * `tsp-avro` writes the `.avsc` files, and this emitter inlines the same
+ * walk as the payload in the AsyncAPI document.
  *
- * So the example is a parity case that no test host produced. The files below
- * are the committed output of a real compile, and the two sides have to carry
- * one schema. A drift between the file on disk and the payload in the document
- * shows up here as an object that differs.
+ * The committed files are a parity case no test host produced: a drift
+ * between the file on disk and the payload in the document shows up here.
  *
- * The document is also parsed. The validation helper registers the official
- * AsyncAPI Avro schema parser, so a payload that is not Avro a reader can
- * build is an error and not an object nobody looked at.
+ * The document is also parsed, with the official AsyncAPI Avro schema
+ * parser registered, so an unbuildable payload is an error here.
  */
 
 import { describe, expect, it } from "vitest";
@@ -71,33 +68,22 @@ function payloadOf(name: string): { schemaFormat?: string; schema?: unknown } {
 /**
  * Reads the content of one fenced block, given where its body starts.
  *
- * The block keeps its own indentation and its trailing newline, so it is the
- * text a reader would copy. That is what makes each assertion below a
- * substring test rather than a comparison of two normalized things.
+ * Keeps the block's indentation and trailing newline, matching what a
+ * reader would copy. This lets callers use substring checks instead of
+ * comparing normalized text.
  *
- * @param page - The whole page
- * @param from - The index of the first character of the body
- * @param language - The language the fence names, for the failure message
- * @returns The content of that block, without the fences
+ * @param language - Named in the error if the fence is never closed
  */
 function bodyAt(page: string, from: number, language: string): string {
   const body = page.slice(from);
   const closing = body.indexOf("\n```");
-  // A fence that is never closed makes `indexOf` answer -1, and the slice
-  // would then be the empty string. Every check below passes on the empty
-  // string, so a malformed page would read as a page that quotes the example.
+  // An unclosed fence makes `indexOf` return -1, so the slice becomes empty.
+  // Every check below passes on an empty string, so this throws instead.
   if (closing === -1) throw new Error(`A \`${language}\` block on the page is never closed.`);
   return body.slice(0, closing + 1);
 }
 
-/**
- * Reads one fenced block out of a documentation page, by its first line.
- *
- * @param page - The whole page
- * @param language - The language the fence names, such as `yaml`
- * @param starts - The first line of the block the caller wants
- * @returns The content of that block, without the fences
- */
+/** Reads one fenced block out of a documentation page, by its first line. */
 function blockOf(page: string, language: string, starts: string): string {
   const opening = `\`\`\`${language}\n${starts}`;
   const from = page.indexOf(opening);
@@ -105,13 +91,7 @@ function blockOf(page: string, language: string, starts: string): string {
   return bodyAt(page, from + language.length + 4, language);
 }
 
-/**
- * Every fenced block of one language on a page.
- *
- * @param page - The whole page
- * @param language - The language the fence names, such as `typespec`
- * @returns The content of each such block, in the order the page holds them
- */
+/** Every fenced block of one language on a page, in the order the page holds them. */
 function blocksOf(page: string, language: string): string[] {
   const blocks: string[] = [];
   const opening = `\`\`\`${language}\n`;
@@ -134,9 +114,9 @@ describe("Integration: the committed Avro payload example", () => {
   });
 
   /**
-   * The payload and the file are one schema. The Avro emitter writes the walk
-   * out as JSON text, and this emitter inlines the same walk as an object. So
-   * parsing the file has to give exactly what the document carries.
+   * The payload and the file share one schema: `tsp-avro` writes it as JSON
+   * text, and this emitter inlines the same object. Parsing the file must
+   * match the document exactly.
    */
   it.each(RECORDS)("carries in %s the schema written to %s", (name, file) => {
     const written: unknown = JSON.parse(readFileSync(new URL(file, EXAMPLE), "utf8"));
@@ -156,9 +136,8 @@ describe("Integration: the committed Avro payload example", () => {
   });
 
   /**
-   * The reader of the quote assertions below. An empty block is a substring of
-   * everything, so a page that lost the body of a block would otherwise read
-   * as a page that quotes the example.
+   * An empty block is a substring of everything. This confirms `blocksOf`
+   * throws instead of returning one.
    */
   it("refuses a block the page never closes", () => {
     expect(() => blocksOf("```json\n{}\n", "json")).toThrow(/never closed/);
@@ -201,12 +180,10 @@ describe("Integration: the committed Avro payload example", () => {
   });
 
   /**
-   * The Avro library is an optional peer, pinned to one minor range. That
-   * range is enforced at install time, by the package manager alone. The
-   * emitter reads no version: it calls whatever `tsp-avro` resolves to. So the
-   * guides have to name the range the manifest declares, or a reader installs
-   * a library this release was never tried against. The manifest is the one
-   * place that range is decided.
+   * The Avro library is an optional peer, pinned to one minor range enforced
+   * only at install time. The emitter reads no version itself, so the guides
+   * must name the range from the manifest, or a reader installs an untried
+   * library.
    */
   it.each(GUIDES)("names the supported range of the Avro library in %s", (guide) => {
     const page = readFileSync(new URL(guide, ROOT), "utf8");
