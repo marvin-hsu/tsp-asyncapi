@@ -1,5 +1,6 @@
 ---
 "tsp-avro": minor
+"tsp-asyncapi": minor
 ---
 
 Read `@Avro.logicalType`, `@Avro.fixed` and `@Avro.aliases` along the chain a
@@ -74,3 +75,7 @@ scalar extending an Avro type other than `bytes`, one that wrote
 `@Avro.aliases` on a scalar written as a primitive, and one that declared a
 union with no branch. Each of those four wrote a schema that says something
 other than the source does.
+
+The `tsp-avro` peer range of `tsp-asyncapi` moves to `0.3.x`, and the Avro
+payloads guide names that range. The library is not at 1.0, so its supported
+range follows its releases.

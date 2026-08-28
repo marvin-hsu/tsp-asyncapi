@@ -56,7 +56,7 @@
   "peerDependencies": {
     "@typespec/compiler": "^1.15.0",
     "@typespec/protobuf": "0.85.x",
-    "tsp-avro": "0.2.x"
+    "tsp-avro": "0.3.x"
   },
   "scripts": {
     "clean": "rimraf ./dist ./temp",
