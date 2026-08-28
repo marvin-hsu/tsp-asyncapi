@@ -3,9 +3,9 @@ import { emitDocument } from "../../utils/test-host.js";
 
 /**
  * `optional-fields.ts` holds the one rule about a field with nothing to say.
- * Four resolvers kept a private copy that tested `!== undefined` alone, so a
- * blank `@doc` or `@summary` reached the document as an empty string. A
- * reader cannot tell such a field from a deliberate blank.
+ * A resolver testing only `!== undefined` lets a blank `@doc` or `@summary`
+ * reach the document as an empty string, indistinguishable from a
+ * deliberate blank.
  */
 describe("Unit: blank prose fields", () => {
   it("leaves out a blank title and description on a channel and an operation", async () => {
