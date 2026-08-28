@@ -6,7 +6,7 @@
  * more than one object, such as a namespace that is both the service and a
  * channel, hands the same set to each of them.
  *
- * Every report lives in the wrap-up pass at the bottom of this file, which
+ * All reporting lives in the wrap-up pass at the bottom of this file, which
  * walks each target once. Reporting beside the winner picking would repeat
  * the same clash once per object the target produces.
  */
@@ -28,8 +28,8 @@ import { bySourcePosition, isSameApplication, sourcePositionOf } from "../source
  * namespace runs its one statement once per declaration, so an entry at the
  * winner's own position is the same application seen again, not a clash.
  *
- * This is the one owner of that decision. The resolver takes the winners,
- * and the wrap-up pass takes the losers to report.
+ * The resolver below takes the winners; `reportExtensionProblems` takes the
+ * losers to report.
  */
 function pickExtensions(
   program: Program,
@@ -57,9 +57,8 @@ function pickExtensions(
 
 /**
  * Resolves the extensions of one target into the record its node carries.
- *
- * The keys all match the specification extension shape, so a plain object is
- * safe: no key can be `__proto__`.
+ * The keys all match the specification extension shape, so a plain object
+ * is safe: no key can be `__proto__`.
  *
  * @param program - The program the target belongs to
  * @param target - The type whose emitted object carries the extensions
@@ -77,18 +76,18 @@ export function resolveExtensions(
 /**
  * Reports every `@extension` mistake, one target at a time.
  *
- * Two mistakes reach an author here. A target that emits no object carries
- * extensions that reach no part of the document: only `info`, a channel, an
- * operation, and a message carry them. Dropping those in silence hides an
- * author mistake, the same reasoning `use-server-without-channel` follows.
- * A repeated key on a target that does emit is the other.
+ * Two mistakes reach an author here. A target whose object never reaches
+ * the document still carries extensions that reach nothing: only `info`, a
+ * channel, an operation, and a message carry them. Dropping those in silence
+ * hides an author mistake, the same reasoning `use-server-without-channel`
+ * follows. A repeated key on a target that does emit is the other mistake.
  *
- * A misplaced target gets one report, however many entries it carries. The
- * mistake is the placement, not each key. Its repeated keys stay unreported,
- * because none of its keys reached an object either way.
+ * A misplaced target gets one report regardless of its entry count, because
+ * the mistake is the placement, not each key. Its repeated keys stay
+ * unreported, since none of them reached an object either way.
  *
- * The reports come out in source order. The state layer hands the targets
- * over in the order the decorators ran, which is not the order the author
+ * The reports come out in source order, restored here because the state
+ * layer hands targets over in decorator-run order, not the order the author
  * reads.
  *
  * @param program - The program to read the state from
@@ -113,10 +112,8 @@ export function reportExtensionProblems(program: Program, emittedTargets: Readon
 }
 
 /**
- * Ranks every target that carries entries by where it was declared.
- *
- * The rank is the declaration of the target, not the position of any one
- * application. A misplaced target gets one report, and that report points at
+ * Ranks every target that carries entries by where it was declared, not by
+ * an application's position. A misplaced target's one report then points at
  * the declaration.
  */
 function targetsInSourceOrder(program: Program): [Type, readonly ExtensionEntry[]][] {

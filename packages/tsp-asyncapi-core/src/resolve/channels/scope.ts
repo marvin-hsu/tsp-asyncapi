@@ -3,9 +3,9 @@
  *
  * A channel owns the operations declared directly inside the interface or
  * namespace it sits on. A nested interface, and a namespace nested inside a
- * namespace, are separate scopes. Each of them may carry a channel of its
- * own, so collecting them here would put one operation on two channels and
- * would let one namespace-level channel absorb everything under it.
+ * namespace, are separate scopes, each free to carry a channel of its own.
+ * Collecting across scopes would put one operation on two channels, and let
+ * one namespace-level channel absorb everything under it.
  *
  * The messages collection and the parameters collection both walk this
  * scope, so the rule has one definition here. The operation builder needs
@@ -19,10 +19,9 @@ import { bySourcePosition, sourcePositionOf } from "../../source-order.js";
 /**
  * Lists the operations one channel owns, in source order.
  *
- * The compiler records the members of an interface or a namespace in a map
- * whose order is not guaranteed to be source order. Every diagnostic below
- * names "the first one in source order" as the winner, so the order is
- * restored here rather than taken on trust.
+ * The compiler stores interface and namespace members in a map, and that
+ * map's order is not guaranteed to be source order. Callers that pick "the
+ * first one in source order" as a winner need the order restored here.
  *
  * @param program - The program the channel belongs to
  * @param target - The interface or namespace that carries the channel
