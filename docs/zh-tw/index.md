@@ -4,7 +4,7 @@ layout: home
 hero:
   name: TypeSpec AsyncAPI
   text: AsyncAPI 3.1 emitter
-  tagline: 用 TypeSpec 描述事件驅動 API，並產出 AsyncAPI 3.1 文件。
+  tagline: 用 TypeSpec 描述事件驅動 API，並產出符合標準的 AsyncAPI 3.1 文件。
   actions:
     - theme: brand
       text: 快速開始
@@ -17,8 +17,8 @@ hero:
       link: https://github.com/marvin-hsu/tsp-asyncapi
 
 features:
-  - title: 產出 AsyncAPI 3.1 文件
-    details: 支援 channel、operation、message、schema、server 與 security scheme。輸出通過官方 AsyncAPI 驗證器。
+  - title: 完整的 AsyncAPI 3.1
+    details: 產出的文件符合 AsyncAPI 3.1 規格，支援 channel、operation、message、schema、server 與 security scheme。
   - title: 支援多種通訊協定
     details: Kafka、MQTT、AMQP、WebSocket、HTTP、NATS、Pulsar、Google Pub/Sub、Amazon SQS、Anypoint MQ、JMS、IBM MQ、Solace。
   - title: 支援 Protobuf 與 Avro payload
