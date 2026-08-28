@@ -21,6 +21,14 @@ import { buildValidationKeywords, withDocs } from "./annotations.js";
 import { applyEncoding } from "./encoding.js";
 
 /**
+ * Maps built-in scalars and intrinsics to their AsyncAPI shape, and builds
+ * the shape for enums, enum members, and user-declared scalars.
+ *
+ * A built-in scalar is looked up by name. A user-declared scalar walks its
+ * `baseScalar` chain to find one.
+ */
+
+/**
  * Builds `{ name: { type, format } }` entries for scalars that map to a
  * formatted primitive schema.
  */
@@ -69,28 +77,28 @@ export const SCALAR_SCHEMAS: Record<string, SchemaObject> = {
 };
 
 /**
- * Returns true when `scalar` is one of TypeSpec's own built-in scalars.
- * A built-in scalar is declared in the global `TypeSpec` namespace.
- * A user-declared scalar can share a name with a built-in without being one.
- * For example: `namespace MyLib { scalar duration extends int32; }`.
- * Only a built-in scalar should be looked up directly in `SCALAR_SCHEMAS` by
- * name. A user scalar must instead walk `baseScalar`.
+ * Returns true when `scalar` is one of TypeSpec's own built-in scalars,
+ * declared in the global `TypeSpec` namespace.
+ *
+ * A user-declared scalar can share a name with a built-in without being one,
+ * for example `namespace MyLib { scalar duration extends int32; }`. Only a
+ * built-in should be looked up directly in `SCALAR_SCHEMAS` by name; a user
+ * scalar must walk `baseScalar` instead.
  */
 export function isBuiltinScalar(scalar: Scalar): boolean {
   return isGlobalTypeSpecNamespace(scalar.namespace);
 }
 
 /**
- * Returns true when `model` is the built-in `Array`/`Record` template.
- * This covers an anonymous instantiation at a use site, such as `string[]`
- * or `Record<int32>`.
- * It excludes a user's own named alias declared with `is`, such as
- * `model Names is string[];`.
- * Only the anonymous use site should stay inlined.
- * A named alias is a real declaration. It must be registered like any other
- * named model.
- * TypeSpec's built-in `Array`/`Record` templates live directly in the global
- * `TypeSpec` namespace. A user-declared alias never does.
+ * Returns true when `model` is the built-in `Array`/`Record` template: an
+ * anonymous instantiation at a use site, such as `string[]` or
+ * `Record<int32>`.
+ *
+ * This excludes a named alias declared with `is`, such as
+ * `model Names is string[];`. Only the anonymous use site stays inlined; a
+ * named alias is a real declaration and registers like any other named
+ * model. TypeSpec's built-in templates live in the global `TypeSpec`
+ * namespace; a user-declared alias never does.
  */
 export function isBuiltinCollectionInstantiation(model: Model): boolean {
   return isGlobalTypeSpecNamespace(model.namespace);
@@ -198,24 +206,14 @@ export function buildScalarSchema(
   diagnostics: SchemaDiagnostics,
   scalar: Scalar,
 ): SchemaObject | ReferenceObject {
-  // TypeSpec's own built-in scalars, such as `string` and `int32`, carry
-  // their own standard-library doc comments. For example, `string` has "A
-  // sequence of textual characters." Surfacing those on every plain
-  // `string`/`int32` field would flood the output. So only a
-  // user-declared scalar's own documentation is applied here.
-  // `buildScalarShapeWithDocs` walks the whole `baseScalar` chain.
-  // This keeps documentation on an intermediate or base user scalar from
-  // being lost when the use site is derived through more than one level.
-  // For example, `scalar WorkEmail extends Email;` where only `Email`
-  // itself carries `@doc`/`@summary`/`@example`.
-  // A user-declared scalar is a declaration the author named, so it earns
-  // a `components.schemas` entry and every use site writes a reference.
-  // This is the rule every other named declaration already follows, and
-  // the one `@typespec/openapi3` follows for a scalar
-  // (`schema-emitter.ts`, `scalarDeclaration`).
-  //
-  // A built-in stays inline. `string` has no name of the author's own, and
-  // a component per built-in would be a component per primitive.
+  // TypeSpec's built-in scalars carry their own standard-library doc
+  // comments, such as "A sequence of textual characters" for `string`.
+  // Surfacing those on every plain `string`/`int32` field would flood the
+  // output, so only a user-declared scalar's own documentation is applied.
+  // A built-in has no author-given name, so it stays inline rather than
+  // becoming a `components.schemas` entry per primitive. A user-declared
+  // scalar is a named declaration, so it registers like any other one,
+  // matching how `@typespec/openapi3` treats a scalar declaration.
   if (isBuiltinScalar(scalar)) {
     return buildScalarShapeWithDocs(program, diagnostics, scalar);
   }
@@ -225,19 +223,15 @@ export function buildScalarSchema(
 }
 
 /**
- * Builds the `type`/`format` shape for `scalar`, merged with
- * documentation collected along the entire `baseScalar` chain.
- * The base's own docs are applied first. Then each more-derived level's
- * own `@summary`/`@doc`/`@example` overrides them. `withDocs`'s
- * object-spread semantics already give the more specific fields priority
- * when merged last.
- * Built-in scalars never contribute documentation, only the shape. See
- * `isBuiltinScalar` at the `buildScalarSchema` call site's doc comment.
- * The walk bottoms out at the first built-in ancestor found, or at the
- * unconstrained `{}` shape for an unmapped root scalar. It then merges
- * each user-declared level's docs back on the way up.
- * `withPropertyDocs` on the use site can still override with the
- * property's own documentation afterward.
+ * Builds the `type`/`format` shape for `scalar`, merged with documentation
+ * collected along the entire `baseScalar` chain.
+ *
+ * The walk bottoms out at the first built-in ancestor, or at the
+ * unconstrained `{}` shape for an unmapped root scalar. Each user-declared
+ * level's own docs are then merged back on top, most specific last, so a
+ * more-derived `@doc`/`@summary`/`@example` wins. Built-ins contribute no
+ * documentation, only the shape. `withPropertyDocs` on the use site can
+ * still override the result with the property's own documentation.
  */
 export function buildScalarShapeWithDocs(
   program: Program,
@@ -248,41 +242,30 @@ export function buildScalarShapeWithDocs(
     const shape = Object.hasOwn(SCALAR_SCHEMAS, scalar.name)
       ? { ...SCALAR_SCHEMAS[scalar.name] }
       : {};
-    // Built-ins never contribute *documentation* (see this function's own
-    // doc comment). But an augment decorator, such as
-    // `@@minLength(TypeSpec.string, 3);`, is the only legal way to apply
-    // a 2.8 validation decorator to a built-in scalar. It is real user
-    // intent, not library noise. So it must still be read back here,
-    // rather than silently discarded.
-    // `@@encode` reaches a built-in the same way, and changes the very
-    // `type`/`format` this shape is made of, so it is applied first. An
-    // explicit `@format` merged in afterwards still wins over the format
-    // the encoding resolved to.
+    // Built-ins contribute no documentation, but an augment decorator such
+    // as `@@minLength(TypeSpec.string, 3);` is the only legal way to put a
+    // validation decorator on a built-in scalar, and it is real user
+    // intent. It must still be read back here. `@@encode` reaches a
+    // built-in the same way and changes the `type`/`format` itself, so it
+    // is applied first; an explicit `@format` merged in after still wins.
     return {
       ...applyEncoding(program, scalar, shape, diagnostics),
       ...buildValidationKeywords(program, scalar, diagnostics),
     };
   }
-  // This is a derived, user-declared scalar. Start from its base
-  // scalar's shape, recursing all the way to a built-in ancestor, or to
-  // `{}` for an unmapped root scalar. Then merge this level's own
-  // documentation on top.
+  // A derived, user-declared scalar: recurse to the base scalar's shape,
+  // then merge this level's own documentation on top.
   //
-  // A validation keyword this level re-declares that the base already
-  // baked in must NOT simply replace the base's value the way plain
-  // object-spread would. For example, `@minLength(2) scalar Loose
-  // extends Tight;` where `Tight` already has `@minLength(5)`. Two
-  // constraints on the same value form a JSON Schema intersection; both
-  // must hold. This is the same as the property-vs-scalar collision
-  // `withPropertyDocs` guards against. Otherwise, a more-derived scalar
-  // could silently erase a stricter ancestor constraint with no
-  // diagnostic.
-  // On collision, `base` is wrapped whole in `allOf`, the same wrap
-  // `withPropertyDocs` uses, so both levels' keywords hold
-  // simultaneously. Otherwise, keywords are merged in directly as before.
-  // This level's own `@encode` changes the `type`/`format` it inherited
-  // from the base. It is applied before `withDocs`, so an explicit
-  // `@format` on this same scalar still wins over the encoding's format.
+  // A validation keyword this level re-declares must not simply replace
+  // the base's value. `@minLength(2) scalar Loose extends Tight;`, where
+  // `Tight` already has `@minLength(5)`, forms a JSON Schema intersection;
+  // both constraints must hold, or a more-derived scalar could silently
+  // erase a stricter ancestor constraint. `withDocs` wraps `base` whole in
+  // `allOf` on such a collision, the same guard `withPropertyDocs` uses,
+  // so both levels' keywords hold at once.
+  // This level's own `@encode` changes the inherited `type`/`format`, and
+  // is applied before `withDocs`, so an explicit `@format` here still wins
+  // over the encoding's format.
   const base = applyEncoding(
     program,
     scalar,

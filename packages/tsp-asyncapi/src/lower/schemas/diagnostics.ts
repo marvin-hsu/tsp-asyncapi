@@ -4,39 +4,25 @@ import { reportDiagnostic } from "tsp-asyncapi-core";
 /**
  * One diagnostic report, exactly as `reportDiagnostic` accepts it.
  *
- * The report is taken whole and passed on unchanged. The alternative is to
- * take the code, the target, and the format as separate parameters and
- * rebuild the report here. That does not type-check. `reportDiagnostic` is
- * a union discriminated by `code`, and each code decides whether `format`
- * is required and which keys it holds. Rebuilding the report loses the link
- * between the code and its format. Passing the report through keeps the
+ * `reportDiagnostic` is a union discriminated by `code`; each code decides
+ * whether `format` is required and which keys it holds. Taking the report
+ * whole, instead of code/target/format as separate parameters, keeps that
  * check at the call site, where the code is a literal.
  */
 type Report = Parameters<typeof reportDiagnostic>[1];
 
 /**
- * The dedup ledger for one `SchemaBuilder`.
+ * Dedupes repeat diagnostics that come from re-visiting a type, not from the
+ * author writing a mistake twice.
  *
- * Some diagnostics would otherwise go out more than once for one mistake.
- * There are two separate causes, and both are about the schema builder
- * visiting a type again rather than about the author writing anything twice.
+ * A model with lifted `@header` fields is built twice, once for its own
+ * component and once for its payload. Both resolve the same decorators on
+ * the same model. A scalar has no build cache, so its whole `baseScalar`
+ * chain re-walks at every use site. A scalar used by twenty properties would
+ * report one bad constraint twenty times without this ledger.
  *
- * A model with lifted `@header` fields is built twice. Its payload component
- * and its own component resolve the same decorators on the same model. A
- * scalar has no build cache at all, unlike a named model, enum, or union,
- * which `registerNamed` builds once. So the whole `baseScalar` chain is
- * re-walked at every use site, and a scalar used by twenty properties would
- * report its one bad constraint twenty times.
- *
- * The ledger is per-instance, and a `SchemaBuilder` lives for one emit. So
- * the dedup never reaches across emits, and a diagnostic silenced in one
- * compilation cannot stay silent in the next.
- *
- * This used to be a bare `Map<Type, Set<string>>`. The map was threaded
- * through about fifteen parameter positions across two modules, and the
- * get-or-create-then-test idiom was written out three times. Each copy chose
- * its own key format, which is the part that matters: the key decides what
- * counts as "the same diagnostic", and that decision belongs in one place.
+ * The ledger is per instance, and one `SchemaBuilder` lives for one emit. A
+ * diagnostic silenced in one compilation is not silenced in the next.
  */
 export class SchemaDiagnostics {
   private readonly reported = new Map<Report["target"], Set<string>>();
