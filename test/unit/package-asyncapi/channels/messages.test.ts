@@ -130,9 +130,8 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The model has properties, so it is a payload with an indexer, not an
-    // `Array<T>` or a `Record<T>`. Unwrapping it would replace the message
-    // with its element type.
+    // The model has properties, so it is a payload with an indexer, not a
+    // `Record<T>`. Unwrapping it would replace the message with its element.
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Bag"]);
   });
 
@@ -164,11 +163,10 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // `Bag` carries no `@message`, so the walk does not stop at it and reaches
-    // the collection check. It has properties of its own, so it is not a
-    // `Record<T>` and its element type is not a message of this channel.
-    // The test above cannot show this: its `Bag` is a message, so the walk
-    // returns before the check runs.
+    // `Bag` carries no `@message`, so the walk reaches the collection check.
+    // It has properties of its own, so it is not a `Record<T>`, and its
+    // element type is not a message here. The test above cannot show this,
+    // since its `Bag` is a message and the walk returns before the check runs.
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Shown"]);
   });
 
@@ -362,9 +360,8 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The compiler hands back the members of an interface in a map whose
-    // order is not promised to be source order, so the builder sorts them.
-    // The keys of the emitted map are what that sort decides.
+    // The compiler's member map does not promise source order, so the
+    // builder sorts them, and the emitted keys reflect that sort.
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["First", "Second"]);
   });
 
@@ -395,12 +392,10 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // `Base` is declared after `OrderChannel`, so the inherited operation sits
-    // later in the source than the own one. The compiler's member map puts an
-    // inherited member first, which is the opposite order. This input is the
-    // one that tells the two apart: without the sort the keys come out as
-    // Inherited then Own. The test above cannot show that, because there the
-    // two orders agree.
+    // `Base` is declared after `OrderChannel`, so the inherited operation
+    // sits later in source order, but the compiler's member map puts it
+    // first. Without the sort, the keys would read Inherited then Own. The
+    // test above cannot show that, since there the two orders agree.
     expect(Object.keys(doc.channels?.orders.messages ?? {})).toEqual(["Own", "Inherited"]);
   });
 
@@ -421,9 +416,8 @@ describe("Unit: Channel messages (Phase 4.2)", () => {
     const doc = await documentFrom(runner.program);
 
     // A model marked `@message` is the message, whatever it is declared as.
-    // Unwrapping this one to its `string` element would drop the message
-    // from the channel, and would then read the payload parameter as a
-    // channel address parameter.
+    // Unwrapping this one to its `string` element would drop the message and
+    // read the payload parameter as a channel address parameter instead.
     expect(doc.channels?.orders.messages).toEqual({
       Bag: { $ref: "#/components/messages/Bag" },
     });

@@ -346,9 +346,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
     const doc = await documentFrom(runner.program);
 
     expect(diagnostics.map((d) => d.code)).toContain("tsp-asyncapi/duplicate-channel-decorator");
-    // One application still wins, so the channel is emitted. Decorators on
-    // one declaration run bottom-up, and the first to run claims the target,
-    // so the application written last in the source is the one that wins.
+    // Decorators on one declaration run bottom-up, so the first to run
+    // claims the target. The application written last in the source wins.
     expect(Object.keys(channelsOf(doc))).toEqual(["orders.updated"]);
     expect(channelsOf(doc)["orders.updated"].address).toBe("orders.updated");
   });
@@ -388,10 +387,9 @@ describe("Unit: Channels (Phase 4.1)", () => {
     const conflicts = diagnosticsWith(diagnostics, "conflicting-channel-decorators");
     const duplicates = diagnosticsWith(diagnostics, "duplicate-channel-decorator");
 
-    // Three applications make two mistakes. The two kinds together are one
-    // conflict, whatever the number of applications, and the second @channel
-    // is a duplicate of the first. Reporting the conflict per losing
-    // application would repeat one message and hide the duplicate.
+    // Three applications make two mistakes: one conflict between the two
+    // kinds, one duplicate between the two @channel applications. Reporting
+    // the conflict per losing application would hide the duplicate.
     expect(conflicts).toHaveLength(1);
     expect(duplicates).toHaveLength(1);
     expect((await documentFrom(runner.program)).channels).toEqual({});
@@ -459,9 +457,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
   it("declares each channel diagnostic at the severity its handling needs", () => {
     // An error breaks a build and a warning does not. Downgrading any of
-    // these to a warning would let a document that names a channel nothing
-    // can address reach a consumer, and every other test here would stay
-    // green. So each severity is pinned on its own.
+    // these would let an unaddressable channel reach a consumer while every
+    // other test here stays green, so each severity is pinned on its own.
     const expected = {
       "empty-channel-address": "error",
       "invalid-channel-address": "error",
@@ -512,9 +509,8 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const channels = (await documentFrom(runner.program)).channels;
 
-    // The map is built with `Object.fromEntries`, so the id becomes an own
-    // property. An assignment would write to the prototype instead, and the
-    // channel would vanish from the emitted map.
+    // `Object.fromEntries` makes the id an own property. An assignment would
+    // instead write to the prototype, and the channel would vanish.
     expect(diagnostics).toEqual([]);
     expect(Object.keys(channels ?? {})).toEqual(["__proto__"]);
     expect(Object.hasOwn(channels ?? {}, "__proto__")).toBe(true);
@@ -580,18 +576,16 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // A dynamic channel has no address, so a declaration cannot be matched
-    // against one. Reporting the parameter as unused would ask the author to
-    // add `{correlationKey}` to an address the channel does not have.
+    // A dynamic channel has no address to match a declaration against, so
+    // reporting the parameter unused would ask for one it does not have.
     expect(diagnostics).toEqual([]);
     expect(channelsOf(doc).ReplyChannel).not.toHaveProperty("parameters");
   });
 
   it("ranks two files by import order when their channels claim one id", async () => {
     const tester = AsyncAPITester.files({
-      // The name sorts before `main.tsp`, so a comparison by path text would
-      // make this file win. Files are ranked by the order the compiler
-      // reached them instead, and `main.tsp` is always the first of those.
+      // The name sorts before `main.tsp`, but files rank by the order the
+      // compiler reached them, and `main.tsp` is always first of those.
       "a-extra.tsp": `
         using AsyncAPI;
         namespace Test;
@@ -652,22 +646,20 @@ describe("Unit: Channels (Phase 4.1)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The ids run against the alphabet, so this input fails if the map is
-    // ever sorted by name. It fails too if the entries are reversed. Every
-    // other test here declares one channel, where no order is visible.
+    // The ids run against the alphabet, so this fails if the map is ever
+    // sorted by name, or if the entries are reversed.
     expect(Object.keys(channelsOf(doc))).toEqual(["zzz.first", "aaa.second"]);
   });
 });
 
 describe("Unit: Channels — one address on two channels", () => {
   /**
-   * AsyncAPI allows two channels to share an address, because their ids
-   * differ. The document stays valid. What a reader cannot tell is which set
-   * of messages that one address carries, because the address is what exists
-   * at run time and the id is not.
+   * AsyncAPI allows two channels to share an address if their ids differ. A
+   * reader cannot tell which messages that address carries, since the address
+   * exists at run time and the id does not.
    *
-   * The address is the default key, so one channel needs an explicit id.
-   * Without it, the two collide on the key and the second one is dropped.
+   * The address is the default key, so a shared one needs an explicit id on
+   * one channel. Without it, the two collide on the key and the second drops.
    */
   it("warns when two channels carry the same address", async () => {
     const { diagnostics } = await emitDocumentWithDiagnostics(`
@@ -707,8 +699,8 @@ describe("Unit: Channels — one address on two channels", () => {
       }
     `);
 
-    // Their address is `null` because it is unknown until run time, so two of
-    // them state nothing about each other.
+    // Their address is `null`, unknown until run time, so two of them state
+    // nothing about each other.
     expect(diagnosticsWith(diagnostics, "duplicate-channel-address")).toHaveLength(0);
   });
 

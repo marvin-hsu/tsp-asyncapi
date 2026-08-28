@@ -129,9 +129,8 @@ describe("Unit: the Pulsar binding decorators", () => {
       `);
 
       // The binding needs the field, so the rejected value costs the whole
-      // binding. One report says so. The keep-rest warning would contradict
-      // it, and the missing-field error would tell the author they left out
-      // a field they wrote.
+      // binding. A keep-rest warning would contradict that, and a missing-field
+      // error would wrongly say the author left out a field they wrote.
       const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
       expect(reported.severity).toBe("error");
       expect(reported.message).toContain("'persistence'");
