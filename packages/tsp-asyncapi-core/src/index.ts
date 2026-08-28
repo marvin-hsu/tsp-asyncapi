@@ -99,15 +99,10 @@ export {
 
 // The seam an emitter package builds on.
 //
-// Everything below is here because `lower/` in an emitter package needs it,
-// and an emitter package is no longer the same package as this one. In a
-// single package these were internal, and the compiler enforced nothing about
-// them.
-//
-// They are a public promise now. Renaming one of these constants, or changing
-// what `declarationNameFor` returns, is a minor version of this package. That is the price
-// of the split, and it is paid here rather than hidden behind a second entry
-// point.
+// Everything below exists because `lower/` in an emitter package needs it.
+// These names were internal when both packages were one. Now they are a
+// public promise: renaming one, or changing what `declarationNameFor`
+// returns, is a minor version of this package.
 
 // The two readers `lower/` calls while it translates a model. Reading a
 // decorator annotation is part of the translation, which is the rule

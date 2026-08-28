@@ -16,12 +16,11 @@ import { Namespace } from "@typespec/compiler";
 
 /**
  * JSON Schema `type` keyword values this emitter emits.
- * `SchemaObject.type` is typed as plain `string`, not a string-literal
- * union. So nothing in the type system catches a typo in one of these
- * values, the way a `Type["kind"]` discriminated-union branch would.
- * Collecting the values here turns a typo into a single-point fix. It
- * replaces the old approach of spelling out the literal separately at
- * each call site, which could silently drift out of sync.
+ *
+ * `SchemaObject.type` is a plain `string`, not a string-literal union.
+ * Nothing in the type system catches a typo in one of these values, unlike
+ * a `Type["kind"]` discriminated-union branch. Collecting the values here
+ * turns a typo into a single-point fix.
  *
  * @public
  */
@@ -40,12 +39,9 @@ const TYPESPEC_NAMESPACE_NAME = "TypeSpec";
 
 /**
  * True for the namespace node representing the compiler's built-in
- * `TypeSpec` namespace itself. This is the namespace sitting directly
- * under the global (unnamed) namespace. It is not any other namespace,
- * including a user namespace that happens to share the name. Every call
- * site used to spell out `ns?.name === "TypeSpec" && !ns.namespace?.name`
- * (or the equivalent `ns.namespace?.name === ""` form) separately. This
- * function replaces all of those separate checks.
+ * `TypeSpec` namespace itself, sitting directly under the global (unnamed)
+ * namespace. Not true for any other namespace, including a user namespace
+ * that happens to share the name.
  *
  * @public
  */
