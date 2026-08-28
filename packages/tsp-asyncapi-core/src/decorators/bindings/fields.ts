@@ -13,10 +13,16 @@
  * field. A rule two protocols share belongs here instead, so the two cannot
  * answer the same source in different ways.
  *
- * Two diagnostic codes cover all of them. `invalid-binding-field` carries the
- * protocol, the field and what the field expects, so a new rule adds a call
- * rather than a code. `missing-binding-field` is the second, and it is an
- * error rather than a warning.
+ * Three diagnostic codes cover all of them. `invalid-binding-field` carries
+ * the protocol, the field and what the field expects, so a new rule adds a
+ * call rather than a code. It is a warning, and the rest of the binding is
+ * emitted. `invalid-required-binding-field` carries the same three, and it is
+ * the code a rejected value on a required field reports. It is an error, and
+ * the whole binding is dropped. The caller picks between the two with the
+ * `FieldLoss` it passes.
+ *
+ * `missing-binding-field` is the third. It reports a required field the
+ * author left out, and it is an error as well.
  *
  * Every check here follows one rule, which is why no decorator repeats it: a
  * decorator records only the fields that survived. A field the author left
