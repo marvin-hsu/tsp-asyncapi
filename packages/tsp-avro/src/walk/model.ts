@@ -833,7 +833,7 @@ function defaultOf(
 ): { value: AvroDefault } | undefined {
   let serialized: unknown;
   try {
-    serialized = serializeValueAsJson(context.program, written, property);
+    serialized = serializeValueAsJson(context.program, written, serializationTargetOf(property));
   } catch (error) {
     if (!(error instanceof UnserializableValueError)) {
       throw error;
@@ -851,6 +851,33 @@ function defaultOf(
     return undefined;
   }
   return { value: serialized as AvroDefault };
+}
+
+/**
+ * The type a written default is serialized against.
+ *
+ * The compiler writes a value against the type it is handed. A property
+ * declared `Inner | null` hands over the union, and the compiler has no form
+ * for a union. It answers with `{}`, which satisfies no branch and which no
+ * reader can use.
+ *
+ * A union with one branch beside null leaves one place for the default. That
+ * is the branch {@link soleBranchBesideNull} leads with, so the value is
+ * serialized against it. Every other union keeps the property: a value that
+ * names its own branch is already serialized as that branch, and a value that
+ * names none is refused before it reaches a schema.
+ *
+ * @param property - The property that carries the default
+ * @returns The branch to serialize against, or the property itself
+ */
+function serializationTargetOf(property: ModelProperty): Type | ModelProperty {
+  if (property.type.kind !== "Union") {
+    return property;
+  }
+  const beside = [...property.type.variants.values()].filter(
+    (variant) => !(variant.type.kind === "Intrinsic" && variant.type.name === "null"),
+  );
+  return beside.length === 1 ? beside[0].type : property;
 }
 
 /**
