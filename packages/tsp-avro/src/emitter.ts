@@ -1,23 +1,17 @@
 /**
  * The entry point of the Avro emitter.
  *
- * The TypeSpec compiler calls this function when a project asks for
- * `--emit tsp-avro`.
+ * The TypeSpec compiler calls this function for `--emit tsp-avro`. It writes
+ * one file per model marked with `@record`, and no index: an Avro schema
+ * stands alone.
  *
- * It writes one file per model marked with `@record`. There is no other file,
- * and there is no index: an Avro schema stands alone, so a file is either the
- * whole schema or it is nothing.
+ * Every schema builds before any file writes. A record the walk refuses
+ * reports a diagnostic, and any diagnostic here stops every write. A partial
+ * output would be worse than none: each file that did land would look
+ * complete, and a schema registry would accept it.
  *
- * Every schema is built before any file is written. A record the walk
- * refuses reports a diagnostic. Every diagnostic here is an error, and an
- * error stops every write. So a compile either writes the schemas the author
- * asked for or it writes none.
- * A partial output would be worse than none: each file that did land would
- * look complete, and a schema registry would take it.
- *
- * A dry run writes nothing for the same reason the upstream Protobuf emitter
- * writes nothing: the compiler asked to be told what would happen, not to have
- * it happen.
+ * A dry run writes nothing, for the same reason the upstream Protobuf emitter
+ * writes nothing: the compiler asked what would happen, not for it to happen.
  *
  * @public
  */

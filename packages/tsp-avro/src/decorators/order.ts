@@ -18,19 +18,13 @@ const [getOrderInternal, setOrderInternal] = useStateMap<ModelProperty, AvroFiel
   orderStateKey,
 );
 
-/**
- * The three orders the Avro specification names.
- *
- * A set, because the only question asked of it is whether a value is in it.
- */
+/** The three orders the Avro specification names. */
 const ORDERS = new Set<string>(["ascending", "descending", "ignore"]);
 
 /**
  * Whether one string is an order this emitter writes.
  *
- * The narrowing is what lets the caller pass the value on without a cast. The
- * decorator receives a plain string, and the set is what makes it one of the
- * three.
+ * The narrowing lets the caller pass the value on without a cast.
  *
  * @param mode - The value the decorator received
  * @returns Whether the specification names it
