@@ -151,12 +151,7 @@ describe("Unit: Avro run time independence", () => {
   });
 });
 
-/**
- * Every `.ts` file below one directory.
- *
- * @param root - The directory to walk
- * @returns The absolute path of each TypeScript file under it
- */
+/** Every `.ts` file below one directory, as absolute paths. */
 async function typeScriptFilesIn(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true, recursive: true });
   return entries
@@ -173,9 +168,6 @@ async function typeScriptFilesIn(root: string): Promise<string[]> {
  *
  * The closing quote sits right after the package name or after a subpath of
  * it, which keeps a `Symbol.for("tsp-avro.<key>")` state key out.
- *
- * @param text - The source text to judge
- * @returns Whether the text imports the library statically
  */
 function staticallyImportsAvro(text: string): boolean {
   return STATIC_IMPORT.test(text);
@@ -194,26 +186,14 @@ const SPECIFIER = String.raw`["']tsp-avro(?:\/[^"']*)?["']`;
 const STATIC_IMPORT = new RegExp(String.raw`(?:from|import)\s+${SPECIFIER}`);
 
 /**
- * The bump each pending changeset asks for on one package.
- *
- * A changeset names its packages in a YAML front matter block. Only the lines
- * of that block that name this package matter here.
- *
- * @param text - The whole changeset file
- * @param name - The package to read the bump of
- * @returns The release type, or undefined when the file leaves the package out
+ * The bump a changeset asks for on one package, from its YAML front matter.
+ * Undefined when the file leaves the package out.
  */
 function bumpOf(text: string, name: string): string | undefined {
   return new RegExp(String.raw`^"${name}":\s*(major|minor|patch)\s*$`, "m").exec(text)?.[1];
 }
 
-/**
- * The version a release type produces from a version.
- *
- * @param version - The version the manifest declares
- * @param bump - The release type
- * @returns The version the release publishes
- */
+/** The version a release type produces from a version. */
 function bumped(version: string, bump: string): string {
   const [major, minor, patch] = version.split(".").map(Number);
   if (bump === "major") return [major + 1, 0, 0].join(".");

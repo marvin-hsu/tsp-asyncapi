@@ -24,19 +24,20 @@ const SOURCE = `
  * The `preview-features` option, and which of the reserved names work.
  *
  * Both reserved names have a provider in this release, so the shipped
- * registry refuses neither. What the option still has to answer for is a name
- * no registry holds: such a request cannot be answered, and it must never
- * produce a document. Those cases call the refusal directly, against a
- * registry they state, rather than against the one this release ships.
+ * registry refuses neither: a source with no matching decorator gives that
+ * provider nothing to answer for, and the document is unchanged. What the
+ * option still has to answer for is a name no registry holds. Such a request
+ * must never produce a document, so those cases call the refusal directly
+ * against a registry they state, rather than the one this release ships.
  *
  * The source below carries no Protobuf and no Avro decorator. The cases here
  * are about the option itself, not about what a provider generates.
  */
 describe("Unit: preview-features", () => {
   /**
-   * The default is off. This is the guard the whole preview programme rests
-   * on: a document emitted without the option must be the document this
-   * emitter emitted before the option existed.
+   * The guard the whole preview programme rests on: a document emitted
+   * without the option must equal the document this emitter emitted before
+   * the option existed.
    */
   it("changes nothing when the option is absent", async () => {
     const withoutOption = await emitDocument(SOURCE);
@@ -45,11 +46,6 @@ describe("Unit: preview-features", () => {
     expect(withEmptyList).toStrictEqual(withoutOption);
   });
 
-  /**
-   * `protobuf` has a provider, so the request is honored. A source with no
-   * Protobuf decorator gives that provider nothing to answer for, and the
-   * document is the one the same source produces with the feature off.
-   */
   it("honors protobuf and leaves a source without its decorators alone", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["protobuf"],
@@ -59,11 +55,6 @@ describe("Unit: preview-features", () => {
     expect(doc).toStrictEqual(await emitDocument(SOURCE));
   });
 
-  /**
-   * `avro` has a provider too. A source with no Avro decorator gives it
-   * nothing to answer for, and the document is the one the same source
-   * produces with the feature off.
-   */
   it("honors avro and leaves a source without its decorators alone", async () => {
     const { doc, diagnostics } = await emitDocumentWithDiagnostics(SOURCE, {
       "preview-features": ["avro"],
@@ -88,12 +79,8 @@ describe("Unit: preview-features", () => {
 
   /**
    * A name no registry holds stops the compile. Accepting it quietly would
-   * hand back a document that describes something other than what the project
-   * asked for.
-   *
-   * The registry is stated here, because the shipped one answers every
-   * reserved name. What is under test is the refusal, not which names this
-   * release happens to ship.
+   * hand back a document that describes something other than what the
+   * project asked for.
    */
   it("reports a feature the registry does not answer", async () => {
     const { program } = await emitDocumentWithDiagnostics(SOURCE);
@@ -118,10 +105,6 @@ describe("Unit: preview-features", () => {
    * One available name and one unanswered name is still a request the
    * document cannot answer. So the whole request is refused, and only the
    * name with no provider behind it is reported.
-   *
-   * The emitter writes nothing on that answer. Two other cases prove the
-   * writing half, one per provider: a model a provider cannot answer for
-   * leaves the emitter with no document to write.
    */
   it("refuses the whole request when one of two features has no provider", async () => {
     const { program } = await emitDocumentWithDiagnostics(SOURCE);
@@ -157,11 +140,7 @@ describe("Unit: preview-features", () => {
     expect(violation?.message).toContain("protobuf, avro");
   });
 
-  /**
-   * Every refused name gets its own diagnostic, and an empty registry refuses
-   * every name. The refusal is called directly here, so the case reads the
-   * registry it is given rather than the one this release ships.
-   */
+  /** Every refused name gets its own diagnostic, and an empty registry refuses every name. */
   it("reports each refused feature once against an empty registry", async () => {
     const { program } = await emitDocumentWithDiagnostics(SOURCE);
     const before = program.diagnostics.length;

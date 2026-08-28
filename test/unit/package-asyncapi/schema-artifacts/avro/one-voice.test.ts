@@ -47,12 +47,7 @@ const REFUSED = `
   }
 `;
 
-/**
- * Compiles a source and returns the program, with no emitter run yet.
- *
- * @param code - The TypeSpec source of the case
- * @returns The compiled program
- */
+/** Compiles a source and returns the program, with no emitter run yet. */
 async function compile(code: string): Promise<Program> {
   const runner = await BothLibraries.createInstance();
   await runner.diagnose(code);
