@@ -20,11 +20,8 @@
  * @public
  */
 export interface TagObject {
-  /** The name of the tag. */
   name: string;
-  /** A short description for the tag. */
   description?: string;
-  /** Additional external documentation for this tag. */
   externalDocs?: ExternalDocumentationObject;
 }
 
@@ -33,9 +30,7 @@ export interface TagObject {
  * @public
  */
 export interface ExternalDocumentationObject {
-  /** The URL for the target documentation. */
   url: string;
-  /** A short description of the target documentation. */
   description?: string;
 }
 
@@ -67,7 +62,6 @@ export type SecuritySchemeType =
  * @public
  */
 export interface SecuritySchemeObject {
-  /** The kind of this scheme. */
   type: SecuritySchemeType;
   /** A description of the scheme. CommonMark is allowed. */
   description?: string;
@@ -158,9 +152,7 @@ export interface MessageExampleObject {
   name?: string;
   /** A short summary of what this example shows. */
   summary?: string;
-  /** Example values for the message headers. */
   headers?: unknown;
-  /** An example payload. */
   payload?: unknown;
 }
 

@@ -3,13 +3,12 @@
  *
  * `resolveSecuritySchemes` writes every `@securityScheme` into
  * `components.securitySchemes`, whether or not anything names it. That is
- * the right behaviour for the emitter: a scheme is a declaration, and a
- * document that declares one has said something true.
+ * correct for the emitter: a scheme is a declaration, and declaring one is
+ * true regardless of use.
  *
- * It is rarely what the author meant. `@useSecurity` is what puts a scheme
- * on a server, and a scheme nothing names protects nothing. The document
- * then advertises an authentication method no channel requires, which a
- * reader takes as a claim about the application.
+ * It is rarely what the author meant. `@useSecurity` puts a scheme on a
+ * server, and a scheme nothing names protects nothing. The document then
+ * advertises an authentication method no channel requires.
  *
  * The inverse is already reported. `undeclared-security-scheme` catches a
  * `@useSecurity` that names a scheme nobody declared, and
@@ -18,23 +17,15 @@
  *
  * ## Not in `recommended`
  *
- * Declaring a scheme nothing names is a real intention, not only a
- * forgotten `@useSecurity`. `components.securitySchemes` is a registry, and
- * a document may publish an authentication method that no channel requires
- * yet.
- *
- * This repository's own `examples/06-servers-and-security` does it: it
- * declares four schemes to show the four kinds, names two of them, and
- * comments one of the rest with "Kept for the legacy bridge only". That is
- * the evidence. A rule that fires on the project's own example is stating a
- * preference, and a preference belongs behind an opt-in.
+ * Declaring a scheme nothing names can be deliberate, not only a forgotten
+ * `@useSecurity`. `components.securitySchemes` is a registry, and a document
+ * may publish an authentication method before any channel requires it.
  *
  * ## Why it needs the whole program
  *
  * A scheme is declared on one namespace and used from another, and
- * `components.securitySchemes` is a document-wide registry. So the answer is
- * not available at any single declaration: the walk collects every use, and
- * `exit` compares the two sets once the walk is done.
+ * `components.securitySchemes` is a document-wide registry. The walk
+ * collects every use, and `exit` compares the two sets once it finishes.
  */
 
 import { createRule, paramMessage } from "@typespec/compiler";

@@ -5,26 +5,21 @@
  * would claim the message has a blank title rather than no title, and a
  * reader cannot tell a deliberate blank from an oversight.
  *
- * The rule used to be written again at each place that emitted a field, and
- * the copies drifted: some tested `!== undefined`, which lets an empty
- * string through, and some tested the value itself, which does not. Every
- * emitted field now goes through the functions here, so the rule has one
- * definition and a new field cannot be written the old way by accident.
+ * Every emitted field goes through the functions here. Testing `!== undefined`
+ * directly would let an empty string through, so the rule has one definition
+ * and a new field cannot be written that way by accident.
  */
 
 /**
  * Reads one text field the author wrote, and keeps it only when it says
  * something.
  *
- * A blank string names nothing. It is answered as absent, the same as a field
- * the author left out. Surrounding spaces are removed, because the emitted
- * document carries the name the author meant and not the spaces around it.
+ * A blank string is answered as absent, the same as a field the author left
+ * out. Surrounding spaces are removed.
  *
- * This is the value half of the rule. Use it where the caller needs the value
- * rather than a field to spread, such as a decorator that stores the value or
- * checks it against an allowed set.
+ * Use this where the caller needs the value itself rather than a field to
+ * spread, such as a decorator that stores or validates it.
  *
- * @param value - The text as the author wrote it
  * @returns The trimmed text, or `undefined` when there is nothing to say
  */
 export function trimmed(value: string | undefined): string | undefined {
@@ -41,12 +36,9 @@ export function trimmed(value: string | undefined): string | undefined {
  * return { name, ...text("description", metadata.description) };
  * ```
  *
- * The emitted value is trimmed. `trimmed` decides both halves, so a field
- * spread through here and a field a decorator stored through `trimmed` cannot
- * disagree about `"  x  "`.
+ * `trimmed` decides both halves, so a field spread through here and a field
+ * a decorator stored through `trimmed` cannot disagree about `"  x  "`.
  *
- * @param key - The field name in the emitted document
- * @param value - The text, which may be absent or blank
  * @returns A single-entry object, or an empty one when there is nothing to
  * say
  *
@@ -66,8 +58,6 @@ export function text<K extends string>(
  * out. `false` and `0` are real values and are kept, which is why this
  * cannot be a plain truthiness test.
  *
- * @param key - The field name in the emitted document
- * @param value - The value, which may be absent
  * @returns A single-entry object, or an empty one when the value is absent
  *
  * @public

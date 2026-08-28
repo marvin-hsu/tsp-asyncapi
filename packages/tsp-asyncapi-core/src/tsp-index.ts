@@ -1,3 +1,10 @@
+/**
+ * Binds this package's decorators to the TypeSpec compiler.
+ *
+ * `lib/main.tsp` imports this file's `$decorators` export, matching each
+ * `extern dec` to its implementation.
+ */
+
 import {
   $asyncTag,
   $binding,
@@ -64,12 +71,9 @@ export { $onValidate } from "./validate.js";
 
 /**
  * The decorator implementations, for the compiler rather than for a
- * consumer of this package.
- *
- * `lib/main.tsp` imports this file, which is how the compiler binds each
- * `extern dec` to the function that runs it. Keeping the binding here, and
- * out of `src/index.ts`, means the published API is a decision rather than
- * a side effect of which file happens to export what.
+ * consumer of this package. Keeping the binding here, and out of
+ * `src/index.ts`, makes the published API a decision, not a side effect of
+ * which file happens to export what.
  *
  * @internal
  */
