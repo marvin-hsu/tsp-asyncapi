@@ -20,7 +20,7 @@ export type DuplicateCode = Parameters<typeof reportDiagnostic>[1]["code"];
  * mistake. `repeat` is the same statement running again, and nothing is
  * reported for it. `rejected` is a second statement, and it is reported.
  */
-export type ClaimResult = "first" | "repeat" | "rejected";
+type ClaimResult = "first" | "repeat" | "rejected";
 
 /** The guard one decorator uses to keep itself to a single application. */
 export interface ApplicationGuard {
