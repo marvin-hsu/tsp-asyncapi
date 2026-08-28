@@ -207,11 +207,9 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
 
 describe("Unit: single application guard", () => {
   it("reports a duplicate even when the winning application is rejected", async () => {
-    // Decorators run bottom-up, so the invalid location runs first. It
-    // records nothing. A guard that asked whether a value was stored would
-    // read that as "no decorator yet" and let the second one through in
-    // silence, leaving the author told about the location and never told
-    // they wrote the decorator twice.
+    // Decorators run bottom-up, so the invalid location runs first and
+    // records nothing. A guard that checks only whether a value was stored
+    // would read that as no prior decorator, and silently accept the second.
     const { diagnostics } = await emitDocumentWithDiagnostics(`
       @AsyncAPI.message
       @AsyncAPI.correlationId("$message.header#/second")

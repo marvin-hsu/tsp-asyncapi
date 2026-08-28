@@ -50,11 +50,9 @@ describe("Unit: Messages — description fields", () => {
     const doc = await documentFrom(runner.program);
 
     const message = doc.components?.messages?.OrderCreated ?? {};
-    // A field with no source is absent, rather than present and empty.
-    // AsyncAPI's `summary` has no TypeSpec source at all: `@summary` fills
-    // `title` and `@doc` fills `description`, and there is no third source of
-    // prose. So the emitter never writes it, and `MessageObject` does not
-    // declare it.
+    // A field with no source is absent, not present and empty.
+    // `@summary` fills `title`, and `@doc` fills `description`.
+    // There is no third source of prose, so the emitter never writes `summary`.
     expect(Object.keys(message)).toEqual(["name", "payload"]);
     expect("summary" in message).toBe(false);
   });
@@ -76,9 +74,8 @@ describe("Unit: Messages — description fields", () => {
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
 
-    // Decorators run bottom-up, so the one written last in the source is the
-    // one that reaches the state first, and it keeps the message. This is the
-    // same winner @message, @headers, and @correlationId keep.
+    // Decorators run bottom-up, so the one written last runs first and
+    // keeps the message. @message, @headers, and @correlationId keep the same winner.
     const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.contentType).toBe("application/avro");
   });
@@ -118,11 +115,9 @@ describe("Unit: Messages — description fields", () => {
       }
     `);
 
-    // The empty value is written last in the source, so it runs first and it
-    // is the winner. It is rejected, so no content type reaches the document.
-    // The second application is still a second application, so it is
-    // reported. Otherwise the value written first in the source would win,
-    // the opposite of the rule every sibling decorator follows.
+    // The empty value is written last, so it runs first and wins, but is
+    // rejected. No content type reaches the document. The duplicate is still
+    // reported, so the first-written value cannot silently win instead.
     expect(diagnosticsWith(diagnostics, "empty-content-type")).toHaveLength(1);
     expect(diagnosticsWith(diagnostics, "duplicate-content-type-decorator")).toHaveLength(1);
 
@@ -148,10 +143,9 @@ describe("Unit: Messages — description fields", () => {
 
     await documentFrom(runner.program);
 
-    // The empty value never reaches the document, so it is not a second
-    // source of the content type. Only the empty value itself is reported.
-    // The header check runs while the headers are planned, so its diagnostic
-    // lands on the program rather than in the compile result.
+    // The empty value never reaches the document, so only it is reported.
+    // The header check runs while headers are planned, so its diagnostic
+    // lands on the program, not in the compile result.
     expect(
       diagnosticsWith(runner.program.diagnostics, "content-type-header-conflict"),
     ).toHaveLength(0);

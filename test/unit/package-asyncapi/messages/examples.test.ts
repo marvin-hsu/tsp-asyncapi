@@ -197,9 +197,8 @@ describe("Unit: Message examples (Phase 3.5)", () => {
 
     expectNoErrors(diagnostics);
 
-    // The whole entry goes, including its serializable sibling field. An
-    // entry that kept only half of its payload would show a message the
-    // application never sends. The other example stays.
+    // The whole entry goes, including its serializable sibling field.
+    // Keeping half a payload would show a message the application never sends.
     const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([
       { name: "kept", payload: { orderId: "o-2" } },
@@ -251,7 +250,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
     expect(reported).toHaveLength(1);
 
     // The model carries three applications, so a diagnostic on the model
-    // itself does not tell the user which one was rejected. The squiggle
+    // itself does not tell the author which one was rejected. The squiggle
     // covers the application instead.
     const location = getSourceLocation(reported[0]?.target);
     expect(location?.file.text.slice(location.pos, location.pos + 15)).toBe("@messageExample");

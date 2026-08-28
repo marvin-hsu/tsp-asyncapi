@@ -33,8 +33,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
     expect(reported[0]?.message).toMatch(/'OrderCreated'/);
-    // The ordinary nested message would send the user to a fix that does not
-    // apply, so it must not fire here.
+    // The ordinary nested message would send the author to a fix that does
+    // not apply, so it must not fire here.
     expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
 
     // Nothing is lifted. The base model is a declaration of its own, and the
@@ -70,9 +70,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // A spread copies the property into the message model, so it is the
-    // message's own top-level field and it is lifted. This is the half of the
-    // rule the `extends` case above does not reach.
+    // A spread copies the property in as the message's own field, so it is
+    // lifted. This is the half of the rule `extends` does not reach.
     expect(doc.components?.messages?.OrderCreated).toEqual({
       name: "OrderCreated",
       headers: {
@@ -121,8 +120,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // `Base` lifts `traceId`, and `Derived` inherits the field. A reader of
-    // `Derived` expects the specialisation to describe the field where the
-    // base message does, so the header is repeated on `Derived`.
+    // `Derived` expects it there too, so the header repeats on `Derived`.
     expect(doc.components?.messages?.Derived.headers).toEqual({
       type: "object",
       properties: { traceId: { type: "string" } },
@@ -133,9 +131,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       properties: { traceId: { type: "string" } },
       required: ["traceId"],
     });
-    // Each message gets a payload component of its own, and each is
-    // flattened. An `allOf` branch to `Base` would bring the inherited
-    // `traceId` back into the payload of `Derived`.
+    // Each message gets its own flattened payload component. An `allOf`
+    // branch to `Base` would bring `traceId` back into `Derived`'s payload.
     expect(doc.components?.schemas?.BasePayload).toEqual({
       type: "object",
       properties: { body: { type: "string" } },
@@ -190,10 +187,9 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // A discriminator on the payload would name the subtype components
-    // through its implicit mapping. Those still require the lifted field,
-    // which only ever travels in `headers`, so no payload could satisfy the
-    // schema. The emitter names the conflict and leaves the keyword off.
+    // A discriminator on the payload would name subtype components that
+    // still require the lifted field, which travels only in `headers`. No
+    // payload could satisfy that, so the emitter names the conflict instead.
     const reported = diagnosticsWith(runner.program.diagnostics, "discriminated-lifted-header");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
@@ -203,9 +199,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
       properties: { kind: { type: "string" } },
       required: ["kind"],
     });
-    // A discriminator means nothing without its variants, so the subtypes
-    // are emitted too. `Cat` refers to `Base`, so the model's own component
-    // is emitted with every field.
+    // A discriminator means nothing without its variants, so `Cat`'s own
+    // component is emitted too, with every field.
     expect(doc.components?.schemas?.Cat).toEqual({
       allOf: [
         { $ref: "#/components/schemas/Base" },
@@ -259,8 +254,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     await documentFrom(runner.program);
 
     // `Outer` pulls in the model's own component, so `@discriminator` is
-    // resolved twice for `Base`. One model with one missing property is one
-    // mistake, so the user sees one diagnostic.
+    // resolved twice for `Base`. One missing property is one mistake, so
+    // the author sees one diagnostic.
     expect(
       diagnosticsWith(runner.program.diagnostics, "missing-discriminator-property"),
     ).toHaveLength(1);
@@ -284,9 +279,9 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The payload component is flattened, so it has no branch back to `Bag`.
-    // The constraint on the extra properties must be merged in, or the
-    // payload would accept any value under any extra key.
+    // The flattened payload has no branch back to `Bag`, so the
+    // extra-properties constraint must be merged in, or any extra key
+    // would accept any value.
     expect(doc.components?.schemas?.MPayload).toEqual({
       type: "object",
       additionalProperties: { type: "string" },
@@ -318,8 +313,7 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // The conflict belongs to the model. Nothing else reads `M` here, so the
-    // payload component is the only one built. The check must still run, or
-    // the payload keeps the derived wire name in silence.
+    // check must still run here, or the payload keeps the wire name in silence.
     expect(
       diagnosticsWith(runner.program.diagnostics, "encoded-name-override-conflict"),
     ).toHaveLength(1);
@@ -357,9 +351,8 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     await documentFrom(runner.program);
 
-    // `Outer` builds the model's own component and the message builds the
-    // payload component. The conflict is one mistake in one model, so the
-    // two builds speak once between them.
+    // `Outer` builds the model's own component, and the message builds the
+    // payload component. One mistake in one model gets one report between them.
     expect(
       diagnosticsWith(runner.program.diagnostics, "encoded-name-override-conflict"),
     ).toHaveLength(1);
@@ -425,10 +418,9 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The payload component is flattened, so it never builds `Base`. A
-    // subtype is reachable through the `extends` link alone, so nothing else
-    // would ever reach `Cat`. The discriminated hierarchy the author declared
-    // must still reach the document.
+    // The flattened payload never builds `Base`, and only the `extends` link
+    // reaches `Cat`. The discriminated hierarchy the author declared must
+    // still reach the document.
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Base",
       "Cat",
@@ -506,9 +498,9 @@ describe("Unit: Message headers: inheritance (Phase 3.3)", () => {
     const doc = await documentFrom(runner.program);
 
     // `@headers` describes the whole headers object of `D`, so the inherited
-    // lift is cancelled and `h` stays in the payload of `D`. The same field is
-    // a header of `B`. One field in two roles is a mistake the author cannot
-    // see in the emitted document, so the emitter names it.
+    // lift is cancelled and `h` stays in the payload of `D`. The same field
+    // is a header of `B`. One field in two roles is invisible in the
+    // document, so the emitter names it.
     const reported = diagnosticsWith(runner.program.diagnostics, "inherited-header-overridden");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("warning");
