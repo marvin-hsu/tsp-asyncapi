@@ -39,8 +39,9 @@ describe("Unit: toPlainValue — marshalled arguments as plain JSON", () => {
   /**
    * A `Program` reaches `serializeValueAsJson`, and that call happens only
    * for a TypeSpec `Value`. Every case below passes plain JavaScript, so the
-   * program is never read. An empty object stands in for it, which keeps
-   * these cases free of a compilation.
+   * program is never read. The program below refuses every read, so that
+   * claim is checked rather than stated, and these cases stay free of a
+   * compilation.
    */
   const program = unusedProgram();
 
