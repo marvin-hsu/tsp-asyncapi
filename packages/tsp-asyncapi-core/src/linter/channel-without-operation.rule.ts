@@ -3,13 +3,12 @@
  *
  * A channel reaches the document from `@channel`, and its `messages` map is
  * read off the signatures of the operations around it. `@send` and
- * `@receive` are what put an operation into the document's `operations` map.
- * Neither is required for a message to reach the channel.
+ * `@receive` put an operation into the document's `operations` map, but
+ * neither is required for a message to reach the channel.
  *
  * So an author who writes the operations and forgets the two decorators gets
- * a document that names a channel and its messages, and says nothing about
- * who publishes or subscribes. The document is valid. It describes no
- * traffic.
+ * a valid document that names a channel and its messages but describes no
+ * traffic: nothing says who publishes or subscribes.
  *
  * ## Why the three conditions
  *
@@ -17,9 +16,9 @@
  * document that is correct as written.
  *
  * A channel with no messages at all is already reported by
- * `channel-no-messages`, and that diagnostic gives the better advice: the
- * author most likely forgot `@message`. Two warnings on one channel pointing
- * two ways is worse than one.
+ * `channel-no-messages`, whose advice is better: the author most likely
+ * forgot `@message`. Two warnings on one channel pointing two ways is worse
+ * than one.
  *
  * A reply channel legitimately owns no operation. `@replyChannel` names a
  * channel from an operation declared elsewhere, and the messages reach it
