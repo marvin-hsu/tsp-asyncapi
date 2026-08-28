@@ -5,14 +5,14 @@
  * against the `emitter.options` schema of the emitter package's own library.
  * So the schema has to be registered from here.
  *
- * It declares no diagnostics. All 103 of them live in `tsp-asyncapi-core`,
- * including the eighteen this package reports, because a reader looking up a
- * code should find every code in one place. Code here calls the
+ * It declares no diagnostics. All 118 of them live in `tsp-asyncapi-core`,
+ * including the eighteen this package reports. A reader looking up a code
+ * should find every code in one place. Code here calls the
  * `reportDiagnostic` that core exports.
  *
  * The name matches core's on purpose. Both are `tsp-asyncapi`, which is the
  * prefix every diagnostic code carries. Two libraries under one name is
- * supported, and it keeps the codes stable across the package split.
+ * supported. That keeps the codes stable across the package split.
  */
 
 import { createTypeSpecLibrary } from "@typespec/compiler";
