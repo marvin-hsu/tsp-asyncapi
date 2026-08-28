@@ -44,11 +44,10 @@ function lowerMessages(node: ChannelNode): Record<string, ReferenceObject> | und
 /**
  * Builds one Channel Object.
  *
- * The descriptive fields follow the mapping every other object in this
- * emitter uses: `@summary` becomes `title` and `@doc` becomes `description`.
- * AsyncAPI also defines `summary` on a channel, but TypeSpec has no third
- * source of prose, so that field is left out rather than filled with a copy
- * of another one.
+ * The descriptive fields follow this emitter's usual mapping: `@summary`
+ * becomes `title`, and `@doc` becomes `description`. AsyncAPI defines its own
+ * `summary` field, but TypeSpec has no third source of prose, so this
+ * emitter leaves it out.
  *
  * A field with nothing to say is left out. `address` is the exception: it is
  * required, and a dynamic channel emits the literal `null` rather than no
