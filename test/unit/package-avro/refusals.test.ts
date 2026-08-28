@@ -574,3 +574,79 @@ describe("what the Avro walk refuses", () => {
     );
   });
 });
+
+/**
+ * Where the walk points a refusal.
+ *
+ * A diagnostic carries a target, and an editor draws the error on it. A
+ * refusal about a scalar declaration belongs on that declaration, because the
+ * decorator the author has to change is written there. Pointing at the field
+ * instead sends the author to code that is correct, and says it again for
+ * every field that uses the scalar.
+ */
+describe("where the Avro walk points a refusal", () => {
+  /**
+   * Compiles a source and names what each refusal points at.
+   *
+   * @param source - The TypeSpec source
+   * @returns One `code: kind name` line per diagnostic, in order
+   */
+  async function refusalTargets(source: string): Promise<string[]> {
+    const result = await emitAvro(source);
+    return result.diagnostics.map((diagnostic) => {
+      const target: unknown = diagnostic.target;
+      const named = target as { kind?: unknown; name?: unknown };
+      return `${diagnostic.code}: ${String(named.kind)} ${String(named.name)}`;
+    });
+  }
+
+  it("points @aliases on a scalar written as a primitive at that scalar", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `),
+    ).toEqual(["tsp-avro/aliases-target: Scalar Age"]);
+  });
+
+  it("points @aliases written further up the chain at the scalar that carries it", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Base extends int32;
+        scalar Age extends Base;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `),
+    ).toEqual(["tsp-avro/aliases-target: Scalar Base"]);
+  });
+
+  it("points a fixed scalar that does not extend bytes at that scalar", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { value: Word; }
+      }
+      `),
+    ).toEqual(["tsp-avro/invalid-fixed: Scalar Word"]);
+  });
+
+  it("points a type Avro cannot hold at the field that holds it", async () => {
+    // The scalar here is sound on its own. The field is what has no Avro
+    // form, so the field is where the author has to look.
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model Event { at: offsetDateTime; }
+      }
+      `),
+    ).toEqual(["tsp-avro/unsupported-type: ModelProperty at"]);
+  });
+});

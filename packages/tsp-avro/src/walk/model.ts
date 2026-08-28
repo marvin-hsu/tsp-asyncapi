@@ -305,7 +305,7 @@ function scalarFor(
         createDiagnostic({
           code: "aliases-target",
           format: { name: aliased.name },
-          target,
+          target: aliased,
         }),
       );
       return undefined;
@@ -334,7 +334,7 @@ function scalarFor(
           code: "invalid-fixed",
           messageId: "underlying",
           format: { name: scalar.name, underlying },
-          target,
+          target: scalar,
         }),
       );
       return undefined;
