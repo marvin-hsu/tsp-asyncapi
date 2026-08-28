@@ -1,17 +1,6 @@
 /**
- * A model's, property's, and scalar's `@doc`/`@summary`/`@example` reach the
- * emitted schema as `description`, `title`, and `examples`.
- *
- * Each of the three keys is absent when the author gave it nothing. A value
- * serializes into `examples` only when the type can encode it. A value that
- * cannot serialize is dropped, with a diagnostic instead of silence. A
- * scalar's own documentation and examples travel down the `baseScalar`
- * chain to every property that uses it, and a property's own annotation
- * overrides what it inherits.
- *
- * An `@example` is encoded the same way its schema is. A property under
- * `@encode` produces both an encoded schema and an encoded example, so the
- * example always validates against the schema next to it.
+ * A model's, property's, and scalar's `@doc`/`@summary`/`@example` map to
+ * the emitted schema's `description`, `title`, and `examples`.
  */
 import { describe, it, expect, vi } from "vitest";
 import { Model } from "@typespec/compiler";

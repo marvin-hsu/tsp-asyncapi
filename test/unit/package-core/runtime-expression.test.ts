@@ -10,9 +10,9 @@ import { isRuntimeExpression } from "#core/decorators/runtime-expression.js";
  * without the `s` flag.
  *
  * JavaScript defines exactly these four as line terminators, so the set is
- * closed and written out here for both halves of the message. The open-ended
- * bodies around the same rule — terminators mixed into drawn tokens, with a
- * counter proving they were drawn — are the grammar property in
+ * closed and written out here for both halves of the message. The same rule
+ * stays open-ended elsewhere: terminators mixed into drawn tokens, with a
+ * counter proving they were drawn. That is the grammar property in
  * `test/property-based/format-validators.test.ts`, and the corpus case
  * `pointer-token-newline` pins the emitted document.
  */

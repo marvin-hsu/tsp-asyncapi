@@ -6,9 +6,9 @@ import { present, trimmed } from "#core/optional-fields.js";
  *
  * `present` is the one rule that decides whether an optional field with a
  * value reaches the document. The two enumerable spaces below are checked
- * here as fixed tables. The open-ended halves of the same module — the
- * idempotence of `trimmed` and the spread shape of `text` — remain properties
- * in `test/property-based/optional-fields.test.ts`.
+ * here as fixed tables. Two halves of the same module stay open-ended: the
+ * idempotence of `trimmed`, and the spread shape of `text`. Both remain
+ * properties in `test/property-based/optional-fields.test.ts`.
  */
 describe("Unit: optional fields — present", () => {
   /**

@@ -321,10 +321,10 @@ describe("Unit: Schemas — models, collections, and literals", () => {
     // produces a shape-correct but schema-invalid document, such as
     // `enum: []`.
     // `addFormats` teaches the validator the `format` keywords the emitter
-    // writes. Draft-07 leaves `format` as an annotation, so a bare Ajv
-    // ignores `int32` and `double` silently. Registering the formats makes
-    // the validator enforce them: `format: "int32"` rejects a value outside
-    // 32 bits, not just a non-integer value.
+    // writes. Draft-07 leaves `format` as an annotation, so a bare Ajv logs
+    // a warning and does not enforce `int32` or `double`. Registering the
+    // formats makes the validator enforce them: `format: "int32"` rejects a
+    // value outside 32 bits, not just a non-integer value.
     const ajv = addFormats(new Ajv({ strict: false }));
     for (const [key, componentSchema] of Object.entries(components)) {
       ajv.addSchema(componentSchema, `#/components/schemas/${key}`);
