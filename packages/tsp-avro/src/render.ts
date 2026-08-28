@@ -1,17 +1,12 @@
 /**
  * Turns the intermediate structure into a JSON value, then into text.
  *
- * The structure is already Avro shaped, so this file decides two things.
- *
- * The first is the order of the keys. `JSON.stringify` writes the keys of an
- * object in insertion order, and the walk builds its objects in whatever order
- * its code happens to run. Rebuilding each object here puts every schema in
- * the same order, which is what makes the output of two runs the same bytes.
- * The order follows the Avro specification: the type comes first, then the
- * name, then the rest.
- *
- * The second is what happens to a member the author declared none of. It is
- * dropped, so an absent `namespace` is absent rather than null.
+ * This file fixes two things the walk leaves undetermined. First, key
+ * order: `JSON.stringify` writes keys in insertion order, and the walk
+ * builds objects in whatever order its code runs. Rebuilding each object
+ * here gives every schema the same key order, so two runs produce the same
+ * bytes. Second, absence: a member the author declared none of is dropped,
+ * so an absent `namespace` is absent rather than null.
  */
 
 import { isAvroUnion, type AvroField, type AvroSchema } from "./types.js";
@@ -28,14 +23,11 @@ interface JsonObject {
 /**
  * Drops every member the walk left undefined.
  *
- * `JSON.stringify` drops such a member on its own, so this changes no file.
- * It changes what a caller that embeds the value sees. A YAML writer keeps an
- * undefined member and writes it as null, and null states something the
- * author never wrote: an Avro record with no namespace has no `namespace`
- * member, it does not have a null one.
- *
- * `Object.entries` walks the keys in insertion order, so the order the case
- * below chose survives.
+ * `JSON.stringify` drops such a member on its own, so this changes no file
+ * output. It matters to a caller that embeds the value directly, such as a
+ * YAML writer: that writer keeps an undefined member and writes it as null,
+ * and null states something the author never wrote. An Avro record with no
+ * namespace has no `namespace` member; it does not have a null one.
  */
 function prune(object: JsonObject): JsonObject {
   const kept: Record<string, JsonValue> = {};
@@ -50,8 +42,8 @@ function prune(object: JsonObject): JsonObject {
 /**
  * Renders one field.
  *
- * `default` comes last, and it is written whenever the walk set one. Null is a
- * default Avro allows, so null is written and undefined disappears.
+ * Null is a default Avro allows, so a null default is written and an unset
+ * default is dropped.
  */
 function renderField(field: AvroField): JsonObject {
   return prune({
@@ -111,8 +103,8 @@ function renderSchema(schema: AvroSchema): JsonValue {
     case "map":
       return { type: "map", values: renderSchema(schema.values) };
     default:
-      // A primitive with a logical type on it. Its `type` holds the primitive
-      // name rather than a keyword, which is what the cases above match on.
+      // A primitive with a logical type. `type` holds the primitive name,
+      // not one of the keywords the cases above match on.
       return prune({
         type: schema.type,
         logicalType: schema.logicalType,
@@ -123,18 +115,12 @@ function renderSchema(schema: AvroSchema): JsonValue {
 }
 
 /**
- * Renders one schema as the JSON value an Avro reader takes.
+ * Renders one schema as the JSON value an Avro reader takes, including every
+ * schema nested inside it.
  *
- * The keys are in the order the Avro specification names them, and a member
- * the author declared none of is absent rather than null. Both hold for every
- * schema nested inside this one.
- *
- * The answer is `unknown` because a caller writes it out rather than reads it.
- * A caller that embeds the value in another document needs this rather than
- * the text below.
- *
- * @param schema - The schema to render
- * @returns The JSON value
+ * The answer is `unknown` because a caller writes it out rather than reads
+ * it. A caller that embeds the value in another document needs this rather
+ * than the rendered text below.
  *
  * @internal
  */
@@ -145,7 +131,7 @@ export function renderAvroSchema(schema: AvroSchema): unknown {
 /**
  * Renders one schema as the text of an `.avsc` file.
  *
- * The text ends with a newline, so the file is a well formed text file.
+ * The text ends with a newline, so the file is well formed.
  *
  * @internal
  */
