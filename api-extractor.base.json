@@ -266,12 +266,18 @@
 
   /**
    * Configures how the .d.ts rollup file will be generated.
+   *
+   * The rollup is off. It writes `dist/<unscopedPackageName>.d.ts`, and no
+   * `types` or `exports` entry of any package points at that file. So the
+   * rollup was packed into every tarball and read by nobody. The types a
+   * consumer reads are the per file declarations `tsc` emits under
+   * `dist/src`.
    */
   "dtsRollup": {
     /**
      * (REQUIRED) Whether to generate the .d.ts rollup file.
      */
-    "enabled": true
+    "enabled": false
 
     /**
      * Specifies the output path for a .d.ts rollup file to be generated without any trimming.

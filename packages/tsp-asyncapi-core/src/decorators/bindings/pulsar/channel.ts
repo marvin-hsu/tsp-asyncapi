@@ -43,7 +43,8 @@ export interface PulsarChannelBindingConfig {
  *
  * `namespace` and `persistence` are required. A binding without either one is
  * reported and dropped whole, because AsyncAPI would reject the emitted
- * document. `persistence` is `persistent` or `non-persistent`.
+ * document. `persistence` is `persistent` or `non-persistent`. A value
+ * outside those two costs the binding as well.
  *
  * `geoReplication` is written under that name because a TypeSpec field cannot
  * hold a dash. The emitted field is `geo-replication`, which is the name
@@ -73,15 +74,19 @@ export function $pulsarChannel(
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
 
-  // The two required fields are settled first. A rejected `persistence` is
-  // the same as an absent one for this purpose: neither can be emitted, and
-  // the binding needs the field.
+  // The two required fields are settled first. Neither can be emitted when it
+  // is absent or rejected, and the binding needs both, so the binding goes
+  // whole either way.
   const space = trimmed(config.namespace);
+  const written = trimmed(config.persistence);
   const storage = persistence(context, config.persistence, configTarget);
   if (space === undefined) {
     reportMissingField(context, PULSAR_BINDING_PROTOCOL, "namespace", configTarget);
   }
-  if (storage === undefined) {
+  // The author who wrote a value outside the set has already read that. A
+  // second report saying the binding does not give the field would name a
+  // field they did give.
+  if (written === undefined) {
     reportMissingField(context, PULSAR_BINDING_PROTOCOL, "persistence", configTarget);
   }
   if (space === undefined || storage === undefined) return;

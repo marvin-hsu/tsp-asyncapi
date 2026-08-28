@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import { Diagnostic, getSourceLocation } from "@typespec/compiler";
 import { $lib } from "#core/lib.js";
 
@@ -79,4 +80,33 @@ export function targetText(diagnostic: Diagnostic): string {
   const location = getSourceLocation(diagnostic.target);
   if (location === undefined) return "";
   return location.file.text.slice(location.pos, location.end);
+}
+
+/**
+ * Whether anything the compile reported was an error.
+ *
+ * A property that only claims something about a document the emitter did
+ * write has to skip the draws it refused, and this is the question that
+ * decides. It was written out inline at ten sites.
+ *
+ * @param diagnostics - Every diagnostic the compile reported
+ * @returns Whether any of them is an error
+ */
+export function hasError(diagnostics: readonly Diagnostic[]): boolean {
+  return diagnostics.some((diagnostic) => diagnostic.severity === "error");
+}
+
+/**
+ * Asserts that a compile meant to succeed reported no error.
+ *
+ * The messages are compared rather than the diagnostics, so a failure says
+ * what went wrong instead of printing the whole diagnostic objects, targets
+ * and all. Warnings are left alone: a case that means to allow none of those
+ * either calls `expectDiagnosticEmpty` instead.
+ *
+ * @param diagnostics - Every diagnostic the compile reported
+ */
+export function expectNoErrors(diagnostics: readonly Diagnostic[]): void {
+  const errors = diagnostics.filter((diagnostic) => diagnostic.severity === "error");
+  expect(errors.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`)).toEqual([]);
 }

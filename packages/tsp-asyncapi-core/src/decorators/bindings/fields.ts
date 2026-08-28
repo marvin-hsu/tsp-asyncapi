@@ -2,15 +2,27 @@
  * The field checks every protocol binding shares.
  *
  * A binding specification states rules about its own fields. Several rules
- * recur across protocols: a field must hold one of a fixed set of values or
- * numbers, a field must hold a Schema Object, and a field the specification
- * requires must be there at all. Each is checked here, and the protocol name
- * arrives as an argument.
+ * recur across protocols. A field must hold one of a fixed set of values or
+ * numbers. A field must hold a Schema Object, a plain object or a list. A
+ * number is never negative. A name is at most so many characters. A field the
+ * specification requires must be there at all. Each rule is checked here, and
+ * the protocol name arrives as an argument.
  *
- * Two diagnostic codes cover all of them. `invalid-binding-field` carries the
- * protocol, the field and what the field expects, so a new rule adds a call
- * rather than a code. `missing-binding-field` is the second, and it is an
- * error rather than a warning.
+ * A protocol that states a rule of its own keeps that check in its own
+ * directory. Kafka reads `cleanup.policy`, and no other binding has such a
+ * field. A rule two protocols share belongs here instead, so the two cannot
+ * answer the same source in different ways.
+ *
+ * Three diagnostic codes cover all of them. `invalid-binding-field` carries
+ * the protocol, the field and what the field expects, so a new rule adds a
+ * call rather than a code. It is a warning, and the rest of the binding is
+ * emitted. `invalid-required-binding-field` carries the same three, and it is
+ * the code a rejected value on a required field reports. It is an error, and
+ * the whole binding is dropped. The caller picks between the two with the
+ * `FieldLoss` it passes.
+ *
+ * `missing-binding-field` is the third. It reports a required field the
+ * author left out, and it is an error as well.
  *
  * Every check here follows one rule, which is why no decorator repeats it: a
  * decorator records only the fields that survived. A field the author left
@@ -24,6 +36,24 @@ import { trimmed } from "../../optional-fields.js";
 import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
 
 /**
+ * What a rejected field costs the author.
+ *
+ * `field` takes only the field away. The rest of the binding is emitted, and
+ * the report is a warning.
+ *
+ * `binding` takes the whole binding with it, and the report is an error. Two
+ * kinds of field cost that much. One is a field the binding requires. The
+ * other is an optional object the author declared and the emitter cannot
+ * read. A binding emitted without such an object describes less than the
+ * source does.
+ *
+ * The caller names the loss. Only the caller knows what the binding is worth
+ * without the field.
+ * @internal
+ */
+export type FieldLoss = "field" | "binding";
+
+/**
  * Reports one field of a binding that carries a value the binding
  * specification forbids.
  *
@@ -32,6 +62,8 @@ import { isPlainObject, toPlainValue } from "../../marshalled-values.js";
  * @param field - The field name
  * @param expected - What the field expects, in the author's words
  * @param target - Where the problem is reported
+ * @param loss - What the rejected field costs. It is the field alone unless
+ * the caller says otherwise.
  * @internal
  */
 export function reportBindingField(
@@ -40,9 +72,10 @@ export function reportBindingField(
   field: string,
   expected: string,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): void {
   reportDiagnostic(context.program, {
-    code: "invalid-binding-field",
+    code: loss === "binding" ? "invalid-required-binding-field" : "invalid-binding-field",
     format: { protocol, field, expected },
     target,
   });
@@ -60,6 +93,8 @@ export function reportBindingField(
  * @param value - The field as the author wrote it
  * @param allowed - The values the binding specification allows
  * @param target - Where a problem is reported
+ * @param loss - What a rejected value costs. Pass `binding` where the binding
+ * requires the field.
  * @returns The value, or `undefined` when it was absent or rejected
  * @internal
  */
@@ -70,14 +105,220 @@ export function enumeratedField<T extends string>(
   value: string | undefined,
   allowed: readonly T[],
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): T | undefined {
   const written = trimmed(value);
   if (written === undefined) return undefined;
   if (!allowed.includes(written as T)) {
-    reportBindingField(context, protocol, field, allowed.join(" or "), target);
+    reportBindingField(context, protocol, field, allowed.join(" or "), target, loss);
     return undefined;
   }
   return written as T;
+}
+
+/**
+ * Checks one field a binding states as an object.
+ *
+ * Several bindings nest an object that is not a Schema Object. The exchange
+ * of an AMQP channel and the Last Will of an MQTT server are two of them. A
+ * scalar or an array describes neither, so it is reported and dropped.
+ *
+ * The object comes back as the author wrote it. An object with no field in it
+ * comes back the same way. A caller reads required fields out of the object,
+ * and it reports those first. So this check cannot drop an empty object on its
+ * own. Pass the result through `nonEmptyObject` where an empty object states
+ * nothing.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected object costs. Pass `binding` where the
+ * binding requires the object.
+ * @returns The plain JSON object, or `undefined` when it was absent or
+ * rejected
+ * @internal
+ */
+export function objectField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  target: DiagnosticTarget,
+  loss: FieldLoss = "field",
+): Record<string, unknown> | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (!isPlainObject(plain)) {
+    reportBindingField(context, protocol, field, "an object", target, loss);
+    return undefined;
+  }
+  return plain;
+}
+
+/**
+ * Drops a nested binding object that has no field left in it.
+ *
+ * An object with no field states nothing. An absent field states the same,
+ * and it is the shorter of the two. Every binding here drops the empty one,
+ * so no two protocols answer the same source in different ways.
+ *
+ * An object arrives empty for two reasons. The author wrote it empty, or
+ * every field in it was reported and dropped.
+ *
+ * @param value - The object to check
+ * @returns The object, or `undefined` when it is absent or has no field
+ * @internal
+ */
+export function nonEmptyObject<T extends object>(value: T | undefined): T | undefined {
+  if (value === undefined) return undefined;
+  return Object.keys(value).length > 0 ? value : undefined;
+}
+
+/**
+ * Checks one field a binding states as zero or more.
+ *
+ * Six fields across five bindings state a length of time, a size or a
+ * priority. None of them is ever negative. Zero is a value on all of them,
+ * because it turns the delay, the retention or the timeout off. So zero is
+ * kept and only a negative value is reported.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param measure - What the number counts, such as `seconds`. Pass
+ * `undefined` where the binding states no unit.
+ * @param target - Where a problem is reported
+ * @returns The value, or `undefined` when it was absent or rejected
+ * @internal
+ */
+export function nonNegativeField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: number | undefined,
+  measure: string | undefined,
+  target: DiagnosticTarget,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (value < 0) {
+    const expected = measure === undefined ? "zero or more" : `zero or more ${measure}`;
+    reportBindingField(context, protocol, field, expected, target);
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Checks one field a binding states as a list.
+ *
+ * The entries are not checked here. Each binding states its own rule about
+ * them, and some state none at all. This check answers one question only:
+ * whether the author wrote a list.
+ *
+ * The caller names what the list holds, because the diagnostic reads better
+ * with the subject in it. AMQP says `a list of routing keys` rather than
+ * `a list`.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ * @param loss - What a rejected list costs. Pass `binding` where the binding
+ * requires the list.
+ * @returns The entries, or `undefined` when the field was absent or rejected
+ * @internal
+ */
+export function listField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  expected: string,
+  target: DiagnosticTarget,
+  loss: FieldLoss = "field",
+): unknown[] | undefined {
+  if (value === undefined) return undefined;
+  const plain = toPlainValue(context.program, value);
+  if (!Array.isArray(plain)) {
+    reportBindingField(context, protocol, field, expected, target, loss);
+    return undefined;
+  }
+  // `Array.isArray` narrows an `unknown` to `any[]`, and the entries are
+  // whatever the author wrote. The caller checks them.
+  return plain as unknown[];
+}
+
+/**
+ * Checks one field a binding states as a list of names.
+ *
+ * A blank entry names nothing, so it is dropped. A list left with no entry is
+ * dropped as well. An empty list states no routing, no replication and no
+ * region, which is what an absent field already says.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it, still marshalled
+ * @param expected - What the list holds, in the author's words
+ * @param target - Where a problem is reported
+ * @returns The names, or `undefined` when the field was absent, empty, or
+ * rejected
+ * @internal
+ */
+export function stringListField(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: unknown,
+  expected: string,
+  target: DiagnosticTarget,
+): string[] | undefined {
+  const plain = listField(context, protocol, field, value, expected, target);
+  if (plain === undefined) return undefined;
+  const names = plain
+    .map((entry) => trimmed(entry as string))
+    .filter((entry): entry is string => entry !== undefined);
+  return names.length > 0 ? names : undefined;
+}
+
+/**
+ * Checks one name field a binding limits to a length.
+ *
+ * AMQP allows 255 characters in the name of an exchange or a queue. Solace
+ * allows 160 in a client name. A broker refuses a longer name at connect
+ * time. Emitting one would write a document that describes a topology no
+ * broker builds.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the field belongs to
+ * @param field - The field name
+ * @param value - The field as the author wrote it
+ * @param maxLength - The longest name the binding allows
+ * @param target - Where a problem is reported
+ * @returns The trimmed name, or `undefined` when it was absent, blank, or too
+ * long
+ * @internal
+ */
+export function boundedName(
+  context: DecoratorContext,
+  protocol: string,
+  field: string,
+  value: string | undefined,
+  maxLength: number,
+  target: DiagnosticTarget,
+): string | undefined {
+  const name = trimmed(value);
+  if (name === undefined) return undefined;
+  if (name.length > maxLength) {
+    reportBindingField(context, protocol, field, `at most ${String(maxLength)} characters`, target);
+    return undefined;
+  }
+  return name;
 }
 
 /**
@@ -280,6 +521,63 @@ export function reportMissingField(
     format: { protocol, field },
     target,
   });
+}
+
+/**
+ * What one read of a nested binding object produced.
+ *
+ * A nested object fails in two ways, and the two cost different amounts. A
+ * field outside what the specification allows takes only itself away. A
+ * required field the author left out is reported as `missing-binding-field`,
+ * which is an error, and the whole binding goes with it.
+ *
+ * The reader cannot make that call on its own. Only the decorator knows what
+ * the binding is without this object. So the reader names the outcome and the
+ * decorator acts on it.
+ *
+ * `dropped` costs the whole binding at some sites. They are the `queue` and
+ * the `deadLetterQueue` of an SQS channel, the `queues` of an SQS operation,
+ * and the `schemaSettings` of a Google Cloud Pub/Sub channel. Each site
+ * passes `binding` as its `FieldLoss`. The report is then
+ * `invalid-required-binding-field`. That code is an error, and it says the
+ * whole binding was dropped.
+ *
+ * @internal
+ */
+export type NestedRead<T> =
+  | { readonly outcome: "read"; readonly value: T }
+  | { readonly outcome: "dropped" }
+  | { readonly outcome: "incomplete" };
+
+/**
+ * Reports every required field a nested binding object does not carry.
+ *
+ * The diagnostic names the path rather than the field alone. A queue of an
+ * SQS channel reports `deadLetterQueue.name`, so the author reads which of
+ * the two queues is short of a name.
+ *
+ * @param context - The decorator context
+ * @param protocol - The protocol the object belongs to
+ * @param path - The path of the object, such as `deadLetterQueue`
+ * @param value - The object the author wrote
+ * @param required - The field names the specification requires
+ * @param target - Where the problems are reported
+ * @returns Whether the object carries every required field
+ * @internal
+ */
+export function requiredFields(
+  context: DecoratorContext,
+  protocol: string,
+  path: string,
+  value: Record<string, unknown>,
+  required: readonly string[],
+  target: DiagnosticTarget,
+): boolean {
+  const missing = missingFields(value, required);
+  for (const field of missing) {
+    reportMissingField(context, protocol, `${path}.${field}`, target);
+  }
+  return missing.length === 0;
 }
 
 /**

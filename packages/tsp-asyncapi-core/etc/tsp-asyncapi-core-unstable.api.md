@@ -164,8 +164,6 @@ export interface MessageNode {
     readonly headers: MessageHeadersNode;
     readonly key: string;
     readonly payload: MessagePayloadNode;
-    readonly rawHeadersRef?: string;
-    readonly rawPayloadRef?: string;
     readonly tags: readonly TagNode[];
     readonly target: Model;
     readonly title?: string;
@@ -311,7 +309,7 @@ export interface UnreadableProtobufPackage {
 
 // Warnings were encountered during analysis:
 //
-// src/resolve/service.ts:448:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
+// src/resolve/service.ts:436:29 - (ae-forgotten-export) The symbol "MultiFormatSchemaObject" needs to be exported by the entry point unstable.d.ts
 
 // (No @packageDocumentation comment for this package)
 

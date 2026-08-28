@@ -1,5 +1,7 @@
 import { DecoratorContext, Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";
+import { SERVER_NAME_PATTERN } from "../../constants.js";
+import { reportDiagnostic } from "../../lib.js";
 import { ChannelTarget } from "./state.js";
 import { UseServerState, getUsedServersInternal, setUsedServers } from "./use-server-state.js";
 
@@ -23,10 +25,16 @@ export type { UseServerState } from "./use-server-state.js";
  * server", so the emitter leaves the field out rather than emit an empty
  * array.
  *
- * The name is not checked against the declared servers. This emitter takes a
- * bare string here, and a name that no `@server` declares produces a
- * reference that resolves to nothing. That cost is accepted, so a channel
- * can name a server that another document declares.
+ * The name is checked against the character set AsyncAPI allows for a key of
+ * the root `servers` map. A name outside it, a blank one included, could
+ * only emit a reference no parser resolves, so it is reported and dropped.
+ *
+ * The name is tested as written, the same way `@server` tests the key it
+ * declares. So a padded name is rejected on both sides, and the author
+ * writes one name the same way on each side.
+ *
+ * Whether some `@server` declares the name is checked while the document is
+ * built, not here. A `@server` can still arrive after this decorator runs.
  *
  * @param context - The decorator context
  * @param target - The interface or namespace that carries the channel
@@ -49,6 +57,16 @@ export function $useServer(context: DecoratorContext, target: ChannelTarget, nam
   // Its static type is the wider `DiagnosticTarget`, so it is narrowed here
   // to the node kinds a decorator application can have.
   const node = context.decoratorTarget as DecoratorExpressionNode | AugmentDecoratorStatementNode;
+  if (!SERVER_NAME_PATTERN.test(name)) {
+    // The name is written by hand, so it is not rewritten into a legal key.
+    // Rewriting it would silently change the server the author asked for.
+    reportDiagnostic(context.program, {
+      code: "invalid-use-server-name",
+      format: { name },
+      target: context.getArgumentTarget(0) ?? node,
+    });
+    return;
+  }
   const servers = getUsedServersInternal(context.program, target) ?? [];
   servers.push({ name, node });
   setUsedServers(context.program, target, servers);

@@ -4,7 +4,7 @@ import { TesterInstance } from "@typespec/compiler/testing";
 import { documentFrom, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
 import { byCodePoint } from "../../../utils/sort.js";
 import { messagesOf } from "../../../utils/document.js";
-import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, expectNoErrors } from "../../../utils/diagnostics.js";
 
 describe("Unit: Message correlationId (Phase 3.4)", () => {
   let runner: TesterInstance;
@@ -151,7 +151,7 @@ describe("Unit: Message correlationId (Phase 3.4)", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
+    expectNoErrors(diagnostics);
 
     const doc = await documentFrom(runner.program);
     expect(messagesOf(doc).OrderCreated.correlationId).toEqual({

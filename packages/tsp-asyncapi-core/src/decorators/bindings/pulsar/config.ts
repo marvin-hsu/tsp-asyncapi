@@ -10,13 +10,18 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { PULSAR_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   PulsarChannelBindingObject,
   PulsarRetentionObject,
   PulsarServerBindingObject,
 } from "../../../types/index.js";
-import { enumeratedField, reportBindingField } from "../fields.js";
+import {
+  enumeratedField,
+  nonEmptyObject,
+  nonNegativeField,
+  objectField,
+  stringListField,
+} from "../fields.js";
 
 /**
  * What each Pulsar decorator records.
@@ -36,6 +41,10 @@ const PERSISTENCE_VALUES = ["persistent", "non-persistent"];
 /**
  * Checks the `persistence` field of the channel binding.
  *
+ * The binding requires the field, so a rejected value costs the whole
+ * binding. The loss is `binding` for that reason. A warning about one dropped
+ * field would promise the author a document the emitter never writes.
+ *
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
@@ -54,6 +63,7 @@ export function persistence(
     value,
     PERSISTENCE_VALUES,
     target,
+    "binding",
   );
 }
 
@@ -69,13 +79,14 @@ function retentionMeasure(
   value: unknown,
   target: DiagnosticTarget,
 ): number | undefined {
-  if (value === undefined) return undefined;
-  const measure = value as number;
-  if (measure < 0) {
-    reportBindingField(context, PULSAR_BINDING_PROTOCOL, field, "zero or more", target);
-    return undefined;
-  }
-  return measure;
+  return nonNegativeField(
+    context,
+    PULSAR_BINDING_PROTOCOL,
+    field,
+    value as number | undefined,
+    undefined,
+    target,
+  );
 }
 
 /**
@@ -96,17 +107,13 @@ export function retention(
   value: unknown,
   target: DiagnosticTarget,
 ): PulsarRetentionObject | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, PULSAR_BINDING_PROTOCOL, "retention", "an object", target);
-    return undefined;
-  }
+  const plain = objectField(context, PULSAR_BINDING_PROTOCOL, "retention", value, target);
+  if (plain === undefined) return undefined;
   const policy: PulsarRetentionObject = {
     ...present("time", retentionMeasure(context, "retention.time", plain.time, target)),
     ...present("size", retentionMeasure(context, "retention.size", plain.size, target)),
   };
-  return Object.keys(policy).length > 0 ? policy : undefined;
+  return nonEmptyObject(policy);
 }
 
 /**
@@ -125,12 +132,7 @@ export function compaction(
   value: number | undefined,
   target: DiagnosticTarget,
 ): number | undefined {
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(context, PULSAR_BINDING_PROTOCOL, "compaction", "zero or more", target);
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(context, PULSAR_BINDING_PROTOCOL, "compaction", value, undefined, target);
 }
 
 /**
@@ -151,20 +153,12 @@ export function geoReplication(
   value: unknown,
   target: DiagnosticTarget,
 ): string[] | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!Array.isArray(plain)) {
-    reportBindingField(
-      context,
-      PULSAR_BINDING_PROTOCOL,
-      "geo-replication",
-      "a list of cluster names",
-      target,
-    );
-    return undefined;
-  }
-  const clusters = plain
-    .map((entry) => (entry as string).trim())
-    .filter((entry) => entry.length > 0);
-  return clusters.length > 0 ? clusters : undefined;
+  return stringListField(
+    context,
+    PULSAR_BINDING_PROTOCOL,
+    "geo-replication",
+    value,
+    "a list of cluster names",
+    target,
+  );
 }

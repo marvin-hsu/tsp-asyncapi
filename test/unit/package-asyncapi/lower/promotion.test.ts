@@ -148,4 +148,40 @@ describe("Unit: Promoter", () => {
       expect(() => promoter.entries()).toThrow(/survey is open/);
     });
   });
+  describe("the identity of one fragment", () => {
+    /**
+     * The survey and the site pass the same object, and reading its identity
+     * walks the whole fragment. Walking it once per object is what keeps the
+     * cost of promotion linear in the size of the document rather than in
+     * the number of times a site is asked about.
+     */
+    it("reads one object once, however many times it is asked about", () => {
+      let reads = 0;
+      const fragment: Fragment = {
+        a: "x",
+        get b(): number {
+          reads += 1;
+          return 1;
+        },
+      };
+      const promoter = repeated();
+
+      promoter.survey(fragment, "orders");
+      promoter.survey(fragment, "shipments");
+      promoter.freeze();
+      expect(promoter.keyFor(fragment)).toBe("orders");
+
+      expect(reads).toBe(1);
+    });
+
+    /** Two objects are still two walks, and equal ones still match. */
+    it("gives two equal objects one identity", () => {
+      const promoter = repeated();
+      promoter.survey({ a: "x", b: 1 }, "orders");
+      promoter.survey({ b: 1, a: "x" }, "shipments");
+      promoter.freeze();
+
+      expect(promoter.entries().size).toBe(1);
+    });
+  });
 });

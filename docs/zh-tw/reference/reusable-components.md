@@ -93,6 +93,8 @@ short:
   maxLength: 64
 ```
 
+具名 union 上的 `@encode` 也照這個規則走。union 的 component 描述的是宣告時的形狀，所以屬性上的編碼只要對應得到其中一個 variant，整個 union 就會就地展開。編碼如果對應不到任何 variant，會報 [`encoding-describes-no-variant`](./diagnostics#encoding-describes-no-variant)，每個 variant 維持自己型別原本的形狀。
+
 ## emitter 不抽出來的東西
 
 | 區段                        | 為什麼不做                                                                                                                                 |

@@ -1,8 +1,8 @@
 import { DecoratorContext, Operation } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
-import { toPlainValue } from "../../../marshalled-values.js";
 import { claimBinding } from "../state.js";
-import { reportBindingField, reportMissingField } from "../fields.js";
+import { listField, reportMissingField } from "../fields.js";
+import type { SqsQueueObject } from "../../../types/index.js";
 import { OPERATION_QUEUE_REQUIRED, SqsOperationBindingState, readQueue } from "./config.js";
 
 /**
@@ -23,9 +23,9 @@ export interface SqsOperationBindingConfig {
  * Apply it to an operation that carries `@send` or `@receive`.
  *
  * `queues` is required, and every entry requires a `name`. An entry without
- * one is reported and dropped. A list left with no entry is reported as a
- * missing `queues`, because an empty list names no queue and AsyncAPI would
- * reject the emitted document.
+ * one is reported, and the whole binding goes with it. An empty list is
+ * reported as a missing `queues`, because an empty list names no queue and
+ * AsyncAPI would reject the emitted document.
  *
  * A queue here requires only a name. The channel binding requires a
  * `fifoQueue` as well, which is the difference AsyncAPI states between the
@@ -55,20 +55,42 @@ export function $sqsOperation(
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queues", configTarget);
     return;
   }
-  const written = toPlainValue(context.program, config.queues);
-  if (!Array.isArray(written)) {
-    reportBindingField(context, SQS_BINDING_PROTOCOL, "queues", "a list of queues", configTarget);
-    return;
+  const written = listField(
+    context,
+    SQS_BINDING_PROTOCOL,
+    "queues",
+    config.queues,
+    "a list of queues",
+    configTarget,
+    "binding",
+  );
+  if (written === undefined) return;
+
+  const queues: SqsQueueObject[] = [];
+  for (const [index, entry] of written.entries()) {
+    // The reader gets `binding` as the loss. An entry that is no object then
+    // reports an error, not a warning about one field.
+    const queue = readQueue(
+      context,
+      `queues[${String(index)}]`,
+      entry,
+      OPERATION_QUEUE_REQUIRED,
+      configTarget,
+      "binding",
+    );
+    // One entry the reader refused is an error, and the error says the binding
+    // was dropped. A list with that entry left out would describe fewer queues
+    // than the author declared, which is worse than no binding at all. Both
+    // refusals cost the same, so both leave here.
+    //
+    // The entries after it are never read. Reading one reports its own fields,
+    // and a field of a binding nothing emits would be reported as kept.
+    if (queue.outcome !== "read") return;
+    queues.push(queue.value);
   }
 
-  const queues = written
-    .map((entry, index) =>
-      readQueue(context, `queues[${String(index)}]`, entry, OPERATION_QUEUE_REQUIRED, configTarget),
-    )
-    .filter((queue) => queue !== undefined);
-
-  // Every entry was rejected, or the author wrote an empty list. Either way
-  // the emitted binding would carry no queue, which AsyncAPI refuses.
+  // The author wrote an empty list. The emitted binding would carry no queue,
+  // which AsyncAPI refuses.
   if (queues.length === 0) {
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queues", configTarget);
     return;

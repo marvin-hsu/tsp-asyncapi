@@ -96,10 +96,44 @@ const BINDING_VERSIONS: Record<BindingRenderer, string | null> = {
  * order every example in the AsyncAPI binding repository shows.
  */
 function render(node: BindingNode): BindingObject {
-  const config = node.config as BindingObject;
+  // The config is copied rather than handed over. It belongs to the resolved
+  // model, which every stage after resolve treats as read only. The copy is
+  // also what gives the document types the mutable value they declare.
   const version = BINDING_VERSIONS[node.renderer];
-  if (version === null) return config;
-  return { ...config, bindingVersion: version };
+  if (version === null) return { ...node.config };
+  return { ...node.config, bindingVersion: version };
+}
+
+/**
+ * The Bindings Object of each site, rendered once per document.
+ *
+ * Two stages need it. The survey renders every site to decide which objects
+ * are shared, and each site renders again to write what it carries. The
+ * second render answered a question the first one had already answered.
+ *
+ * The key is the node list itself, which the resolved model holds one of per
+ * site. So one site is one entry, and the table lives exactly as long as the
+ * build that made it.
+ *
+ * @internal
+ */
+export class BindingsRenderer {
+  readonly #rendered = new Map<readonly BindingNode[], BindingsObject | undefined>();
+
+  /**
+   * The Bindings Object of one site.
+   *
+   * @param nodes - The resolved bindings of that site, in source order
+   * @returns What {@link lowerBindings} writes for them, rendered once
+   */
+  public render(nodes: readonly BindingNode[]): BindingsObject | undefined {
+    // `has` rather than a truthy check: a site with no node renders to
+    // `undefined`, and that answer is worth keeping too.
+    if (this.#rendered.has(nodes)) return this.#rendered.get(nodes);
+    const rendered = lowerBindings(nodes);
+    this.#rendered.set(nodes, rendered);
+    return rendered;
+  }
 }
 
 /**

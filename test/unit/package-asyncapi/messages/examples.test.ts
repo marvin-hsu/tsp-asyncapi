@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { AsyncAPITester } from "#emitter/testing.js";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { getSourceLocation } from "@typespec/compiler";
-import { diagnosticsWith } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, expectNoErrors } from "../../../utils/diagnostics.js";
 import { documentFrom } from "../../../utils/test-host.js";
 
 describe("Unit: Message examples (Phase 3.5)", () => {
@@ -195,7 +195,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
+    expectNoErrors(diagnostics);
 
     // The whole entry goes, including its serializable sibling field. An
     // entry that kept only half of its payload would show a message the
@@ -340,7 +340,7 @@ describe("Unit: Message examples (Phase 3.5)", () => {
       }
     `);
 
-    expect(diagnostics.filter((d) => d.severity === "error")).toHaveLength(0);
+    expectNoErrors(diagnostics);
 
     const doc = await documentFrom(runner.program);
     expect(doc.components?.messages?.OrderCreated.examples).toEqual([{ payload: "o-1" }]);

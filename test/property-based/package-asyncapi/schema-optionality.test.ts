@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { byCodePoint } from "../../utils/sort.js";
@@ -163,7 +164,7 @@ describe("Integration: Schemas — optionality and required", () => {
         // TypeSpec refuses some of these programs outright. The claim starts
         // once the emitter has answered with a document. Warnings are kept:
         // both fallback paths announce themselves with one.
-        fc.pre(doc !== null && !diagnostics.some((d) => d.severity === "error"));
+        fc.pre(doc !== null && !hasError(diagnostics));
 
         const schema = schemaOf(schemasOf(doc)["M" + String(declared.length - 1)]);
         expect(schema).toBeDefined();

@@ -13,7 +13,7 @@ import {
   getFriendlyName,
   isService,
 } from "@typespec/compiler";
-import { isGlobalTypeSpecNamespace } from "./constants.js";
+import { COMPONENTS_KEY_PATTERN, isGlobalTypeSpecNamespace } from "./constants.js";
 
 /** Upper-cases just the first character, leaving the rest of `text` as-is. */
 function capitalizeFirst(text: string): string {
@@ -29,7 +29,7 @@ function capitalizeFirst(text: string): string {
  * A plain TypeSpec identifier passes through the sanitizer unchanged, casing
  * included, so every ordinary key stays byte-identical. A backtick-quoted
  * namespace name such as `` `a/b` `` is Sep-encoded instead, so a character
- * outside `SAFE_KEY_CHARSET` can never leak into the key or into the `$ref`
+ * outside `COMPONENTS_KEY_PATTERN` can never leak into the key or into the `$ref`
  * fragment built from it.
  * This matches the official `getNamespacePrefix`, which also returns a
  * trailing-dot prefix, so a declaration key reads like the official
@@ -165,19 +165,13 @@ function sanitizeNameSegment(raw: string): string {
 }
 
 /**
- * The AsyncAPI 3.0 Components Object key charset. A `components.schemas`
- * key outside this charset is not a legal member name.
- */
-const SAFE_KEY_CHARSET = /^[a-zA-Z0-9.\-_]+$/;
-
-/**
  * Tells whether `name` can be used as a Components Object key verbatim.
  * A caller that takes a key straight from the user, such as the `@message`
  * argument, uses this to warn before `sanitizeDeclarationName` rewrites the
  * text into something the user never asked for.
  */
 export function isSafeComponentsKey(name: string): boolean {
-  return SAFE_KEY_CHARSET.test(name);
+  return COMPONENTS_KEY_PATTERN.test(name);
 }
 
 /**
@@ -186,7 +180,7 @@ export function isSafeComponentsKey(name: string): boolean {
  * `components.messages` share the same key charset, so both use this
  * sanitizer.
  * A plain TypeSpec identifier already lies entirely inside
- * `SAFE_KEY_CHARSET`; it is returned unchanged, case included. This keeps
+ * `COMPONENTS_KEY_PATTERN`; it is returned unchanged, case included. This keeps
  * every existing key stable.
  * A backtick-quoted name can carry arbitrary characters, such as a name
  * spelled Foo/Bar. It is run through `sanitizeNameSegment`, so a
@@ -204,7 +198,7 @@ export function sanitizeDeclarationName(name: string): string {
   if (name.length === 0) {
     return name;
   }
-  if (SAFE_KEY_CHARSET.test(name)) {
+  if (COMPONENTS_KEY_PATTERN.test(name)) {
     // The name needs no encoding, but it may still spell the marker the
     // encoding uses. `Sep47` is a legal declaration name, and `` `/` ``
     // encodes to exactly that, so the two would claim one key. Escaping the
@@ -287,7 +281,7 @@ function templateArgDisplayName(
     case "Scalar":
       // The name is sanitized the same way a `Model`/`Union`/`Enum`
       // argument's name is, through `declarationNameFor`. A backtick-quoted
-      // scalar name can carry a character outside `SAFE_KEY_CHARSET`, and
+      // scalar name can carry a character outside `COMPONENTS_KEY_PATTERN`, and
       // that character must not reach the composed key.
       return (
         namespacePrefix(program, arg.namespace) + capitalizeFirst(sanitizeDeclarationName(arg.name))

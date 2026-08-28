@@ -10,7 +10,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { GOOGLE_PUB_SUB_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   GooglePubSubChannelBindingObject,
   GooglePubSubMessageBindingObject,
@@ -18,7 +17,14 @@ import type {
   GooglePubSubSchemaSettingsObject,
   GooglePubSubStoragePolicyObject,
 } from "../../../types/index.js";
-import { missingFields, reportBindingField, reportMissingField } from "../fields.js";
+import {
+  FieldLoss,
+  NestedRead,
+  nonEmptyObject,
+  objectField,
+  requiredFields,
+  stringListField,
+} from "../fields.js";
 
 /**
  * What each Google Cloud Pub/Sub decorator records.
@@ -41,20 +47,15 @@ export type GooglePubSubMessageBindingState = Omit<
 /** The fields `schemaSettings` requires. */
 const REQUIRED_SCHEMA_SETTINGS = ["encoding", "name"];
 
-/** Reads one object field, reporting a value that is not an object. */
-function objectField(
+/** Reads one object field, naming the protocol for the caller. */
+function pubSubObject(
   context: DecoratorContext,
   field: string,
   value: unknown,
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
-  }
-  return plain;
+  return objectField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, field, value, target, loss);
 }
 
 /**
@@ -67,29 +68,40 @@ function objectField(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The schema settings, or `undefined` when the object was absent or
- * incomplete
+ * @returns The schema settings, `dropped` when the object was not an object,
+ * or `incomplete` when a required field is absent
  * @internal
  */
 export function schemaSettings(
   context: DecoratorContext,
   value: unknown,
   target: DiagnosticTarget,
-): GooglePubSubSchemaSettingsObject | undefined {
-  const plain = objectField(context, "schemaSettings", value, target);
-  if (plain === undefined) return undefined;
+): NestedRead<GooglePubSubSchemaSettingsObject> {
+  const plain = pubSubObject(context, "schemaSettings", value, target, "binding");
+  if (plain === undefined) return { outcome: "dropped" };
 
-  const missing = missingFields(plain, REQUIRED_SCHEMA_SETTINGS);
-  for (const field of missing) {
-    reportMissingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, `schemaSettings.${field}`, target);
+  const path = "schemaSettings";
+  if (
+    !requiredFields(
+      context,
+      GOOGLE_PUB_SUB_BINDING_PROTOCOL,
+      path,
+      plain,
+      REQUIRED_SCHEMA_SETTINGS,
+      target,
+    )
+  ) {
+    return { outcome: "incomplete" };
   }
-  if (missing.length > 0) return undefined;
 
   return {
-    encoding: (plain.encoding as string).trim(),
-    name: (plain.name as string).trim(),
-    ...present("firstRevisionId", trimmed(plain.firstRevisionId as string | undefined)),
-    ...present("lastRevisionId", trimmed(plain.lastRevisionId as string | undefined)),
+    outcome: "read",
+    value: {
+      encoding: (plain.encoding as string).trim(),
+      name: (plain.name as string).trim(),
+      ...present("firstRevisionId", trimmed(plain.firstRevisionId as string | undefined)),
+      ...present("lastRevisionId", trimmed(plain.lastRevisionId as string | undefined)),
+    },
   };
 }
 
@@ -110,25 +122,18 @@ export function messageStoragePolicy(
   value: unknown,
   target: DiagnosticTarget,
 ): GooglePubSubStoragePolicyObject | undefined {
-  const plain = objectField(context, "messageStoragePolicy", value, target);
+  const plain = pubSubObject(context, "messageStoragePolicy", value, target);
   if (plain === undefined) return undefined;
 
-  const written = plain.allowedPersistenceRegions;
-  if (written === undefined) return undefined;
-  if (!Array.isArray(written)) {
-    reportBindingField(
-      context,
-      GOOGLE_PUB_SUB_BINDING_PROTOCOL,
-      "messageStoragePolicy.allowedPersistenceRegions",
-      "a list of region names",
-      target,
-    );
-    return undefined;
-  }
-  const regions = written
-    .map((entry) => (entry as string).trim())
-    .filter((entry) => entry.length > 0);
-  return regions.length > 0 ? { allowedPersistenceRegions: regions } : undefined;
+  const regions = stringListField(
+    context,
+    GOOGLE_PUB_SUB_BINDING_PROTOCOL,
+    "messageStoragePolicy.allowedPersistenceRegions",
+    plain.allowedPersistenceRegions,
+    "a list of region names",
+    target,
+  );
+  return regions === undefined ? undefined : { allowedPersistenceRegions: regions };
 }
 
 /**
@@ -151,9 +156,7 @@ export function openMap(
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  const plain = objectField(context, field, value, target);
-  if (plain === undefined) return undefined;
-  return Object.keys(plain).length > 0 ? plain : undefined;
+  return nonEmptyObject(pubSubObject(context, field, value, target));
 }
 
 /**
@@ -165,20 +168,22 @@ export function openMap(
  * @param context - The decorator context
  * @param value - The field as the author wrote it, still marshalled
  * @param target - Where a problem is reported
- * @returns The schema, or `undefined` when it was absent or has no name
+ * @returns The schema, `dropped` when it was absent or not an object, or
+ * `incomplete` when it has no name
  * @internal
  */
 export function messageSchema(
   context: DecoratorContext,
   value: unknown,
   target: DiagnosticTarget,
-): GooglePubSubSchemaObject | undefined {
-  const plain = objectField(context, "schema", value, target);
-  if (plain === undefined) return undefined;
+): NestedRead<GooglePubSubSchemaObject> {
+  const plain = pubSubObject(context, "schema", value, target);
+  if (plain === undefined) return { outcome: "dropped" };
 
-  if (missingFields(plain, ["name"]).length > 0) {
-    reportMissingField(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, "schema.name", target);
-    return undefined;
+  if (
+    !requiredFields(context, GOOGLE_PUB_SUB_BINDING_PROTOCOL, "schema", plain, ["name"], target)
+  ) {
+    return { outcome: "incomplete" };
   }
-  return { name: (plain.name as string).trim() };
+  return { outcome: "read", value: { name: (plain.name as string).trim() } };
 }

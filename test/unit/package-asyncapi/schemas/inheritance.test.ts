@@ -3,7 +3,10 @@ import { AsyncAPITester } from "#emitter/testing.js";
 import { compileSchemas } from "../../../utils/schema-host.js";
 import { t } from "@typespec/compiler/testing";
 import { SchemaBuilder } from "#emitter/lower/schemas.js";
-import { findNeverOverrideOfInheritedProperty } from "#emitter/lower/schemas/inheritance.js";
+import {
+  findNeverOverrideOfInheritedProperty,
+  resolveDiscriminator,
+} from "#emitter/lower/schemas/inheritance.js";
 import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 
 describe("Unit: Schemas — inheritance and discriminator", () => {
@@ -526,5 +529,135 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     `);
 
     expect(findNeverOverrideOfInheritedProperty(Derived)).toBeUndefined();
+  });
+  /**
+   * `extends` over a named collection base used to build that base twice.
+   * One build asked whether it was a collection at all. The other wrote the
+   * `$ref` branch. The element type of the base was built twice with it, and
+   * a second build is what promotes an inlined declaration to a component.
+   * So the same element landed inline or behind a `$ref` depending on
+   * whether some other model happened to extend the collection.
+   */
+  it("should keep a collection base's element inline when a model extends the base", async () => {
+    const { builder, M } = await compileSchemas(t.code`
+      model Box<T> { value: T; }
+      model Items is Box<{ a: string }>[];
+      model Derived extends Items {}
+      model ${t.model("M")} { target: Derived; }
+    `);
+    builder.buildSchema(M);
+
+    const components = builder.getSchemas();
+    expect(components.Items).toEqual({
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          value: {
+            type: "object",
+            properties: { a: { type: "string" } },
+            required: ["a"],
+          },
+        },
+        required: ["value"],
+      },
+    });
+    // The element has no compact name of its own, so a component for it
+    // would be keyed by the long fallback name. Nothing references it twice,
+    // so nothing should have promoted it.
+    expect(Object.keys(components)).toEqual(["Items", "Derived", "M"]);
+  });
+
+  it("should keep a record base's element inline when a model extends the base with properties", async () => {
+    const { builder, M } = await compileSchemas(t.code`
+      model Box<T> { value: T; }
+      model Bag is Record<Box<{ a: string }> | int32>;
+      model Derived extends Bag { count: int32; }
+      model ${t.model("M")} { target: Derived; }
+    `);
+    builder.buildSchema(M);
+
+    const components = builder.getSchemas();
+    expect(components.Bag).toEqual({
+      type: "object",
+      additionalProperties: {
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              value: {
+                type: "object",
+                properties: { a: { type: "string" } },
+                required: ["a"],
+              },
+            },
+            required: ["value"],
+          },
+          { type: "integer", format: "int32" },
+        ],
+      },
+    });
+    expect(Object.keys(components)).toEqual(["Bag", "Derived", "M"]);
+  });
+  /**
+   * `resolveDiscriminator` answers whether `@discriminator` applies without
+   * building a schema, reporting anything, or queueing a subtype. One
+   * caller only needs the answer, being the payload of a message that lifts
+   * `@header` fields. It used to get the answer by building a throwaway
+   * schema. That build queued the model's subtypes a second time.
+   */
+  describe("resolveDiscriminator", () => {
+    it("names the property the decorator points at", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { kind: string; }
+      `);
+
+      const resolution = resolveDiscriminator(program, Pet);
+      expect(resolution.kind).toBe("applies");
+      expect(resolution.kind === "applies" && resolution.property.name).toBe("kind");
+    });
+
+    it("finds the property on an ancestor", async () => {
+      const { program, Dog } = await compileSchemas(t.code`
+        model Pet { kind: string; }
+        @discriminator("kind")
+        model ${t.model("Dog")} extends Pet {}
+      `);
+
+      expect(resolveDiscriminator(program, Dog).kind).toBe("applies");
+    });
+
+    it("reports a model with no decorator as absent", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        model ${t.model("Pet")} { kind: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({ kind: "absent" });
+    });
+
+    it("names the property that is not there", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { name: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({
+        kind: "missing-discriminator-property",
+        propertyName: "kind",
+      });
+    });
+
+    it("names the property that is optional", async () => {
+      const { program, Pet } = await compileSchemas(t.code`
+        @discriminator("kind")
+        model ${t.model("Pet")} { kind?: string; }
+      `);
+
+      expect(resolveDiscriminator(program, Pet)).toEqual({
+        kind: "optional-discriminator-property",
+        propertyName: "kind",
+      });
+    });
   });
 });

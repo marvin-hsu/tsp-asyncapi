@@ -17,7 +17,7 @@
  */
 
 import type { AsyncAPIService, BindingNode } from "tsp-asyncapi-core/unstable";
-import { lowerBindings } from "../bindings.js";
+import { BindingsRenderer } from "../bindings.js";
 import { lowerParameter } from "../channels/parameters.js";
 import { lowerServerVariable } from "../servers/variables.js";
 import type {
@@ -53,6 +53,11 @@ function keyFromSite(site: string): string {
 /** Every promotion one document drives, each survey already closed. */
 export interface DocumentPromotions {
   readonly rawSchemas: RawSchemaPromoter;
+  /**
+   * The renderer the survey used, carried on so each site writes the object
+   * the survey already rendered for it.
+   */
+  readonly renderedBindings: BindingsRenderer;
   readonly correlationIds: Promoter<CorrelationIdObject>;
   readonly externalDocs: Promoter<ExternalDocumentationObject>;
   readonly tags: Promoter<TagObject>;
@@ -108,6 +113,7 @@ export function surveyDocument(
   const tags = byName<TagObject>();
   const parameters = byKey<ParameterObject>();
   const serverVariables = byKey<ServerVariableObject>();
+  const renderedBindings = new BindingsRenderer();
   const bindings = {
     serverBindings: anonymous<BindingsObject>(),
     channelBindings: anonymous<BindingsObject>(),
@@ -122,9 +128,9 @@ export function surveyDocument(
   ): void => {
     // The identity is taken from the rendered object, because
     // `bindingVersion` is appended there rather than recorded by the
-    // decorator. Rendering is a pure function of the nodes, so surveying
-    // costs one extra render per site and changes nothing.
-    const rendered = lowerBindings(nodes);
+    // decorator. The renderer is carried on to the sites, so each node list
+    // is rendered once for the survey and the site that writes it.
+    const rendered = renderedBindings.render(nodes);
     if (rendered === undefined) return;
     // The reason one Bindings Object reaches several sites is that one
     // declaration carries it, so that declaration names the component. The
@@ -179,6 +185,7 @@ export function surveyDocument(
 
   return {
     rawSchemas: RawSchemaPromoter.survey(service, schemas),
+    renderedBindings,
     correlationIds,
     externalDocs,
     tags,
@@ -252,4 +259,52 @@ export function sharedEach<T>(
 ): (T | ReferenceObject)[] | undefined {
   if (values.length === 0) return undefined;
   return values.map((value) => shared(promoter, section, value));
+}
+
+/** The `components` section one kind of site promotes its bindings into. */
+export type BindingsSection =
+  "serverBindings" | "channelBindings" | "operationBindings" | "messageBindings";
+
+/**
+ * The three fragments every kind of site carries: `tags`, `externalDocs` and
+ * `bindings`.
+ *
+ * A server, a channel, an operation and a message each carry all three, and
+ * each answered the same three questions in its own words. What differs
+ * between them is only which `components` section the bindings go to, which
+ * is the one argument this takes.
+ *
+ * The fields come back separately rather than as a piece of the object to
+ * spread. Each site writes them in the order its own specification table
+ * lists, and those orders differ.
+ *
+ * @param promoted - The closed surveys
+ * @param section - The bindings section of this kind of site
+ * @param node - The resolved site
+ * @returns What this site writes for each of the three, `undefined` where it
+ * carries nothing
+ * @internal
+ */
+export function sharedSiteFields(
+  promoted: DocumentPromotions,
+  section: BindingsSection,
+  node: {
+    readonly tags: readonly TagObject[];
+    readonly externalDocs?: ExternalDocumentationObject;
+    readonly bindings: readonly BindingNode[];
+  },
+): {
+  readonly tags: (TagObject | ReferenceObject)[] | undefined;
+  readonly externalDocs: ExternalDocumentationObject | ReferenceObject | undefined;
+  readonly bindings: BindingsObject | ReferenceObject | undefined;
+} {
+  return {
+    tags: sharedEach(promoted.tags, "tags", node.tags),
+    externalDocs: sharedOptional(promoted.externalDocs, "externalDocs", node.externalDocs),
+    bindings: sharedOptional(
+      promoted[section],
+      section,
+      promoted.renderedBindings.render(node.bindings),
+    ),
+  };
 }

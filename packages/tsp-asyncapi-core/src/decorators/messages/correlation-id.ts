@@ -70,7 +70,7 @@ export function $correlationId(
   // written last in the source runs first and wins. The guard records
   // that this decorator ran, before any value is validated, so a value
   // that fails validation still blocks a later application.
-  if (!guard.claim(context, target)) return;
+  if (guard.claim(context, target) !== "first") return;
   if (!isRuntimeExpression(location)) {
     // Nothing is recorded, so no `correlationId` reaches the document. An
     // expression this emitter cannot parse is one no AsyncAPI tool can
@@ -102,5 +102,9 @@ export function $correlationId(
  * @public
  */
 export function getCorrelationId(program: Program, target: Model): CorrelationIdState | undefined {
-  return getCorrelationIdInternal(program, target);
+  // Hand out a copy. The stored state is what the emitter writes, so handing
+  // out the stored object would let a caller change the emitted document by
+  // changing what it was given.
+  const state = getCorrelationIdInternal(program, target);
+  return state === undefined ? undefined : { ...state };
 }

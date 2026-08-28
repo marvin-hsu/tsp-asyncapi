@@ -1,12 +1,11 @@
 import { describe, it, expect } from "vitest";
 import fc from "fast-check";
-import type { Program } from "@typespec/compiler";
-
 import { lowerDocument } from "#emitter/lower/document.js";
 import { resolvesInDocument } from "#emitter/lower/json-pointer.js";
 import { ASYNCAPI_VERSION } from "#core/constants.js";
 import type { AsyncAPIEmitterOptions } from "#emitter/emitter-options.js";
 import { infoNode, service } from "./ir-arbitraries.js";
+import { unusedProgram } from "../utils/program.js";
 
 /**
  * Properties of the document assembly.
@@ -30,7 +29,7 @@ import { infoNode, service } from "./ir-arbitraries.js";
  */
 
 /** A program no assertion in this file lets the emitter reach. */
-const stubProgram = {} as unknown as Program;
+const stubProgram = unusedProgram();
 
 const RUNS = { numRuns: 300, seed: 20260815 };
 
@@ -250,8 +249,8 @@ describe("Integration: document assembly — the options that reach the head", (
    *
    * Two of the three states an option can be in are single points -- absent,
    * and blank in each of its spellings -- and both are written out in
-   * `test/unit/lower/document.test.ts`, which owns them. What is left for a
-   * property, and reachable only here, is arbitrary text.
+   * `test/unit/package-asyncapi/lower/document.test.ts`, which owns them. What
+   * is left for a property, and reachable only here, is arbitrary text.
    */
   const optionDraw = fc.oneof(
     { arbitrary: fc.constant<OptionDraw>({ input: undefined, expected: undefined }), weight: 2 },

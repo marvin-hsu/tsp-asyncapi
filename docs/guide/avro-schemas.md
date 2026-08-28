@@ -231,7 +231,13 @@ A TypeSpec enum becomes an Avro enum. Avro holds symbols alone, so a member that
 
 A scalar you declare is matched through the scalar it extends. `scalar Age extends int32` maps to `int`.
 
+`@Avro.logicalType`, `@Avro.decimal`, `@Avro.fixed` and `@Avro.aliases` are read through that chain as well. `scalar CreatedAt extends Timestamp` carries the logical type of `Timestamp`. The nearest declaration wins, so write the decorator again to say something else.
+
 Avro has no unsigned integer. `uint32` and `uint64` are refused, because widening them would change what you wrote.
+
+The table is the whole of it. `utcDateTime`, `offsetDateTime`, `plainDate`, `plainTime`, `duration` and `decimal` are refused as well. Avro carries each of them as a number or as bytes. A logical type says which one it is, not the scalar.
+
+Declare the field as the type Avro carries. Write the meaning with `@Avro.logicalType`. A timestamp is an `int64` that carries `timestamp-millis`. A date is an `int32` that carries `date`. A decimal is `bytes` under `@Avro.decimal`. The next section names every pair.
 
 ## Logical types
 
@@ -258,16 +264,16 @@ A pair outside the table is refused. A name outside the table is refused as well
 
 ## Decorators
 
-| Decorator                         | Target                           | What it does                                                         |
-| --------------------------------- | -------------------------------- | -------------------------------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | Declares the Avro namespace. The nearest ancestor that has one wins. |
-| `@Avro.avroRecord`                | `Model`                          | Marks a model to emit. One marked model becomes one file.            |
-| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum` | Names what the declaration used to be called.                        |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`, `descending` or `ignore`.                               |
-| `@Avro.fixed(size)`               | `Model`, `Scalar`                | Makes an Avro fixed type of that many bytes.                         |
-| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`        | Writes a logical type from the table above.                          |
-| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`        | Writes the `decimal` logical type with its parameters.               |
-| `@Avro.enumDefault(member)`       | `Enum`                           | Names the symbol a reader falls back to.                             |
+| Decorator                         | Target                                     | What it does                                                                                          |
+| --------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | Declares the Avro namespace. The nearest ancestor that has one wins.                                  |
+| `@Avro.avroRecord`                | `Model`                                    | Marks a model to emit. One marked model becomes one file.                                             |
+| `@Avro.aliases(...names)`         | `Model`, `ModelProperty`, `Enum`, `Scalar` | Names what the declaration used to be called. A scalar takes one where `@Avro.fixed` gives it a name. |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`, `descending` or `ignore`.                                                                |
+| `@Avro.fixed(size)`               | `Model`, `Scalar`                          | Makes an Avro fixed type of that many bytes.                                                          |
+| `@Avro.logicalType(name)`         | `Scalar`, `ModelProperty`                  | Writes a logical type from the table above.                                                           |
+| `@Avro.decimal(precision, scale)` | `Scalar`, `ModelProperty`                  | Writes the `decimal` logical type with its parameters.                                                |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | Names the symbol a reader falls back to.                                                              |
 
 Documentation comes from the native `/** */` comment. A field default comes from the native `= value`. There is no decorator for either.
 
@@ -277,22 +283,23 @@ Every diagnostic of this package is an error. An error stops every write. So one
 
 A part of a schema is still a valid schema. A registry would accept one, and a reader would then decode data into a shape the author never wrote.
 
-| Code                              | When                                                                  |
-| --------------------------------- | --------------------------------------------------------------------- |
-| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                              |
-| `tsp-avro/invalid-name`           | A name breaks the Avro name rules.                                    |
-| `tsp-avro/unsupported-type`       | A type has no Avro form.                                              |
-| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                     |
-| `tsp-avro/invalid-default`        | A default has no JSON form, or it belongs to no branch of its union.  |
-| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.    |
-| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive.                 |
-| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.  |
-| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                  |
-| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow. |
-| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                            |
-| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.         |
-| `tsp-avro/duplicate-record`       | Two records write to one path.                                        |
-| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                            |
+| Code                              | When                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | A record has no Avro namespace above it.                                                                        |
+| `tsp-avro/invalid-name`           | A name breaks the Avro name rules, or Avro keeps it for a type of its own.                                      |
+| `tsp-avro/unsupported-type`       | A type has no Avro form.                                                                                        |
+| `tsp-avro/aliases-target`         | `@Avro.aliases` is on a scalar that is written as an Avro primitive.                                            |
+| `tsp-avro/duplicate-union-branch` | Two branches of one union are the same Avro type.                                                               |
+| `tsp-avro/invalid-default`        | A default has no JSON form, or it names no one branch of its union.                                             |
+| `tsp-avro/invalid-order`          | `@Avro.order` was given something that is not an Avro field order.                                              |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` was given a width that is not positive, or a scalar that extends an Avro type other than `bytes`. |
+| `tsp-avro/invalid-decimal`        | A precision or a scale does not fit, or a `decimal` carries neither.                                            |
+| `tsp-avro/unknown-logical-type`   | A logical type is not one the specification defines.                                                            |
+| `tsp-avro/logical-type-mismatch`  | A logical type is written on a type the specification does not allow.                                           |
+| `tsp-avro/duplicate-logical-type` | One declaration carries two logical types.                                                                      |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` names a member the enum does not declare.                                                   |
+| `tsp-avro/duplicate-record`       | Two records write to one path.                                                                                  |
+| `tsp-avro/enum-member-value`      | An enum member carries a value of its own.                                                                      |
 
 ## Refusals
 
@@ -301,5 +308,9 @@ A part of a schema is still a valid schema. A registry would accept one, and a r
 - A template instance, such as `Box<string>`. Two instances of one template share a name.
 - A model that holds an index signature and fields together.
 - A scalar outside the table above.
+- `@Avro.aliases` on a scalar that carries no `@Avro.fixed`. An alias stands for a name, and a primitive has none.
+- A scalar that carries `@Avro.fixed` and extends an Avro type other than `bytes`. An Avro fixed type holds bytes. A scalar that extends nothing is written as the fixed type, because it says nothing else.
 - A union that names one type twice, such as `string[] | int32[]`.
+- A union that holds no branch, such as `union Nothing {}`. A reader picks one branch of a union, and there is none to pick.
 - Two declarations that resolve to one Avro full name.
+- A record, an enum or a fixed type named after an Avro primitive: `null`, `boolean`, `int`, `long`, `float`, `double`, `bytes` or `string`. A schema spells a primitive by name alone, so a type of that name reads back as the primitive. A name such as `record` or `map` is free, because Avro spells a complex type as an object rather than by the keyword alone.

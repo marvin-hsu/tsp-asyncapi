@@ -12,23 +12,14 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
-import { fileURLToPath } from "node:url";
+import { createLibraryTester } from "../../../../utils/emitter-package.js";
 import { PACKAGE_NAME } from "#emitter/lib.js";
-import { diagnosticsWith } from "../../../../utils/diagnostics.js";
-
-/** The root of the emitter package, which holds both libraries beside it. */
-const PACKAGE_ROOT = fileURLToPath(
-  new URL("../../../../../packages/tsp-asyncapi", import.meta.url),
-);
+import { diagnosticsWith, expectNoErrors } from "../../../../utils/diagnostics.js";
 
 /** A tester that compiles all three libraries and turns both features on. */
-const BothFeatures = createTester(PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "tsp-avro", "@typespec/protobuf"],
-})
-  .importLibraries()
-  .using("AsyncAPI")
-  .emit(PACKAGE_NAME, { "preview-features": ["protobuf", "avro"] });
+const BothFeatures = createLibraryTester("tsp-avro", "@typespec/protobuf").emit(PACKAGE_NAME, {
+  "preview-features": ["protobuf", "avro"],
+});
 
 /** One message model both schema languages claim. */
 const CLAIMED_TWICE = `
@@ -106,7 +97,7 @@ describe("Unit: one model claimed by two preview features", () => {
       }
     `);
 
-    expect(diagnostics.filter((one) => one.severity === "error")).toEqual([]);
+    expectNoErrors(diagnostics);
     const outputs: Record<string, string | undefined> = result.outputs;
     const document = outputs["asyncapi.yaml"] ?? "";
     // Each provider answered for its own model, in its own format.

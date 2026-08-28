@@ -66,7 +66,7 @@ extern dec kafkaChannel(
 
 `partitions` 與 `replicas` 是正整數。超出範圍的值會由 `invalid-binding-field` 回報。該欄位被丟棄，binding 的其餘欄位保留。
 
-`topicConfiguration` 是開放的對應表。AsyncAPI 說明該物件可以帶額外屬性。Kafka 的 topic 設定名稱含有點號，因此像 `confluent.value.schema.validation` 這種廠商設定也合法。emitter 只檢查一個值。`cleanup.policy` 的項目必須是 `delete` 或 `compact`。binding 把該欄位定為清單。若只寫單一個值，emitter 會輸出成只有一項的清單。
+`topicConfiguration` 是開放的對應表。AsyncAPI 說明該物件可以帶額外屬性。Kafka 的 topic 設定名稱含有點號，因此像 `confluent.value.schema.validation` 這種廠商設定也合法。emitter 會檢查對應表本身，以及其中一個值。對應表若帶有序列化器無法表示的成員，會透過 `invalid-binding-field` 回報並整份丟棄。帶有 `init` 的自訂 scalar 就是這種成員。被檢查的那個值是 `cleanup.policy`，它的項目必須是 `delete` 或 `compact`。binding 把該欄位定為清單。若只寫單一個值，emitter 會輸出成只有一項的清單。
 
 ```typespec
 @kafkaChannel(#{

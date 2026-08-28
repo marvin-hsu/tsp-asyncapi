@@ -61,13 +61,40 @@ describe("Unit: Protobuf run time independence (Phase 16 W1)", () => {
       peerDependenciesMeta: Record<string, { optional?: boolean } | undefined>;
     };
 
+    const workspacePath = fileURLToPath(new URL("../../../../../package.json", import.meta.url));
+    const workspace = JSON.parse(await readFile(workspacePath, "utf8")) as {
+      devDependencies: Record<string, string>;
+    };
+
     expect(manifest.dependencies["@typespec/protobuf"]).toBeUndefined();
+
     // The version is exact, so the judge cannot drift under a caret range.
-    expect(manifest.devDependencies["@typespec/protobuf"]).toBe("0.85.0");
-    expect(manifest.peerDependencies["@typespec/protobuf"]).toBe("0.85.x");
+    // The number itself is read here rather than written down. An upgrade
+    // moves it, and this case is about the shape rather than the number.
+    const pinned = manifest.devDependencies["@typespec/protobuf"];
+    expect(pinned).toMatch(/^\d+\.\d+\.\d+$/);
+    // The parity oracle runs from the workspace root, so both manifests have
+    // to install the same judge.
+    expect(workspace.devDependencies["@typespec/protobuf"]).toBe(pinned);
+
+    // The peer range is the minor line of the pinned version. A range that
+    // leaves the tested version out tells a project to install a version
+    // nothing here runs against. So an upgrade across a minor line fails
+    // this case until the range follows it.
+    expect(manifest.peerDependencies["@typespec/protobuf"]).toBe(minorLineOf(pinned));
     expect(manifest.peerDependenciesMeta["@typespec/protobuf"]?.optional).toBe(true);
   });
 });
+
+/**
+ * The minor line one exact version belongs to.
+ *
+ * @param version - An exact version, such as `1.2.3`
+ * @returns The range of its minor line, such as `1.2.x`
+ */
+function minorLineOf(version: string): string {
+  return `${version.split(".").slice(0, 2).join(".")}.x`;
+}
 
 /**
  * Every `.ts` file below one directory.

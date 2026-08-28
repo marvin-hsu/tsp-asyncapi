@@ -18,10 +18,10 @@ This is a preview feature. It is off by default. The option that turns it on, th
 Install the Avro library next to this emitter.
 
 ```bash
-pnpm add "tsp-avro@0.2.x"
+pnpm add "tsp-avro@0.3.x"
 ```
 
-The supported version is `0.2.x`. `tsp-avro` is not yet at 1.0, so its decorators can still change. The supported range follows its releases.
+The supported version is `0.3.x`. `tsp-avro` is not yet at 1.0, so its decorators can still change. The supported range follows its releases.
 
 Then turn on the `avro` preview feature in `tspconfig.yaml`.
 

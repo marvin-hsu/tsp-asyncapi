@@ -43,6 +43,9 @@ readonly default: CallableMessage<["decorator"]>;
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
 };
+"encoding-describes-no-variant": {
+readonly default: CallableMessage<["encoding"]>;
+};
 "missing-discriminator-property": {
 readonly default: CallableMessage<["property"]>;
 };
@@ -259,6 +262,12 @@ readonly default: CallableMessage<["location"]>;
 "duplicate-use-server": {
 readonly default: CallableMessage<["name"]>;
 };
+"invalid-use-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"undeclared-used-server": {
+readonly default: CallableMessage<["name"]>;
+};
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -291,6 +300,16 @@ readonly default: "The `scopes` of this security scheme hold an entry that is bl
 };
 "invalid-url": {
 readonly default: CallableMessage<["field", "url"]>;
+readonly field: CallableMessage<["field", "url"]>;
+};
+"empty-info-version": {
+readonly default: "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.";
+};
+"empty-license-name": {
+readonly default: "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.";
+};
+"duplicate-info-decorator": {
+readonly default: "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.";
 };
 "missing-oauth-flow-url": {
 readonly default: CallableMessage<["flow", "field"]>;
@@ -351,6 +370,9 @@ readonly default: CallableMessage<["protocol"]>;
 };
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
+};
+"invalid-required-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected", "field", "expected"]>;
 };
 "missing-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "field"]>;
@@ -413,9 +435,7 @@ export interface AnypointMqMessageBindingConfig {
 // @public
 export const ASYNCAPI_VERSION = "3.1.0";
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIInfoState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIInfoState {
     // (undocumented)
     contact?: {
@@ -436,18 +456,14 @@ export interface AsyncAPIInfoState {
     version: string;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPISecuritySchemeState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPISecuritySchemeState {
     name: string;
     // Warning: (ae-forgotten-export) The symbol "SecuritySchemeObject" needs to be exported by the entry point index.d.ts
     scheme: SecuritySchemeObject;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIServerState {
     // (undocumented)
     description?: string;
@@ -467,9 +483,7 @@ export interface AsyncAPIServerState {
     variables?: Record<string, AsyncAPIServerVariableState>;
 }
 
-// Warning: (ae-internal-missing-underscore) The name "AsyncAPIServerVariableState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface AsyncAPIServerVariableState {
     default?: string;
     description?: string;
@@ -530,7 +544,7 @@ export interface CorrelationIdState {
 }
 
 // @public
-export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "raw-schema-key-taken" | "preview-feature-unavailable" | "protobuf-artifact-unavailable" | "header-on-generated-payload" | "avro-artifact-unavailable" | "avro-library-missing" | "conflicting-generated-schema-source" | "conflicting-message-schema-source" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const createDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "encoding-describes-no-variant" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "raw-schema-key-taken" | "preview-feature-unavailable" | "protobuf-artifact-unavailable" | "header-on-generated-payload" | "avro-artifact-unavailable" | "avro-library-missing" | "conflicting-generated-schema-source" | "conflicting-message-schema-source" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "invalid-use-server-name" | "undeclared-used-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "empty-info-version" | "empty-license-name" | "duplicate-info-decorator" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "invalid-required-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -548,6 +562,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-temporal-range-constraint": {
         readonly default: CallableMessage<["decorator"]>;
+    };
+    "encoding-describes-no-variant": {
+        readonly default: CallableMessage<["encoding"]>;
     };
     "missing-discriminator-property": {
         readonly default: CallableMessage<["property"]>;
@@ -765,6 +782,12 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     "duplicate-use-server": {
         readonly default: CallableMessage<["name"]>;
     };
+    "invalid-use-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "undeclared-used-server": {
+        readonly default: CallableMessage<["name"]>;
+    };
     "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
     };
@@ -797,6 +820,16 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "invalid-url": {
         readonly default: CallableMessage<["field", "url"]>;
+        readonly field: CallableMessage<["field", "url"]>;
+    };
+    "empty-info-version": {
+        readonly default: "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.";
+    };
+    "empty-license-name": {
+        readonly default: "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.";
+    };
+    "duplicate-info-decorator": {
+        readonly default: "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.";
     };
     "missing-oauth-flow-url": {
         readonly default: CallableMessage<["flow", "field"]>;
@@ -858,6 +891,9 @@ export const createDiagnostic: <C extends "multiple-services" | "unserializable-
     "invalid-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "expected"]>;
     };
+    "invalid-required-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "expected", "field", "expected"]>;
+    };
     "missing-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "field"]>;
     };
@@ -889,6 +925,9 @@ readonly default: CallableMessage<["decorator"]>;
 };
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
+};
+"encoding-describes-no-variant": {
+readonly default: CallableMessage<["encoding"]>;
 };
 "missing-discriminator-property": {
 readonly default: CallableMessage<["property"]>;
@@ -1106,6 +1145,12 @@ readonly default: CallableMessage<["location"]>;
 "duplicate-use-server": {
 readonly default: CallableMessage<["name"]>;
 };
+"invalid-use-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"undeclared-used-server": {
+readonly default: CallableMessage<["name"]>;
+};
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -1138,6 +1183,16 @@ readonly default: "The `scopes` of this security scheme hold an entry that is bl
 };
 "invalid-url": {
 readonly default: CallableMessage<["field", "url"]>;
+readonly field: CallableMessage<["field", "url"]>;
+};
+"empty-info-version": {
+readonly default: "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.";
+};
+"empty-license-name": {
+readonly default: "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.";
+};
+"duplicate-info-decorator": {
+readonly default: "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.";
 };
 "missing-oauth-flow-url": {
 readonly default: CallableMessage<["flow", "field"]>;
@@ -1199,6 +1254,9 @@ readonly default: CallableMessage<["protocol"]>;
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
 };
+"invalid-required-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected", "field", "expected"]>;
+};
 "missing-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "field"]>;
 };
@@ -1220,9 +1278,7 @@ export function declarationNameFor(program: Program, type: Model | Enum | Scalar
 // @public
 export const emptySchemaArtifacts: SchemaArtifactIndex;
 
-// Warning: (ae-internal-missing-underscore) The name "ExternalDocsState" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface ExternalDocsState {
     // (undocumented)
     description?: string;
@@ -1256,21 +1312,15 @@ export function getCorrelationId(program: Program, target: Model): CorrelationId
 // @public
 export function getExtensions(program: Program, target: Type): ReadonlyMap<string, unknown>;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getExternalDocs" is marked as @public, but its signature references "ExternalDocsState" which is marked as @internal
-//
 // @public
 export function getExternalDocs(program: Program, target: Type): ExternalDocsState | undefined;
 
 // @public
 export function getHeadersModel(program: Program, target: Model): Model | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getInfo" is marked as @public, but its signature references "AsyncAPIInfoState" which is marked as @internal
-//
 // @public
 export function getInfo(program: Program, target: Namespace): AsyncAPIInfoState | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getJsonSchemaExtensions" is marked as @public, but its signature references "JsonSchemaExtensionRecord" which is marked as @internal
-//
 // @public (undocumented)
 export function getJsonSchemaExtensions(program: Program, target: Model | ModelProperty): JsonSchemaExtensionRecord[];
 
@@ -1295,13 +1345,9 @@ export function getReplyAddress(program: Program, target: Operation): ReplyAddre
 // @public
 export function getReplyChannel(program: Program, target: Operation): ChannelTarget | undefined;
 
-// Warning: (ae-incompatible-release-tags) The symbol "getSecuritySchemes" is marked as @public, but its signature references "AsyncAPISecuritySchemeState" which is marked as @internal
-//
 // @public
 export function getSecuritySchemes(program: Program): AsyncAPISecuritySchemeState[];
 
-// Warning: (ae-incompatible-release-tags) The symbol "getServers" is marked as @public, but its signature references "AsyncAPIServerState" which is marked as @internal
-//
 // @public
 export function getServers(program: Program, target: Namespace): AsyncAPIServerState[];
 
@@ -1421,9 +1467,7 @@ export const JSON_SCHEMA_TYPE: {
     readonly object: "object";
 };
 
-// Warning: (ae-internal-missing-underscore) The name "JsonSchemaExtensionRecord" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
+// @public
 export interface JsonSchemaExtensionRecord {
     // (undocumented)
     key: string;
@@ -1579,7 +1623,7 @@ export interface ReplyAddressState {
 }
 
 // @public
-export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "raw-schema-key-taken" | "preview-feature-unavailable" | "protobuf-artifact-unavailable" | "header-on-generated-payload" | "avro-artifact-unavailable" | "avro-library-missing" | "conflicting-generated-schema-source" | "conflicting-message-schema-source" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
+export const reportDiagnostic: <C extends "multiple-services" | "unserializable-example" | "visibility-not-applied" | "unserializable-default" | "unrepresentable-numeric-constraint" | "unsupported-temporal-range-constraint" | "encoding-describes-no-variant" | "missing-discriminator-property" | "optional-discriminator-property" | "encoded-name-override-conflict" | "never-typed-property-override" | "duplicate-schema-key" | "payload-schema-key-taken" | "raw-schema-key-taken" | "preview-feature-unavailable" | "protobuf-artifact-unavailable" | "header-on-generated-payload" | "avro-artifact-unavailable" | "avro-library-missing" | "conflicting-generated-schema-source" | "conflicting-message-schema-source" | "duplicate-message-key" | "duplicate-message-decorator" | "message-key-shadows-schema-key" | "sanitized-message-key" | "duplicate-content-type-decorator" | "empty-content-type" | "duplicate-headers-decorator" | "duplicate-message-headers" | "duplicate-raw-payload-decorator" | "duplicate-raw-headers-decorator" | "empty-schema-format" | "unknown-schema-format" | "invalid-raw-schema" | "non-string-raw-schema" | "string-raw-schema" | "raw-schema-local-ref" | "unresolved-raw-schema-ref" | "raw-payload-lifted-header" | "headers-not-object" | "nested-header-ignored" | "inherited-header-ignored" | "inherited-header-overridden" | "discriminated-lifted-header" | "content-type-header-conflict" | "duplicate-correlation-id-decorator" | "invalid-correlation-id-location" | "empty-message-example" | "unserializable-message-example" | "empty-tag-name" | "conflicting-tag-metadata" | "invalid-extension-key" | "duplicate-extension-key" | "unserializable-extension" | "extension-target-not-emitted" | "duplicate-server-name" | "empty-server-field" | "server-outside-service" | "invalid-server-name" | "empty-channel-address" | "invalid-channel-address" | "invalid-channel-param-name" | "empty-channel-id" | "duplicate-channel-decorator" | "duplicate-dynamic-channel-decorator" | "conflicting-channel-decorators" | "duplicate-channel-id" | "duplicate-channel-address" | "channel-no-messages" | "missing-channel-param" | "unused-channel-param" | "non-string-channel-param" | "optional-channel-param" | "conflicting-channel-param" | "duplicate-parameter-location-decorator" | "invalid-parameter-location" | "duplicate-use-server" | "invalid-use-server-name" | "undeclared-used-server" | "use-server-without-channel" | "undeclared-server-variable" | "unused-server-variable" | "blank-server-variable-value" | "duplicate-server-variable-value" | "server-variable-default-not-in-enum" | "duplicate-security-scheme-name" | "invalid-security-scheme-name" | "empty-security-scheme-field" | "blank-security-scope-name" | "invalid-url" | "empty-info-version" | "empty-license-name" | "duplicate-info-decorator" | "missing-oauth-flow-url" | "empty-oauth-flows" | "use-security-outside-server" | "undeclared-security-scheme" | "duplicate-send-decorator" | "duplicate-receive-decorator" | "conflicting-operation-actions" | "empty-operation-id" | "duplicate-operation-id" | "operation-without-channel" | "duplicate-reply-channel-decorator" | "duplicate-reply-address-decorator" | "invalid-reply-address-location" | "reply-channel-not-a-channel" | "reply-address-needs-dynamic-channel" | "reply-without-action" | "duplicate-binding" | "empty-binding-protocol" | "invalid-binding-config" | "invalid-binding-field" | "invalid-required-binding-field" | "missing-binding-field" | "binding-outside-document" | "unsupported-payload-type" | "unrepresentable-circular-reference", M extends keyof {
     "multiple-services": {
         readonly default: "Multiple services found. AsyncAPI only supports one service per document. The first one will be used.";
     };
@@ -1597,6 +1641,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "unsupported-temporal-range-constraint": {
         readonly default: CallableMessage<["decorator"]>;
+    };
+    "encoding-describes-no-variant": {
+        readonly default: CallableMessage<["encoding"]>;
     };
     "missing-discriminator-property": {
         readonly default: CallableMessage<["property"]>;
@@ -1814,6 +1861,12 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     "duplicate-use-server": {
         readonly default: CallableMessage<["name"]>;
     };
+    "invalid-use-server-name": {
+        readonly default: CallableMessage<["name"]>;
+    };
+    "undeclared-used-server": {
+        readonly default: CallableMessage<["name"]>;
+    };
     "use-server-without-channel": {
         readonly default: CallableMessage<["name"]>;
     };
@@ -1846,6 +1899,16 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     };
     "invalid-url": {
         readonly default: CallableMessage<["field", "url"]>;
+        readonly field: CallableMessage<["field", "url"]>;
+    };
+    "empty-info-version": {
+        readonly default: "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.";
+    };
+    "empty-license-name": {
+        readonly default: "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.";
+    };
+    "duplicate-info-decorator": {
+        readonly default: "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.";
     };
     "missing-oauth-flow-url": {
         readonly default: CallableMessage<["flow", "field"]>;
@@ -1907,6 +1970,9 @@ export const reportDiagnostic: <C extends "multiple-services" | "unserializable-
     "invalid-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "expected"]>;
     };
+    "invalid-required-binding-field": {
+        readonly default: CallableMessage<["protocol", "field", "expected", "field", "expected"]>;
+    };
     "missing-binding-field": {
         readonly default: CallableMessage<["protocol", "field", "field"]>;
     };
@@ -1938,6 +2004,9 @@ readonly default: CallableMessage<["decorator"]>;
 };
 "unsupported-temporal-range-constraint": {
 readonly default: CallableMessage<["decorator"]>;
+};
+"encoding-describes-no-variant": {
+readonly default: CallableMessage<["encoding"]>;
 };
 "missing-discriminator-property": {
 readonly default: CallableMessage<["property"]>;
@@ -2155,6 +2224,12 @@ readonly default: CallableMessage<["location"]>;
 "duplicate-use-server": {
 readonly default: CallableMessage<["name"]>;
 };
+"invalid-use-server-name": {
+readonly default: CallableMessage<["name"]>;
+};
+"undeclared-used-server": {
+readonly default: CallableMessage<["name"]>;
+};
 "use-server-without-channel": {
 readonly default: CallableMessage<["name"]>;
 };
@@ -2187,6 +2262,16 @@ readonly default: "The `scopes` of this security scheme hold an entry that is bl
 };
 "invalid-url": {
 readonly default: CallableMessage<["field", "url"]>;
+readonly field: CallableMessage<["field", "url"]>;
+};
+"empty-info-version": {
+readonly default: "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.";
+};
+"empty-license-name": {
+readonly default: "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.";
+};
+"duplicate-info-decorator": {
+readonly default: "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.";
 };
 "missing-oauth-flow-url": {
 readonly default: CallableMessage<["flow", "field"]>;
@@ -2247,6 +2332,9 @@ readonly default: CallableMessage<["protocol"]>;
 };
 "invalid-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "expected"]>;
+};
+"invalid-required-binding-field": {
+readonly default: CallableMessage<["protocol", "field", "expected", "field", "expected"]>;
 };
 "missing-binding-field": {
 readonly default: CallableMessage<["protocol", "field", "field"]>;

@@ -19,11 +19,21 @@ import { orderBySourceNodes } from "../../source-order.js";
  * entries of this array to be unique, and the repeat is reported so it is
  * not dropped in silence.
  *
+ * A name no `@server` declares is reported and dropped. The reference it
+ * would emit addresses a key the document does not carry, and the official
+ * parser rejects the whole document over one. The check runs here rather
+ * than in the decorator, because a `@server` can arrive after `@useServer`
+ * runs.
+ *
  * @returns The `servers` array, or `undefined` when the channel names no
  * server. The caller then leaves the field out, which AsyncAPI reads as
  * "available on every server".
  */
-export function resolveChannelServers(program: Program, target: ChannelTarget): readonly string[] {
+export function resolveChannelServers(
+  program: Program,
+  target: ChannelTarget,
+  declaredServers: ReadonlySet<string>,
+): readonly string[] {
   const recorded = getUsedServers(program, target);
   if (recorded.length === 0) return [];
 
@@ -45,6 +55,14 @@ export function resolveChannelServers(program: Program, target: ChannelTarget): 
       continue;
     }
     claimed.add(entry.name);
+    if (!declaredServers.has(entry.name)) {
+      reportDiagnostic(program, {
+        code: "undeclared-used-server",
+        format: { name: entry.name },
+        target: entry.node,
+      });
+      continue;
+    }
     // Only the name is carried. Turning it into a reference is a document
     // detail, so the lower stage does it.
     names.push(entry.name);

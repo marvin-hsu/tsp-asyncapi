@@ -1,7 +1,8 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Program } from "@typespec/compiler";
 import { SERVER_NAME_PATTERN } from "../../constants.js";
 import { reportDiagnostic } from "../../lib.js";
-import { bySourcePosition, isSameApplication, sourcePositionOf } from "../../source-order.js";
+import { sourcePositionOf, bySourcePosition } from "../../source-order.js";
+import { settleNameClash } from "../name-clash.js";
 import { AsyncAPIServerState, ServerRecord, getServersInternal, setServers } from "./state.js";
 
 import {
@@ -153,28 +154,12 @@ export function $server(
 
   const servers = getServersInternal(context.program, target) ?? [];
 
-  // Source position decides the winner of a name clash, not evaluation
-  // order. The application written first in the file is kept, and the other
-  // one is dropped.
+  // A name given twice is settled by source position, and the same
+  // statement run twice is not a clash at all. `settleNameClash` holds both
+  // rules, because `@securityScheme` needs the same answer.
   const clashIndex = servers.findIndex((existing) => existing.server.name === name);
   if (clashIndex >= 0) {
-    const existing = servers[clashIndex];
-    // The same statement can run more than once. An augment decorator runs
-    // once per declaration of its target namespace, so one `@@server` runs
-    // again for every reopened `namespace` block and for every file that
-    // opens the namespace. Those runs are one application, not a clash.
-    // Two distinct statements can never share a file and a position, so a
-    // real duplicate is still reported.
-    if (isSameApplication(existing, record)) {
-      return;
-    }
-    const dropped = bySourcePosition(context.program)(record, existing) < 0 ? existing : record;
-    if (dropped === existing) servers[clashIndex] = record;
-    reportDiagnostic(context.program, {
-      code: "duplicate-server-name",
-      format: { name },
-      target: dropped.nameTarget,
-    });
+    settleNameClash(context.program, servers, clashIndex, record, "duplicate-server-name", name);
     setServers(context.program, target, servers);
     return;
   }

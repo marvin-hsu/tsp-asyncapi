@@ -105,6 +105,15 @@ export class Promoter<T> {
   readonly #policy: PromotionPolicy<T>;
   readonly #seen = new Map<string, Sighting<T>>();
   readonly #contested = new Set<string>();
+  /**
+   * The identity of each fragment object already read.
+   *
+   * One object is asked about at least twice: the survey meets it, and the
+   * site that carries it asks for its key. Reading an identity walks the
+   * whole fragment, and the fragments are read only, so the second walk
+   * answers what the first one did.
+   */
+  readonly #identities = new WeakMap<object, string>();
   #frozen = false;
 
   public constructor(policy: PromotionPolicy<T>) {
@@ -193,8 +202,25 @@ export class Promoter<T> {
    * a key, so no key and content can spell another pair's identity.
    */
   #identity(value: T, key: string): string {
-    const content = identityOf(value);
+    const content = this.#content(value);
     return this.#policy.when === "keyed" ? `${key}\u0000${content}` : content;
+  }
+
+  /**
+   * The canonical form of one fragment, read once per object.
+   *
+   * A fragment that is not an object cannot key the table, so it is walked
+   * every time. Every section of `components` holds objects, so that branch
+   * is the type system's rather than the document's.
+   */
+  #content(value: T): string {
+    const held: unknown = value;
+    if (held === null || typeof held !== "object") return identityOf(value);
+    const known = this.#identities.get(held);
+    if (known !== undefined) return known;
+    const content = identityOf(value);
+    this.#identities.set(held, content);
+    return content;
   }
 
   /** Whether one sighting earns its key. */

@@ -231,7 +231,13 @@ TypeSpec enum 變成 Avro enum。Avro 的 enum 只有符號，所以帶著自己
 
 自己宣告的 scalar 依它所繼承的 scalar 對應。`scalar Age extends int32` 對應到 `int`。
 
+`@Avro.logicalType`、`@Avro.decimal`、`@Avro.fixed` 與 `@Avro.aliases` 也沿著同一條繼承鏈讀取。`scalar CreatedAt extends Timestamp` 帶有 `Timestamp` 的 logical type。最近的宣告優先，所以要表達別的意思就再寫一次裝飾器。
+
 Avro 沒有無號整數。`uint32` 與 `uint64` 會被拒絕，因為放寬型別會改變作者寫下的意思。
+
+對照表就是全部。`utcDateTime`、`offsetDateTime`、`plainDate`、`plainTime`、`duration` 與 `decimal` 同樣會被拒絕。Avro 用數字或位元組承載這幾種值。是哪一種由 logical type 決定，不是由 scalar 決定。
+
+把欄位宣告成 Avro 承載的型別。再用 `@Avro.logicalType` 寫出它的意思。時間戳是帶著 `timestamp-millis` 的 `int64`。日期是帶著 `date` 的 `int32`。decimal 則是搭配 `@Avro.decimal` 的 `bytes`。下一節列出所有配對。
 
 ## Logical type
 
@@ -258,16 +264,16 @@ logical type 是型別的一個屬性，不是獨立的型別。Avro 用 `int` �
 
 ## Decorator
 
-| Decorator                         | 目標                             | 作用                                                 |
-| --------------------------------- | -------------------------------- | ---------------------------------------------------- |
-| `@Avro.avroNamespace(name)`       | `Namespace`                      | 宣告 Avro namespace。由最靠近的上層 namespace 決定。 |
-| `@Avro.avroRecord`                | `Model`                          | 標記一個 model 要輸出。一個標記產生一個檔案。        |
-| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum` | 指定這個宣告以前叫什麼名字。                         |
-| `@Avro.order(mode)`               | `ModelProperty`                  | `ascending`、`descending` 或 `ignore`。              |
-| `@Avro.fixed(size)`               | `Model`、`Scalar`                | 做成指定位元組數的 Avro fixed 型別。                 |
-| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`        | 寫出上表中的一個 logical type。                      |
-| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`        | 寫出 `decimal` logical type 與它的參數。             |
-| `@Avro.enumDefault(member)`       | `Enum`                           | 指定 reader 退回的符號。                             |
+| Decorator                         | 目標                                       | 作用                                                                   |
+| --------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
+| `@Avro.avroNamespace(name)`       | `Namespace`                                | 宣告 Avro namespace。由最靠近的上層 namespace 決定。                   |
+| `@Avro.avroRecord`                | `Model`                                    | 標記一個 model 要輸出。一個標記產生一個檔案。                          |
+| `@Avro.aliases(...names)`         | `Model`、`ModelProperty`、`Enum`、`Scalar` | 指定這個宣告以前叫什麼名字。scalar 要有 `@Avro.fixed` 給的名稱才能標。 |
+| `@Avro.order(mode)`               | `ModelProperty`                            | `ascending`、`descending` 或 `ignore`。                                |
+| `@Avro.fixed(size)`               | `Model`、`Scalar`                          | 做成指定位元組數的 Avro fixed 型別。                                   |
+| `@Avro.logicalType(name)`         | `Scalar`、`ModelProperty`                  | 寫出上表中的一個 logical type。                                        |
+| `@Avro.decimal(precision, scale)` | `Scalar`、`ModelProperty`                  | 寫出 `decimal` logical type 與它的參數。                               |
+| `@Avro.enumDefault(member)`       | `Enum`                                     | 指定 reader 退回的符號。                                               |
 
 doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`。這兩件事都沒有 decorator。
 
@@ -277,22 +283,23 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 
 半份 schema 仍然是合法的 schema。registry 會照收，而 reader 會把資料解成作者從來沒寫過的形狀。
 
-| 代碼                              | 何時發生                                           |
-| --------------------------------- | -------------------------------------------------- |
-| `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                   |
-| `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則。                       |
-| `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                               |
-| `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。        |
-| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或不屬於 union 的任何分支。  |
-| `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。     |
-| `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數。                 |
-| `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。 |
-| `tsp-avro/unknown-logical-type`   | logical type 不是規格定義的那幾個。                |
-| `tsp-avro/logical-type-mismatch`  | logical type 寫在規格不允許的型別上。              |
-| `tsp-avro/duplicate-logical-type` | 一個宣告帶了兩個 logical type。                    |
-| `tsp-avro/enum-default`           | `@Avro.enumDefault` 指定的成員不在該 enum 裡。     |
-| `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                       |
-| `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                            |
+| 代碼                              | 何時發生                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| `tsp-avro/namespace-required`     | record 上方沒有 Avro namespace。                                                    |
+| `tsp-avro/invalid-name`           | 名稱不符合 Avro 的名稱規則，或是 Avro 保留給自身型別的名稱。                        |
+| `tsp-avro/unsupported-type`       | 型別沒有 Avro 形式。                                                                |
+| `tsp-avro/aliases-target`         | `@Avro.aliases` 標在會寫成 Avro 原始型別的 scalar 上。                              |
+| `tsp-avro/duplicate-union-branch` | 一個 union 裡有兩個分支是同一個 Avro 型別。                                         |
+| `tsp-avro/invalid-default`        | 預設值沒有 JSON 形式，或指不出 union 的哪一個分支。                                 |
+| `tsp-avro/invalid-order`          | `@Avro.order` 收到的不是 Avro 的欄位排序方式。                                      |
+| `tsp-avro/invalid-fixed`          | `@Avro.fixed` 收到的寬度不是正數，或標在繼承了 `bytes` 以外 Avro 型別的 scalar 上。 |
+| `tsp-avro/invalid-decimal`        | precision 或 scale 不合，或 `decimal` 兩者都沒有。                                  |
+| `tsp-avro/unknown-logical-type`   | logical type 不是規格定義的那幾個。                                                 |
+| `tsp-avro/logical-type-mismatch`  | logical type 寫在規格不允許的型別上。                                               |
+| `tsp-avro/duplicate-logical-type` | 一個宣告帶了兩個 logical type。                                                     |
+| `tsp-avro/enum-default`           | `@Avro.enumDefault` 指定的成員不在該 enum 裡。                                      |
+| `tsp-avro/duplicate-record`       | 兩個 record 寫到同一個路徑。                                                        |
+| `tsp-avro/enum-member-value`      | enum 成員帶著自己的值。                                                             |
 
 ## 錯誤情境
 
@@ -301,5 +308,9 @@ doc 來自原生的 `/** */` 註解。欄位預設值來自原生的 `= value`�
 - template 執行個體，例如 `Box<string>`。同一個 template 的兩個執行個體共用一個名稱。
 - 同時帶索引簽章與欄位的 model。
 - 上面對照表以外的 scalar。
+- 標在沒有 `@Avro.fixed` 的 scalar 上的 `@Avro.aliases`。alias 代表的是名稱，而原始型別沒有名稱。
+- 帶著 `@Avro.fixed` 且繼承了 `bytes` 以外 Avro 型別的 scalar。Avro fixed 型別承載的是位元組。沒有繼承任何型別的 scalar 會寫成 fixed 型別，因為它沒有多說別的。
 - 同一個型別出現兩次的 union，例如 `string[] | int32[]`。
+- 沒有任何分支的 union，例如 `union Nothing {}`。讀取端要從 union 的分支裡挑一個，這裡沒有可挑的。
 - 兩個宣告對應到同一個 Avro 完整名稱。
+- 用 Avro 原始型別名稱命名的 record、enum 或 fixed 型別：`null`、`boolean`、`int`、`long`、`float`、`double`、`bytes` 與 `string`。schema 只用名稱本身表示原始型別，所以叫這些名稱的型別會被讀成原始型別。`record`、`map` 這類名稱可以使用，因為 Avro 用物件表示複合型別，不是只用關鍵字。

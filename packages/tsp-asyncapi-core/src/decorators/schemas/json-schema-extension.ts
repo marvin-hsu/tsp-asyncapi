@@ -5,7 +5,9 @@ const jsonSchemaExtensionStateKey = Symbol.for("tsp-asyncapi.jsonSchemaExtension
 
 /**
  * One raw key/value pair recorded by `@jsonSchemaExtension`.
- * @internal
+ * It is the element type `getJsonSchemaExtensions` returns, so it is part of
+ * the public surface.
+ * @public
  */
 export interface JsonSchemaExtensionRecord {
   key: string;
@@ -54,5 +56,8 @@ export function getJsonSchemaExtensions(
   program: Program,
   target: Model | ModelProperty,
 ): JsonSchemaExtensionRecord[] {
-  return getJsonSchemaExtensionsInternal(program, target) ?? [];
+  // Copy the array and every entry. The stored array is the one the decorator
+  // pushes into, so handing it out lets a caller sort or push and change what
+  // the emitter writes.
+  return (getJsonSchemaExtensionsInternal(program, target) ?? []).map((record) => ({ ...record }));
 }

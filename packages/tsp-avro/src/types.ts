@@ -14,10 +14,30 @@
 /**
  * The Avro primitive type names.
  *
+ * A schema spells a primitive by name alone. The list is the one source of
+ * these names in the package. The type comes from it, the name rules read it
+ * to refuse a named type that takes one, and the logical type rules read it
+ * to tell a primitive from a reference to a named type.
+ *
  * @public
  */
-export type AvroPrimitiveName =
-  "null" | "boolean" | "int" | "long" | "float" | "double" | "bytes" | "string";
+export const AVRO_PRIMITIVE_NAMES = [
+  "null",
+  "boolean",
+  "int",
+  "long",
+  "float",
+  "double",
+  "bytes",
+  "string",
+] as const;
+
+/**
+ * One Avro primitive type name.
+ *
+ * @public
+ */
+export type AvroPrimitiveName = (typeof AVRO_PRIMITIVE_NAMES)[number];
 
 /**
  * A value an Avro field may carry as its default.

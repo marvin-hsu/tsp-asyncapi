@@ -11,6 +11,7 @@ import { emptySchemaArtifacts, type SchemaArtifactIndex } from "../schema-artifa
 import {
   reportSecurityUsesWithoutServer,
   reportServersOutsideService,
+  declaredServerNames,
   resolveServers,
 } from "./servers.js";
 
@@ -414,19 +415,6 @@ export interface MessageNode {
   readonly externalDocs?: ExternalDocsNode;
   /** The protocol bindings of the message, in source order. */
   readonly bindings: readonly BindingNode[];
-  /**
-   * The local reference the raw payload schema points at.
-   *
-   * Resolve extracts it from the raw schema. The lower stage then only
-   * asks whether the reference resolves in the finished document. It never
-   * inspects a built slot to find the reference again.
-   *
-   * Two named fields are used instead of a list of slot and reference pairs.
-   * There are exactly two slots, and a named field states which one.
-   */
-  readonly rawPayloadRef?: string;
-  /** The local reference the raw headers schema points at. */
-  readonly rawHeadersRef?: string;
   /** The `x-` extensions of the object, in source order. Empty means none. */
   readonly extensions: JsonObject;
 }
@@ -673,6 +661,9 @@ export function resolveService(
 ): AsyncAPIService {
   const securitySchemes = resolveSecuritySchemes(program);
   const declaredSchemes = new Set(securitySchemes.map((scheme) => scheme.name));
+  // The channels are resolved before the servers, and a channel writes a
+  // reference to a server. So the names are read here, ahead of both.
+  const declaredServers = declaredServerNames(program, service?.type);
 
   const {
     messages,
@@ -683,7 +674,7 @@ export function resolveService(
     channels,
     emitted,
     extensionCarriers: channelCarriers,
-  } = resolveChannels(program, keys, placements);
+  } = resolveChannels(program, keys, placements, declaredServers);
 
   // A server on any namespace other than the service's never reaches the
   // document, and a `@useSecurity` beside it has just as little to attach to.

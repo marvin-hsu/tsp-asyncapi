@@ -411,6 +411,32 @@ function buildJsonSchemaExtensionFields(
 }
 
 /**
+ * Returns `schema` with `format` removed from it and from every `allOf`
+ * branch below it.
+ *
+ * The removal follows the whole `allOf` spine, not only its first level. An
+ * `extends` chain of three scalars wraps one `allOf` inside another. A
+ * `format` two levels down still describes the same single value as the one
+ * on the wrapper. Depth does not make the two agree.
+ *
+ * A branch that is a `$ref` keeps its format. That format lives in the
+ * component the reference points at, and other values share it.
+ *
+ * @param schema - The schema to strip
+ * @returns A copy with no `format` on any `allOf` level
+ */
+function withoutFormat(schema: SchemaObject): SchemaObject {
+  const stripped: SchemaObject = { ...schema };
+  delete stripped.format;
+  if (stripped.allOf !== undefined) {
+    stripped.allOf = stripped.allOf.map((branch) =>
+      "$ref" in branch ? branch : withoutFormat(branch),
+    );
+  }
+  return stripped;
+}
+
+/**
  * Wraps `schema` in `allOf` and hoists `title`/`description`/`examples`
  * above it. `withDocs` and `withPropertyDocs` both call this on a
  * validation-keyword collision. Left inside the `allOf` branch, these three
@@ -418,7 +444,13 @@ function buildJsonSchemaExtensionFields(
  * from `docs`, wins when present. Otherwise, the inherited value already on
  * `schema` is carried up instead of being silently dropped. `restValidation`
  * and `format` are then merged onto the wrapper: `format` last, so this
- * level's `format`, if any, wins over the base's.
+ * level's `format`, if any, wins over the base's. It wins outright: the
+ * base's is removed from the branch, and from any `allOf` nested inside it,
+ * rather than left there beside it.
+ * `format` is a draft-07 annotation, not a keyword `allOf` intersects. A
+ * branch saying `uuid` under a wrapper saying `email` is a contradiction. It
+ * is not two constraints that both hold. A base format this level says
+ * nothing about stays in the branch, where it already describes the value.
  */
 function hoistAnnotationsAboveAllOf(
   schema: SchemaObject,
@@ -426,7 +458,7 @@ function hoistAnnotationsAboveAllOf(
   restValidation: SchemaObject,
   format: string | undefined,
 ): SchemaObject {
-  const inner: SchemaObject = { ...schema };
+  const inner: SchemaObject = format !== undefined ? withoutFormat(schema) : { ...schema };
   const title = docs.title ?? inner.title;
   const description = docs.description ?? inner.description;
   const examples = docs.examples ?? inner.examples;
@@ -581,11 +613,12 @@ export function withPropertyDocs(
   // The property's own `@encode` rewrites the `type`/`format` it got from its
   // declared type, so it is applied before anything below. An explicit
   // `@format` on the property still wins, being merged in afterwards.
-  // A `$ref` is never reached here: a property typed as a named scalar is
-  // inlined rather than referenced.
+  // A `$ref` is never reached here: a property whose `@encode` reaches a
+  // named scalar, or a variant of a named union, is written in place rather
+  // than referenced.
   const encoded =
     prop.kind === "ModelProperty" && !("$ref" in schema)
-      ? applyEncoding(program, prop, schema)
+      ? applyEncoding(program, prop, schema, diagnostics)
       : schema;
   // The example is serialized against `prop`, not `prop.type`, so the compiler
   // applies the same `@encode` to it. An example encoded differently from the

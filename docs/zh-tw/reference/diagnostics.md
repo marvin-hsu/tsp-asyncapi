@@ -82,7 +82,7 @@ raw schema 改為在每個 message 裡各寫一次。內容沒有遺失，只是
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-[`@contentType`](./decorators/messages#contenttype) 收到空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
+[`@contentType`](./decorators/messages#contenttype) 收到空白的媒體型態。值會先去除前後空白，所以只有空白的值等同空字串。空白的媒體型態沒有指出任何格式，emitter 無法把它寫進 message。
 
 這個 message 會退回文件層級的 `defaultContentType`。結果與沒有寫 `@contentType` 相同。使用者是刻意輸入空字串的，所以這個退回會回報，不會靜默發生。
 
@@ -256,7 +256,7 @@ emitter 只檢查格式：pointer 可以指向任何 schema 都沒宣告的路�
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-某次 [`@asyncTag`](./decorators/document-info#asynctag) 套用把空字串當成 tag 名稱。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
+某次 [`@asyncTag`](./decorators/document-info#asynctag) 套用給了空白的 tag 名稱。值會先去除前後空白，所以只有空白的名稱等同空字串。AsyncAPI Tag Object 的 `name` 是必填欄位，空白的名稱沒有任何 consumer 比對得到。
 
 **修法：** 為該 tag 補上名稱。
 
@@ -502,7 +502,7 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 
 **修法：** 照該格式撰寫，例如 `$message.header#/replyTo`。
 
-以下四個代碼來自通訊協定 binding，另有兩個列在「警告」章節。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings/)。
+以下五個代碼來自通訊協定 binding，另有兩個列在「警告」章節。回報它們的 decorator 見[通訊協定 binding](/zh-tw/reference/bindings/)。
 
 ### `duplicate-binding`
 
@@ -527,6 +527,16 @@ runtime expression 超出文法。開頭必須是 `$message.header#` 或 `$messa
 AsyncAPI 規定 Bindings Object 的每個成員都是物件。字串、數字與陣列都會被拒絕。
 
 **修法：** 把設定寫成物件值。
+
+### `invalid-required-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. The binding cannot be written without the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+
+某個欄位的值違反 binding 規格。少了這個欄位，emitter 就寫不出這個 binding，所以丟掉的是整個 binding，不是單一欄位。這一點與 [`invalid-binding-field`](#invalid-binding-field) 不同，那個代碼是警告，而且會保留 binding 的其餘部分。
+
+會回報它的欄位有：Amazon SQS channel 的 `queue` 與 `deadLetterQueue`、SQS operation 的 `queues`、Google Cloud Pub/Sub channel 的 `schemaSettings`，以及 Pulsar channel 的 `persistence`。`deadLetterQueue` 雖然是選填，代價一樣是整個 binding。作者既然寫了這個佇列，少了它的 binding 就比原始碼描述得更少。
+
+**修法：** 依訊息指出的範圍填值。
 
 ### `missing-binding-field`
 
@@ -588,9 +598,37 @@ OAuth flow 缺少該 flow 必填的 URL。`implicit` 與 `authorizationCode` 需
 
 URL 欄位的值不是絕對 URL。相對路徑（例如 `/token`）不合格，純文字也不合格。AsyncAPI 對這些欄位標了 `uri` 格式。值不合格時，parser 會拒絕整份文件。
 
-兩個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。
+三個 decorator 會回報這個診斷。`@securityScheme` 檢查 `openIdConnectUrl`，也檢查每個 OAuth flow 的 `authorizationUrl`、`tokenUrl` 與 `refreshUrl`。flow 的 URL 會連 flow 名稱一起標示，例如 `implicit.authorizationUrl`。`@externalDocs` 檢查它帶的連結，該連結會寫進 `info` 與每一個 server。`@info` 檢查 `termsOfService`、`contact.url` 與 `license.url`。
+
+`@info` 只丟掉該欄位，decorator 的其餘部分保留。另外兩個會丟掉整個 decorator。訊息本身會說明是哪一種。
 
 **修法：** 把 URL 寫成含 scheme 的形式，例如 `https://example.com/token`。
+
+### `empty-info-version`
+
+> @info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.
+
+`@info` 拿到的 `version` 是空白。值會先去除前後空白，所以只有空白的值等同空字串。AsyncAPI 規定這個欄位必填，所以版本後備為 `0.0.0`。
+
+**修法：** 給 `@info` 一個版本，例如 `1.0.0`。
+
+### `empty-license-name`
+
+> @info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.
+
+`@info` 拿到的 `license` 帶了空白的 `name`。值會先去除前後空白，所以只有空白的值等同空字串。AsyncAPI 規定這個欄位必填，沒有名稱的 License Object 指不到任何授權條款。
+
+整個 license 會被丟掉，`license.url` 也一起丟掉。`@info` 的其餘部分保留。
+
+**修法：** 給授權條款一個名稱，例如 `MIT`。
+
+### `duplicate-info-decorator`
+
+> @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.
+
+同一個 namespace 套用了多次 `@info`。一份文件只有一個 Info Object，所以只有一次套用會生效。同一個宣告上的 decorator 由下往上執行，所以寫在最後的那次先執行並勝出。
+
+**修法：** 把多次套用合併成一次，移除多餘的 `@info`。
 
 ### `conflicting-generated-schema-source`
 
@@ -732,6 +770,22 @@ model 屬於哪個 package，由上層最近一個帶 `@Protobuf.package` 的 na
 同一個 channel 上有兩個 `@useServer` 指到同一個名稱。AsyncAPI 規定該陣列的項目唯一，所以 emitter 只輸出一個參照。
 
 **修法：** 移除多餘的 `@useServer`。
+
+### `invalid-use-server-name`
+
+> Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
+
+`@useServer` 拿到的名稱用了 AsyncAPI 不允許出現在根層 `servers` map key 的字元。名稱按原樣檢查，與 `@server` 檢查它宣告的 key 的方式相同。空白不在允許的字元集內，所以前後帶空白的名稱兩邊都會被拒絕。emitter 不會改寫名稱，因為那會換掉作者指定的 server。
+
+**修法：** 名稱只使用英文字母、數字、`_` 與 `-`。
+
+### `undeclared-used-server`
+
+> @useServer names the server '\<name\>', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.
+
+`@useServer` 指到的 server 名稱，在 service namespace 上沒有任何 `@server` 宣告。輸出的參照會指向文件裡不存在的 key。parser 會因為這種參照拒收整份文件，所以該筆項目被丟棄。
+
+**修法：** 在 service namespace 上宣告同名的 `@server`，或改正名稱。
 
 ### `use-server-without-channel`
 
@@ -981,6 +1035,14 @@ server 與 security scheme 就是這種 target。兩者都以具名參數宣告�
 
 **修法：** 移除該限制，或改以 `@doc` 用文字描述。
 
+### `encoding-describes-no-variant`
+
+> @encode("\<encoding\>") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.
+
+`@encode` 標在 union 型別的屬性上，但沒有任何一個 variant 是該編碼描述的型別，例如 `@encode("ISO8601") d: utcDateTime | null`。ISO 8601 描述的是 `duration` 的傳輸格式，這兩個 variant 都不是 `duration`。編譯器接受這個 decorator，所以這是作者唯一會收到的提示。
+
+**修法：** 改用能對應到其中一個 variant 的編碼，或把屬性型別換成該編碼描述的型別。
+
 ### `missing-discriminator-property`
 
 > @discriminator("\<property\>") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so `discriminator` was omitted from the emitted schema.
@@ -1019,7 +1081,11 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`topicConfiguration`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+
+`topicConfiguration` 是在序列化器無法表示對應表中某個成員時回報。帶有 `init` 的自訂 scalar 就是這種成員。該成員會讓整份對應表失敗，所以回報指的是 `topicConfiguration`，不是那個成員。
+
+binding 的其餘部分照樣輸出。少了就寫不出 binding 的欄位代價更高，它改為回報 [`invalid-required-binding-field`](#invalid-required-binding-field)。
 
 **修法：** 依訊息指出的範圍填值。
 

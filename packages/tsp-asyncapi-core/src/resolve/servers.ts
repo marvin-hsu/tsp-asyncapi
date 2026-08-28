@@ -90,6 +90,31 @@ function resolveServerVariables(
 }
 
 /**
+ * Names every server the document will hold.
+ *
+ * `@useServer` addresses a server by this key, and a key the document does
+ * not carry makes the whole document fail validation. The set is read before
+ * the channels are resolved, because the channel is where the reference is
+ * written.
+ *
+ * Only the service namespace is read. A `@server` anywhere else never
+ * reaches the document, and it is reported on its own.
+ *
+ * @param program - The program to read the servers from
+ * @param namespace - The service namespace, or `undefined` when the program
+ * declares no service
+ * @returns The declared server names
+ * @internal
+ */
+export function declaredServerNames(
+  program: Program,
+  namespace: Namespace | undefined,
+): ReadonlySet<string> {
+  if (namespace === undefined) return new Set();
+  return new Set(getServers(program, namespace).map((state) => state.name));
+}
+
+/**
  * Resolves the servers of the service namespace.
  *
  * The decorator already checked each server. It reported a diagnostic and

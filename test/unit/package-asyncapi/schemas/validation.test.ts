@@ -209,6 +209,77 @@ describe("Unit: Schemas — validation keywords and extensions", () => {
     });
   });
 
+  it("should drop the base's format from the allOf branch when this level states one of its own", async () => {
+    // Two formats on one value contradict each other; `format` is an
+    // annotation, not a keyword that intersects. Leaving the base's inside
+    // the branch while writing this level's above it says the value is a
+    // uuid and an email at once.
+    const { builder } = await buildDocSchema(t.code`
+      @format("uuid")
+      @minLength(5)
+      scalar Key extends string;
+      model ${t.model("M")} {
+        @format("email")
+        @minLength(8)
+        id: Key;
+      }
+    `);
+
+    const props = resolvedProperties(builder, "M");
+    expect(props.id).toEqual({
+      allOf: [{ type: "string", minLength: 5 }],
+      minLength: 8,
+      format: "email",
+    });
+  });
+
+  it("should drop the base scalar's format when a derived scalar states one of its own", async () => {
+    const { builder } = await buildDocSchema(t.code`
+      @format("uuid")
+      @minLength(5)
+      scalar Tight extends string;
+      @format("email")
+      @minLength(2)
+      scalar Loose extends Tight;
+      model ${t.model("M")} {
+        v: Loose;
+      }
+    `);
+
+    const props = resolvedProperties(builder, "M");
+    expect(props.v).toEqual({
+      allOf: [{ type: "string", minLength: 5 }],
+      minLength: 2,
+      format: "email",
+    });
+  });
+
+  it("should drop a base format nested deeper than one allOf level", async () => {
+    // Three scalars in one `extends` chain wrap an `allOf` inside an
+    // `allOf`. The `uuid` two levels down describes the same value as the
+    // `email` on the wrapper. Depth does not make the two agree.
+    const { builder } = await buildDocSchema(t.code`
+      @format("uuid")
+      @minLength(5)
+      scalar Tight extends string;
+      @minLength(2)
+      scalar Mid extends Tight;
+      @format("email")
+      @minLength(1)
+      scalar Loose extends Mid;
+      model ${t.model("M")} {
+        v: Loose;
+      }
+    `);
+
+    const props = resolvedProperties(builder, "M");
+    expect(props.v).toEqual({
+      allOf: [{ allOf: [{ type: "string", minLength: 5 }], minLength: 2 }],
+      minLength: 1,
+      format: "email",
+    });
+  });
+
   it("should keep an inherited scalar description at the top level when a derived scalar's own validation keyword collides", async () => {
     const { builder } = await buildDocSchema(t.code`
       @doc("Tight")

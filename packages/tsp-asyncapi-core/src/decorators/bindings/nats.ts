@@ -5,11 +5,11 @@
  * and nothing else, and that object carries one field.
  */
 
-import { DecoratorContext, DiagnosticTarget, Operation } from "@typespec/compiler";
+import { DecoratorContext, Operation } from "@typespec/compiler";
 import { NATS_BINDING_PROTOCOL } from "../../constants.js";
-import { present, trimmed } from "../../optional-fields.js";
+import { present } from "../../optional-fields.js";
 import type { NatsOperationBindingObject } from "../../types/index.js";
-import { reportBindingField } from "./fields.js";
+import { boundedName } from "./fields.js";
 import { claimBinding } from "./state.js";
 
 /**
@@ -66,7 +66,17 @@ export function $natsOperation(
 ) {
   const configTarget = context.getArgumentTarget(0) ?? target;
   const state: NatsOperationBindingState = {
-    ...present("queue", queueGroup(context, config.queue, configTarget)),
+    ...present(
+      "queue",
+      boundedName(
+        context,
+        NATS_BINDING_PROTOCOL,
+        "queue",
+        config.queue,
+        MAX_QUEUE_LENGTH,
+        configTarget,
+      ),
+    ),
   };
 
   claimBinding(context, {
@@ -77,25 +87,4 @@ export function $natsOperation(
     config: state,
     node: configTarget,
   });
-}
-
-/** Checks the length limit NATS states for a queue group name. */
-function queueGroup(
-  context: DecoratorContext,
-  value: string | undefined,
-  target: DiagnosticTarget,
-): string | undefined {
-  const queue = trimmed(value);
-  if (queue === undefined) return undefined;
-  if (queue.length > MAX_QUEUE_LENGTH) {
-    reportBindingField(
-      context,
-      NATS_BINDING_PROTOCOL,
-      "queue",
-      `at most ${String(MAX_QUEUE_LENGTH)} characters`,
-      target,
-    );
-    return undefined;
-  }
-  return queue;
 }

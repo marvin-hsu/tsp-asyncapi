@@ -14,7 +14,6 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { SQS_BINDING_PROTOCOL } from "../../../constants.js";
 import { present } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   SqsChannelBindingObject,
   SqsOperationBindingObject,
@@ -22,9 +21,12 @@ import type {
 } from "../../../types/index.js";
 import {
   enumeratedField,
-  missingFields,
-  reportBindingField,
-  reportMissingField,
+  FieldLoss,
+  NestedRead,
+  nonEmptyObject,
+  nonNegativeField,
+  objectField,
+  requiredFields,
 } from "../fields.js";
 
 /**
@@ -56,20 +58,23 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  *
  * Every field rule SQS states about a queue is applied here. A field that
  * fails a rule is reported and dropped on its own, and the rest of the queue
- * survives. A required field that is absent is different: the queue cannot be
- * emitted at all, so the reader returns nothing and the caller decides what
- * that costs.
+ * survives. A required field that is absent is different. The queue cannot be
+ * emitted at all, and the diagnostic for it is an error. So the reader names
+ * that outcome apart from the others, and the caller drops the whole binding
+ * on it.
  *
  * `redrivePolicy`, `policy` and `tags` pass through as written. SQS states no
- * shape this emitter can check for them.
+ * shape this emitter can check for them. An empty one is dropped.
  *
  * @param context - The decorator context
  * @param field - The path of this queue, for the diagnostics
  * @param value - The queue as the author wrote it, still marshalled
  * @param required - The fields this level requires
  * @param target - Where a problem is reported
- * @returns The queue, or `undefined` when it was not an object or is missing
- * a required field
+ * @param loss - What a rejected queue costs. Pass `binding` where the binding
+ * requires the queue.
+ * @returns The queue, `dropped` when it was not an object, or `incomplete`
+ * when a required field is absent
  * @internal
  */
 export function readQueue(
@@ -78,20 +83,16 @@ export function readQueue(
   value: unknown,
   required: readonly string[],
   target: DiagnosticTarget,
-): SqsQueueObject | undefined {
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, SQS_BINDING_PROTOCOL, field, "an object", target);
-    return undefined;
+  loss: FieldLoss = "field",
+): NestedRead<SqsQueueObject> {
+  const plain = objectField(context, SQS_BINDING_PROTOCOL, field, value, target, loss);
+  if (plain === undefined) return { outcome: "dropped" };
+
+  if (!requiredFields(context, SQS_BINDING_PROTOCOL, field, plain, required, target)) {
+    return { outcome: "incomplete" };
   }
 
-  const missing = missingFields(plain, required);
-  for (const name of missing) {
-    reportMissingField(context, SQS_BINDING_PROTOCOL, `${field}.${name}`, target);
-  }
-  if (missing.length > 0) return undefined;
-
-  return {
+  const queue: SqsQueueObject = {
     name: (plain.name as string).trim(),
     ...present("fifoQueue", plain.fifoQueue as boolean | undefined),
     ...present(
@@ -126,10 +127,14 @@ export function readQueue(
       "messageRetentionPeriod",
       seconds(context, field, "messageRetentionPeriod", plain, target),
     ),
-    ...present("redrivePolicy", objectOrUndefined(context, plain.redrivePolicy)),
-    ...present("policy", objectOrUndefined(context, plain.policy)),
-    ...present("tags", objectOrUndefined(context, plain.tags)),
+    ...present(
+      "redrivePolicy",
+      openObject(context, field, "redrivePolicy", plain.redrivePolicy, target),
+    ),
+    ...present("policy", openObject(context, field, "policy", plain.policy, target)),
+    ...present("tags", openObject(context, field, "tags", plain.tags, target)),
   };
+  return { outcome: "read", value: queue };
 }
 
 /**
@@ -145,27 +150,38 @@ function seconds(
   plain: Record<string, unknown>,
   target: DiagnosticTarget,
 ): number | undefined {
-  const value = plain[field] as number | undefined;
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(
-      context,
-      SQS_BINDING_PROTOCOL,
-      `${queueField}.${field}`,
-      "zero or more seconds",
-      target,
-    );
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(
+    context,
+    SQS_BINDING_PROTOCOL,
+    `${queueField}.${field}`,
+    plain[field] as number | undefined,
+    "seconds",
+    target,
+  );
 }
 
-/** Passes an object through, and drops anything else without a report. */
-function objectOrUndefined(
+/**
+ * Passes one open object of a queue through.
+ *
+ * SQS states no shape this emitter can check for `redrivePolicy`, `policy`
+ * and `tags`, so the object is emitted as written. One rule applies. An
+ * object with no field in it is dropped, because it states nothing.
+ *
+ * The `objectField` call around that rule reports nothing in practice. The
+ * library types all three fields as `Record<unknown>`, so the checker refuses
+ * a scalar or a list before this decorator runs. A member the serializer
+ * cannot represent fails the whole queue one level up, where `readQueue`
+ * reports the queue itself. The call stays as a guard on the type this
+ * function accepts.
+ */
+function openObject(
   context: DecoratorContext,
+  queueField: string,
+  field: string,
   value: unknown,
+  target: DiagnosticTarget,
 ): Record<string, unknown> | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  return isPlainObject(plain) ? plain : undefined;
+  return nonEmptyObject(
+    objectField(context, SQS_BINDING_PROTOCOL, `${queueField}.${field}`, value, target),
+  );
 }

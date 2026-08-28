@@ -1,6 +1,7 @@
 import { DecoratorContext, Model, Program } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../../lib.js";
+import { trimmed } from "../../optional-fields.js";
 import { singleApplication } from "../single-application.js";
 
 const contentTypeStateKey = Symbol.for("tsp-asyncapi.contentType");
@@ -53,15 +54,18 @@ export function $contentType(context: DecoratorContext, target: Model, contentTy
   // written last in the source runs first and wins. The guard records
   // that this decorator ran, before any value is validated, so a value
   // that fails validation still blocks a later application.
-  if (!guard.claim(context, target)) return;
-  if (contentType.length === 0) {
+  if (guard.claim(context, target) !== "first") return;
+  // The media type is trimmed first. A value of spaces alone names no
+  // format, and a length check would let it through.
+  const mediaType = trimmed(contentType);
+  if (mediaType === undefined) {
     reportDiagnostic(context.program, {
       code: "empty-content-type",
       target: context.decoratorTarget,
     });
     return;
   }
-  setContentType(context.program, target, contentType);
+  setContentType(context.program, target, mediaType);
 }
 
 /**

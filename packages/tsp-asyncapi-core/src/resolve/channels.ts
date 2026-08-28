@@ -14,7 +14,9 @@
 import { Model, Program, getDoc, getSummary } from "@typespec/compiler";
 import { ChannelTarget, listChannelsInternal } from "../decorators/channels/state.js";
 import { listUseServerTargets } from "../decorators/channels/use-server-state.js";
+import { listMessages } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
+import { present, text } from "../optional-fields.js";
 import { buildExternalDocs } from "../external-docs.js";
 import { buildTags } from "./tags.js";
 import { resolveExtensions } from "./extensions.js";
@@ -73,6 +75,8 @@ export interface ResolvedChannels {
  * @param messageKeys - The `components.messages` key each model claimed
  * @param placements - Where the binding applications this build placed are
  * recorded
+ * @param declaredServers - The name of every server the document holds. A
+ * `@useServer` outside that set names nothing a reference can address.
  * @returns The channels in source order, and the channel each target
  * contributed
  * @internal
@@ -81,6 +85,7 @@ export function resolveChannels(
   program: Program,
   messageKeys: ReadonlyMap<Model, string>,
   placements: BindingPlacements,
+  declaredServers: ReadonlySet<string>,
 ): ResolvedChannels {
   const channels: ChannelNode[] = [];
   const claimedBy = new Set<string>();
@@ -90,6 +95,11 @@ export function resolveChannels(
   // extension report reads this set, so a dropped target raises no warning
   // about an id the document does carry.
   const extensionCarriers = new Set<ChannelTarget>();
+  // The parameter resolver only asks whether a type carries `@message`, and
+  // the answer is the same for every channel. `listMessages` copies the whole
+  // state map and sorts it by source position, so it is read once here rather
+  // than once per channel.
+  const messageModels = new Set(listMessages(program).keys());
 
   for (const { target, record } of listChannelsInternal(program)) {
     extensionCarriers.add(target);
@@ -112,14 +122,14 @@ export function resolveChannels(
       target,
       key,
       address: record.state.address,
-      ...optional("title", getSummary(program, target)),
-      ...optional("description", getDoc(program, target)),
-      servers: resolveChannelServers(program, target),
-      parameters: resolveChannelParameters(program, target, record, key),
+      ...text("title", getSummary(program, target)),
+      ...text("description", getDoc(program, target)),
+      servers: resolveChannelServers(program, target, declaredServers),
+      parameters: resolveChannelParameters(program, target, record, key, messageModels),
       messages: messages.messages,
       messageKeys: messages.keys,
       tags: buildTags(program, target) ?? [],
-      ...optional("externalDocs", buildExternalDocs(program, target)),
+      ...present("externalDocs", buildExternalDocs(program, target)),
       bindings: resolveBindings(program, "channel", target, placements),
       extensions: resolveExtensions(program, target),
     });
@@ -182,12 +192,4 @@ function reportUseServerWithoutChannel(program: Program): void {
       });
     }
   }
-}
-
-/** Includes a field only when it is defined. */
-function optional<K extends string, V>(
-  name: K,
-  value: V | undefined,
-): Record<K, V> | Record<string, never> {
-  return value !== undefined ? ({ [name]: value } as Record<K, V>) : {};
 }

@@ -82,7 +82,7 @@ Two instantiations of one template that produce the same key are not reported â€
 
 > @contentType was given an empty media type. A blank media type names no format, so it cannot reach the emitted message. This @contentType was dropped, and the message falls back to the document defaultContentType. Give it a media type, such as 'application/json'.
 
-An application of [`@contentType`](./decorators/messages#contenttype) passed the empty string. A blank media type names no format, so the emitter cannot write it into the message.
+An application of [`@contentType`](./decorators/messages#contenttype) passed a blank media type. The value is trimmed first, so a value of spaces alone is blank. A blank media type names no format, so the emitter cannot write it into the message.
 
 The message falls back to the document `defaultContentType`, the same result an absent `@contentType` gives. The user typed the empty string on purpose, so that fallback is reported rather than silent.
 
@@ -256,7 +256,7 @@ An application of `@messageExample` gave an empty value, or gave only `name` and
 
 > @asyncTag was given an empty name. The `name` of an AsyncAPI Tag Object is required, and no consumer can match a blank one. This tag was dropped. Give it a name.
 
-An application of [`@asyncTag`](./decorators/document-info#asynctag) passed the empty string as the tag name. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
+An application of [`@asyncTag`](./decorators/document-info#asynctag) passed a blank tag name. The value is trimmed first, so a name of spaces alone is blank. `name` is required on an AsyncAPI Tag Object, so a blank one names nothing a consumer can match.
 
 **Fix:** give the tag a name.
 
@@ -502,7 +502,7 @@ The runtime expression is outside the grammar. It must start with `$message.head
 
 **Fix:** write the expression in that form, such as `$message.header#/replyTo`.
 
-The four codes below come from the protocol bindings, and two more appear under Warnings. See [Protocol Bindings](/reference/bindings/) for the decorators that report them.
+The five codes below come from the protocol bindings, and two more appear under Warnings. See [Protocol Bindings](/reference/bindings/) for the decorators that report them.
 
 ### `duplicate-binding`
 
@@ -527,6 +527,16 @@ The protocol name becomes a key in the emitted document. A blank key names nothi
 AsyncAPI defines every member of a Bindings Object as an object. A string, a number, and an array are all rejected.
 
 **Fix:** write the config as an object value.
+
+### `invalid-required-binding-field`
+
+> The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that. The binding cannot be written without the field, so the whole binding was dropped. Write '\<field\>' as \<expected\>.
+
+One field carries a value the binding specification forbids. The emitter cannot write the binding without that field, so the whole binding is dropped rather than the field alone. That is the difference from [`invalid-binding-field`](#invalid-binding-field), which is a warning and keeps the rest of the binding.
+
+Some fields report it. They are the `queue` and the `deadLetterQueue` of an Amazon SQS channel, the `queues` of an SQS operation, the `schemaSettings` of a Google Cloud Pub/Sub channel, and the `persistence` of a Pulsar channel. A `deadLetterQueue` is optional, and it still costs the binding. The author declared a queue, so a binding written without it describes less than the source does.
+
+**Fix:** write the field as the message names.
 
 ### `missing-binding-field`
 
@@ -588,9 +598,37 @@ The `flows` field of an `oauth2` scheme is an empty object.
 
 A URL field holds a value that is not an absolute URL. A relative reference such as `/token` fails, and so does free text. AsyncAPI marks these fields with the `uri` format, and a parser rejects the document over a value that fails it.
 
-Two decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server.
+Three decorators report this. `@securityScheme` reports it for `openIdConnectUrl` and for the `authorizationUrl`, `tokenUrl`, and `refreshUrl` of each OAuth flow. A flow URL is named together with its flow, such as `implicit.authorizationUrl`. `@externalDocs` reports it for the link it carries, which reaches `info` and every server. `@info` reports it for `termsOfService`, `contact.url`, and `license.url`.
+
+`@info` drops the field alone and keeps the rest of the decorator. The other two drop the whole decorator. The message says which of the two happened.
 
 **Fix:** Write the URL with a scheme, such as `https://example.com/token`.
+
+### `empty-info-version`
+
+> @info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.
+
+The `version` given to `@info` is blank. The value is trimmed first, so a value of spaces alone is blank. AsyncAPI requires the field, so the version falls back to `0.0.0`.
+
+**Fix:** give `@info` a version, such as `1.0.0`.
+
+### `empty-license-name`
+
+> @info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.
+
+The `license` given to `@info` holds a blank `name`. The value is trimmed first, so a value of spaces alone is blank. AsyncAPI requires the field, so a License Object without it names no license.
+
+The whole license is dropped, `license.url` included. The rest of `@info` is kept.
+
+**Fix:** give the license a name, such as `MIT`.
+
+### `duplicate-info-decorator`
+
+> @info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.
+
+`@info` is applied to one namespace more than once. A document carries one Info Object, so only one application takes effect. Decorators on one declaration run bottom-up, so the application written last runs first and wins.
+
+**Fix:** merge the applications into one, and remove the extra `@info`.
 
 ### `conflicting-generated-schema-source`
 
@@ -737,6 +775,22 @@ No operation of the channel names a model that carries `@message`. The channel i
 One name reached `@useServer` twice on one channel. AsyncAPI requires the entries of the array to be unique, so the emitter emits one reference.
 
 **Fix:** remove the extra `@useServer`.
+
+### `invalid-use-server-name`
+
+> Invalid server name: '\<name\>'. @useServer emits a reference to the key of that server in the root `servers` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.
+
+The name given to `@useServer` uses a character AsyncAPI does not allow in a key of the root `servers` map. The name is tested as written, the same way `@server` tests the key it declares. A space is outside the allowed set, so a padded name is rejected on both sides. The emitter does not rewrite the name, because that would change the server the author asked for.
+
+**Fix:** write the name with letters, digits, `_`, and `-` only.
+
+### `undeclared-used-server`
+
+> @useServer names the server '\<name\>', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.
+
+`@useServer` names a server that no `@server` on the service namespace declares. The emitted reference would address a key the document does not carry. A parser rejects the whole document over such a reference, so the entry is dropped.
+
+**Fix:** declare a `@server` with this name on the service namespace, or correct the name.
 
 ### `use-server-without-channel`
 
@@ -986,6 +1040,14 @@ A `@minValue`/`@maxValue`/`@minLength`/... bound overflows or loses precision as
 
 **Fix:** remove the constraint, or express it as documentation (`@doc`).
 
+### `encoding-describes-no-variant`
+
+> @encode("\<encoding\>") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.
+
+`@encode` on a union-typed property, where no variant is a type the encoding describes â€” e.g. `@encode("ISO8601") d: utcDateTime | null`. ISO 8601 names how a `duration` travels, and neither variant is a `duration`. The compiler accepts the decorator, so this is the only report the author gets.
+
+**Fix:** use an encoding that names one of the variants, or change the property type to one the encoding describes.
+
 ### `missing-discriminator-property`
 
 > @discriminator("\<property\>") names a property that is not defined on this model. AsyncAPI requires the discriminating property to be defined here, so `discriminator` was omitted from the emitted schema.
@@ -1024,7 +1086,11 @@ A binding sits on the object its target emits. A target that emits no object car
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `topicConfiguration`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+
+`topicConfiguration` reports it when the serializer cannot represent a member of the map. A custom scalar with an `init` is one such member. That member fails the whole map, so the report names `topicConfiguration` rather than the member.
+
+The rest of the binding is emitted. A field the emitter cannot write the binding without costs more. It reports [`invalid-required-binding-field`](#invalid-required-binding-field) instead.
 
 **Fix:** give the field a value the message names.
 

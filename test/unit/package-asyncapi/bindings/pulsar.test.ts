@@ -128,12 +128,16 @@ describe("Unit: the Pulsar binding decorators", () => {
         }
       `);
 
-      // A rejected value leaves the field absent, and the field is required.
-      // Both reports reach the author: what was wrong, and what is now
-      // missing because of it.
-      const invalid = findDiagnostic(diagnostics, "invalid-binding-field");
-      expect(invalid.message).toContain("persistent or non-persistent");
-      findDiagnostic(diagnostics, "missing-binding-field");
+      // The binding needs the field, so the rejected value costs the whole
+      // binding. One report says so. The keep-rest warning would contradict
+      // it, and the missing-field error would tell the author they left out
+      // a field they wrote.
+      const reported = findDiagnostic(diagnostics, "invalid-required-binding-field");
+      expect(reported.severity).toBe("error");
+      expect(reported.message).toContain("'persistence'");
+      expect(reported.message).toContain("persistent or non-persistent");
+      expect(diagnosticsWith(diagnostics, "invalid-binding-field")).toEqual([]);
+      expect(diagnosticsWith(diagnostics, "missing-binding-field")).toEqual([]);
       expect(channelsOf(doc)["orders.created"].bindings).toBeUndefined();
     });
 

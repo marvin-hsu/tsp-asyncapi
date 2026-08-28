@@ -102,7 +102,7 @@ describe("what the Avro walk refuses", () => {
       @Avro.avroNamespace("com.example.a")
       namespace A { @Avro.avroRecord model Event { count: uint32; } }
       `,
-      `unsupported-type: The scalar "uint32" has no Avro form.`,
+      `unsupported-type: The scalar "uint32" has no Avro form. Avro has eight primitive types. Declare the field as one it does have, and use @Avro.logicalType to say what the value means: a timestamp is an int64 that carries "timestamp-millis".`,
     );
   });
 
@@ -270,6 +270,109 @@ describe("what the Avro walk refuses", () => {
       }
       `,
       `invalid-fixed: "0" is not a width an Avro fixed type can have. A fixed type holds a positive number of bytes.`,
+    );
+  });
+
+  it("refuses a named type that takes a name Avro keeps", async () => {
+    // The name passes the Avro grammar, and it names a primitive. A reader
+    // that met this record would read the primitive instead.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model int { value: string; }
+      }
+      `,
+      `invalid-name: Avro keeps the name "int" for a type of its own. A record, an enum and a fixed type take a name that is none of: null, boolean, int, long, float, double, bytes, string.`,
+    );
+  });
+
+  it("refuses aliases on a scalar that is written as a primitive", async () => {
+    // An alias stands for a name, and an Avro primitive is the same type
+    // wherever it occurs. Nothing would carry the alias.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `,
+      `aliases-target: The scalar "Age" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+    );
+  });
+
+  it("refuses aliases written on a scalar further up the chain", async () => {
+    // `@logicalType` and `@fixed` are read along the chain a scalar extends.
+    // An alias read at the leaf alone was dropped without a word.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Base extends int32;
+        scalar Age extends Base;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `,
+      `aliases-target: The scalar "Base" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+    );
+  });
+
+  it("refuses a fixed scalar that does not extend bytes", async () => {
+    // An Avro fixed type holds bytes. A fixed string was written out as a
+    // fixed type all the same, and what `extends string` said was lost.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { value: Word; }
+      }
+      `,
+      `invalid-fixed: The scalar "Word" carries @fixed and extends the Avro type "string". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
+    );
+  });
+
+  it("refuses one scalar once, however many fields hold it", async () => {
+    // These two refusals point at the scalar declaration, not at the field.
+    // One declaration is wrong once, so a reader who opens that line sees one
+    // message there rather than a copy of it for every field.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { a: Age; b: Age; }
+      }
+      `,
+      `aliases-target: The scalar "Age" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
+    );
+
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { a: Word; b: Word; }
+      }
+      `,
+      `invalid-fixed: The scalar "Word" carries @fixed and extends the Avro type "string". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
+    );
+  });
+
+  it("refuses a union that holds no branch", async () => {
+    // An Avro union is a list of branches, and a reader picks one of them by
+    // its index. An empty list leaves nothing to pick, so it is not a schema
+    // any reader can take. It was written out as `[]` before.
+    await expectRefusal(
+      `
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        union Nothing {}
+        @Avro.avroRecord model Event { value: Nothing; }
+      }
+      `,
+      `unsupported-type: The union "Nothing" holds no branch. An Avro union is a list a reader picks one branch from, and an empty list leaves nothing to pick.`,
     );
   });
 
@@ -512,5 +615,81 @@ describe("what the Avro walk refuses", () => {
       `,
       `enum-default: The enum "Channel" declares no member named "NOPE". An Avro enum falls back to one of its own symbols.`,
     );
+  });
+});
+
+/**
+ * Where the walk points a refusal.
+ *
+ * A diagnostic carries a target, and an editor draws the error on it. A
+ * refusal about a scalar declaration belongs on that declaration, because the
+ * decorator the author has to change is written there. Pointing at the field
+ * instead sends the author to code that is correct, and says it again for
+ * every field that uses the scalar.
+ */
+describe("where the Avro walk points a refusal", () => {
+  /**
+   * Compiles a source and names what each refusal points at.
+   *
+   * @param source - The TypeSpec source
+   * @returns One `code: kind name` line per diagnostic, in order
+   */
+  async function refusalTargets(source: string): Promise<string[]> {
+    const result = await emitAvro(source);
+    return result.diagnostics.map((diagnostic) => {
+      const target: unknown = diagnostic.target;
+      const named = target as { kind?: unknown; name?: unknown };
+      return `${diagnostic.code}: ${String(named.kind)} ${String(named.name)}`;
+    });
+  }
+
+  it("points @aliases on a scalar written as a primitive at that scalar", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Age extends int32;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `),
+    ).toEqual(["tsp-avro/aliases-target: Scalar Age"]);
+  });
+
+  it("points @aliases written further up the chain at the scalar that carries it", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.aliases("com.example.old.Age") scalar Base extends int32;
+        scalar Age extends Base;
+        @Avro.avroRecord model Event { age: Age; }
+      }
+      `),
+    ).toEqual(["tsp-avro/aliases-target: Scalar Base"]);
+  });
+
+  it("points a fixed scalar that does not extend bytes at that scalar", async () => {
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.fixed(4) scalar Word extends string;
+        @Avro.avroRecord model Event { value: Word; }
+      }
+      `),
+    ).toEqual(["tsp-avro/invalid-fixed: Scalar Word"]);
+  });
+
+  it("points a type Avro cannot hold at the field that holds it", async () => {
+    // The scalar here is sound on its own. The field is what has no Avro
+    // form, so the field is where the author has to look.
+    expect(
+      await refusalTargets(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model Event { at: offsetDateTime; }
+      }
+      `),
+    ).toEqual(["tsp-avro/unsupported-type: ModelProperty at"]);
   });
 });

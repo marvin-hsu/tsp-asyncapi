@@ -148,13 +148,14 @@ export const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 /**
  * The character set AsyncAPI 3 allows for a key of the Components Object.
  *
- * A dot is allowed here, unlike in a key of the root `servers` map. Two
- * decorators check a name against this set. `@securityScheme` writes the
- * name as a key, and `@useSecurity` writes it into a JSON Pointer that
- * addresses such a key. Both need the same answer, so the pattern lives in
- * one place.
+ * A dot is allowed here, unlike in a key of the root `servers` map. Three
+ * places check a name against this set. `@securityScheme` writes the name as
+ * a key, `@useSecurity` writes it into a JSON Pointer that addresses such a
+ * key, and `isSafeComponentsKey` in `naming.ts` answers whether a schema or
+ * message key can be used as it is written. All three need the same answer,
+ * so the pattern lives in one place.
  */
-export const SECURITY_SCHEME_NAME_PATTERN = /^[a-zA-Z0-9.\-_]+$/;
+export const COMPONENTS_KEY_PATTERN = /^[a-zA-Z0-9.\-_]+$/;
 
 /**
  * The one `http` authorization scheme that takes a `bearerFormat`.

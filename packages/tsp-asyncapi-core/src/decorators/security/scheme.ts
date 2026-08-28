@@ -10,8 +10,9 @@ import {
   setSecuritySchemes,
 } from "./scheme-state.js";
 import { isAbsoluteUrl } from "../absolute-url.js";
-import { bySourcePosition, isSameApplication, sourcePositionOf } from "../../source-order.js";
-import { HTTP_BEARER_SCHEME, SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
+import { sourcePositionOf } from "../../source-order.js";
+import { settleNameClash } from "../name-clash.js";
+import { HTTP_BEARER_SCHEME, COMPONENTS_KEY_PATTERN } from "../../constants.js";
 
 export type { AsyncAPISecuritySchemeState } from "./scheme-state.js";
 
@@ -485,7 +486,7 @@ export function $securityScheme(
   // Report on the scheme argument. Every field problem points here.
   const schemeTarget = context.getArgumentTarget(1) ?? target;
 
-  if (!SECURITY_SCHEME_NAME_PATTERN.test(name)) {
+  if (!COMPONENTS_KEY_PATTERN.test(name)) {
     // The name is written by hand, so it is not rewritten to a legal key.
     // Rewriting it would silently change the key the author asked for.
     reportDiagnostic(context.program, {
@@ -508,18 +509,16 @@ export function $securityScheme(
 
   const clash = findSecuritySchemeByName(context.program, name);
   if (clash !== undefined) {
-    const existing = clash.records[clash.index];
-    // One augment decorator runs once per declaration of its target
-    // namespace, so a reopened namespace runs the same statement again.
-    // Those runs are one application, not a clash.
-    if (isSameApplication(existing, record)) return;
-    const dropped = bySourcePosition(context.program)(record, existing) < 0 ? existing : record;
-    if (dropped === existing) clash.records[clash.index] = record;
-    reportDiagnostic(context.program, {
-      code: "duplicate-security-scheme-name",
-      format: { name },
-      target: dropped.nameTarget,
-    });
+    // `settleNameClash` holds the rule, because `@server` needs the same
+    // answer for the key it writes.
+    settleNameClash(
+      context.program,
+      clash.records,
+      clash.index,
+      record,
+      "duplicate-security-scheme-name",
+      name,
+    );
     return;
   }
 

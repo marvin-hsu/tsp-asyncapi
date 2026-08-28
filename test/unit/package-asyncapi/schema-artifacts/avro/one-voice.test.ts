@@ -16,26 +16,15 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createTester } from "@typespec/compiler/testing";
+import { createLibraryTester } from "../../../../utils/emitter-package.js";
 import type { EmitContext, Program } from "@typespec/compiler";
-import { fileURLToPath } from "node:url";
-import { PACKAGE_NAME } from "#emitter/lib.js";
 import { $onEmit as emitAsyncAPI } from "#emitter/emitter.js";
 import type { AsyncAPIEmitterOptions } from "#emitter/emitter-options.js";
 import { $onEmit as emitAvro } from "#avro/emitter.js";
 import type { AvroEmitterOptions } from "#avro/lib.js";
 
-/** The root of the emitter package, which holds the Avro library beside it. */
-const PACKAGE_ROOT = fileURLToPath(
-  new URL("../../../../../packages/tsp-asyncapi", import.meta.url),
-);
-
 /** A tester that compiles both libraries and runs no emitter of its own. */
-const BothLibraries = createTester(PACKAGE_ROOT, {
-  libraries: [PACKAGE_NAME, "tsp-avro"],
-})
-  .importLibraries()
-  .using("AsyncAPI");
+const BothLibraries = createLibraryTester("tsp-avro");
 
 /** A message model the Avro walk refuses, for one reason. */
 const REFUSED = `

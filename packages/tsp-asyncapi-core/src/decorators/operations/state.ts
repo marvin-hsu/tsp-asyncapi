@@ -90,7 +90,7 @@ export function claimAction(
 ): boolean {
   const other = actionGuards[action === "send" ? "receive" : "send"];
   const otherApplied = other.isApplied(context.program, target);
-  if (!actionGuards[action].claim(context, target)) return false;
+  if (actionGuards[action].claim(context, target) !== "first") return false;
   if (otherApplied) {
     // Both decorators reached this operation. The one that ran first may
     // have recorded an action already, so that record is taken back out.

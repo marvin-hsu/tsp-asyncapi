@@ -201,7 +201,66 @@ describe("how a field carries null and a default", () => {
     expect((field.type as { name?: string }[])[0].name).toBe("Colour");
   });
 
-  it("refuses a default that no branch of the union can carry", async () => {
+  it("carries a record default on an optional field", async () => {
+    // The value names no branch of its own, and `["null", Inner]` leaves one
+    // place for it to sit. This is how every optional record field is
+    // written, and refusing it refused the ordinary case.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.rows")
+      namespace Rows {
+        model Inner { a: string; }
+        @Avro.avroRecord model Row { x?: Inner = #{ a: "z" }; }
+      }
+    `);
+
+    const field = fieldNamed(files["com/example/rows/Row.avsc"], "x");
+    expect(field.default).toEqual({ a: "z" });
+    expect((field.type as [{ name?: string }, string])[0].name).toBe("Inner");
+    expect((field.type as [unknown, string])[1]).toBe("null");
+  });
+
+  it("carries a record default on a union that names null itself", async () => {
+    // `Inner | null` is the same union the `?` builds. The compiler writes a
+    // value against the type it is handed. The union is not that type, and
+    // handing it over wrote `{}`, which satisfies no branch.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.rows")
+      namespace Rows {
+        model Inner { a: string; }
+        @Avro.avroRecord model Row { x?: Inner | null = #{ a: "z" }; }
+      }
+    `);
+
+    expect(fieldNamed(files["com/example/rows/Row.avsc"], "x").default).toEqual({ a: "z" });
+  });
+
+  it("carries an array default on a union that names null itself", async () => {
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.rows")
+      namespace Rows {
+        @Avro.avroRecord model Row { x?: string[] | null = #["z"]; }
+      }
+    `);
+
+    expect(fieldNamed(files["com/example/rows/Row.avsc"], "x").default).toEqual(["z"]);
+  });
+
+  it("carries an array default on an optional field", async () => {
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.rows")
+      namespace Rows {
+        @Avro.avroRecord model Row { x?: string[] = #["z"]; }
+      }
+    `);
+
+    expect(fieldNamed(files["com/example/rows/Row.avsc"], "x")).toEqual({
+      name: "x",
+      type: [{ type: "array", items: "string" }, "null"],
+      default: ["z"],
+    });
+  });
+
+  it("refuses a default that names no one branch of the union", async () => {
     // A model literal in a union says nothing about which record it is, so
     // the branch that has to lead cannot be named. Writing the field anyway
     // would put the default against whichever branch came first.

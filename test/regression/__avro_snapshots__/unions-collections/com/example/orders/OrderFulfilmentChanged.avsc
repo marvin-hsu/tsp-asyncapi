@@ -1,0 +1,45 @@
+{
+  "type": "record",
+  "name": "OrderFulfilmentChanged",
+  "namespace": "com.example.orders",
+  "doc": "The fulfilment of an order moved on.",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "shipping",
+      "type": {
+        "type": "record",
+        "name": "Address",
+        "namespace": "com.example.orders",
+        "doc": "Where an order goes.",
+        "fields": [
+          {
+            "name": "line1",
+            "type": "string"
+          },
+          {
+            "name": "city",
+            "type": "string"
+          },
+          {
+            "name": "postcode",
+            "type": "string"
+          }
+        ]
+      },
+      "doc": "Where the order is going, as it stood at this moment."
+    },
+    {
+      "name": "note",
+      "type": [
+        "null",
+        "string"
+      ],
+      "doc": "What the courier reported, when it reported anything.",
+      "default": null
+    }
+  ]
+}

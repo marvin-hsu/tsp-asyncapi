@@ -1,5 +1,5 @@
 import { DecoratorContext, Program } from "@typespec/compiler";
-import { SECURITY_SCHEME_NAME_PATTERN } from "../../constants.js";
+import { COMPONENTS_KEY_PATTERN } from "../../constants.js";
 import { reportDiagnostic } from "../../lib.js";
 import { isSameApplication, sourcePositionOf } from "../../source-order.js";
 import {
@@ -73,7 +73,7 @@ export function $useSecurity(
 
   // The name is tested as written, the same way `@securityScheme` tests the
   // key it defines. So a padded name is rejected on both sides.
-  if (!SECURITY_SCHEME_NAME_PATTERN.test(schemeName)) {
+  if (!COMPONENTS_KEY_PATTERN.test(schemeName)) {
     // The name is written by hand, so it is not rewritten to a legal one.
     // This follows `@securityScheme`, which drops a name it cannot use.
     reportDiagnostic(context.program, {

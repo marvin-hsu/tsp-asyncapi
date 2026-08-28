@@ -89,9 +89,10 @@ describe("Unit: lower transforms — the key set of a built map", () => {
  * blank rule moves. The answer is carried alongside the input instead, so
  * nothing here states the rule.
  *
- * The rule itself is enumerated in `test/unit/optional-fields.test.ts`. What
- * this pairing is for is the field wiring: that `lowerInfo` applies the rule
- * at all, to the fields it is meant to apply it to.
+ * The rule itself is enumerated in
+ * `test/unit/package-core/optional-fields.test.ts`. What this pairing is for
+ * is the field wiring: that `lowerInfo` applies the rule at all, to the fields
+ * it is meant to apply it to.
  */
 const labelledText = fc.oneof(
   // Text that already says something: the answer is the text.

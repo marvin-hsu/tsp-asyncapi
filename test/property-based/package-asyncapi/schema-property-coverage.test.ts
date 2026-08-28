@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { hasError } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import { schemaOf, schemasOf } from "../../utils/document.js";
@@ -93,7 +94,7 @@ describe("Integration: Schemas — declared property coverage", () => {
         // `fc.pre` throws to drop the draw, but TypeScript cannot see that
         // through a call. Returning through it narrows `doc` for the rest of
         // the body and drops the draw exactly as before.
-        if (doc === null || diagnostics.some((d) => d.severity === "error")) {
+        if (doc === null || hasError(diagnostics)) {
           fc.pre(false);
           return;
         }

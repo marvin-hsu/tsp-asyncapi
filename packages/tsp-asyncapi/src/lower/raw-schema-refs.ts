@@ -64,9 +64,13 @@ export function reportUnresolvedRawSchemaRefs(
   if (messages === undefined) return;
 
   // Every key of `messageKeys` names an emitted message. A model that a key
-  // collision dropped never reached that map.
+  // collision dropped never reached that map. The lookup still guards,
+  // because this rule holds an invariant of another package. If that
+  // invariant breaks, this run must report nothing rather than throw a
+  // `TypeError`.
   for (const [model, key] of messageKeys) {
-    const message = messages[key];
+    const message = Object.hasOwn(messages, key) ? messages[key] : undefined;
+    if (message === undefined) continue;
     for (const slot of [message.payload, message.headers]) {
       const ref = localRef(rawSchemaOf(slot));
       if (ref === undefined || resolvesInDocument(document, ref)) continue;

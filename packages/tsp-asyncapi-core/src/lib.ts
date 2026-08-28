@@ -39,7 +39,7 @@ export const PACKAGE_NAME = "tsp-asyncapi-core";
  * Registering two libraries under one name is supported. The emitter package
  * declares a second one, for its options schema alone.
  *
- * Eighteen of these diagnostics are reported by the emitter package rather than
+ * Some of these diagnostics are reported by the emitter package rather than
  * from here. They stay in this one list because a reader looking up a code
  * should find every code in one place.
  *
@@ -86,6 +86,12 @@ export const $lib = createTypeSpecLibrary({
       severity: "warning",
       messages: {
         default: paramMessage`This @${"decorator"} constraint targets a date/time/duration value, which draft-07 JSON Schema cannot express as a \`minimum\`/\`maximum\`, and was omitted from the emitted schema.`,
+      },
+    },
+    "encoding-describes-no-variant": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`@encode("${"encoding"}") describes none of the variants of this union, so the encoding was left out of the emitted schema. Each variant keeps the shape its own type states.`,
       },
     },
     "missing-discriminator-property": {
@@ -545,6 +551,22 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`@useServer names the server '${"name"}' more than once on this channel. AsyncAPI requires the entries of a channel's \`servers\` array to be unique, so one reference was emitted. Remove the extra @useServer.`,
       },
     },
+    "invalid-use-server-name": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Invalid server name: '${"name"}'. @useServer emits a reference to the key of that server in the root \`servers\` map, and AsyncAPI only allows letters, digits, '_', and '-' in such a key. A blank name is no key either. This @useServer was dropped.`,
+      },
+    },
+    "undeclared-used-server": {
+      // This is a warning, not an error, for the reason every build-time
+      // "this name resolves to nothing" check here is one. The check needs
+      // the declared servers, and an error stops the compiler before the
+      // document this message describes is written.
+      severity: "warning",
+      messages: {
+        default: paramMessage`@useServer names the server '${"name"}', and no @server on the service namespace declares it. The emitted reference would point at nothing, and no parser could resolve it. This entry was dropped. Declare a @server with this name, or correct the name.`,
+      },
+    },
     "use-server-without-channel": {
       severity: "warning",
       messages: {
@@ -625,6 +647,32 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`The '${"field"}' value '${"url"}' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This decorator was dropped. Write a URL with a scheme, such as 'https://example.com/token'.`,
+        // A second wording for a decorator that carries more than this one
+        // field. Dropping the whole of `@info` over its license URL would
+        // take the version and the description with it, and neither is at
+        // fault.
+        field: paramMessage`The '${"field"}' value '${"url"}' is not an absolute URL. AsyncAPI requires an absolute URL here, and a parser rejects the whole document over a relative one. This field was dropped, and the rest of the decorator was kept. Write a URL with a scheme, such as 'https://example.com/terms'.`,
+      },
+    },
+    "empty-info-version": {
+      severity: "error",
+      messages: {
+        default:
+          "@info was given a blank version. The `version` of an AsyncAPI Info Object is required, and a blank one names no version of the application. The version falls back to the document default. Give it a version, such as '1.0.0'.",
+      },
+    },
+    "empty-license-name": {
+      severity: "error",
+      messages: {
+        default:
+          "@info was given a license with a blank name. The `name` of an AsyncAPI License Object is required, and a blank one names no license. The whole license was dropped, and the rest of the decorator was kept. Give the license a name, such as 'MIT'.",
+      },
+    },
+    "duplicate-info-decorator": {
+      severity: "error",
+      messages: {
+        default:
+          "@info is applied to this namespace more than once. A document carries one Info Object, so only one application takes effect and the rest are discarded. Remove the extra @info.",
       },
     },
     "missing-oauth-flow-url": {
@@ -767,6 +815,21 @@ export const $lib = createTypeSpecLibrary({
       severity: "warning",
       messages: {
         default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that, so the field was dropped and the rest of the binding was kept.`,
+      },
+    },
+    // The same rejected value, on a field the emitter cannot write the
+    // binding without. There is no recovery to state here. The whole binding
+    // goes and nothing survives to inspect. That is what makes this one an
+    // error, like the codes above it.
+    //
+    // The reason is stated that way because not every site reports a field
+    // AsyncAPI requires. The `deadLetterQueue` of an SQS channel is optional,
+    // and it still costs the binding. The author declared the queue, so a
+    // binding written without it describes less than the source does.
+    "invalid-required-binding-field": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The ${"protocol"} binding field '${"field"}' expects ${"expected"}. The value given here is outside that. The binding cannot be written without the field, so the whole binding was dropped. Write '${"field"}' as ${"expected"}.`,
       },
     },
 

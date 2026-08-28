@@ -45,7 +45,7 @@ import { getAvroAliases } from "../decorators/aliases.js";
 import { getAvroEnumDefault } from "../decorators/enum-default.js";
 import { getAvroFixedSize } from "../decorators/fixed.js";
 import { getAvroLogicalType, type AvroLogicalTypeAnnotation } from "../decorators/logical-type.js";
-import { isAvroName } from "../decorators/names.js";
+import { AVRO_RESERVED_NAME_LIST, isAvroName, isAvroReservedName } from "../decorators/names.js";
 import { resolveAvroNamespace } from "../decorators/namespace.js";
 import { getAvroOrder } from "../decorators/order.js";
 import { createDiagnostic } from "../lib.js";
@@ -58,10 +58,18 @@ import {
   type AvroFixed,
   type AvroRecord,
   type AvroSchema,
-  type AvroUnion,
 } from "../types.js";
+import { avroFullName, avroNamespaceOf } from "./full-names.js";
 import { applyLogicalType, namedTypeOf } from "./logical-types.js";
-import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalars.js";
+import { avroScalarFor, scalarTableFor, type AvroScalarTable } from "./scalars.js";
+
+/**
+ * A TypeSpec declaration that can take an Avro full name.
+ *
+ * Avro names three kinds of type. A model becomes a record, an enum becomes an
+ * enum, and a scalar becomes a fixed type.
+ */
+type AvroDeclaration = Model | Enum | Scalar;
 
 /**
  * What the walk carries from one type to the next.
@@ -72,22 +80,26 @@ import { avroScalarFor, createScalarTable, type AvroScalarTable } from "./scalar
  * can resolve to one Avro name, and a name alone cannot tell that apart from a
  * second visit to the same declaration.
  *
- * `refused` is set once and never cleared: the walk keeps going after a
- * refusal so the author sees every problem in one compile, and the caller
- * drops the record at the end.
+ * `diagnostics` holds every refusal the walk built. It is also what says the
+ * walk refused. A refusal collects a reason, and the walk keeps going after
+ * one, so the author sees every problem in one compile. A flag beside this
+ * list would be a second answer to one question.
  *
- * `diagnostics` holds every refusal the walk built. Nothing here reports one.
- * The caller decides where they go, which is what lets an emitter in another
- * package read a reason and say it under its own name.
+ * `refusedScalars` holds every scalar declaration a refusal already points at.
+ * Those refusals name what is wrong with the declaration rather than with the
+ * field, and every field of that scalar reaches the same line. Without this
+ * set, a record with two such fields reported the identical message twice.
+ *
+ * Nothing here reports a diagnostic. The caller decides where they go, which
+ * is what lets an emitter in another package read a reason and say it under
+ * its own name.
  */
-type AvroDeclaration = Model | Enum | Scalar;
-
 interface WalkContext {
   readonly program: Program;
   readonly scalars: AvroScalarTable;
   readonly defined: Map<string, AvroDeclaration>;
+  readonly refusedScalars: Set<Scalar>;
   readonly diagnostics: Diagnostic[];
-  refused: boolean;
 }
 
 /**
@@ -152,16 +164,16 @@ export function buildAvroRecordWithDiagnostics(
 
   const context: WalkContext = {
     program,
-    scalars: createScalarTable(program),
+    scalars: scalarTableFor(program),
     defined: new Map(),
+    refusedScalars: new Set(),
     diagnostics,
-    refused: false,
   };
 
   const schema = namedModelFor(context, model, model);
 
   if (
-    context.refused ||
+    diagnostics.length > 0 ||
     schema === undefined ||
     typeof schema === "string" ||
     schema.type !== "record"
@@ -205,24 +217,36 @@ export function refusalWithReason(model: Model, diagnostics: Diagnostic[]): read
 }
 
 /**
- * Records that the walk refused something.
+ * Collects one refusal, which drops the record being built.
  *
- * The caller collects why, calls this, and returns undefined. The record it is
- * building is dropped at the end.
- */
-function markRefused(context: WalkContext): void {
-  context.refused = true;
-}
-
-/**
- * Collects one refusal and drops the record being built.
+ * The caller returns undefined after this. The reason is what says the walk
+ * refused, so collecting it is the whole of the bookkeeping.
  *
  * @param context - The walk
  * @param diagnostic - Why the walk refused
  */
 function refuse(context: WalkContext, diagnostic: Diagnostic): void {
   context.diagnostics.push(diagnostic);
-  markRefused(context);
+}
+
+/**
+ * Collects one refusal that points at a scalar declaration, and collects it
+ * once.
+ *
+ * The refusal names what is wrong with the declaration, not with the field
+ * that holds it. Every field of that scalar sends the walk to the same line,
+ * so the second one has nothing new to say.
+ *
+ * @param context - The walk
+ * @param scalar - The declaration the refusal points at
+ * @param build - Builds the refusal, which the second field never calls
+ */
+function refuseScalarOnce(context: WalkContext, scalar: Scalar, build: () => Diagnostic): void {
+  if (context.refusedScalars.has(scalar)) {
+    return;
+  }
+  context.refusedScalars.add(scalar);
+  refuse(context, build());
 }
 
 /**
@@ -281,7 +305,7 @@ function scalarFor(
   scalar: Scalar,
   target: DiagnosticTarget,
 ): AvroSchema | undefined {
-  const size = getAvroFixedSize(context.program, scalar);
+  const size = inheritedMark(scalar, (one) => getAvroFixedSize(context.program, one));
   let base: AvroSchema | undefined;
   if (size === undefined) {
     base = avroScalarFor(context.scalars, scalar);
@@ -297,7 +321,47 @@ function scalarFor(
       );
       return undefined;
     }
+
+    // An alias stands for a name, and this scalar has none. It is written as
+    // an Avro primitive, and a primitive is the same type wherever it occurs.
+    // Only `@fixed` gives a scalar a name for an alias to stand for.
+    //
+    // The chain is read, the same way `@fixed` and `@logicalType` are. An
+    // alias written further up is dropped just as silently, so it is refused
+    // just as loudly, under the name of the scalar that carries it.
+    const aliased = inheritedMark(scalar, (one) =>
+      getAvroAliases(context.program, one) === undefined ? undefined : one,
+    );
+    if (aliased !== undefined) {
+      refuseScalarOnce(context, aliased, () =>
+        createDiagnostic({
+          code: "aliases-target",
+          format: { name: aliased.name },
+          target: aliased,
+        }),
+      );
+      return undefined;
+    }
   } else {
+    // An Avro fixed type is a width of bytes. A scalar that carries @fixed and
+    // extends another Avro type says two things at once, and writing the fixed
+    // type would drop what the author wrote about the type underneath.
+    //
+    // A scalar that reaches no Avro type wrote nothing to drop. `@fixed` says
+    // the whole of what that type is, so the fixed type stands on its own.
+    const underlying = avroScalarFor(context.scalars, scalar);
+    if (underlying !== undefined && underlying !== "bytes") {
+      refuseScalarOnce(context, scalar, () =>
+        createDiagnostic({
+          code: "invalid-fixed",
+          messageId: "underlying",
+          format: { name: scalar.name, underlying },
+          target: scalar,
+        }),
+      );
+      return undefined;
+    }
+
     base = fixedFor(context, scalar, size, target);
     if (base === undefined) {
       return undefined;
@@ -309,7 +373,47 @@ function scalarFor(
     }
   }
 
-  return withLogicalType(context, base, getAvroLogicalType(context.program, scalar), target);
+  return withLogicalType(
+    context,
+    base,
+    inheritedMark(scalar, (one) => getAvroLogicalType(context.program, one)),
+    target,
+  );
+}
+
+/**
+ * Reads a mark off a scalar, or off the nearest scalar it extends.
+ *
+ * A TypeSpec scalar carries what it extends. The primitive table already
+ * matches through that chain, so `scalar Age extends int32` is an `int`. A
+ * mark the author wrote is read the same way, because `scalar CreatedAt
+ * extends Ts` means what `Ts` means. Reading the leaf alone dropped the mark
+ * and wrote the type underneath it. That type is the same on the wire and a
+ * different meaning to a reader.
+ *
+ * The nearest declaration wins, so a scalar restates a mark by writing its
+ * own. The mark comes back on its own. A `@fixed` scalar becomes an Avro
+ * named type. That type is named after the scalar being walked, the way a
+ * record is named after its model. So nothing here needs to know where the
+ * mark was written.
+ *
+ * @param scalar - The scalar being walked
+ * @param read - Reads the mark off one declaration
+ * @returns The mark, or undefined when no declaration in the chain carries one
+ */
+function inheritedMark<T>(
+  scalar: Scalar,
+  read: (declaration: Scalar) => T | undefined,
+): T | undefined {
+  let current: Scalar | undefined = scalar;
+  while (current) {
+    const mark = read(current);
+    if (mark !== undefined) {
+      return mark;
+    }
+    current = current.baseScalar;
+  }
+  return undefined;
 }
 
 /**
@@ -339,13 +443,35 @@ function fixedFor(
   return {
     type: "fixed",
     name: declaration.name,
-    namespace: namespaceOf(fullName),
-    // A scalar never carries an alias, because `@aliases` targets a model, a
-    // field and an enum. Reading one here answers undefined and says so in one
-    // place rather than two.
-    aliases: getAvroAliases(context.program, declaration),
+    namespace: avroNamespaceOf(fullName),
+    aliases: fixedAliasesOf(context, declaration),
     size,
   };
+}
+
+/**
+ * Reads the aliases of a fixed type.
+ *
+ * A model and a scalar both reach here, and `@aliases` targets both. A model
+ * carries its own, the way a record and an enum do.
+ *
+ * A scalar is read along the chain it extends, the way `@fixed` itself is.
+ * The fixed type is named after the scalar being walked. An alias written
+ * further up stands for that same name, so reading the leaf alone dropped it
+ * without a word. The nearest declaration wins, so a scalar restates the
+ * aliases by writing its own.
+ *
+ * @param context - The walk in progress
+ * @param declaration - The model or the scalar the fixed type comes from
+ * @returns The aliases, or undefined where no declaration carries any
+ */
+function fixedAliasesOf(
+  context: WalkContext,
+  declaration: Model | Scalar,
+): readonly string[] | undefined {
+  return declaration.kind === "Model"
+    ? getAvroAliases(context.program, declaration)
+    : inheritedMark(declaration, (one) => getAvroAliases(context.program, one));
 }
 
 /**
@@ -366,12 +492,9 @@ function withLogicalType(
     return schema;
   }
 
-  const written = applyLogicalType(context.diagnostics, schema, annotation, target);
-  if (written === undefined) {
-    markRefused(context);
-    return undefined;
-  }
-  return written;
+  // `applyLogicalType` collects its own reason into the same list, so a
+  // refusal here is already recorded.
+  return applyLogicalType(context.diagnostics, schema, annotation, target);
 }
 
 /**
@@ -499,7 +622,7 @@ function namedModelFor(
   return {
     type: "record",
     name: model.name,
-    namespace: namespaceOf(fullName),
+    namespace: avroNamespaceOf(fullName),
     doc: getDoc(context.program, model),
     aliases: getAvroAliases(context.program, model),
     fields,
@@ -516,8 +639,33 @@ function namedModelFor(
  * Flattening never fails, because a nested union always opens up. What fails
  * is the rule underneath it: `(string | int32) | string` flattens to three
  * branches, and two of them are `string`.
+ *
+ * A union of one branch is written as that branch. Avro spells a union of one
+ * as the type itself. The fold is here, not at the field alone, so the items
+ * of an array and the values of a map are spelled the same way. A union index
+ * the reader does not need is a byte on the wire.
  */
-function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget): AvroUnion {
+function unionFor(
+  context: WalkContext,
+  union: Union,
+  target: DiagnosticTarget,
+): AvroSchema | undefined {
+  // A reader picks a branch of a union by its index, so a union of no branch
+  // leaves nothing to pick. Only a declared union reaches here empty, because
+  // a union written inline names two types or more.
+  if (union.variants.size === 0) {
+    refuse(
+      context,
+      createDiagnostic({
+        code: "unsupported-type",
+        messageId: "emptyUnion",
+        format: { name: union.name ?? getTypeName(union) },
+        target,
+      }),
+    );
+    return undefined;
+  }
+
   const branches: AvroBranch[] = [];
   const keys = new Set<string>();
 
@@ -528,7 +676,7 @@ function unionFor(context: WalkContext, union: Union, target: DiagnosticTarget):
     }
   }
 
-  return branches;
+  return schemaOf(branches);
 }
 
 /**
@@ -587,7 +735,7 @@ function branchKey(schema: AvroBranch): string {
     case "record":
     case "enum":
     case "fixed":
-      return schema.namespace === undefined ? schema.name : `${schema.namespace}.${schema.name}`;
+      return avroFullName(schema.namespace, schema.name);
     case "array":
     case "map":
       return schema.type;
@@ -620,6 +768,7 @@ function fieldFor(context: WalkContext, property: ModelProperty): AvroField | un
       context,
       createDiagnostic({
         code: "invalid-name",
+        messageId: "default",
         format: { name: property.name },
         target: property,
       }),
@@ -720,7 +869,7 @@ function defaultOf(
 ): { value: AvroDefault } | undefined {
   let serialized: unknown;
   try {
-    serialized = serializeValueAsJson(context.program, written, property);
+    serialized = serializeValueAsJson(context.program, written, serializationTargetOf(property));
   } catch (error) {
     if (!(error instanceof UnserializableValueError)) {
       throw error;
@@ -738,6 +887,33 @@ function defaultOf(
     return undefined;
   }
   return { value: serialized as AvroDefault };
+}
+
+/**
+ * The type a written default is serialized against.
+ *
+ * The compiler writes a value against the type it is handed. A property
+ * declared `Inner | null` hands over the union, and the compiler has no form
+ * for a union. It answers with `{}`, which satisfies no branch and which no
+ * reader can use.
+ *
+ * A union with one branch beside null leaves one place for the default. That
+ * is the branch {@link soleBranchBesideNull} leads with, so the value is
+ * serialized against it. Every other union keeps the property: a value that
+ * names its own branch is already serialized as that branch, and a value that
+ * names none is refused before it reaches a schema.
+ *
+ * @param property - The property that carries the default
+ * @returns The branch to serialize against, or the property itself
+ */
+function serializationTargetOf(property: ModelProperty): Type | ModelProperty {
+  if (property.type.kind !== "Union") {
+    return property;
+  }
+  const beside = [...property.type.variants.values()].filter(
+    (variant) => !(variant.type.kind === "Intrinsic" && variant.type.name === "null"),
+  );
+  return beside.length === 1 ? beside[0].type : property;
 }
 
 /**
@@ -783,7 +959,10 @@ function leadWithDefault(
   }
 
   const key = written === undefined ? "null" : defaultBranchKey(context, written);
-  const index = key === undefined ? -1 : branches.findIndex((one) => branchKey(one) === key);
+  const index =
+    key === undefined
+      ? soleBranchBesideNull(branches)
+      : branches.findIndex((one) => branchKey(one) === key);
   if (index < 0) {
     refuse(
       context,
@@ -798,6 +977,23 @@ function leadWithDefault(
   }
 
   return [branches[index], ...branches.slice(0, index), ...branches.slice(index + 1)];
+}
+
+/**
+ * The one branch a default can sit in when the value names none itself.
+ *
+ * A model literal and a tuple carry no scalar, so nothing in the value says
+ * which branch it is. A union of one type and null still leaves one place for
+ * the default. `["null", Inner]` is how every optional record field is
+ * written, so there is no guess to make.
+ *
+ * @param branches - The flattened branches
+ * @returns The index of that branch, or -1 when more than one branch could
+ *   carry the default
+ */
+function soleBranchBesideNull(branches: AvroBranch[]): number {
+  const candidates = branches.filter((one) => one !== "null");
+  return candidates.length === 1 ? branches.indexOf(candidates[0]) : -1;
 }
 
 /**
@@ -884,6 +1080,7 @@ function enumFor(
         context,
         createDiagnostic({
           code: "invalid-name",
+          messageId: "default",
           format: { name: member.name },
           target: member,
         }),
@@ -907,7 +1104,7 @@ function enumFor(
   return {
     type: "enum",
     name: target.name,
-    namespace: namespaceOf(fullName),
+    namespace: avroNamespaceOf(fullName),
     doc: getDoc(context.program, target),
     aliases: getAvroAliases(context.program, target),
     symbols,
@@ -972,7 +1169,26 @@ function fullNameOf(
   target: DiagnosticTarget,
 ): string | undefined {
   if (!isAvroName(name)) {
-    refuse(context, createDiagnostic({ code: "invalid-name", format: { name }, target }));
+    refuse(
+      context,
+      createDiagnostic({ code: "invalid-name", messageId: "default", format: { name }, target }),
+    );
+    return undefined;
+  }
+
+  // Avro spells a type by name, so a record named `int` is written into a
+  // schema that reads back as the primitive. The name is legal by the grammar,
+  // and it names something else.
+  if (isAvroReservedName(name)) {
+    refuse(
+      context,
+      createDiagnostic({
+        code: "invalid-name",
+        messageId: "reserved",
+        format: { name, reserved: AVRO_RESERVED_NAME_LIST },
+        target,
+      }),
+    );
     return undefined;
   }
 
@@ -982,12 +1198,5 @@ function fullNameOf(
     return undefined;
   }
 
-  return `${namespace}.${name}`;
-}
-
-/**
- * Splits the namespace back off a full name.
- */
-function namespaceOf(fullName: string): string {
-  return fullName.slice(0, fullName.lastIndexOf("."));
+  return avroFullName(namespace, name);
 }

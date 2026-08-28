@@ -30,8 +30,9 @@ export interface SqsChannelBindingConfig {
  * would reject the emitted document.
  *
  * `deadLetterQueue` is optional and has the same shape. A dead letter queue
- * that is written but incomplete is reported and dropped, and the rest of the
- * binding is kept.
+ * the author wrote and the emitter cannot read is reported the same way, and
+ * the whole binding goes with it. A required field left out and a value the
+ * serializer cannot represent both count here.
  *
  * @param context - The decorator context
  * @param target - The channel interface or namespace
@@ -60,25 +61,37 @@ export function $sqsChannel(
     reportMissingField(context, SQS_BINDING_PROTOCOL, "queue", configTarget);
     return;
   }
-  const queue = readQueue(context, "queue", config.queue, CHANNEL_QUEUE_REQUIRED, configTarget);
+  const queue = readQueue(
+    context,
+    "queue",
+    config.queue,
+    CHANNEL_QUEUE_REQUIRED,
+    configTarget,
+    "binding",
+  );
   // `readQueue` reported whatever was wrong. The binding cannot be written
   // without the queue, so it goes whole.
-  if (queue === undefined) return;
+  if (queue.outcome !== "read") return;
+
+  const deadLetterQueue =
+    config.deadLetterQueue === undefined
+      ? undefined
+      : readQueue(
+          context,
+          "deadLetterQueue",
+          config.deadLetterQueue,
+          CHANNEL_QUEUE_REQUIRED,
+          configTarget,
+          "binding",
+        );
+  // The author declared a dead letter queue. A binding without it describes
+  // less than the source does, which is worse than no binding at all. So
+  // every refusal here is an error, and the binding goes with it.
+  if (deadLetterQueue !== undefined && deadLetterQueue.outcome !== "read") return;
 
   const state: SqsChannelBindingState = {
-    queue,
-    ...present(
-      "deadLetterQueue",
-      config.deadLetterQueue === undefined
-        ? undefined
-        : readQueue(
-            context,
-            "deadLetterQueue",
-            config.deadLetterQueue,
-            CHANNEL_QUEUE_REQUIRED,
-            configTarget,
-          ),
-    ),
+    queue: queue.value,
+    ...present("deadLetterQueue", deadLetterQueue?.value),
   };
 
   claimBinding(context, {

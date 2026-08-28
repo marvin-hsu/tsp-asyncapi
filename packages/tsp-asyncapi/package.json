@@ -56,14 +56,15 @@
   "peerDependencies": {
     "@typespec/compiler": "^1.15.0",
     "@typespec/protobuf": "0.85.x",
-    "tsp-avro": "0.2.x"
+    "tsp-avro": "0.3.x"
   },
   "scripts": {
     "clean": "rimraf ./dist ./temp",
-    "build": "tsc -p tsconfig.build.json",
+    "prebuild": "pnpm run clean",
+    "build": "tsc -b tsconfig.json",
     "api-extractor:local": "api-extractor run --local",
     "api-extractor:ci": "api-extractor run",
-    "check:package": "pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-[0-9]*.tgz"
+    "check:package": "rimraf -g \"./temp/*.tgz\" && pnpm pack --pack-destination temp && publint && attw --profile esm-only temp/tsp-asyncapi-[0-9]*.tgz"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

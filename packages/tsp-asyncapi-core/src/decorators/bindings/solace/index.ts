@@ -14,12 +14,18 @@
 import { DecoratorContext, DiagnosticTarget, Namespace, Operation } from "@typespec/compiler";
 import { SOLACE_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   SolaceOperationBindingObject,
   SolaceServerBindingObject,
 } from "../../../types/index.js";
-import { enumeratedField, reportBindingField } from "../fields.js";
+import {
+  boundedName,
+  enumeratedField,
+  listField,
+  nonEmptyObject,
+  nonNegativeField,
+  objectField,
+} from "../fields.js";
 import { claimBinding } from "../state.js";
 
 type SolaceServerBindingState = Omit<SolaceServerBindingObject, "bindingVersion">;
@@ -98,19 +104,14 @@ function clientName(
   value: string | undefined,
   target: DiagnosticTarget,
 ): string | undefined {
-  const name = trimmed(value);
-  if (name === undefined) return undefined;
-  if (name.length > MAX_CLIENT_NAME) {
-    reportBindingField(
-      context,
-      SOLACE_BINDING_PROTOCOL,
-      "clientName",
-      `at most ${String(MAX_CLIENT_NAME)} characters`,
-      target,
-    );
-    return undefined;
-  }
-  return name;
+  return boundedName(
+    context,
+    SOLACE_BINDING_PROTOCOL,
+    "clientName",
+    value,
+    MAX_CLIENT_NAME,
+    target,
+  );
 }
 
 /**
@@ -190,12 +191,7 @@ function priority(
   value: number | undefined,
   target: DiagnosticTarget,
 ): number | undefined {
-  if (value === undefined) return undefined;
-  if (value < 0) {
-    reportBindingField(context, SOLACE_BINDING_PROTOCOL, "priority", "zero or more", target);
-    return undefined;
-  }
-  return value;
+  return nonNegativeField(context, SOLACE_BINDING_PROTOCOL, "priority", value, undefined, target);
 }
 
 /** Reads the destination list, checking the one rule an entry shares. */
@@ -204,31 +200,26 @@ function destinations(
   value: unknown,
   target: DiagnosticTarget,
 ): Record<string, unknown>[] | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!Array.isArray(plain)) {
-    reportBindingField(
-      context,
-      SOLACE_BINDING_PROTOCOL,
-      "destinations",
-      "a list of destinations",
-      target,
-    );
-    return undefined;
-  }
+  const plain = listField(
+    context,
+    SOLACE_BINDING_PROTOCOL,
+    "destinations",
+    value,
+    "a list of destinations",
+    target,
+  );
+  if (plain === undefined) return undefined;
 
   const entries: Record<string, unknown>[] = [];
-  for (const [index, entry] of plain.entries()) {
-    if (!isPlainObject(entry)) {
-      reportBindingField(
-        context,
-        SOLACE_BINDING_PROTOCOL,
-        `destinations[${String(index)}]`,
-        "an object",
-        target,
-      );
-      continue;
-    }
+  for (const [index, written] of plain.entries()) {
+    const entry = objectField(
+      context,
+      SOLACE_BINDING_PROTOCOL,
+      `destinations[${String(index)}]`,
+      written,
+      target,
+    );
+    if (entry === undefined) continue;
     const mode = enumeratedField(
       context,
       SOLACE_BINDING_PROTOCOL,
@@ -242,7 +233,10 @@ function destinations(
     const kept = Object.fromEntries(
       Object.entries(entry).filter(([key]) => key !== "deliveryMode"),
     );
-    entries.push({ ...present("deliveryMode", mode), ...kept });
+    // An entry with nothing left in it names no queue and no topic. Every
+    // binding here drops an empty nested object, and this one is no different.
+    const destination = nonEmptyObject({ ...present("deliveryMode", mode), ...kept });
+    if (destination !== undefined) entries.push(destination);
   }
   return entries.length > 0 ? entries : undefined;
 }

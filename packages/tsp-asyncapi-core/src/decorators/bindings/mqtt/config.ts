@@ -10,14 +10,13 @@
 import { DecoratorContext, DiagnosticTarget } from "@typespec/compiler";
 import { MQTT_BINDING_PROTOCOL } from "../../../constants.js";
 import { present, trimmed } from "../../../optional-fields.js";
-import { isPlainObject, toPlainValue } from "../../../marshalled-values.js";
 import type {
   MqttLastWillObject,
   MqttMessageBindingObject,
   MqttOperationBindingObject,
   MqttServerBindingObject,
 } from "../../../types/index.js";
-import { numericField, reportBindingField } from "../fields.js";
+import { nonEmptyObject, numericField, objectField } from "../fields.js";
 
 /**
  * What one MQTT decorator records, for each of the three levels.
@@ -120,12 +119,8 @@ export function lastWill(
   value: unknown,
   target: DiagnosticTarget,
 ): MqttLastWillObject | undefined {
-  if (value === undefined) return undefined;
-  const plain = toPlainValue(context.program, value);
-  if (!isPlainObject(plain)) {
-    reportBindingField(context, MQTT_BINDING_PROTOCOL, "lastWill", "an object", target);
-    return undefined;
-  }
+  const plain = objectField(context, MQTT_BINDING_PROTOCOL, "lastWill", value, target);
+  if (plain === undefined) return undefined;
 
   const will: MqttLastWillObject = {
     ...present("topic", trimmed(plain.topic as string | undefined)),
@@ -133,5 +128,5 @@ export function lastWill(
     ...present("message", trimmed(plain.message as string | undefined)),
     ...present("retain", plain.retain as boolean | undefined),
   };
-  return Object.keys(will).length > 0 ? will : undefined;
+  return nonEmptyObject(will);
 }

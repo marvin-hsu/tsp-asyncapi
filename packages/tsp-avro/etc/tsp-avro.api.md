@@ -16,7 +16,7 @@ import { Scalar } from '@typespec/compiler';
 import { TypeSpecLibrary } from '@typespec/compiler';
 
 // @public
-export function $aliases(context: DecoratorContext_2, target: Model | ModelProperty | Enum, ...names: string[]): void;
+export function $aliases(context: DecoratorContext_2, target: AvroAliasTarget, ...names: string[]): void;
 
 // @public
 export function $decimal(context: DecoratorContext_2, target: Scalar | ModelProperty, precision: number, scale?: number): void;
@@ -35,6 +35,7 @@ readonly default: "A record needs an Avro namespace. Apply @namespace to this mo
 "invalid-name": {
 readonly default: CallableMessage<["name"]>;
 readonly namespace: CallableMessage<["name"]>;
+readonly reserved: CallableMessage<["name", "reserved"]>;
 readonly alias: CallableMessage<["name"]>;
 };
 "unsupported-type": {
@@ -48,7 +49,11 @@ readonly indexer: CallableMessage<["name"]>;
 readonly fixedRecord: CallableMessage<["name"]>;
 readonly fixedFields: CallableMessage<["name"]>;
 readonly duplicate: CallableMessage<["name", "other", "fullName"]>;
+readonly emptyUnion: CallableMessage<["name"]>;
 readonly notRecord: CallableMessage<["name"]>;
+};
+"aliases-target": {
+readonly default: CallableMessage<["name"]>;
 };
 "duplicate-union-branch": {
 readonly default: CallableMessage<["name"]>;
@@ -62,6 +67,7 @@ readonly default: CallableMessage<["mode"]>;
 };
 "invalid-fixed": {
 readonly default: CallableMessage<["size"]>;
+readonly underlying: CallableMessage<["name", "underlying"]>;
 };
 "invalid-decimal": {
 readonly precision: CallableMessage<["precision"]>;
@@ -105,6 +111,12 @@ export function $order(context: DecoratorContext_2, target: ModelProperty, mode:
 
 // @public
 export function $record(context: DecoratorContext_2, target: Model): void;
+
+// @public
+export const AVRO_PRIMITIVE_NAMES: readonly ["null", "boolean", "int", "long", "float", "double", "bytes", "string"];
+
+// @public
+export type AvroAliasTarget = Model | ModelProperty | Enum | Scalar;
 
 // @public
 export interface AvroArray {
@@ -181,7 +193,7 @@ export interface AvroMap {
 }
 
 // @public
-export type AvroPrimitiveName = "null" | "boolean" | "int" | "long" | "float" | "double" | "bytes" | "string";
+export type AvroPrimitiveName = (typeof AVRO_PRIMITIVE_NAMES)[number];
 
 // @public
 export interface AvroRecord {
@@ -200,7 +212,7 @@ export type AvroSchema = AvroBranch | AvroUnion;
 export type AvroUnion = readonly AvroBranch[];
 
 // @public
-export function getAvroAliases(program: Program, target: Model | ModelProperty | Enum | Scalar): readonly string[] | undefined;
+export function getAvroAliases(program: Program, target: AvroAliasTarget): readonly string[] | undefined;
 
 // @public
 export function getAvroEnumDefault(program: Program, target: Enum): string | undefined;

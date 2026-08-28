@@ -1,9 +1,18 @@
-import { Enum, ModelProperty, Program, Scalar, Type, Union, getDoc } from "@typespec/compiler";
+import {
+  Enum,
+  Model,
+  ModelProperty,
+  Program,
+  Scalar,
+  Type,
+  Union,
+  getDoc,
+} from "@typespec/compiler";
 import { isGlobalTypeSpecNamespace } from "../../constants.js";
 import { parseAddressParameters } from "../../decorators/channels/address-template.js";
 import { ChannelParameterNode } from "../service.js";
 import { ChannelRecord, ChannelTarget } from "../../decorators/channels/state.js";
-import { getParameterLocation, listMessages } from "../../decorators/index.js";
+import { getParameterLocation } from "../../decorators/index.js";
 import { reportDiagnostic } from "../../lib.js";
 import { serializeExamples } from "../../example-serialization.js";
 import { present, text } from "../../optional-fields.js";
@@ -38,6 +47,8 @@ import { channelOperations } from "./scope.js";
  * @param target - The interface or namespace that carries the channel
  * @param record - The recorded channel, for its address and address target
  * @param channelId - The key of this channel, for the messages below
+ * @param messageModels - Every model the program marks with `@message`. The
+ * answer is the same for every channel, so the caller builds the set once.
  * @returns The `parameters` map, or `undefined` when the address holds no
  * expression
  */
@@ -46,6 +57,7 @@ export function resolveChannelParameters(
   target: ChannelTarget,
   record: ChannelRecord,
   channelId: string,
+  messageModels: ReadonlySet<Model>,
 ): readonly ChannelParameterNode[] {
   const address = record.state.address;
   // A dynamic channel carries no address, so neither direction of the match
@@ -57,7 +69,7 @@ export function resolveChannelParameters(
   // taken out here, so nothing below reports the same mistake twice.
   const names = [...new Set(parseAddressParameters(address))];
   const readFields = parameterFieldReader(program);
-  const declared = collectDeclarations(program, target, channelId, readFields);
+  const declared = collectDeclarations(program, target, channelId, readFields, messageModels);
 
   reportAddressMismatch(program, record, channelId, names, declared);
 
@@ -214,9 +226,9 @@ function collectDeclarations(
   target: ChannelTarget,
   channelId: string,
   readFields: ParameterFieldReader,
+  messages: ReadonlySet<Model>,
 ): Map<string, ModelProperty[]> {
   const declared = new Map<string, ModelProperty[]>();
-  const messages = listMessages(program);
 
   for (const operation of channelOperations(program, target)) {
     for (const property of operation.parameters.properties.values()) {
@@ -357,6 +369,11 @@ function defaultOf(property: ModelProperty): string | undefined {
  * as strings, so a value that serializes to anything else is left out. An
  * example that cannot be serialized at all is dropped with the warning the
  * schema layer already uses for that.
+ *
+ * Neither drop is silent. A parameter reaches the document only when its
+ * type is a string type, and the compiler rejects an example the parameter
+ * type does not accept. A parameter of any other type is reported as
+ * `non-string-channel-param` and is left out along with its examples.
  */
 function buildParameterExamples(program: Program, property: ModelProperty): string[] | undefined {
   // An example that carries no usable value is dropped rather than left to

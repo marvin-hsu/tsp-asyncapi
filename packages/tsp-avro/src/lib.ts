@@ -60,6 +60,7 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default: paramMessage`"${"name"}" is not a legal Avro name. A name starts with a letter or an underscore, and continues with letters, digits or underscores.`,
         namespace: paramMessage`"${"name"}" is not a legal Avro namespace. A namespace is one or more legal Avro names, joined by dots.`,
+        reserved: paramMessage`Avro keeps the name "${"name"}" for a type of its own. A record, an enum and a fixed type take a name that is none of: ${"reserved"}.`,
         alias: paramMessage`"${"name"}" is not a legal Avro alias. An alias of a named type is a full name: one or more legal Avro names, joined by dots.`,
       },
     },
@@ -68,7 +69,7 @@ export const $lib = createTypeSpecLibrary({
       messages: {
         default: paramMessage`A property of kind "${"kind"}" has no Avro form.`,
         anonymous: "An anonymous model has no name, and an Avro record needs one.",
-        scalar: paramMessage`The scalar "${"name"}" has no Avro form.`,
+        scalar: paramMessage`The scalar "${"name"}" has no Avro form. Avro has eight primitive types. Declare the field as one it does have, and use @Avro.logicalType to say what the value means: a timestamp is an int64 that carries "timestamp-millis".`,
         intrinsic: paramMessage`The type "${"name"}" has no Avro form.`,
         inheritance: paramMessage`The model "${"name"}" extends another model. An Avro record holds no inheritance, and the inherited fields would be lost.`,
         template: paramMessage`The model "${"name"}" is a template instance. Two instances of one template share a name, and an Avro schema names each type once.`,
@@ -76,7 +77,14 @@ export const $lib = createTypeSpecLibrary({
         fixedRecord: paramMessage`The model "${"name"}" carries both @record and @fixed. A file holds one schema, and a fixed type is a width rather than a record, so there is nothing to write.`,
         fixedFields: paramMessage`The model "${"name"}" carries @fixed and declares fields. An Avro fixed type holds a number of bytes and nothing else, so the fields would be lost.`,
         duplicate: paramMessage`"${"name"}" and "${"other"}" both take the Avro name "${"fullName"}". An Avro schema names each type once, so the second would read as the first.`,
+        emptyUnion: paramMessage`The union "${"name"}" holds no branch. An Avro union is a list a reader picks one branch from, and an empty list leaves nothing to pick.`,
         notRecord: paramMessage`The model "${"name"}" did not translate into an Avro record. @record asks for a record, and nothing else can be written in its place.`,
+      },
+    },
+    "aliases-target": {
+      severity: "error",
+      messages: {
+        default: paramMessage`The scalar "${"name"}" carries @aliases and is written as an Avro primitive. An alias stands for a name, and only @fixed gives a scalar one.`,
       },
     },
     "duplicate-union-branch": {
@@ -89,7 +97,7 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         unserializable: paramMessage`The default of "${"name"}" has no JSON form the emitter can write. ${"detail"}`,
-        branch: paramMessage`The default of "${"name"}" belongs to no branch of its union. Avro reads a default against the first branch alone, so the default has to name one of them.`,
+        branch: paramMessage`The default of "${"name"}" names no one branch of its union. Avro reads a default against the first branch alone, so the branch the default belongs to has to be the one that leads.`,
       },
     },
     "invalid-order": {
@@ -102,6 +110,7 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`"${"size"}" is not a width an Avro fixed type can have. A fixed type holds a positive number of bytes.`,
+        underlying: paramMessage`The scalar "${"name"}" carries @fixed and extends the Avro type "${"underlying"}". An Avro fixed type holds bytes, so a scalar that carries @fixed extends bytes.`,
       },
     },
     "invalid-decimal": {

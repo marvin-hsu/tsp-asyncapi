@@ -71,10 +71,10 @@ export function $googlePubSubChannel(
   const settings = schemaSettings(context, config.schemaSettings, configTarget);
   // `schemaSettings` reported whatever was wrong with it. The binding cannot
   // be written without the field, so it goes whole.
-  if (settings === undefined) return;
+  if (settings.outcome !== "read") return;
 
   const state: GooglePubSubChannelBindingState = {
-    schemaSettings: settings,
+    schemaSettings: settings.value,
     ...present("labels", openMap(context, "labels", config.labels, configTarget)),
     ...present("messageRetentionDuration", trimmed(config.messageRetentionDuration)),
     ...present(

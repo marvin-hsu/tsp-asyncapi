@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   acceptSchema,
+  compileAvro,
   emitAvro,
   emitAvroFiles,
   expectInstanceRoundTrip,
@@ -8,6 +9,7 @@ import {
   fieldNamed,
   recordFields,
 } from "../../utils/avro.js";
+import { scalarTableFor } from "#avro/walk/scalars.js";
 
 /**
  * The walk, judged by the reference Avro implementation and by shape.
@@ -50,6 +52,23 @@ const ORDERS = `
 `;
 
 const ORDER_FILE = "com/example/orders/OrderPlaced.avsc";
+
+describe("the scalar table", () => {
+  it("builds one table per program", async () => {
+    // The walk is entered once per @record, and resolving the seven type
+    // references answers the same table every time inside one program. A
+    // program that declares fifty records resolved them fifty times over.
+    const program = await compileAvro(`
+      @Avro.avroNamespace("com.example.a")
+      namespace A {
+        @Avro.avroRecord model One { a: string; }
+        @Avro.avroRecord model Two { b: string; }
+      }
+    `);
+
+    expect(scalarTableFor(program)).toBe(scalarTableFor(program));
+  });
+});
 
 describe("the Avro walk", () => {
   it("writes a schema avsc accepts", async () => {
@@ -347,5 +366,26 @@ describe("the Avro walk", () => {
       fields: [{ name: "id", type: "string" }],
     });
     expectInstanceRoundTrip(files["com/example/plain/Event.avsc"]);
+  });
+
+  it("lets a record take the name of a complex Avro type", async () => {
+    // Avro keeps the eight primitive names alone. A complex type is spelled
+    // by an object with a `type` field, so a record named `map` is not a name
+    // a reference can land on by mistake. `emitAvroFiles` runs the file past
+    // the reference implementation, which is the proof this is legal.
+    const files = await emitAvroFiles(`
+      @Avro.avroNamespace("com.example.complex")
+      namespace Complex {
+        @Avro.avroRecord model map { values: Record<string>; }
+      }
+    `);
+
+    expect(files["com/example/complex/map.avsc"]).toEqual({
+      type: "record",
+      name: "map",
+      namespace: "com.example.complex",
+      fields: [{ name: "values", type: { type: "map", values: "string" } }],
+    });
+    expectInstanceRoundTrip(files["com/example/complex/map.avsc"]);
   });
 });

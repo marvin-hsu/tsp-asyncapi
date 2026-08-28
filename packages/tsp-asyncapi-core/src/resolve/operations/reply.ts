@@ -1,6 +1,7 @@
 import { Model, Operation, Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import {
+  ReplyAddressRecord,
   ReplyAddressState,
   getReplyAddressInternal,
   getReplyChannelInternal,
@@ -104,7 +105,7 @@ export function resolveOperationReply(
 function resolveReplyAddress(
   program: Program,
   replyChannel: EmittedChannel,
-  declaredAddress: ReturnType<typeof getReplyAddressInternal>,
+  declaredAddress: ReplyAddressRecord | undefined,
 ): ReplyAddressState | undefined {
   if (declaredAddress === undefined) return undefined;
   if (replyChannel.address !== null) {

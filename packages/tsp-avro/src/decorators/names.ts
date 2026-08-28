@@ -1,3 +1,5 @@
+import { AVRO_PRIMITIVE_NAMES } from "../types.js";
+
 /**
  * The Avro name rules.
  *
@@ -19,6 +21,35 @@ const AVRO_NAME = /^[A-Za-z_]\w*$/;
  */
 export function isAvroName(name: string): boolean {
   return AVRO_NAME.test(name);
+}
+
+/**
+ * The names Avro keeps for a type of its own.
+ *
+ * These are the eight primitive names. A schema spells a primitive by name
+ * alone, so a record named `int` is written into a file that reads back as
+ * the primitive.
+ *
+ * A complex type is spelled by an object that carries a `type` field, never
+ * by its keyword alone. A record named `map` or `union` is therefore a name
+ * nothing else answers to, and Avro takes it.
+ */
+const AVRO_RESERVED_NAMES: readonly string[] = AVRO_PRIMITIVE_NAMES;
+
+/**
+ * The names a named type may not take, as a message lists them.
+ *
+ * @internal
+ */
+export const AVRO_RESERVED_NAME_LIST = AVRO_RESERVED_NAMES.join(", ");
+
+/**
+ * Tells whether Avro keeps the name for a type of its own.
+ *
+ * @internal
+ */
+export function isAvroReservedName(name: string): boolean {
+  return AVRO_RESERVED_NAMES.includes(name);
 }
 
 /**

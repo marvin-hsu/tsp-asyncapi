@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { expectNoErrors } from "../../utils/diagnostics.js";
 import fc from "fast-check";
 import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
 import {
@@ -103,7 +104,7 @@ describe("Property: a promoted fragment still says what its site said", () => {
         const { doc, diagnostics } = await emitDocumentWithDiagnostics(sourceOf(drawn));
         // An error here means the generator built illegal TypeSpec. Fail
         // loudly rather than skipping, so the property cannot starve.
-        expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+        expectNoErrors(diagnostics);
 
         const usedTags = new Map<string, number>();
         const usedDocs = new Map<string, number>();

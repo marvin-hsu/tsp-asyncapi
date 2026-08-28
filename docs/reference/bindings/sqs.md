@@ -25,7 +25,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 
 `queue` is required, and on this level it requires a `name` and a `fifoQueue` of its own. A binding without them is reported through `missing-binding-field` and dropped whole.
 
-`deadLetterQueue` is optional and has the same shape. One that is written but incomplete is reported through `invalid-binding-field`. The field is dropped and the rest of the binding is kept.
+`deadLetterQueue` is optional and has the same shape. One that is written without a required field of its own is reported through `missing-binding-field` and dropped whole. One the emitter cannot read as an object is reported through `invalid-required-binding-field` and costs the binding the same way.
 
 `deduplicationScope` is `queue` or `messageGroup`. `fifoThroughputLimit` is `perQueue` or `perMessageGroupId`. The four time fields are numbers of seconds and are zero or more.
 
@@ -65,7 +65,7 @@ extern dec sqsOperation(target: Operation, config: valueof AsyncAPISqsOperationB
 
 Apply it to an operation that carries `@send` or `@receive`.
 
-`queues` is required, and every entry requires a `name`. An entry without one is reported and dropped. A list left with no entry is reported as a missing `queues`, because an empty list names no queue.
+`queues` is required, and every entry requires a `name`. An entry without one is reported through `missing-binding-field`, and the binding is dropped whole. An empty list is reported as a missing `queues`, because an empty list names no queue.
 
 ```typespec
 @send

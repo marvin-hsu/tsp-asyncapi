@@ -95,9 +95,13 @@ describe("Unit: Avro run time independence", () => {
     // Nothing in `dependencies`: a project that never turns the feature on
     // installs nothing extra.
     expect(manifest.dependencies["tsp-avro"]).toBeUndefined();
-    expect(manifest.devDependencies["tsp-avro"]).toBe("workspace:~");
-    // The range is the experimental line. It moves when that package does.
-    expect(manifest.peerDependencies["tsp-avro"]).toBe("0.2.x");
+    // The library is developed here, so the development dependency is the
+    // copy in this workspace rather than a published version.
+    expect(manifest.devDependencies["tsp-avro"]).toMatch(/^workspace:/);
+    // The range is the experimental line. It moves when that package does,
+    // so the line is a shape here. Which line it has to be is read from the
+    // library's own manifest by the case below.
+    expect(manifest.peerDependencies["tsp-avro"]).toMatch(/^\d+\.\d+\.x$/);
     expect(manifest.peerDependenciesMeta["tsp-avro"]?.optional).toBe(true);
   });
 

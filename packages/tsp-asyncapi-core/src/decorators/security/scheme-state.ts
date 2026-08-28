@@ -9,7 +9,9 @@ const securitySchemeStateKey = Symbol.for("tsp-asyncapi.securityScheme");
  * One security scheme declared by `@securityScheme`.
  * The scheme holds the fields of the AsyncAPI Security Scheme Object. The
  * name is the key it takes in `components.securitySchemes`.
- * @internal
+ * It is the element type `getSecuritySchemes` returns, so it is part of the
+ * public surface.
+ * @public
  */
 export interface AsyncAPISecuritySchemeState {
   /** The key this scheme takes in `components.securitySchemes`. */

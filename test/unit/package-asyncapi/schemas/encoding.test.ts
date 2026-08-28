@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { holderProperties } from "../../../utils/schema-host.js";
+import { t } from "@typespec/compiler/testing";
+import {
+  buildDocSchema,
+  holderProperties,
+  resolvedProperties,
+} from "../../../utils/schema-host.js";
+import { diagnosticsWith } from "../../../utils/diagnostics.js";
 
 /**
  * `@encode` says how a value travels, which is a separate question from what
@@ -217,5 +223,190 @@ describe("Unit: Schemas — @encode", () => {
     expect(props.ts).toEqual({ type: "string", format: "date-time" });
     expect(props.d).toEqual({ type: "string", format: "duration" });
     expect(props.b).toEqual({ type: "string", format: "byte" });
+  });
+  /**
+   * A nullable value is a union, and only one of its variants is the value
+   * the encoding describes. Writing the encoded `type` on the union itself
+   * puts `type: "integer"` beside an `anyOf` of a string and a null. No
+   * value satisfies all three at once.
+   */
+  describe("a union-typed property", () => {
+    it("encodes the variant the encoding describes and leaves null alone", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime | null;
+        }
+      `);
+
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("encodes a named scalar variant in place of its reference", async () => {
+      const props = await holderProperties(`
+        scalar Epoch extends utcDateTime;
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The component describes the un-encoded scalar, so a reference to it
+      // would describe a string where an integer travels.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("keeps a named scalar variant's own documentation", async () => {
+      const props = await holderProperties(`
+        @doc("Seconds since the epoch.")
+        scalar Epoch extends utcDateTime;
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The reference is replaced, so the component's own prose has to be
+      // written in its place. The non-union path already keeps it.
+      expect(props.ts).toEqual({
+        anyOf: [
+          { type: "integer", format: "unixtime", description: "Seconds since the epoch." },
+          { type: "null" },
+        ],
+      });
+    });
+
+    it("writes no component for a variant it replaced", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        scalar Epoch extends utcDateTime;
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          ts: Epoch | null;
+        }
+      `);
+
+      // The encoded branch is written in place, so nothing refers to a
+      // component for `Epoch`. A component nothing points at describes a
+      // shape the document never uses.
+      expect(Object.keys(builder.getSchemas())).toEqual(["M"]);
+    });
+
+    it("leaves a variant the encoding says nothing about alone", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: utcDateTime | string;
+        }
+      `);
+
+      // The compiler accepts this encoding because one variant is a
+      // `utcDateTime`. A `unixTimestamp` describes a moment in time, and the
+      // `string` variant is not one. Encoding it as well would describe a
+      // plain string as an integer, and every string payload would then fail
+      // its own schema.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "string" }],
+      });
+    });
+
+    it("leaves the string variant of an ISO8601 duration alone", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("ISO8601")
+          d: duration | string;
+        }
+      `);
+
+      // ISO 8601 names a duration, so it describes only that variant. The
+      // `string` variant carries no duration and keeps its plain shape.
+      expect(props.d).toEqual({
+        anyOf: [{ type: "string", format: "duration" }, { type: "string" }],
+      });
+    });
+
+    it("encodes the variant of a named union in place of a reference to it", async () => {
+      const props = await holderProperties(`
+        union Stamp {
+          at: utcDateTime,
+          none: null,
+        }
+        model Holder {
+          @encode("unixTimestamp", int32)
+          ts: Stamp;
+        }
+      `);
+
+      // A named union earns a component, and the component describes the
+      // un-encoded shape. A property that only refers to it carries no
+      // encoding at all, so the document declares a string where an integer
+      // travels.
+      expect(props.ts).toEqual({
+        anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }],
+      });
+    });
+
+    it("keeps the named union's component for a use site that does not encode it", async () => {
+      const { builder } = await buildDocSchema(t.code`
+        union Stamp {
+          at: utcDateTime,
+          none: null,
+        }
+        model ${t.model("M")} {
+          @encode("unixTimestamp", int32)
+          encoded: Stamp;
+          plain: Stamp;
+        }
+      `);
+
+      // Only the encoded site is written in place. The component still
+      // describes the union as declared, and the plain site still refers
+      // to it.
+      const schemas = builder.getSchemas();
+      expect(schemas.M.properties).toEqual({
+        encoded: { anyOf: [{ type: "integer", format: "unixtime" }, { type: "null" }] },
+        plain: { $ref: "#/components/schemas/Stamp" },
+      });
+      expect(schemas.Stamp).toEqual({
+        anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+      });
+    });
+
+    it("reports an encoding that describes no variant", async () => {
+      const { builder, program } = await buildDocSchema(t.code`
+        model ${t.model("M")} {
+          @encode("ISO8601")
+          d: utcDateTime | null;
+        }
+      `);
+
+      // ISO 8601 names how a duration travels, and no variant here is a
+      // duration. The compiler validates no target for it, so nothing else
+      // tells the author the encoding reached the document nowhere.
+      expect(resolvedProperties(builder, "M").d).toEqual({
+        anyOf: [{ type: "string", format: "date-time" }, { type: "null" }],
+      });
+      expect(diagnosticsWith(program.diagnostics, "encoding-describes-no-variant")).toHaveLength(1);
+    });
+
+    it("encodes every variant the encoding describes", async () => {
+      const props = await holderProperties(`
+        model Holder {
+          @encode("rfc7231")
+          ts: utcDateTime | offsetDateTime;
+        }
+      `);
+
+      // RFC 7231 spells both kinds of date, so it describes both variants.
+      expect(props.ts).toEqual({
+        anyOf: [
+          { type: "string", format: "http-date" },
+          { type: "string", format: "http-date" },
+        ],
+      });
+    });
   });
 });
