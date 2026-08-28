@@ -40,9 +40,8 @@ describe("Unit: Builders (Phase 1)", () => {
 
     it("should fall back to the default title when @service names none", async () => {
       // `@service` takes its options as an optional argument, so a service
-      // can carry no title at all. the resolver then reads `service.title`
-      // as `undefined` and falls back to `DEFAULT_DOCUMENT_TITLE`. Every
-      // other test names a title, so only this input reaches the fallback.
+      // can carry no title. The resolver then reads `service.title` as
+      // `undefined` and falls back to `DEFAULT_DOCUMENT_TITLE`.
       const { program } = await runner.compile(t.code`
         @service
         namespace ${t.namespace("Orders")} {}
@@ -93,11 +92,9 @@ describe("Unit: Builders (Phase 1)", () => {
 
     it("should take the description from the later @asyncTag when the first states none", async () => {
       // The merge takes a field from whichever application states it, as
-      // long as the other one says nothing about it. Here the first
-      // application in source order carries no description and the second
-      // one does. So the second contributes it, and nothing conflicts.
-      // The existing merge tests all put the description on the first
-      // application, which leaves this direction untested.
+      // long as the other says nothing about it. Here the first application
+      // carries no description and the second one does, so the second
+      // contributes it, and nothing conflicts.
       const { TestTarget } = await runner.compile(t.code`
         @asyncTag("orders")
         @asyncTag("orders", #{ description: "Order events" })
