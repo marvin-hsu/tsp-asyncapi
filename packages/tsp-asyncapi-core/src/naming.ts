@@ -1,3 +1,24 @@
+/**
+ * Builds a `components.schemas` / `components.messages` key for a
+ * declaration.
+ *
+ * A key must stay inside the Components Object key charset and unique
+ * across the document, so a declaration's own name is never used verbatim.
+ * A plain identifier passes through unchanged. A backtick-quoted name, or a
+ * template argument's display text, is Sep-encoded: an unsafe character
+ * becomes `Sep<codePoint>`, so it can never leak into a key or a `$ref`
+ * fragment.
+ *
+ * Two shapes of key exist. A compact composed name qualifies the
+ * declaration's own name with its namespace prefix and, for a template
+ * instantiation, each argument's own display name. When an argument has no
+ * fixed identity of its own ("unspeakable"), the compact name is
+ * unavailable, and the caller falls back to `fallbackDeclarationName`,
+ * which composes the official `getTypeName` text per argument instead.
+ *
+ * This file is the only place that builds either shape.
+ */
+
 import {
   Type,
   Model,
@@ -21,59 +42,41 @@ function capitalizeFirst(text: string): string {
 }
 
 /**
- * Builds the qualifying prefix for a namespace chain.
- * Each namespace's own name goes through `sanitizeDeclarationName`, the same
- * sanitizer a declaration's own name uses. The segments are joined with `.`,
- * and the whole prefix ends with a trailing `.`. For example, `A.B` becomes
- * `"A.B."`.
- * A plain TypeSpec identifier passes through the sanitizer unchanged, casing
- * included, so every ordinary key stays byte-identical. A backtick-quoted
- * namespace name such as `` `a/b` `` is Sep-encoded instead, so a character
- * outside `COMPONENTS_KEY_PATTERN` can never leak into the key or into the `$ref`
- * fragment built from it.
- * This matches the official `getNamespacePrefix`, which also returns a
- * trailing-dot prefix, so a declaration key reads like the official
- * `getTypeName` output, for example `A.B.Widget`.
- * The prefix qualifies both a named declaration's own key and a
- * `Model`/`Union` template argument's display name. Two same-named
- * declarations in different namespaces then resolve to different keys instead
- * of colliding.
- * The global namespace's name is `""`. So a declaration with no namespace
- * yields `""` and keeps its bare name.
+ * Builds the qualifying prefix for a namespace chain, e.g. `A.B` becomes
+ * `"A.B."`. A namespace with no chain yields `""`.
  *
- * The trailing `.` is what makes the prefix injective at the name boundary.
- * Without it, namespace `A.B` plus name `C` and namespace `A` plus name `BC`
- * would both compose `A.BC`. `.` is legal in the AsyncAPI Components Object
- * key charset, `^[a-zA-Z0-9\.\-_]+$`, so it is safe to spend as a separator.
- * One narrower, accepted collision is still left.
- * `sanitizeNameSegment` keeps `.` verbatim, so a backtick-quoted
- * *declaration* name that contains `.` can compose the same key as an
- * unrelated namespaced declaration. For example, `` model `A.B` `` in the
- * global namespace composes the same key as `model B` inside
- * `namespace A`.
- * That rare case is a hard error: `SchemaKeyRegistry` reports
- * `duplicate-schema-key` for it, the same as for any other key collision.
- * Introducing a second reserved marker is not worth it: both call sites
- * already treat `.` as a safe passthrough character.
+ * Each segment goes through `sanitizeDeclarationName`. This matches the
+ * official `getNamespacePrefix`, so a key reads like the official
+ * `getTypeName` output. The prefix qualifies both a declaration's own key
+ * and a template argument's display name, so two same-named declarations in
+ * different namespaces resolve to different keys.
+ *
+ * The trailing `.` makes the prefix injective: without it, namespace `A.B`
+ * plus name `C` and namespace `A` plus name `BC` would both compose `A.BC`.
+ * `.` is legal in the Components Object key charset, so it is safe to spend
+ * as a separator.
+ *
+ * One narrow collision is still possible. `sanitizeNameSegment` keeps `.`
+ * verbatim, so a backtick-quoted declaration name containing `.` can compose
+ * the same key as an unrelated namespaced declaration: `` model `A.B` `` in
+ * the global namespace collides with `model B` inside `namespace A`.
+ * `SchemaKeyRegistry` reports that as `duplicate-schema-key`, the same as any
+ * other collision.
  */
 function namespacePrefix(program: Program, namespace: Namespace | undefined): string {
   const parts: string[] = [];
   let ns = namespace;
   while (ns?.name) {
-    // The compiler's built-in `TypeSpec` namespace is home to `Array`,
-    // `Record`, and the other built-in collection types.
-    // It sits directly under the global namespace
-    // (`ns.namespace?.name === ""`).
-    // It is not a user namespace. So it should not leak into a synthesized
-    // key the way a real user namespace does.
+    // The compiler's built-in `TypeSpec` namespace holds `Array`, `Record`,
+    // and the other collection types. It is not a user namespace, so it
+    // should not leak into a synthesized key.
     //
     // The service namespace is skipped for the same reason the official
-    // emitters skip it, through their `namespaceFilter`: nearly every
-    // declaration in a single-service spec lives under it, so it carries no
-    // distinguishing information and only makes every key longer.
+    // emitters skip it: nearly every declaration in a single-service spec
+    // lives under it, so it carries no distinguishing information.
     //
-    // Either way, skip just that one link in the chain and keep walking. A
-    // user namespace nested under a skipped one is still collected.
+    // Skip just that one link and keep walking. A user namespace nested
+    // under a skipped one is still collected.
     if (isGlobalTypeSpecNamespace(ns) || isService(program, ns)) {
       ns = ns.namespace;
       continue;
@@ -87,11 +90,9 @@ function namespacePrefix(program: Program, namespace: Namespace | undefined): st
 /**
  * The marker the key encoding puts before a character's code point.
  *
- * A name that spells the marker itself has to be escaped, or it would read
- * back as an encoded character. Both the encoder and the pass for names
- * that need no encoding use these, so the two cannot drift apart. They did
- * drift once: the encoder escaped the marker and the other pass did not, so
- * `` `/` `` and `Sep47` claimed one key.
+ * A name that spells the marker itself must be escaped, or it reads back as
+ * an encoded character. `sanitizeDeclarationName` and `sanitizeNameSegment`
+ * both use this constant, so the two escaping passes cannot drift apart.
  */
 const SEP = "Sep";
 
@@ -101,47 +102,27 @@ const MARKER_BEFORE_DIGIT = /Sep(?=\d)/g;
 /**
  * Encodes one piece of free-form text as a `components.schemas` key
  * segment.
+ *
  * Two callers use it: `sanitizeDeclarationName`, for a backtick-quoted
  * declaration name such as `` model `Foo/Bar` ``, and
  * `fallbackDeclarationName`, for the official `getTypeName` text of an
- * instantiation that has no composable structural name.
- * This encoding preserves separator characters instead of deleting them.
- * So two declaration names that differ only in their separators, such as
- * `` `user-created` `` versus `` `user_created` ``, do not collapse to the
- * same key.
- * The function splits the input on runs of non-alphanumeric characters. It
- * keeps the separator runs verbatim and capitalizes only the alphanumeric
- * segments between them.
- * A degenerate input that sanitizes to the empty string falls back to a
- * fixed non-empty token. This applies only to the empty string itself; any
- * actual separator character survives, either verbatim or as the `Sep`
- * stand-in described below. The fallback keeps the result from collapsing
- * down to nothing.
+ * instantiation with no composable structural name.
  *
- * Only `-`, `_`, and `.` are kept verbatim.
- * `refFor` already escapes `~` and `/`.
- * Every other character that is unsafe or ambiguous inside a `$ref`'s URI
- * fragment, such as `#` or a space, is encoded as `Sep<codePoint>` instead.
- * For example, `#` becomes `Sep35` and a space becomes `Sep32`. This avoids
- * passing the character through raw, and avoids collapsing every unsafe
- * character to one indistinct `Sep` token.
- * Distinct inputs stay distinguishable regardless of which unsafe
- * character they use. For example, `` `user#created` `` becomes
- * `UserSep35Created`, and `` `has space` `` becomes `HasSep32Space`.
- * The result is guaranteed never to carry a character that would make the
- * emitted `$ref` illegal or resolve to the wrong fragment.
+ * The input is split on runs of non-alphanumeric characters. `-`, `_`, and
+ * `.` are kept verbatim; `refFor` already escapes `~` and `/`. Every other
+ * separator character is encoded as `Sep<codePoint>` instead of deleted, so
+ * `` `user-created` `` and `` `user_created` `` do not collapse to the same
+ * key, and `` `user#created` `` becomes `UserSep35Created` rather than one
+ * indistinct `Sep` token.
  *
- * The alphanumeric segments, handled by the `i % 2 === 0` branch below, are
- * passed through unescaped.
- * This would let a name that spells the escape marker itself, such as
- * `` `ASep32B` ``, compose the same key as a name using the real separator
- * that marker encodes, such as `` `A B` ``.
- * That is a genuine, non-injective collision in the escaping scheme. It is
- * distinct from the narrow, accepted collisions `SchemaKeyRegistry` reports
- * as a `duplicate-schema-key` error.
- * To prevent it, any occurrence of the marker pattern itself, `Sep`
- * immediately followed by a digit, is escaped to `SepSep` before composing.
- * A payload segment can then never be mistaken for an escaped separator.
+ * An alphanumeric segment passes through unescaped, except for the marker
+ * pattern itself: `Sep` immediately followed by a digit is escaped to
+ * `SepSep`. Without that, a name spelling the marker directly, such as
+ * `` `ASep32B` ``, would compose the same key as `` `A B` ``, whose space
+ * this scheme also encodes as `Sep32`.
+ *
+ * An empty result, including an all-empty input, falls back to a fixed
+ * non-empty token so the key never collapses to nothing.
  */
 function sanitizeNameSegment(raw: string): string {
   if (raw.length === 0) {
@@ -166,9 +147,10 @@ function sanitizeNameSegment(raw: string): string {
 
 /**
  * Tells whether `name` can be used as a Components Object key verbatim.
- * A caller that takes a key straight from the user, such as the `@message`
- * argument, uses this to warn before `sanitizeDeclarationName` rewrites the
- * text into something the user never asked for.
+ *
+ * A caller that takes a key straight from the author, such as the
+ * `@message` argument, uses this to warn before `sanitizeDeclarationName`
+ * rewrites the text into something the author never asked for.
  */
 export function isSafeComponentsKey(name: string): boolean {
   return COMPONENTS_KEY_PATTERN.test(name);
@@ -179,16 +161,13 @@ export function isSafeComponentsKey(name: string): boolean {
  * Components Object key candidate. `components.schemas` and
  * `components.messages` share the same key charset, so both use this
  * sanitizer.
+ *
  * A plain TypeSpec identifier already lies entirely inside
- * `COMPONENTS_KEY_PATTERN`; it is returned unchanged, case included. This keeps
- * every existing key stable.
- * A backtick-quoted name can carry arbitrary characters, such as a name
- * spelled Foo/Bar. It is run through `sanitizeNameSegment`, so a
- * charset-violating character never leaks into the key or the `$ref` built
- * from it.
- * An empty name is returned unchanged. This only ever occurs for an
- * anonymous type; callers already special-case that before a name is ever
- * needed.
+ * `COMPONENTS_KEY_PATTERN` and is returned unchanged, case included, so
+ * every existing key stays stable. A backtick-quoted name, which can carry
+ * arbitrary characters, is run through `sanitizeNameSegment` instead. An
+ * empty name is returned unchanged; that only happens for an anonymous
+ * type, which callers already special-case before a name is ever needed.
  *
  * @param name - The declaration's own name
  * @returns A name every `components` map accepts as a key
@@ -212,52 +191,37 @@ export function sanitizeDeclarationName(name: string): string {
 /**
  * Builds a short, human-legible name for one template argument, or
  * `undefined` when the argument is "unspeakable".
- * This name is used to build a stable `components.schemas` key for a
- * template instantiation. For example, `Envelope<Order>` becomes
- * `EnvelopeOrder`.
- * "Unspeakable" here is the same classification the official
- * `@typespec/asset-emitter` `TypeEmitter.declarationName` makes: a template
- * argument that has no fixed, nameable identity of its own makes the
- * *entire* instantiation's composed name fail.
- * Unspeakable cases are a `String`/`Number`/`Boolean` literal, a
- * `StringTemplate`, a `Tuple`, a genuine `Value`, an anonymous (unnamed)
- * `Model`, and an anonymous (unnamed) `Union`. A named `Model`/`Union`
- * argument that is itself a template instantiation propagates unspeakability
- * recursively, through the `declarationNameFor` call below.
  *
- * Unspeakable does *not* mean "nameless". The official consumers never stop
- * at `declarationName`'s `undefined`. `@typespec/openapi3`'s
- * `modelInstantiation` does `name = name ?? getOpenAPITypeName(...)`, and
- * `getOpenAPITypeName` is `getFriendlyName ?? getTypeName`, which always
- * yields text. So an unspeakable instantiation still ends up a named
- * declaration there. `fallbackDeclarationName` below provides the same
- * last-resort text for this emitter. What this emitter does differently is
- * *prefer* inlining while inlining is representable, because a
- * `getTypeName`-derived key is long and unreadable next to a compact
- * composed one.
+ * This name composes a stable `components.schemas` key for a template
+ * instantiation: `Envelope<Order>` becomes `EnvelopeOrder`. "Unspeakable"
+ * is the same classification the official `@typespec/asset-emitter`
+ * `TypeEmitter.declarationName` makes: a template argument with no fixed,
+ * nameable identity of its own fails the *entire* instantiation's composed
+ * name. The unspeakable cases are a `String`/`Number`/`Boolean` literal, a
+ * `StringTemplate`, a `Tuple`, a genuine `Value`, and an anonymous `Model`
+ * or `Union`. A named `Model`/`Union` argument that is itself a template
+ * instantiation propagates unspeakability recursively.
  *
- * A genuine `Value` argument is legal wherever the template parameter is
- * constrained to a value rather than a type, for example
- * `model P<T extends valueof string>` used as `P<c>` for some `const c`. A
- * value carries no nameable identity of its own. It is the textbook
- * unspeakable case. A fixed placeholder would instead make two
- * instantiations from two different `const`s claim one key, turning valid
- * TypeSpec into a `duplicate-schema-key` error.
+ * Unspeakable does not mean nameless. The official consumers never stop at
+ * `declarationName`'s `undefined`; `@typespec/openapi3` falls back to
+ * `getTypeName` text instead. This emitter's `fallbackDeclarationName`
+ * provides the same last-resort text. What differs here is that inlining is
+ * preferred while it stays representable, because a `getTypeName`-derived
+ * key is long next to a compact composed one.
+ *
+ * A genuine `Value` argument occurs where the template parameter is
+ * constrained to a value, e.g. `P<c>` for `model P<T extends valueof
+ * string>` and some `const c`. It carries no nameable identity, so it is
+ * unspeakable; a fixed placeholder would instead make two instantiations
+ * from two different `const`s claim one key.
  *
  * A literal or enum member written directly in a template argument list,
- * such as `P<"created">`, `P<42>`, or `P<Color.Red>`, does **not** arrive
- * here as its own `Type.kind`.
- * `@typespec/compiler` 1.14.0 wraps it in an `IndeterminateEntity` instead
- * (`entityKind: "Indeterminate"`, with no top-level `kind`). The compiler
- * uses this wrapper because it has not yet decided whether the template
- * parameter is being used as a type or a value.
- * `IndeterminateEntity.type` is always one of `StringLiteral |
- * StringTemplate | NumericLiteral | BooleanLiteral | EnumMember |
- * UnionVariant | NullType`. Every one of these is a real `Type` with a
- * `kind`.
- * So unwrapping it and recursing here recovers the same handling a
- * directly-typed literal argument gets, including unspeakability for a bare
- * literal.
+ * such as `P<"created">` or `P<42>`, does not arrive here as its own
+ * `Type.kind`. `@typespec/compiler` 1.14.0 wraps it in an
+ * `IndeterminateEntity` instead, because the compiler has not yet decided
+ * whether the parameter is used as a type or a value. Its `.type` is always
+ * a real `Type` with a `kind`, so unwrapping it and recursing here gives a
+ * bare literal argument the same handling a directly-typed one gets.
  */
 function templateArgDisplayName(
   program: Program,
@@ -272,70 +236,49 @@ function templateArgDisplayName(
   }
   switch (arg.kind) {
     case "Model":
-      // An anonymous `Model` has no fixed identity of its own to name the
-      // instantiation after. Unspeakable.
-      // Otherwise, `arg`'s own key name qualifies it. That name can itself
-      // be unspeakable, when `arg` is a template instantiation with an
-      // unspeakable argument, which propagates up here.
+      // Unspeakable when anonymous. Otherwise `arg`'s own key name qualifies
+      // it, which can itself be unspeakable and propagate up here.
       return arg.name ? declarationNameFor(program, arg) : undefined;
     case "Scalar":
-      // The name is sanitized the same way a `Model`/`Union`/`Enum`
-      // argument's name is, through `declarationNameFor`. A backtick-quoted
-      // scalar name can carry a character outside `COMPONENTS_KEY_PATTERN`, and
-      // that character must not reach the composed key.
+      // Sanitized the same way a `Model`/`Union`/`Enum` argument's name is.
       return (
         namespacePrefix(program, arg.namespace) + capitalizeFirst(sanitizeDeclarationName(arg.name))
       );
     case "Enum":
       return declarationNameFor(program, arg);
     case "EnumMember": {
-      // An `Enum` is always a named declaration, so its own name is never
-      // unspeakable. The guard keeps the composition type-safe without
-      // relying on that invariant from another function.
+      // An `Enum` is always named, so its own name is never unspeakable.
       const enumName = declarationNameFor(program, arg.enum);
       return enumName === undefined ? undefined : enumName + capitalizeFirst(arg.name);
     }
     case "Union":
-      // An anonymous `Union` has no fixed identity of its own. Unspeakable.
+      // Unspeakable when anonymous.
       return arg.name === undefined ? undefined : declarationNameFor(program, arg);
     case "String":
-      // A literal value has no fixed identity of its own. Unspeakable.
+      // A literal value has no fixed identity of its own.
       return undefined;
     case "StringTemplate":
-      // A string template is a literal value too, whether or not the
-      // compiler could reduce it to a plain string. So it is unspeakable,
-      // exactly like the `String` case above and like the official
-      // `TypeEmitter.declarationName`'s own default branch.
-      // Naming a reduced template after its text would also contradict the
-      // `String` case: `P<"abc">` and `P<"a${"b"}c">` are the same value,
-      // and one of them would inline while the other registered a named
-      // component.
+      // A reduced template is a literal value too. Naming it after its text
+      // would also let `P<"abc">` and `P<"a${"b"}c">`, the same value,
+      // resolve to different keys.
       return undefined;
     case "Number":
-      // A literal value has no fixed identity of its own. Unspeakable.
+      // A literal value has no fixed identity of its own.
       return undefined;
     case "Boolean":
-      // A literal value has no fixed identity of its own. Unspeakable.
+      // A literal value has no fixed identity of its own.
       return undefined;
     case "Intrinsic":
-      // Sanitized for the same reason the `Scalar` case above is. Every
-      // built-in intrinsic name is a plain identifier, so this is a no-op
-      // for them.
+      // Every built-in intrinsic name is already a plain identifier, so
+      // sanitizing is a no-op for them.
       return capitalizeFirst(sanitizeDeclarationName(arg.name));
     case "Tuple":
-      // A tuple has no fixed identity of its own, matching the official
-      // `TypeEmitter.declarationName`'s own handling of a `Tuple` argument.
-      // Unspeakable.
+      // A tuple has no fixed identity of its own.
       return undefined;
     default:
-      // An unhandled argument kind, such as an `Operation` or an
-      // `Interface`, has no fixed identity this function can compose a key
-      // from. Unspeakable, matching the official
-      // `TypeEmitter.declarationName`'s own default branch.
-      // A fixed placeholder token would instead make two instantiations from
-      // two different arguments of that kind claim one key, turning valid
-      // TypeSpec into a `duplicate-schema-key` error. This is the same
-      // reasoning the `Value` case above states.
+      // An unhandled kind, such as an `Operation` or `Interface`, has no
+      // fixed identity to compose a key from. A placeholder token would
+      // instead make two such arguments claim one key.
       return undefined;
   }
 }
@@ -343,26 +286,18 @@ function templateArgDisplayName(
 /**
  * Builds the structural, unqualified name for a `Model`/`Union`
  * declaration.
+ *
  * For a template instantiation, the name is the template's own name plus
- * each type argument's display name. For example, `Envelope<Order>` becomes
- * `EnvelopeOrder`, and `Page<string>` becomes `PageString`. Every
- * instantiation of the same template gets its own distinguishable name up
- * front, so two instantiations of one template never compete for one key.
- * For a non-template, or an uninstantiated template declaration, this
- * function returns the plain declaration name unchanged.
+ * each argument's display name, e.g. `Envelope<Order>` becomes
+ * `EnvelopeOrder`. `Model` and `Union` share this function, so a template
+ * *union* instantiation gets the same treatment a model one does. For a
+ * non-template, or an uninstantiated declaration, the plain declaration
+ * name is returned unchanged.
  *
- * `Model` and `Union` share this function. Both support templates, and both
- * carry the same `name`/`templateMapper` shape. So a template *union*
- * instantiation, such as `Wrapper<int32>`, gets the exact same stable-key
- * treatment a template model instantiation does.
- *
- * Returns `undefined` when any template argument is itself unspeakable (see
- * `templateArgDisplayName`), matching the official
- * `TypeEmitter.declarationName`'s own behavior: the *entire* instantiation's
- * name computation fails as soon as one argument has no fixed identity to
- * name it after. This can never happen for a non-template type.
- * `undefined` here only means "no compact composed name". The type is still
- * nameable through `fallbackDeclarationName`.
+ * Returns `undefined` when any argument is itself unspeakable, see
+ * `templateArgDisplayName`. This can never happen for a non-template type.
+ * `undefined` here means only "no compact composed name". The type is
+ * still nameable through `fallbackDeclarationName`.
  *
  * The caller, `declarationNameFor`, adds the namespace qualification and
  * handles `@friendlyName`. This function is purely structural.
@@ -379,15 +314,12 @@ function templateInstanceName(program: Program, type: Model | Union): string | u
 }
 
 /**
- * Returns true for an uninstantiated template *declaration*.
- * This is the case for `Env` reached by naming it directly in source. It
- * excludes an instantiation like `Env<string>` or a defaulted use site
- * `Env`.
+ * Returns true for an uninstantiated template *declaration*: `Env` named
+ * directly in source, excluding an instantiation like `Env<string>`.
+ *
  * Its properties or variants are bare `TemplateParameter`s with no real
- * shape. There is nothing meaningful to build, so the caller emits the
- * unconstrained schema instead of registering a bogus key.
- * Every named declaration kind that can be a template, model or union,
- * shares this check.
+ * shape, so the caller emits the unconstrained schema instead of
+ * registering a bogus key. `Model` and `Union` both share this check.
  *
  * @public
  */
@@ -417,27 +349,23 @@ function typeNameOptions(program: Program): TypeNameOptions {
 
 /**
  * Builds the last-resort `components.schemas` key for a named declaration
- * that has no compact composed name, that is, a template instantiation with
- * an unspeakable argument.
- * The key keeps the same shape a compact key has, namespace prefix plus own
- * name plus one segment per template argument. Only the argument segments
+ * with no compact composed name, that is, a template instantiation with an
+ * unspeakable argument.
+ *
+ * The key keeps the shape a compact key has, namespace prefix plus own name
+ * plus one segment per template argument. Only the argument segments
  * differ: each comes from the official `getEntityName`, the text
- * `@typespec/openapi3` falls back to through `getTypeName` in
- * `modelInstantiation`. For example, the argument `{x: string}` yields the
- * text `{ x: string }`.
- * That text carries characters the AsyncAPI Components Object key charset
- * forbids, such as `{` and a space, so it is Sep-encoded through
- * `sanitizeNameSegment`. `@typespec/openapi3` skips key validation for a
- * template instantiation and emits the raw text; an AsyncAPI document
- * cannot, because the key must stay a legal member name and a legal `$ref`
- * fragment.
- * Composing per argument, rather than sanitizing `getTypeName` of the whole
- * declaration, is what keeps two instantiations apart. `getTypeName` drops
- * the template arguments of a *union*, so `Chain<{a: string}>` and
+ * `@typespec/openapi3` falls back to. That text can carry characters the
+ * Components Object key charset forbids, such as `{` from `{x: string}`, so
+ * it is Sep-encoded through `sanitizeNameSegment`.
+ *
+ * Composing per argument, rather than sanitizing the whole declaration's
+ * `getTypeName`, is what keeps two instantiations apart: `getTypeName`
+ * drops a *union*'s template arguments, so `Chain<{a: string}>` and
  * `Chain<{b: string}>` would both reduce to `Chain` and collide.
+ *
  * The result is long and hard to read. The caller only reaches this name
- * when inlining cannot express the type, so readable output is unaffected
- * in every other case.
+ * when inlining cannot express the type.
  *
  * @public
  */
@@ -461,19 +389,16 @@ function fallbackInstanceName(program: Program, type: Model | Union): string {
 
 /**
  * Builds a declaration's name without any namespace qualification.
+ *
  * `components.messages` keys use it. They are deliberately not qualified by
  * namespace, unlike `components.schemas` keys, so two same-named message
  * models in different namespaces collide and the caller reports that.
- * Everything else matches how a schema key is built, and on purpose: a
- * `@friendlyName` wins outright, a template instantiation composes its
- * argument names, and an instantiation with no compact composed name falls
- * back to the same per-argument text `fallbackDeclarationName` uses.
- * Two instantiations of one template therefore get two distinct keys, the
- * same way their schemas do. Taking the raw `Model.name` instead would give
- * every instantiation the bare template name and turn valid TypeSpec into a
- * duplicate-key error.
- * The result always lies inside the Components Object key charset, and it
- * is never empty for a named declaration.
+ *
+ * Everything else matches how a schema key is built, on purpose: a
+ * `@friendlyName` wins outright, and a template instantiation composes its
+ * argument names or falls back to the same per-argument text
+ * `fallbackDeclarationName` uses. Taking the raw `Model.name` instead would
+ * give every instantiation of one template the same bare name.
  */
 export function unqualifiedDeclarationName(program: Program, type: Model | Union): string {
   const friendlyName = getFriendlyName(program, type);
@@ -487,35 +412,26 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  * Computes the compact `components.schemas` key candidate for a named
  * declaration: a model, enum, or named union. Returns `undefined` when
  * `type` is a template instantiation whose own name computation is
- * unspeakable (see `templateInstanceName`). The caller then either inlines
+ * unspeakable, see `templateInstanceName`. The caller then either inlines
  * the type or, when inlining cannot express it, keys it under
  * `fallbackDeclarationName`.
  *
- * A user-applied `\@friendlyName` is checked first. It is written like
- * `\@friendlyName("\{name\}Envelope") model Envelope<T> \{ ... \}`. The
- * compiler resolves its own template-parameter interpolation, such as
- * `\{name\}`, per instantiation. That resolved name is the
- * candidate outright: it is neither namespace-qualified nor composed with
- * any structural name. An explicit friendly name is the user's own,
- * authoritative choice of key, and the official `getOpenAPITypeName` returns
- * it verbatim the same way. This holds for every kind here, model, enum, and
- * union alike.
- * Two declarations resolving to the same friendly name collide exactly like
- * any other candidate-name collision: `SchemaKeyRegistry.keyFor` reports
- * `duplicate-schema-key`. No special-casing happens here.
+ * A user-applied `\@friendlyName`, e.g.
+ * `\@friendlyName("\{name\}Envelope")`, is checked first. The compiler
+ * resolves its own template-parameter interpolation per instantiation, and
+ * that resolved name is the candidate outright, with no namespace
+ * qualification. This holds for every kind here.
  *
  * With no friendly name, the candidate is the structural name qualified by
- * the declaration's own namespace chain, via `namespacePrefix`, the same
- * helper that qualifies a template *argument*'s display name. This matches
- * the official `getTypeName`/`getNamespacePrefix` default naming: two
- * same-named declarations in different namespaces resolve to different keys,
- * rather than colliding. A template instantiation is qualified too: two
- * same-named templates in sibling namespaces, instantiated with the same
- * argument, would otherwise compose one shared key.
+ * the declaration's own namespace chain, via `namespacePrefix`. This matches
+ * the official `getTypeName`/`getNamespacePrefix` default naming, so two
+ * same-named declarations in different namespaces resolve to different
+ * keys.
  *
- * No further disambiguation happens here. This is exactly one candidate. It
- * is handed to `SchemaBuilder.registerNamed` (via `SchemaKeyRegistry`), which
- * decides whether that candidate is actually free.
+ * No further disambiguation happens here. This one candidate is handed to
+ * `SchemaBuilder.registerNamed` (via `SchemaKeyRegistry`), which decides
+ * whether it is actually free; two declarations resolving to the same
+ * candidate are reported there as `duplicate-schema-key`.
  *
  * @public
  */

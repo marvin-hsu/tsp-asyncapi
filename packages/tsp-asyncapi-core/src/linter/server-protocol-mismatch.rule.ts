@@ -36,21 +36,13 @@ import { listBindings } from "../decorators/bindings/state.js";
  *
  * A member name is not always the protocol name. The Solace binding is
  * `solace` and the protocol it configures is `smf`, Solace Message Format.
- * That row was wrong when this rule was written, and
- * `examples/14-streaming-platforms` is what caught it.
  *
- * A `Map` rather than an object literal, because a lookup that misses has
- * to read as `undefined`. This repository does not set
- * `noUncheckedIndexedAccess`, so indexing a `Record` types the miss as a
- * value that is always there, and the guard below would be deleted as dead.
+ * A `Map` rather than a `Record`, so a lookup miss types as `undefined`
+ * instead of a value the guard below could be deleted as dead code for.
  *
- * A member with no row here is not checked. That is deliberate: a wrong
- * answer about a protocol this table has not learned would be worse than no
- * answer.
- *
- * The generic `@binding` never reaches this table anyway. It records the
- * level `any` rather than `server`, so the loop below skips it before the
- * lookup.
+ * A member with no row here is not checked, since a wrong answer would be
+ * worse than no answer. The generic `@binding` never reaches this table: it
+ * records the level `any` rather than `server`, so the loop below skips it.
  */
 const SERVER_PROTOCOLS = new Map<string, readonly string[]>([
   ["kafka", ["kafka", "kafka-secure"]],
