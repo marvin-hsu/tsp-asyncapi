@@ -803,6 +803,16 @@ operation 一定要指向一個 channel。缺少 channel 可能是因為該 targ
 
 **修法：** 為包住這個 operation 的 interface 或 namespace 加上 `@channel` 或 `@dynamicChannel`。同時確認 operation 直接寫在它裡面，因為巢狀 interface 是另一個範圍。
 
+### `unsupported-operation-message-type`
+
+> A \<kind\> cannot name the messages of an operation. This emitter does not unwrap it into messages. Write each message as its own parameter, or as a variant of a union. Mark each model with `@message`.
+
+operation 的參數或回傳型別寫了 `Tuple`。例如 `[OrderCreated, OrderShipped]`。那看起來像一份型別清單。它不是一份 message 清單。
+
+emitter 不會拆開這個 tuple。拆開會變成兩個 message。簽章並沒有用額外參數或 union 成員來命名它們。該型別會從訊息清單拿掉。文件的其餘部分照樣寫出。
+
+**修法：** 把每個 message 寫成獨立參數，或寫成 union 的成員。每個 model 都要標 [`@message`](./decorators/messages#message)。
+
 ### `reply-channel-not-a-channel`
 
 > @replyChannel names '\<name\>', and that interface or namespace carries no emitted channel. A reply whose channel is unknown carries neither a checkable message list nor a checkable address, so the whole `reply` object was dropped. Add @channel or @dynamicChannel to '\<name\>'.
@@ -876,6 +886,16 @@ server 變數的 `enum` 或 `examples` 有項目是空字串，或只有空白�
 `oauth2` 或 `openIdConnect` scheme 的 `scopes` 有項目是空字串，或只有空白字元。這種項目沒有指出任何 scope，所以會被丟棄。空的 `scopes` 仍然會寫進文件，AsyncAPI 把它讀成「這個 scheme 不需要任何 scope」。那是另一種主張。
 
 **修法：** 給每個項目一個 scope 名稱，或刪除空白的項目。
+
+### `unknown-oauth-scope`
+
+> The scope '\<scope\>' is not listed in `availableScopes` of any flow of this scheme. The name still reaches the document. Add it to a flow, or remove it from `scopes`.
+
+`oauth2` scheme 的 `scopes` 列出一個名稱。沒有任何 flow 的 `availableScopes` 含有它。`@securityScheme` 的文件把 `scopes` 寫成那些對照表的子集。
+
+該名稱仍會保留。若直接刪掉，等於改寫 `scopes`。AsyncAPI 接著會主張另一組 scope。
+
+**修法：** 把該名稱加進某個 flow 的 `availableScopes`，或從 `scopes` 移除。
 
 ### `use-security-outside-server`
 
@@ -1081,7 +1101,7 @@ binding 依附在 target 產生的物件上。target 不產生物件時，該 bi
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`topicConfiguration`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。
+某個欄位的值違反 binding 規格。Kafka binding 會對 `partitions`、`replicas`、`topicConfiguration`、`cleanup.policy`、`schemaIdLocation`、`key`、`groupId` 與 `clientId` 回報。JMS server binding 也會回報。回報的是沒有 `name` 與 `value` 的 `properties` 項目。
 
 `topicConfiguration` 是在序列化器無法表示對應表中某個成員時回報。帶有 `init` 的自訂 scalar 就是這種成員。該成員會讓整份對應表失敗，所以回報指的是 `topicConfiguration`，不是那個成員。
 

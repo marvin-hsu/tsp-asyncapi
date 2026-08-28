@@ -130,6 +130,8 @@ scheme 的每個 URL 都必須是絕對 URL。這涵蓋 `openIdConnectUrl`，以
 
 `scopes` 的空白項目會回報 [`blank-security-scope-name`](../diagnostics#blank-security-scope-name) 警告，並丟棄。scheme 本身保留。`availableScopes` 內的空白說明會保留成空字串，因為 AsyncAPI 規定該 map 的每個 key 都要有值。
 
+`scopes` 裡的名稱必須出現在某個 flow 的 `availableScopes`。否則會回報 [`unknown-oauth-scope`](../diagnostics#unknown-oauth-scope)。該名稱仍會寫進文件。
+
 scheme 名稱只能使用英文字母、數字、`.`、`-` 與 `_`。其他名稱會回報 [`invalid-security-scheme-name`](../diagnostics#invalid-security-scheme-name) 錯誤。兩個 scheme 同名會回報 [`duplicate-security-scheme-name`](../diagnostics#duplicate-security-scheme-name) 錯誤，保留原始碼中較前面的那個。必填字串欄位空白會回報 [`empty-security-scheme-field`](../diagnostics#empty-security-scheme-field) 錯誤。
 
 ## `@useSecurity`

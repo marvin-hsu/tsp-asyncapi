@@ -635,6 +635,14 @@ export const $lib = createTypeSpecLibrary({
           "The `scopes` of this security scheme hold an entry that is blank. A blank entry names no scope, so it was dropped. A list left with no entry at all still reaches the document, and AsyncAPI reads it as 'this scheme needs no scope'. Give every entry a scope name, or remove the ones that carry none.",
       },
     },
+    "unknown-oauth-scope": {
+      // The name still reaches the document. Dropping it would rewrite
+      // `scopes` in silence, and AsyncAPI would then claim a different set.
+      severity: "warning",
+      messages: {
+        default: paramMessage`The scope '${"scope"}' is not listed in \`availableScopes\` of any flow of this scheme. The name still reaches the document. Add it to a flow, or remove it from \`scopes\`.`,
+      },
+    },
     "invalid-url": {
       severity: "error",
       messages: {
@@ -848,6 +856,15 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`This emitter does not support a \`${"kind"}\` here. Use a model, scalar, enum, union, or literal value instead.`,
+      },
+    },
+    "unsupported-operation-message-type": {
+      // A warning, because the rest of the document is still written. The
+      // tuple is dropped from the message list, and the author can see
+      // that recovery. An error would hide it.
+      severity: "warning",
+      messages: {
+        default: paramMessage`A \`${"kind"}\` cannot name the messages of an operation. This emitter does not unwrap it into messages. Write each message as its own parameter, or as a variant of a union. Mark each model with \`@message\`.`,
       },
     },
     "unrepresentable-circular-reference": {

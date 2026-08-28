@@ -808,6 +808,16 @@ An operation always points at a channel. The channel may be missing because the 
 
 **Fix:** add `@channel` or `@dynamicChannel` to the interface or namespace that holds the operation. Check that the operation sits directly inside it, because a nested interface is a separate scope.
 
+### `unsupported-operation-message-type`
+
+> A \<kind\> cannot name the messages of an operation. This emitter does not unwrap it into messages. Write each message as its own parameter, or as a variant of a union. Mark each model with `@message`.
+
+An operation parameter or return type names a `Tuple`, such as `[OrderCreated, OrderShipped]`. That looks like a list of types. It is not a list of messages.
+
+The emitter does not unwrap the tuple. Doing so would invent two messages the signature never named as extra parameters or as union variants. The type is dropped from the message list. The rest of the document is still written.
+
+**Fix:** write each message as its own parameter, or as a variant of a union. Mark each model with [`@message`](./decorators/messages#message).
+
 ### `reply-channel-not-a-channel`
 
 > @replyChannel names '\<name\>', and that interface or namespace carries no emitted channel. A reply whose channel is unknown carries neither a checkable message list nor a checkable address, so the whole `reply` object was dropped. Add @channel or @dynamicChannel to '\<name\>'.
@@ -881,6 +891,16 @@ The `enum` or the `examples` of a server variable holds an entry that is empty, 
 The `scopes` of an `oauth2` or an `openIdConnect` scheme holds an entry that is empty, or holds whitespace only. Such an entry names no scope, so it is dropped. An empty `scopes` still reaches the document, and AsyncAPI reads it as "this scheme needs no scope", which is a different claim.
 
 **Fix:** Give every entry a scope name, or remove the blank ones.
+
+### `unknown-oauth-scope`
+
+> The scope '\<scope\>' is not listed in `availableScopes` of any flow of this scheme. The name still reaches the document. Add it to a flow, or remove it from `scopes`.
+
+The `scopes` of an `oauth2` scheme names a scope that no flow of that scheme lists in `availableScopes`. The documentation of `@securityScheme` states `scopes` as a subset of those maps.
+
+The name is kept. Dropping it would rewrite `scopes` in silence, and AsyncAPI would then claim a different set.
+
+**Fix:** add the name to `availableScopes` of a flow, or remove it from `scopes`.
 
 ### `use-security-outside-server`
 
@@ -1086,7 +1106,7 @@ A binding sits on the object its target emits. A target that emits no object car
 
 > The \<protocol\> binding field '\<field\>' expects \<expected\>. The value given here is outside that, so the field was dropped and the rest of the binding was kept.
 
-One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `topicConfiguration`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`.
+One field carries a value the binding specification forbids. The Kafka binding reports it for `partitions`, `replicas`, `topicConfiguration`, `cleanup.policy`, `schemaIdLocation`, `key`, `groupId`, and `clientId`. The JMS server binding reports it for a `properties` entry that is not an object with a `name` and a `value`.
 
 `topicConfiguration` reports it when the serializer cannot represent a member of the map. A custom scalar with an `init` is one such member. That member fails the whole map, so the report names `topicConfiguration` rather than the member.
 

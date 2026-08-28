@@ -252,4 +252,30 @@ describe("Unit: security schemes — OAuth flows and scopes", () => {
     expect(securitySchemesOf(doc).oauth).not.toHaveProperty("scopes");
     expect(securitySchemesOf(doc).oidc).not.toHaveProperty("scopes");
   });
+
+  it("reports a needed scope that no flow offers, and still emits the name", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @securityScheme("oauth", #{
+        type: "oauth2",
+        scopes: #["orders:write", "orders:admin"],
+        flows: #{
+          clientCredentials: #{
+            tokenUrl: "https://example.com/token",
+            availableScopes: #{ \`orders:read\`: "Read orders", \`orders:write\`: "Write orders" }
+          }
+        }
+      })
+      namespace Test;
+    `);
+
+    expectDiagnostics(diagnostics, [
+      {
+        code: "tsp-asyncapi/unknown-oauth-scope",
+        severity: "warning",
+        message: /The scope 'orders:admin' is not listed in `availableScopes`/,
+      },
+    ]);
+    expect(securitySchemesOf(doc).oauth.scopes).toEqual(["orders:write", "orders:admin"]);
+  });
 });

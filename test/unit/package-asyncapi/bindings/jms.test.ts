@@ -4,7 +4,7 @@ import {
   emitDocument,
   emitDocumentWithDiagnostics,
 } from "../../../utils/test-host.js";
-import { findDiagnostic } from "../../../utils/diagnostics.js";
+import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 import { channelsOf, messagesOf, serversOf } from "../../../utils/document.js";
 import { ORDER_CREATED, PUBLISH_ORDER_CREATED, brokerService } from "../../../utils/source.js";
 import { bindingsOf } from "../../../utils/document.js";
@@ -103,5 +103,36 @@ describe("Unit: the JMS binding decorators", () => {
       jmsConnectionFactory: "com.example.Factory",
       bindingVersion: "0.0.1",
     });
+  });
+
+  it("drops a properties entry that has no name or no value", async () => {
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      @jmsServer(#{
+        jmsConnectionFactory: "com.example.Factory",
+        properties: #[
+          #{ name: "keep", value: true },
+          #{ name: "missing-value" },
+          #{ value: 1 },
+          "not-an-object",
+        ],
+      })
+      @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })
+      namespace Test;
+
+      ${ORDER_CREATED}
+
+      @channel("orders")
+      interface OrderChannel {
+        ${PUBLISH_ORDER_CREATED}
+      }
+    `);
+
+    const reported = diagnosticsWith(diagnostics, "invalid-binding-field");
+    expect(reported).toHaveLength(3);
+    expect(reported.every((diagnostic) => diagnostic.message.includes("properties["))).toBe(true);
+    expect(bindingsOf(serversOf(doc).prod.bindings).jms.properties).toEqual([
+      { name: "keep", value: true },
+    ]);
   });
 });

@@ -17,8 +17,19 @@ import {
   listOperationsReplyingOver,
 } from "../decorators/operations/reply-state.js";
 import { OperationAction } from "../decorators/operations/state.js";
+import { reportDiagnostic } from "../lib.js";
 import { bySourcePosition, sourcePositionOf } from "../source-order.js";
 import { channelOperations } from "../resolve/channels/scope.js";
+
+/**
+ * The `Tuple` types already reported on one program.
+ *
+ * One operation is walked from more than one caller. Without this set the
+ * same tuple would be reported once per walk.
+ */
+const reportedUnsupportedMessageTypes = Symbol.for(
+  "tsp-asyncapi.unsupported-operation-message-type",
+);
 
 /**
  * The models of one operation signature, split by side.
@@ -60,10 +71,18 @@ function operationSignatureModels(
   const parameters: Model[] = [];
   const seenParameters = new Set<Model>();
   for (const property of operation.parameters.properties.values()) {
-    collectInto(parameters, seenParameters, unwrap(property.type, messages, new Set<Type>()));
+    collectInto(
+      parameters,
+      seenParameters,
+      unwrap(program, property.type, messages, new Set<Type>()),
+    );
   }
   const returns: Model[] = [];
-  collectInto(returns, new Set<Model>(), unwrap(operation.returnType, messages, new Set<Type>()));
+  collectInto(
+    returns,
+    new Set<Model>(),
+    unwrap(program, operation.returnType, messages, new Set<Type>()),
+  );
   return { parameters, returns };
 }
 
@@ -247,6 +266,11 @@ function collectInto(found: Model[], seen: Set<Model>, models: Model[]): void {
  * element type. Any other model contributes itself. Anything that is not a
  * model contributes nothing.
  *
+ * A tuple contributes nothing. TypeSpec has no tuple declaration. A tuple
+ * is not a list of messages. The walk reports
+ * `unsupported-operation-message-type` and stops. Write extra parameters,
+ * or a union of models, instead.
+ *
  * The `@message` check comes first, so a message declared as `model Bag is
  * Record<string>` stays the message it is marked as. Without that order the
  * walk would unwrap it to `string` and the channel would lose the message.
@@ -255,7 +279,7 @@ function collectInto(found: Model[], seen: Set<Model>, models: Model[]): void {
  * @param type - The type to inspect
  */
 export function unwrapModels(program: Program, type: Type): Model[] {
-  return unwrap(type, listMessages(program), new Set<Type>());
+  return unwrap(program, type, listMessages(program), new Set<Type>());
 }
 
 /**
@@ -271,25 +295,54 @@ export function unwrapModels(program: Program, type: Type): Model[] {
  * branches both reach contributes once, which is what the caller wants
  * anyway.
  *
+ * @param program - The program to report on
  * @param type - The type to inspect
  * @param messages - The messages this channel carries
  * @param visited - The types already visited
  */
-function unwrap(type: Type, messages: ReadonlyMap<Model, unknown>, visited: Set<Type>): Model[] {
+function unwrap(
+  program: Program,
+  type: Type,
+  messages: ReadonlyMap<Model, unknown>,
+  visited: Set<Type>,
+): Model[] {
   if (visited.has(type)) return [];
   visited.add(type);
   if (type.kind === "Union") {
     return [...type.variants.values()].flatMap((variant) =>
-      unwrap(variant.type, messages, visited),
+      unwrap(program, variant.type, messages, visited),
     );
   }
   if (type.kind === "Model") {
     if (messages.has(type)) return [type];
     const element = collectionElement(type);
-    if (element !== undefined) return unwrap(element, messages, visited);
+    if (element !== undefined) return unwrap(program, element, messages, visited);
     return [type];
   }
+  if (type.kind === "Tuple") {
+    reportUnsupportedOperationMessageType(program, type);
+  }
   return [];
+}
+
+/**
+ * Reports a type that looks like a list of messages and is not one.
+ *
+ * The same type is walked from more than one caller in one program. The
+ * state set keeps one report per type.
+ *
+ * @param program - The program to report on
+ * @param type - The unsupported type
+ */
+function reportUnsupportedOperationMessageType(program: Program, type: Type): void {
+  const seen = program.stateSet(reportedUnsupportedMessageTypes);
+  if (seen.has(type)) return;
+  seen.add(type);
+  reportDiagnostic(program, {
+    code: "unsupported-operation-message-type",
+    format: { kind: type.kind },
+    target: type,
+  });
 }
 
 /**

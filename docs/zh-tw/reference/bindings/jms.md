@@ -23,6 +23,8 @@ extern dec jmsServer(target: Namespace, config: valueof AsyncAPIJmsServerBinding
 
 `jmsConnectionFactory` 是必填。缺它時，binding 會透過 `missing-binding-field` 回報並整個丟棄。
 
+`properties` 的每個項目都是帶 `name` 與 `value` 的物件。不符合的項目會透過 `invalid-binding-field` 回報並丟棄。binding 的其餘欄位保留。
+
 ```typespec
 @service(#{ title: "Orders" })
 @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })

@@ -402,8 +402,46 @@ function normalizeOAuth2(
   if (flows === undefined) return undefined;
   const fields: SchemeFields = { flows };
   const scopes = normalizeScopes(context, scheme.scopes, target);
-  if (scopes !== undefined) fields.scopes = scopes;
+  if (scopes !== undefined) {
+    checkScopesAgainstAvailable(context, scopes, flows, target);
+    fields.scopes = scopes;
+  }
   return fields;
+}
+
+/**
+ * Reports a needed scope that no flow of this scheme offers.
+ *
+ * The name still reaches the document. Dropping it would rewrite `scopes`
+ * in silence, and AsyncAPI would then claim a different set.
+ *
+ * @param context - The decorator context
+ * @param scopes - The trimmed scope names this scheme needs
+ * @param flows - The flows already checked
+ * @param target - The node to report a problem on
+ */
+function checkScopesAgainstAvailable(
+  context: DecoratorContext,
+  scopes: string[],
+  flows: OAuthFlowsObject,
+  target: DiagnosticTarget,
+): void {
+  const available = new Set<string>();
+  for (const flowName of OAUTH_FLOW_NAMES) {
+    const flow = flows[flowName];
+    if (flow === undefined) continue;
+    for (const name of Object.keys(flow.availableScopes)) {
+      available.add(name);
+    }
+  }
+  for (const scope of scopes) {
+    if (available.has(scope)) continue;
+    reportDiagnostic(context.program, {
+      code: "unknown-oauth-scope",
+      format: { scope },
+      target,
+    });
+  }
 }
 
 /**
