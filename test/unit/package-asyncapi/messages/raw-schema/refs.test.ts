@@ -14,13 +14,7 @@ const NATIVE = `application/vnd.aai.asyncapi+json;version=${ASYNCAPI_VERSION}`;
 /** The code of the rule this file is about. */
 const CODE = "unresolved-raw-schema-ref";
 
-/**
- * Finds one model of the compiled source by name.
- *
- * @param program - The compiled program
- * @param name - The name the source gives the model
- * @returns That model
- */
+/** Finds one model of the compiled source by name. */
 function modelOf(program: Program, name: string): Model {
   const model = namespaceOf(program, "Test").models.get(name);
   if (model === undefined) {

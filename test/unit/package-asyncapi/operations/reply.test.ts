@@ -350,13 +350,10 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
   });
 
   it("keeps both sides on the channel when the reply travels over it", async () => {
-    // `@replyChannel` naming the channel the operation already runs over
-    // changes nothing. Both sides still travel over that one channel.
-    //
-    // The two message names are deliberately not in alphabetical order here.
-    // The `messages` map follows the signature, parameters first, and that
-    // order is user-visible YAML. Alphabetical names would let a sort pass
-    // unnoticed.
+    // `@replyChannel` naming the operation's own channel changes nothing;
+    // both sides still travel over it. The message names are deliberately
+    // not alphabetical, since the `messages` map follows signature order
+    // and a sort could pass unnoticed otherwise.
     await runner.compile(`
       @service(#{ title: "Orders" })
       namespace Test;
@@ -653,14 +650,10 @@ describe("Unit: Operation reply (Phase 5.4)", () => {
   });
 
   it("reports a @replyChannel on an operation with no action", async () => {
-    // Either decorator on its own emits a reply, so either one on its own
-    // reaches nothing when the operation carries no action.
-    //
-    // The action is also what decides which side of the signature is the
-    // reply. With no action there is no reply, so neither side leaves for the
-    // reply channel and both stay on the channel of the operation. The two
-    // message names are not in alphabetical order, so the assertion below
-    // pins the signature order rather than a sort.
+    // The action decides which side of the signature is the reply. With no
+    // action, neither decorator does anything, and both sides stay on the
+    // channel of the operation. The message names are not alphabetical, so
+    // the assertion below pins signature order rather than a sort.
     const diagnostics = await runner.diagnose(`
       @service(#{ title: "Orders" })
       namespace Test;
