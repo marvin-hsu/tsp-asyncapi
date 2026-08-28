@@ -1,3 +1,15 @@
+/**
+ * The `@logicalType` and `@decimal` decorators, and their reader,
+ * `getAvroLogicalType`.
+ *
+ * Both decorators write to one piece of state, because a decimal is a
+ * logical type that also carries precision and scale. This file checks the
+ * shape of what an author wrote, such as a positive precision, and refuses a
+ * second logical type on the same target. It does not check the logical
+ * type against its underlying type. The walk refuses that pairing when it
+ * renders the schema.
+ */
+
 import { DecoratorContext, ModelProperty, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

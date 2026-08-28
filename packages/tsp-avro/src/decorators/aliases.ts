@@ -1,3 +1,12 @@
+/**
+ * The `@aliases` decorator and its reader, `getAvroAliases`.
+ *
+ * This file only validates a name against the Avro grammar and records the
+ * result. It does not decide which declarations need an alias. It does not
+ * render the `"aliases"` member either. The walk reads this state later and
+ * makes both calls.
+ */
+
 import { DecoratorContext, Enum, Model, ModelProperty, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

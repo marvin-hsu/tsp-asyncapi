@@ -1,3 +1,12 @@
+/**
+ * The `@fixed` decorator and its reader, `getAvroFixedSize`.
+ *
+ * This file only checks that the width is a positive number and records it.
+ * It does not decide what schema shape a fixed type takes. It does not check
+ * the width against any logical type placed on the same declaration either.
+ * The walk makes both calls when it renders the type.
+ */
+
 import { DecoratorContext, Model, Program, Scalar } from "@typespec/compiler";
 import { useStateMap } from "@typespec/compiler/utils";
 import { reportDiagnostic } from "../lib.js";

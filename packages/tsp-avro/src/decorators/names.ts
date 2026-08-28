@@ -1,5 +1,3 @@
-import { AVRO_PRIMITIVE_NAMES } from "../types.js";
-
 /**
  * The Avro name rules.
  *
@@ -11,6 +9,8 @@ import { AVRO_PRIMITIVE_NAMES } from "../types.js";
  * The rules live here, next to the decorator that takes a namespace from the
  * author, because that is the first place a name can be refused.
  */
+
+import { AVRO_PRIMITIVE_NAMES } from "../types.js";
 
 const AVRO_NAME = /^[A-Za-z_]\w*$/;
 
