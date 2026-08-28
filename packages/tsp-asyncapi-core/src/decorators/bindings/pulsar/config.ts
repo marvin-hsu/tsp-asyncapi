@@ -41,6 +41,10 @@ const PERSISTENCE_VALUES = ["persistent", "non-persistent"];
 /**
  * Checks the `persistence` field of the channel binding.
  *
+ * The binding requires the field, so a rejected value costs the whole
+ * binding. The loss is `binding` for that reason. A warning about one dropped
+ * field would promise the author a document the emitter never writes.
+ *
  * @param context - The decorator context
  * @param value - The field as the author wrote it
  * @param target - Where a problem is reported
@@ -59,6 +63,7 @@ export function persistence(
     value,
     PERSISTENCE_VALUES,
     target,
+    "binding",
   );
 }
 

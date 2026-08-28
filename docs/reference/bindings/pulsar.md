@@ -62,7 +62,7 @@ Apply it to the interface or namespace that carries `@channel` or `@dynamicChann
 `namespace` is a TypeSpec keyword. Write the field name in backticks: `` `namespace`: "orders" ``. The emitted field is still `namespace`.
 :::
 
-`namespace` and `persistence` are required. A binding without either one is reported through `missing-binding-field` and dropped whole. `persistence` is `persistent` or `non-persistent`.
+`namespace` and `persistence` are required. A binding without either one is reported through `missing-binding-field` and dropped whole. `persistence` is `persistent` or `non-persistent`. A value outside those two is reported through `invalid-required-binding-field` and costs the binding the same way.
 
 `geoReplication` is written under that name because a TypeSpec field name cannot hold a dash. The emitted field is `geo-replication`.
 

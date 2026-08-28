@@ -62,7 +62,7 @@ extern dec pulsarChannel(
 `namespace` 是 TypeSpec 的保留字。欄位名稱要用反引號寫成 `` `namespace`: "orders" ``。輸出的欄位仍然是 `namespace`。
 :::
 
-`namespace` 與 `persistence` 是必填。缺任一個時，binding 會透過 `missing-binding-field` 回報並整個丟棄。`persistence` 是 `persistent` 或 `non-persistent`。
+`namespace` 與 `persistence` 是必填。缺任一個時，binding 會透過 `missing-binding-field` 回報並整個丟棄。`persistence` 是 `persistent` 或 `non-persistent`。填了這兩個以外的值時，會透過 `invalid-required-binding-field` 回報，代價一樣是整個 binding。
 
 `geoReplication` 用這個名稱，是因為 TypeSpec 的欄位名稱不能帶連字號。輸出的欄位是 `geo-replication`。
 

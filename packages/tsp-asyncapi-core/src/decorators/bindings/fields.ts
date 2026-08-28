@@ -93,6 +93,8 @@ export function reportBindingField(
  * @param value - The field as the author wrote it
  * @param allowed - The values the binding specification allows
  * @param target - Where a problem is reported
+ * @param loss - What a rejected value costs. Pass `binding` where the binding
+ * requires the field.
  * @returns The value, or `undefined` when it was absent or rejected
  * @internal
  */
@@ -103,11 +105,12 @@ export function enumeratedField<T extends string>(
   value: string | undefined,
   allowed: readonly T[],
   target: DiagnosticTarget,
+  loss: FieldLoss = "field",
 ): T | undefined {
   const written = trimmed(value);
   if (written === undefined) return undefined;
   if (!allowed.includes(written as T)) {
-    reportBindingField(context, protocol, field, allowed.join(" or "), target);
+    reportBindingField(context, protocol, field, allowed.join(" or "), target, loss);
     return undefined;
   }
   return written as T;
@@ -532,12 +535,12 @@ export function reportMissingField(
  * the binding is without this object. So the reader names the outcome and the
  * decorator acts on it.
  *
- * `dropped` costs the whole binding at four sites. Two of them are the
- * `queue` and the `deadLetterQueue` of an SQS channel. The other two are the
- * `queues` of an SQS operation and the `schemaSettings` of a Google Cloud
- * Pub/Sub channel. Each site passes `binding` as its `FieldLoss`. The report
- * is then `invalid-required-binding-field`. That code is an error, and it
- * says the whole binding was dropped.
+ * `dropped` costs the whole binding at some sites. They are the `queue` and
+ * the `deadLetterQueue` of an SQS channel, the `queues` of an SQS operation,
+ * and the `schemaSettings` of a Google Cloud Pub/Sub channel. Each site
+ * passes `binding` as its `FieldLoss`. The report is then
+ * `invalid-required-binding-field`. That code is an error, and it says the
+ * whole binding was dropped.
  *
  * @internal
  */
