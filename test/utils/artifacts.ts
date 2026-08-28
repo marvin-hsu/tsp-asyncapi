@@ -28,9 +28,8 @@ export interface ArtifactEmitter {
   /**
    * Reads the document of a case that is meant to compile clean.
    *
-   * Clean means silent, not merely free of errors: a warning a case did not
-   * expect is a change in behaviour worth failing on, and the two copies of
-   * this helper only looked at errors.
+   * Clean means silent, not merely free of errors. A warning a case did not
+   * expect is a behavior change worth failing on.
    */
   readonly emitClean: (code: string) => Promise<AsyncAPIDocument>;
 }
@@ -38,13 +37,12 @@ export interface ArtifactEmitter {
 /**
  * Builds an emitter for one schema artifact preview feature.
  *
- * The Avro and the Protobuf payload suites ran the same three steps: compile
+ * The Avro and Protobuf payload suites share the same three steps: compile
  * with the schema library loaded and the feature on, read the one file the
  * emitter writes, and parse it. Only the library and the feature name differ.
  *
  * @param library - The schema library to load beside the emitter
  * @param feature - The preview feature to turn on
- * @returns The emitter the cases compile through
  */
 export function createArtifactEmitter(library: string, feature: string): ArtifactEmitter {
   const tester = createLibraryTester(library).emit(PACKAGE_NAME, {
@@ -75,10 +73,6 @@ export function createArtifactEmitter(library: string, feature: string): Artifac
  *
  * The schema is left as `unknown`: a format that is itself JSON is inlined as
  * an object, and one that is text arrives as a string.
- *
- * @param doc - The emitted document
- * @param name - The name of the message component
- * @returns The payload of that message
  */
 export function payloadOf(
   doc: AsyncAPIDocument,
@@ -88,13 +82,7 @@ export function payloadOf(
   return payload as { schemaFormat: string; schema: unknown };
 }
 
-/**
- * Reads a payload whose schema is text, such as proto3.
- *
- * @param doc - The emitted document
- * @param name - The name of the message component
- * @returns The payload of that message, with its schema as written
- */
+/** Reads a payload whose schema is text, such as proto3. */
 export function textPayloadOf(
   doc: AsyncAPIDocument,
   name: string,

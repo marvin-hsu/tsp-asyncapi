@@ -4,25 +4,20 @@ import { parse as parseYaml } from "yaml";
 import { referencesIn } from "../utils/references.js";
 
 /**
- * Every `$ref` in every committed output resolves.
+ * Every `$ref` in every committed document resolves.
  *
  * A promotion moves a fragment into `components` and leaves a reference
- * behind. The fragment can be left out of `components` while the reference is
- * written, which gives a document that says nothing where it claims to say
- * something. No other suite sees that across committed output.
+ * behind. If the fragment goes missing, the document says nothing where it
+ * claims to say something, and no other suite catches that across committed
+ * output.
  *
- * The corpus snapshots and the examples are the whole set of documents this
- * repository commits. Walking their references catches it, in every section
- * at once, without naming any single promotion rule.
+ * The corpus snapshots and the examples are the full set of committed
+ * documents, so walking their references catches every section at once.
  *
- * A schema written in another language is skipped, which the shared walk
- * owns. One corpus case pins a pointer inside such a schema: the emitter
- * rejects it and the document still keeps it as the author wrote it.
- *
- * A recursive schema is not a failure here. A model that names itself writes
- * a reference to its own component, and that component exists, so the walk
- * resolves it and stops. What the walk rejects is a reference that names
- * nothing.
+ * A schema written in another language is skipped, since the shared walk
+ * owns it. A recursive schema is not a failure: a model that references
+ * itself still names an existing component, so the walk resolves it and
+ * stops. Only a reference that names nothing is rejected.
  */
 
 const SNAPSHOTS = new URL("./__snapshots__/", import.meta.url);
@@ -36,8 +31,8 @@ const EXAMPLES = new URL("../../examples/", import.meta.url);
  * @returns What the pointer names, or `undefined` when it names nothing
  */
 function resolve(document: unknown, pointer: string): unknown {
-  // A raw schema is copied verbatim and can hold a reference of its own
-  // shape. Only a local pointer is this suite's business.
+  // A raw schema may carry a reference in its own format. Only a local
+  // pointer is this suite's business.
   if (!pointer.startsWith("#/")) return undefined;
   let node: unknown = document;
   for (const raw of pointer.slice(2).split("/")) {
@@ -56,11 +51,10 @@ const EMITTER = "tsp-asyncapi";
  * The example directories that ask for an AsyncAPI document.
  *
  * An example names its emitters in its own `tspconfig.yaml`, and not every
- * emitter here writes a document: the Avro example writes `.avsc` files, which
- * carry no `$ref`. So the reason a directory is passed over is read from that
- * file, never from the absence of the output. A directory that asks for a
- * document and has none is a document that went missing, and the read below
- * fails on it.
+ * emitter here writes a document: the Avro example writes `.avsc` files,
+ * which carry no `$ref`. A directory is passed over based on that file,
+ * never on the absence of output, so a directory that asks for a document
+ * and has none fails on the read below.
  */
 function exampleDirectories(): string[] {
   const directories: string[] = [];
@@ -95,10 +89,8 @@ describe("Output baseline: the reference graph", () => {
   /**
    * A corpus that found no document would pass every claim below.
    *
-   * This floor catches an empty corpus and nothing finer. What catches a
-   * single document that went missing is the read in `committedDocuments`: an
-   * example that asks for this emitter and has no document fails there, on the
-   * open, naming the file.
+   * This floor catches an empty corpus and nothing finer. A single document
+   * that went missing already fails in `committedDocuments`, on the open.
    */
   it("reads every committed document", () => {
     expect(documents.length).toBeGreaterThan(20);
@@ -114,9 +106,9 @@ describe("Output baseline: the reference graph", () => {
 
   /**
    * A `$ref` is only correct if what it names is the right kind of thing. A
-   * key claimed by two fragments resolves, so the walk above cannot see it.
-   * Every section this emitter fills holds one kind, and a schema written in
-   * another language is the one that a wrong claim would swap in.
+   * key claimed by two fragments still resolves, so the walk above cannot
+   * see this. Every section this emitter fills holds one kind, and a schema
+   * written in another language is the one a wrong claim would swap in.
    */
   it.each(documents)("keeps each components section to one kind in %s", (name, document) => {
     const components = (document as { components?: Record<string, unknown> }).components ?? {};

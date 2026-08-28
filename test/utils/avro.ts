@@ -1,23 +1,22 @@
 /**
  * The Avro test harness.
  *
- * It does two things. It compiles a source with the Avro emitter and hands
- * back the files that emitter wrote. And it runs each file past `avsc`, the
- * reference Avro implementation, in the two ways that implementation can
- * actually judge a schema.
+ * It compiles a source with the Avro emitter, hands back the files it wrote,
+ * and runs each file past `avsc`, the reference Avro implementation, in the
+ * two ways that implementation can judge a schema: acceptance and instance
+ * round trip.
  *
- * The two ways are acceptance and instance round trip. Acceptance proves the
- * schema is legal Avro: `Type.forSchema` builds a type, or it throws. Round
- * trip proves the schema is usable: a random instance of the type survives an
- * encode and a decode. Round trip is the layer worth having, because a schema
- * can be legal and still describe nothing anyone can write.
+ * Acceptance proves the schema is legal Avro: `Type.forSchema` builds a type,
+ * or it throws. Round trip proves the schema is usable: a random instance of
+ * the type survives an encode and a decode. Round trip is the layer worth
+ * having, because a schema can be legal and still describe nothing anyone
+ * can write.
  *
  * There is no third way. `Type.schema()` looks like a normalizer and is not
- * one: it drops `logicalType`, and it folds the namespace into the name. A
- * test that used it as the expected value would push this package to emit the
- * wrong shape. `avsc` also accepts a logical type nobody has ever defined. So
- * the namespace shape, the key order and every logical type are pinned by
- * hand written expected values instead, in the tests that own them.
+ * one: it drops `logicalType` and folds the namespace into the name, and
+ * `avsc` accepts a logical type nobody has ever defined. So the namespace
+ * shape, the key order, and every logical type are pinned by hand-written
+ * expected values in the tests that own them.
  */
 
 import avro from "avsc";

@@ -5,13 +5,11 @@ import type { ServerNode } from "#core/resolve/service.js";
  * Stubs of the semantic model fields a test never reads.
  *
  * The lower stage reads `AsyncAPIService` and nothing else, so it runs
- * without compiling TypeSpec. Two fields of that model are compiler types.
- * A test that drives lowering directly must still supply them, and no
- * compiler builds a type outside a program.
+ * without compiling TypeSpec. Two fields of that model are compiler types,
+ * and no compiler builds a type outside a program, so a test driving
+ * lowering directly must stub them instead.
  *
- * The stubs live here so the cast that builds them lives in one place.
- * Anything that reads these fields for real belongs in a test host suite
- * instead.
+ * Anything that reads these fields for real belongs in a test host suite.
  */
 
 /**
