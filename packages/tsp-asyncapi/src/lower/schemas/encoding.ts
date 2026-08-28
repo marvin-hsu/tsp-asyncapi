@@ -182,7 +182,7 @@ function encodingDescribes(encodeData: EncodeData, variant: Scalar): boolean {
   const { encoding } = encodeData;
   if (encoding === undefined) {
     const type = naturalScalarShape(variant).type;
-    return type !== undefined && PLAIN_ENCODE_TYPES.includes(type);
+    return typeof type === "string" && PLAIN_ENCODE_TYPES.includes(type);
   }
   if (!Object.hasOwn(ENCODING_TARGETS, encoding)) {
     return true;
