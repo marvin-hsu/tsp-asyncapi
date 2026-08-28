@@ -14,6 +14,7 @@
 import { Model, Program, getDoc, getSummary } from "@typespec/compiler";
 import { ChannelTarget, listChannelsInternal } from "../decorators/channels/state.js";
 import { listUseServerTargets } from "../decorators/channels/use-server-state.js";
+import { listMessages } from "../decorators/index.js";
 import { reportDiagnostic } from "../lib.js";
 import { present, text } from "../optional-fields.js";
 import { buildExternalDocs } from "../external-docs.js";
@@ -94,6 +95,11 @@ export function resolveChannels(
   // extension report reads this set, so a dropped target raises no warning
   // about an id the document does carry.
   const extensionCarriers = new Set<ChannelTarget>();
+  // The parameter resolver only asks whether a type carries `@message`, and
+  // the answer is the same for every channel. `listMessages` copies the whole
+  // state map and sorts it by source position, so it is read once here rather
+  // than once per channel.
+  const messageModels = new Set(listMessages(program).keys());
 
   for (const { target, record } of listChannelsInternal(program)) {
     extensionCarriers.add(target);
@@ -119,7 +125,7 @@ export function resolveChannels(
       ...text("title", getSummary(program, target)),
       ...text("description", getDoc(program, target)),
       servers: resolveChannelServers(program, target, declaredServers),
-      parameters: resolveChannelParameters(program, target, record, key),
+      parameters: resolveChannelParameters(program, target, record, key, messageModels),
       messages: messages.messages,
       messageKeys: messages.keys,
       tags: buildTags(program, target) ?? [],
