@@ -3,8 +3,8 @@
  *
  * The emitter reads this list to resolve which servers a channel uses, and
  * to find an application that reaches no channel at all. This module does
- * not resolve the name against the declared servers; that lookup, and the
- * order the emitter reads the list in, belong to the emitter.
+ * not resolve the name against the declared servers. That lookup belongs to
+ * the emitter, and so does the order it reads the list in.
  */
 import { Program } from "@typespec/compiler";
 import { AugmentDecoratorStatementNode, DecoratorExpressionNode } from "@typespec/compiler/ast";

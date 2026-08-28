@@ -3,8 +3,7 @@
  *
  * A channel can name several servers it is available on. This module records
  * each name in the order the applications ran, and hands out copies to
- * callers. It does not check that a named server exists; the emitter checks
- * that against `@server` state while it builds the document.
+ * callers.
  */
 
 import { DecoratorContext, Program } from "@typespec/compiler";

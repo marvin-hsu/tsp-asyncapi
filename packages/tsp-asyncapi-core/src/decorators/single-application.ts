@@ -54,7 +54,7 @@ export interface ApplicationGuard {
  * nothing, so the next application looks like the first one and is accepted
  * without a word. The author is told their value was invalid, and never
  * told they wrote the decorator twice. Every decorator here made that
- * mistake once, before this guard existed.
+ * mistake. One of them fixed it on its own before this guard existed.
  *
  * Decorators on one declaration run bottom-up: the application written last
  * in the source runs first and wins. Each caller's own documentation states

@@ -143,7 +143,7 @@ function reportSchemaValueRules(
   // The other half of the same rule: a JSON based schema language must inline
   // the schema as an object, not as text waiting to be parsed. The test is
   // whether the string opens a JSON object or array, not whether it is a
-  // string at all — Avro's `"string"` primitive is itself a valid schema.
+  // string at all. Avro's `"string"` primitive is itself a valid schema.
   if (!NON_JSON_SCHEMA_FORMATS.includes(format) && looksLikeSerializedJson(value)) {
     reportDiagnostic(context.program, {
       code: "string-raw-schema",
