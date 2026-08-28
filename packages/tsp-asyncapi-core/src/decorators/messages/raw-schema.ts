@@ -17,7 +17,7 @@ import { trimmed } from "../../optional-fields.js";
  * another format, recorded verbatim into one slot of the Message Object.
  * Both decorators differ only in the state key, the diagnostic code, and
  * the field they fill. This module never reads inside the schema value
- * itself; validation stops at `schemaFormat` and the top-level shape.
+ * itself. Validation stops at `schemaFormat` and the top-level shape.
  */
 
 /**

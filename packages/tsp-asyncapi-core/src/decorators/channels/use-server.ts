@@ -33,11 +33,10 @@ export type { UseServerState } from "./use-server-state.js";
  * array.
  *
  * The name is checked against the character set AsyncAPI allows for a key of
- * the root `servers` map, and tested as written, the same way `@server`
- * tests the key it declares. A name outside that set, a blank one included,
- * could only emit a reference no parser resolves, so it is reported and
- * dropped. Testing the name as written also means a padded name is rejected
- * on both sides.
+ * the root `servers` map. It is tested as written, the same way `@server`
+ * tests the key it declares, so a padded name is rejected on both sides.
+ * A name outside that set, a blank one included, could only emit a
+ * reference no parser resolves, so it is reported and dropped.
  *
  * Whether some `@server` declares the name is checked while the document is
  * built, not here. A `@server` can still arrive after this decorator runs.

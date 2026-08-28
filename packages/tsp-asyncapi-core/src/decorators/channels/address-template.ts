@@ -56,7 +56,7 @@ export function parseAddressParameters(address: string): string[] {
  * The scheme and host are not checked. AsyncAPI states no rule against a
  * full URL, a bare path, or a plain topic name as an address, and its own
  * WebSocket examples put a full URL there. A query string and a fragment
- * are forbidden by the specification; a channel binding expresses them
+ * are forbidden by the specification. A channel binding expresses them
  * instead. The remaining rules keep the address parseable: braces must
  * pair up without nesting, and a name between them must fit a TypeSpec
  * property name.
@@ -80,7 +80,7 @@ export function checkAddress(address: string): AddressProblem | undefined {
 /**
  * Checks the braces of an address, and names the first problem among them.
  *
- * It strips every well-formed expression out first; a brace left in the
+ * It strips every well-formed expression out first. A brace left in the
  * remainder belongs to no pair, which covers an unclosed `{`, a stray `}`,
  * and a nested pair alike without a character walk. Names then come from
  * the same parser the emitter uses.

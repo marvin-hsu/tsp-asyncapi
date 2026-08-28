@@ -3,9 +3,10 @@
  * format ("MUST be in the form of an absolute URL"). A relative reference
  * such as `/token` fails, and so does free text.
  *
- * One function backs every `uri` field (`@securityScheme`'s
- * `openIdConnectUrl` and OAuth flow URLs, `@externalDocs`'s link) so the
- * checks cannot drift apart. It parses the value rather than matching a
+ * One function backs every `uri` field: `@securityScheme`'s
+ * `openIdConnectUrl` and OAuth flow URLs, `@externalDocs`'s link, and
+ * `@info`'s `termsOfService`, `contact.url`, and `license.url`. The checks
+ * cannot drift apart. It parses the value rather than matching a
  * pattern, using the same judge the AsyncAPI validator uses. Whitespace is
  * rejected first, since the parser would otherwise escape a space instead
  * of refusing it.

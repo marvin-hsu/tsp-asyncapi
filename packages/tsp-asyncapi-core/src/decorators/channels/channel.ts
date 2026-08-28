@@ -132,9 +132,9 @@ export function $channel(
  * that as "unknown", which is what an address generated at runtime needs.
  *
  * This is a separate decorator rather than a `@channel` with the address
- * left out, because a channel with an unknown address is a different kind
- * of channel, not one that forgot its address, and the two must stay
- * distinguishable. So `@channel` keeps its required address.
+ * left out. A channel with an unknown address is a different kind of
+ * channel, not one that forgot its address. The two must stay
+ * distinguishable, so `@channel` keeps its required address.
  *
  * The scope rule is the one `@channel` follows. A channel with an unknown
  * address takes no parameters, since it carries no address to put one in.

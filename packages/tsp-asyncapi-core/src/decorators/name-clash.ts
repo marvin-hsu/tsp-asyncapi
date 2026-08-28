@@ -29,7 +29,7 @@ export interface NamedApplication extends SourcePosition {
  * Source position decides the winner, not evaluation order, so the winner
  * does not depend on whether the author wrote the decorator inline or as an
  * augment decorator. An augment decorator runs once per reopened `namespace`
- * block, so the same statement can run more than once; those runs share one
+ * block, so the same statement can run more than once. Those runs share one
  * source position and count as one application, not a clash. Two distinct
  * statements never share a source position, so a genuine duplicate is still
  * reported.
