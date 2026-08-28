@@ -28,8 +28,9 @@ import {
  * Per RFC 6901, `~` becomes `~0` and `/` becomes `~1`. A raw `~` or `/`
  * would otherwise produce a `$ref` that every conforming resolver misreads
  * as a path through nested objects. A `components.schemas` key can hold
- * either character; a `@useServer` name can too, since this emitter never
- * checks its charset.
+ * either character. A `components.messages` key holds neither today. A
+ * `@useServer` name can hold both, since this emitter never checks its
+ * charset.
  *
  * Only the `$ref` string needs this escaping. The key stored in the map the
  * pointer points into is left as it is. The function stays private: every

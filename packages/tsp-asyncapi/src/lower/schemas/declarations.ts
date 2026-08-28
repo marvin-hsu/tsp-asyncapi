@@ -158,6 +158,11 @@ export class DeclarationRegistry {
       // copy, and the original is rewritten in place into a reference, so
       // that first site becomes a reference too. Without the rewrite, the
       // body is emitted twice and the two copies can drift apart.
+      //
+      // A property with its own docs or validation spreads the shape into a
+      // fresh object instead, through `withPropertyDocs`. That first site
+      // holds a copy, not `inlinedShape` itself. The rewrite above never
+      // reaches it, so it keeps its inline copy even after promotion.
       const body: SchemaObject = { ...inlinedShape };
       this.declaredSchemas.set(promotedKey, body);
       // Emptying the object keeps the identity the first site holds instead

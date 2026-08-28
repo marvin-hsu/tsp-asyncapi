@@ -211,7 +211,7 @@ function resolveLengthBound(
  *
  * Named models, enums, and unions are only ever built once, thanks to
  * `registerNamed`'s cache, so any diagnostic reported for them is naturally
- * reported once too. A scalar has no such cache. `buildScalarSchemaShapeWithDocs`
+ * reported once too. A scalar has no such cache. `buildScalarShapeWithDocs`
  * re-walks the whole `baseScalar` chain at every use site. Without this
  * guard, the same offending decorator would be re-reported per property.
  *
@@ -468,7 +468,7 @@ function hoistAnnotationsAboveAllOf(
  *
  * This schema body is always plain, never a bare `$ref` to itself. It is
  * used for the model, enum, union, and scalar bodies built inside
- * `registerNamed` and `buildScalarSchemaShapeWithDocs`. Enum and union are
+ * `registerNamed` and `buildScalarShapeWithDocs`. Enum and union are
  * never a legal target of a validation decorator, so merging
  * `buildValidationKeywords` in for them is a no-op, done unconditionally so
  * every named-declaration kind shares this one function.
@@ -548,7 +548,7 @@ export function withDocs(
  * (`buildValidationKeywords`) the same way: extra keywords the use site
  * contributes on top of its type's own schema. Unlike `title`/`description`,
  * a validation keyword colliding with one already baked into `schema` must
- * not simply replace it. `buildScalarSchemaShapeWithDocs` bakes in every
+ * not simply replace it. `buildScalarShapeWithDocs` bakes in every
  * such keyword, not just `type`/`format`, and two constraints on the same
  * value form a JSON Schema intersection where both must hold. A property
  * weakening a scalar's own `@minLength`/`@pattern` must not silently erase
