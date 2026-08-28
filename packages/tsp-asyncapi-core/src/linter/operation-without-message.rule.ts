@@ -6,14 +6,11 @@
  * message, and it says so: such a model is a payload or a channel parameter,
  * not a message. When nothing survives, the field is left out.
  *
- * Leaving it out is not the same as an empty list. AsyncAPI reads an
- * operation with no `messages` as **every message of the channel**. An empty
- * array would say the opposite. So an operation the author meant to carry
- * one message, written without a model that `@message` marks, ends up
- * claiming every message its channel carries.
- *
- * Nothing reports that. The document is valid, and it says the opposite of
- * what the author wrote.
+ * AsyncAPI reads a `messages` field left out as **every message of the
+ * channel**, not as none. An operation meant to carry one message, written
+ * without an `@message`-marked model, ends up claiming every message on its
+ * channel. The document stays valid and says the opposite of what the
+ * author wrote.
  *
  * ## Why the three conditions
  *
