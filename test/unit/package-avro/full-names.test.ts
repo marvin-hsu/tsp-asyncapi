@@ -20,6 +20,13 @@ describe("avro full names", () => {
     expect(avroNamespaceOf(avroFullName("com.example.orders", "Order"))).toBe("com.example.orders");
   });
 
+  it("joins the empty namespace it splits off back into the same name", () => {
+    // The two directions have to meet in the middle. A split hands back the
+    // empty namespace for a name that carries none, so a join has to read
+    // that as no namespace too. A ".Event" is a name a reader never finds.
+    expect(avroFullName(avroNamespaceOf("Event"), "Event")).toBe("Event");
+  });
+
   it("reads an empty namespace off a name that carries none", () => {
     // A name with no dot has no namespace. A search for the last dot finds
     // nothing, and the answer is the empty namespace rather than the name

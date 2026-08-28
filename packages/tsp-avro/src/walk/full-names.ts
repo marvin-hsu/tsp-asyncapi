@@ -16,14 +16,19 @@
  * namespace is optional. An `"undefined.Name"` would be a name a reader looks
  * up and never finds.
  *
- * @param namespace - The Avro namespace, or undefined when the type has none
+ * The empty namespace is no namespace as well, because that is the answer
+ * {@link avroNamespaceOf} gives for a name that carries none. The two read one
+ * rule in two directions, so what one splits off the other joins back.
+ *
+ * @param namespace - The Avro namespace, or undefined or empty when the type
+ *   has none
  * @param name - The Avro name
  * @returns The full name
  *
  * @internal
  */
 export function avroFullName(namespace: string | undefined, name: string): string {
-  return namespace === undefined ? name : `${namespace}.${name}`;
+  return namespace === undefined || namespace === "" ? name : `${namespace}.${name}`;
 }
 
 /**
