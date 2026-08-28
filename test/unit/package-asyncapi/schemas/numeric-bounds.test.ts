@@ -8,9 +8,8 @@ import { diagnosticsWith, expectNoErrors } from "../../../utils/diagnostics.js";
  *
  * The emitter's own decision here is one line: it asks the compiler's
  * `Numeric` for a JavaScript number and reports when the answer is `null`.
- * So the code cannot see the value at all — it sees only whether that call
- * succeeded — and every value on one side of the answer takes the identical
- * path.
+ * The code never sees the value itself, only whether that call succeeded.
+ * Every value on one side of the answer takes the identical path.
  *
  * That makes the whole space two classes with one boundary between them, and
  * the boundary belongs to the compiler rather than to us: `asNumber()` returns

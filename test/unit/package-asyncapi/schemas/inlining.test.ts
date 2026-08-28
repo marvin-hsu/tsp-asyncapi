@@ -51,7 +51,7 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(Object.hasOwn(components, "PDeleted")).toBe(false);
 
     // Swapping the field declaration order must not change the inlined
-    // shape; there is no shared key left to race over.
+    // shape. There is no shared key left to race over.
     const { W2 } = await runner.compile(t.code`
       model P<T> { v: T; }
       @test("W2")
@@ -66,15 +66,15 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   });
 
   it("promotes an unspeakable instantiation to a registered component once a second site references it", async () => {
-    // Inlining is preferred for a single use. But inlining copies the
-    // whole shape into every site that uses it, so nested unspeakable
-    // declarations duplicate multiplicatively: a chain where each level
+    // Inlining is preferred for a single use, but it copies the whole
+    // shape into every site that uses it. Nested unspeakable declarations
+    // would then duplicate multiplicatively: a chain where each level
     // references the level below twice grows as 2^depth. Promoting on the
     // second use keeps that growth linear.
     // Promotion rewrites the copy the first site already holds, so every
     // site ends up referring to the one component. Leaving that first copy
-    // expanded would emit the body twice, and which site kept the expansion
-    // would depend on the order the sources were declared in.
+    // expanded would emit the body twice. Which site kept the expansion
+    // would then depend on source declaration order.
     const { builder, program, M } = await compileSchemas(t.code`
       model Env<T> { v: T; }
       alias Shared = Env<{ x: string }>;
@@ -238,10 +238,10 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   });
 
   it("distinguishes a tuple template argument from the unknown intrinsic: unknown stays a named instantiation, a tuple argument inlines", async () => {
-    // `unknown` is an `Intrinsic` with a fixed name; it stays speakable.
-    // A `Tuple`, like `[string, int32]`, has no fixed identity of its own
-    // (matching the official `TypeEmitter.declarationName`'s own handling
-    // of a `Tuple` argument), so the whole instantiation inlines instead.
+    // `unknown` is an `Intrinsic` with a fixed name, so it stays speakable.
+    // A `Tuple`, like `[string, int32]`, has no fixed identity of its own.
+    // This matches the official `TypeEmitter.declarationName`'s handling
+    // of a `Tuple` argument, so the whole instantiation inlines instead.
     const { builder, program, M } = await compileSchemas(t.code`
       model P<T> { v: T; }
       @test("M")
@@ -255,10 +255,9 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     expect(props.b.$ref).toBeUndefined();
     expect(schemaOf(props.b).type).toBe("object");
     // The compiler substitutes the bare Tuple type directly for `T`.
-    // `buildSchema` has no representation for a bare Tuple value; it
-    // degrades to `{}` and reports the pre-existing
-    // `unsupported-payload-type` diagnostic, the same as any other
-    // unsupported payload type.
+    // `buildSchema` has no representation for a bare Tuple value. It
+    // degrades to `{}` and reports `unsupported-payload-type`, the same
+    // diagnostic any other unsupported payload type gets.
     expect(propertiesOf(schemaOf(props.b)).v).toEqual({});
     expect(diagnosticsWith(program.diagnostics, "unsupported-payload-type")).toHaveLength(1);
   });
@@ -363,9 +362,9 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // Two separate anonymous-model type arguments with the same shape
     // (`{x: string}`) are distinct `Type` objects, but each is unspeakable
     // on its own terms (see `templateArgDisplayName`). Each instantiation
-    // now inlines independently. There is no shared synthesized key left
-    // for the two to collide over, so no diagnostic is reported even
-    // though the two inlined shapes are structurally identical.
+    // inlines independently, with no shared synthesized key to collide
+    // over. No diagnostic is reported, even though the two inlined shapes
+    // are structurally identical.
     const { builder, program, M } = await compileSchemas(t.code`
       model Envelope<T> { data: T; }
       @test("M")
@@ -605,10 +604,10 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
   it("registers a self-recursive instantiation with an anonymous-model argument instead of inlining it into a circular-reference error", async () => {
     // `Node<{x: string}>` has no composable structural name, so the
     // default is to inline it. A self-recursive instantiation cannot be
-    // expressed inline: expanding it always leaves another self-reference
-    // behind. So it is promoted to a real `components.schemas` entry under
-    // the `getTypeName`-derived fallback name, and `children.items`
-    // resolves to a genuine self-`$ref`.
+    // expressed inline, since expanding it always leaves another
+    // self-reference behind. It is promoted instead to a real
+    // `components.schemas` entry under the `getTypeName`-derived fallback
+    // name, and `children.items` resolves to a genuine self-`$ref`.
     const { builder, program, M } = await compileSchemas(t.code`
       model Node<T> { v: T; children: Node<T>[]; }
       @test("M")
@@ -646,9 +645,9 @@ describe("Unit: Schemas — inlining and promotion of instantiations", () => {
     // Two separately written `{x: string}` arguments are two distinct
     // anonymous models, so `a` and `b` are two distinct instantiations.
     // The fallback name is built from each argument's official
-    // `getEntityName` text, which is identical for both. So they land on
-    // one key. That is a hard error, the same collision policy every other
-    // candidate-name clash gets, rather than a silent rename.
+    // `getEntityName` text, which is identical for both, so they land on
+    // one key. That is a hard error, the same collision policy every
+    // other candidate-name clash gets, not a silent rename.
     const { builder, program, M } = await compileSchemas(t.code`
       model Node<T> { v: T; children: Node<T>[]; }
       @test("M")

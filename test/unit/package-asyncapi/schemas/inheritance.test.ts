@@ -531,12 +531,10 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
     expect(findNeverOverrideOfInheritedProperty(Derived)).toBeUndefined();
   });
   /**
-   * `extends` over a named collection base used to build that base twice.
-   * One build asked whether it was a collection at all. The other wrote the
-   * `$ref` branch. The element type of the base was built twice with it, and
-   * a second build is what promotes an inlined declaration to a component.
-   * So the same element landed inline or behind a `$ref` depending on
-   * whether some other model happened to extend the collection.
+   * A collection base's element type must be built only once, when the base
+   * itself is built. A second build of the same element is what promotes an
+   * inlined declaration to a component, so extending the base must not
+   * trigger one.
    */
   it("should keep a collection base's element inline when a model extends the base", async () => {
     const { builder, M } = await compileSchemas(t.code`
@@ -602,9 +600,8 @@ describe("Unit: Schemas — inheritance and discriminator", () => {
   /**
    * `resolveDiscriminator` answers whether `@discriminator` applies without
    * building a schema, reporting anything, or queueing a subtype. One
-   * caller only needs the answer, being the payload of a message that lifts
-   * `@header` fields. It used to get the answer by building a throwaway
-   * schema. That build queued the model's subtypes a second time.
+   * caller only needs the answer: the payload of a message that lifts
+   * `@header` fields.
    */
   describe("resolveDiscriminator", () => {
     it("names the property the decorator points at", async () => {

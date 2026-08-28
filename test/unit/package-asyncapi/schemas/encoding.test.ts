@@ -305,8 +305,8 @@ describe("Unit: Schemas — @encode", () => {
 
       // The compiler accepts this encoding because one variant is a
       // `utcDateTime`. A `unixTimestamp` describes a moment in time, and the
-      // `string` variant is not one. Encoding it as well would describe a
-      // plain string as an integer, and every string payload would then fail
+      // `string` variant is not one. Encoding the string variant too would
+      // describe it as an integer, and every string payload would then fail
       // its own schema.
       expect(props.ts).toEqual({
         anyOf: [{ type: "integer", format: "unixtime" }, { type: "string" }],
