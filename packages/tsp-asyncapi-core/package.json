@@ -1,6 +1,6 @@
 {
   "name": "tsp-asyncapi-core",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "The TypeSpec decorators and semantic model behind tsp-asyncapi. Declares the input language and emits nothing.",
   "main": "dist/src/index.js",
