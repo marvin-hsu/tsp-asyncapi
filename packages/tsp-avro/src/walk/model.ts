@@ -720,8 +720,8 @@ function branchKey(schema: AvroBranch): string {
  *
  * Avro has no optional field: a property that may be absent becomes a union
  * with null, defaulting to null. A property default decides the order of the
- * branches, because Avro reads a default against the first branch of a union
- * and no other, so the branch the default belongs to has to lead.
+ * branches. Avro reads a default against the first branch of a union and no
+ * other, so the branch the default belongs to has to lead.
  *
  * | TypeSpec           | Avro                               |
  * | ------------------ | ---------------------------------- |
@@ -862,13 +862,12 @@ function defaultOf(
  *
  * The compiler writes a value against the type it is handed. A property
  * declared `Inner | null` hands over the union, for which the compiler has no
- * form; it answers with `{}`, which satisfies no branch and no reader can use.
+ * form. It answers with `{}`, which satisfies no branch and no reader can use.
  *
  * A union with one branch beside null leaves one place for the default: the
  * branch {@link soleBranchBesideNull} leads with. Every other union keeps the
- * property, because a value that names its own branch is already serialized
- * as that branch, and a value that names none is refused before it reaches a
- * schema.
+ * property. A value that names its own branch is already serialized as that
+ * branch, and a value that names none is refused before it reaches a schema.
  *
  * @param property - The property that carries the default
  * @returns The branch to serialize against, or the property itself

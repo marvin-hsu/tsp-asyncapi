@@ -35,8 +35,8 @@ const [getAliasesInternal, setAliasesInternal] = useStateMap<AvroAliasTarget, re
  * An Avro reader uses aliases to read data written under an older schema. A
  * record, an enum and a fixed type take a full name, a namespace and a name
  * joined by dots. A field takes a plain name, since a field has no namespace
- * of its own. A scalar takes one where `@fixed` makes it a named Avro type;
- * a primitive scalar has no name of its own, so an alias there is refused by
+ * of its own. A scalar takes one where `@fixed` makes it a named Avro type.
+ * A primitive scalar has no name of its own, so an alias there is refused by
  * the walk.
  *
  * A name that breaks the Avro rules is reported here, where the author wrote

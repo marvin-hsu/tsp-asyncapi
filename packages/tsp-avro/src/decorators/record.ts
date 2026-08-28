@@ -21,9 +21,6 @@ const [isRecordInternal, markRecord] = useStateSet<Model>(recordStateKey);
  * written into that same file, because an Avro schema holds no import and has
  * to stand alone. Mark a model here only when you want a file for it.
  *
- * @param context - The decorator context
- * @param target - The model to emit
- *
  * @example
  * ```typespec
  * @record
@@ -39,8 +36,6 @@ export function $record(context: DecoratorContext, target: Model): void {
 /**
  * Tells whether `@record` marks this model.
  *
- * @param program - The program to read the state from
- * @param target - The model to test
  * @returns True when the decorator was applied to `target`
  *
  * @public
@@ -56,7 +51,6 @@ export function isRecord(program: Program, target: Model): boolean {
  * emitter writes one file per entry, so the order decides nothing about the
  * output beyond which file is written first.
  *
- * @param program - The program to read the state from
  * @returns The marked models
  *
  * @public
