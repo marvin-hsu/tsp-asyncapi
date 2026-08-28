@@ -78,8 +78,8 @@ export function singleApplication(stateKey: symbol, code: DuplicateCode): Applic
         // again for every reopened `namespace` block and for every file that
         // opens the namespace. Those runs are one application, so the repeat
         // is not reported. It is still told apart from the first run. The
-        // first run already stored the value and already reported whatever
-        // was wrong with it, and a caller that ran its body again would
+        // first run already stored the value. It also reported whatever was
+        // wrong with that value. A caller that ran its body again would
         // report each of those problems once per declaration. Two distinct
         // statements can never share a file and an offset, so a real
         // duplicate is still reported.
