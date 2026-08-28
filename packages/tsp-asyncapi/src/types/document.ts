@@ -183,10 +183,9 @@ export interface ChannelObject extends SpecificationExtensions {
   address: string | null;
   /** A human-friendly title for the channel. */
   title?: string;
-  // AsyncAPI also defines `summary`. It is left out of this interface on
-  // purpose, for the same reason `MessageObject` leaves it out. `@summary`
-  // already fills `title` and `@doc` already fills `description`, so
-  // TypeSpec has no third source of prose to fill it from.
+  // AsyncAPI also defines `summary`. It is left out on purpose: `@summary`
+  // already fills `title`, and `@doc` already fills `description`. TypeSpec
+  // has no third source of prose to fill it.
   /** A longer description of the channel. CommonMark is allowed. */
   description?: string;
   /**
@@ -258,10 +257,8 @@ export interface OperationObject extends SpecificationExtensions {
   channel: ReferenceObject;
   /** A human-friendly title for the operation. */
   title?: string;
-  // AsyncAPI also defines `summary`. It is left out of this interface on
-  // purpose, for the same reason `ChannelObject` leaves it out. `@summary`
-  // already fills `title` and `@doc` already fills `description`, so
-  // TypeSpec has no third source of prose to fill it from.
+  // AsyncAPI also defines `summary`. See `ChannelObject` for why it is left
+  // out.
   /** A longer description of the operation. CommonMark is allowed. */
   description?: string;
   /**
@@ -407,11 +404,9 @@ export interface MessageObject extends SpecificationExtensions {
   name?: string;
   /** A human-friendly title. */
   title?: string;
-  // AsyncAPI also defines `summary`. It is left out of this interface on
-  // purpose. `@summary` already fills `title` and `@doc` already fills
-  // `description`, and TypeSpec has no third source of prose. So no input
-  // could ever fill it. Every other Message Object field the emitter cannot
-  // fill, such as `traits`, is left out for the same reason.
+  // AsyncAPI also defines `summary`. See `ChannelObject` for why it is left
+  // out. Every other field the emitter cannot fill, such as `traits`, is
+  // left out for the same reason.
   /** A longer description. CommonMark is allowed. */
   description?: string;
   /**
