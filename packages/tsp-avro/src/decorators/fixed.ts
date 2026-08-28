@@ -25,8 +25,6 @@ const [getFixedInternal, setFixedInternal] = useStateMap<Model | Scalar, number>
  * A fixed type holds bytes and nothing else, so a model marked here declares
  * no field.
  *
- * @param context - The decorator context
- * @param target - The model or scalar that becomes the fixed type
  * @param size - How many bytes, which is a positive number
  *
  * @example
@@ -56,8 +54,6 @@ export function $fixed(context: DecoratorContext, target: Model | Scalar, size: 
 /**
  * Reads the byte width declared on a model or a scalar.
  *
- * @param program - The program to read the state from
- * @param target - The model or scalar to read
  * @returns The width, or undefined when the declaration is not a fixed type
  *
  * @public
