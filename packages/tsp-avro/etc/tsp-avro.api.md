@@ -120,7 +120,9 @@ export type AvroAliasTarget = Model | ModelProperty | Enum | Scalar;
 
 // @public
 export interface AvroArray {
+    // (undocumented)
     readonly items: AvroSchema;
+    // (undocumented)
     readonly type: "array";
 }
 
@@ -137,22 +139,32 @@ export type AvroEmitterOptions = Record<string, never>;
 
 // @public
 export interface AvroEnum {
+    // (undocumented)
     readonly aliases?: readonly string[];
     readonly default?: string;
+    // (undocumented)
     readonly doc?: string;
+    // (undocumented)
     readonly name: string;
+    // (undocumented)
     readonly namespace?: string;
     readonly symbols: readonly string[];
+    // (undocumented)
     readonly type: "enum";
 }
 
 // @public
 export interface AvroField {
+    // (undocumented)
     readonly aliases?: readonly string[];
     readonly default?: AvroDefault;
+    // (undocumented)
     readonly doc?: string;
+    // (undocumented)
     readonly name: string;
+    // (undocumented)
     readonly order?: AvroFieldOrder;
+    // (undocumented)
     readonly type: AvroSchema;
 }
 
@@ -161,18 +173,23 @@ export type AvroFieldOrder = "ascending" | "descending" | "ignore";
 
 // @public
 export interface AvroFixed {
+    // (undocumented)
     readonly aliases?: readonly string[];
     readonly logicalType?: string;
+    // (undocumented)
     readonly name: string;
+    // (undocumented)
     readonly namespace?: string;
     readonly precision?: number;
     readonly scale?: number;
     readonly size: number;
+    // (undocumented)
     readonly type: "fixed";
 }
 
 // @public
 export interface AvroLogical {
+    // (undocumented)
     readonly logicalType: string;
     readonly precision?: number;
     readonly scale?: number;
@@ -188,7 +205,9 @@ export interface AvroLogicalTypeAnnotation {
 
 // @public
 export interface AvroMap {
+    // (undocumented)
     readonly type: "map";
+    // (undocumented)
     readonly values: AvroSchema;
 }
 
@@ -197,11 +216,16 @@ export type AvroPrimitiveName = (typeof AVRO_PRIMITIVE_NAMES)[number];
 
 // @public
 export interface AvroRecord {
+    // (undocumented)
     readonly aliases?: readonly string[];
+    // (undocumented)
     readonly doc?: string;
     readonly fields: readonly AvroField[];
+    // (undocumented)
     readonly name: string;
+    // (undocumented)
     readonly namespace?: string;
+    // (undocumented)
     readonly type: "record";
 }
 
