@@ -50,10 +50,6 @@ export interface PulsarChannelBindingConfig {
  * hold a dash. The emitted field is `geo-replication`, which is the name
  * Pulsar gives it.
  *
- * @param context - The decorator context
- * @param target - The channel interface or namespace
- * @param config - The Pulsar channel binding fields
- *
  * @example
  * ```typespec
  * @pulsarChannel(#{

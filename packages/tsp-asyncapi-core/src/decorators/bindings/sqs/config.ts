@@ -66,15 +66,7 @@ export const OPERATION_QUEUE_REQUIRED = ["name"];
  * `redrivePolicy`, `policy` and `tags` pass through as written. SQS states no
  * shape this emitter can check for them. An empty one is dropped.
  *
- * @param context - The decorator context
- * @param field - The path of this queue, for the diagnostics
- * @param value - The queue as the author wrote it, still marshalled
- * @param required - The fields this level requires
- * @param target - Where a problem is reported
- * @param loss - What a rejected queue costs. Pass `binding` where the binding
- * requires the queue.
- * @returns The queue, `dropped` when it was not an object, or `incomplete`
- * when a required field is absent
+ * Pass `binding` as `loss` where the binding requires the queue.
  * @internal
  */
 export function readQueue(

@@ -64,10 +64,6 @@ export interface SolaceServerBindingConfig {
  * The emitted field is `msgVpn`. Version 0.2.0 of the Solace binding spells
  * it `msvVpn`, and this library emits 0.4.0, which spells it `msgVpn`.
  *
- * @param context - The decorator context
- * @param target - The service namespace
- * @param config - The Solace server binding fields
- *
  * @example
  * ```typespec
  * @solaceServer(#{ msgVpn: "orders-vpn", clientName: "order-service" })
@@ -143,10 +139,6 @@ export interface SolaceOperationBindingConfig {
  *
  * `priority` is zero or more. A list left with no entry is dropped, because
  * an empty list names no destination.
- *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The Solace operation binding fields
  *
  * @example
  * ```typespec
