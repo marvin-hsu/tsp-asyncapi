@@ -33,13 +33,9 @@ const [getParameterLocationInternal, setParameterLocation] = useStateMap<ModelPr
  * `$message.payload#/user/id`. It is the only field of the AsyncAPI
  * Parameter Object that no other TypeSpec construct can fill.
  *
- * The emitter checks the format of the expression only. It does not check
- * that the pointer names a field the headers or the payload schema declares.
- * This is the rule `@correlationId` follows, and the two share one check.
- *
  * Apply this decorator only once per property. A second application is an
- * error. Only one of the applied locations could ever reach the output, and
- * the author has no way to tell which one won.
+ * error, since only one of the applied locations could ever reach the
+ * output and the author has no way to tell which one won.
  *
  * @param context - The decorator context
  * @param target - The operation parameter that declares a channel parameter
@@ -60,10 +56,9 @@ export function $parameterLocation(
   target: ModelProperty,
   location: string,
 ) {
-  // Decorators on one declaration run bottom-up, so the application written
-  // last in the source runs first and wins. The guard records that this
-  // decorator ran, before any value is checked, so a value that fails the
-  // check still blocks a later application.
+  // Decorators on one declaration run bottom-up: the last one written wins.
+  // The guard claims before the value is checked, so a rejected value still
+  // blocks a later application.
   if (guard.claim(context, target) !== "first") return;
   if (!isRuntimeExpression(location)) {
     // Nothing is recorded, so no `location` reaches the document. An

@@ -1,26 +1,20 @@
 /**
  * The Channel Address Expression parser, and the checks that run on one.
  *
- * Two consumers share this module. `@channel` checks the address while the
- * decorator runs, so a bad address is reported at the place it was written.
- * The channel builder parses the same address again at emit time, so it can
- * match each expression against the operation parameters that declare it.
- * Both use one parser, so the two can never disagree about what the address
- * says.
- *
- * An AsyncAPI address expression is a bare `{name}`. It has none of RFC
- * 6570's operators or modifiers, which is why this parser is much smaller
- * than the compiler's own `parseUriTemplate`.
+ * `@channel` and the channel builder both parse the address through this
+ * module, so a decorator-time check and an emit-time match can never
+ * disagree. An AsyncAPI address expression is a bare `{name}`, with none of
+ * RFC 6570's operators or modifiers, so this parser stays much smaller than
+ * the compiler's own `parseUriTemplate`.
  */
 
 /**
  * The character set a channel address parameter name may use.
  *
- * The AsyncAPI JSON Schema puts no pattern on a key of the Parameters
- * Object, so this rule is stricter than the specification. It has to be:
- * the key must also be the name of the TypeSpec property that declares the
- * parameter, and a name outside this set can never be declared. So a name
- * outside it names a parameter that no operation could ever supply.
+ * The AsyncAPI JSON Schema puts no pattern on a Parameters Object key, so
+ * this rule is stricter: the key must also be a valid TypeSpec property
+ * name, since that property is what declares the parameter. A name outside
+ * this set can never be declared.
  */
 const PARAM_NAME_PATTERN = /^[A-Za-z0-9_-]+$/;
 
@@ -59,17 +53,13 @@ export function parseAddressParameters(address: string): string[] {
 /**
  * Checks one address, and names the first problem it finds.
  *
- * The scheme and the host are not checked. A full URL, a bare path, and a
- * plain topic name are all legal addresses. AsyncAPI states no rule about
- * them, and its own WebSocket examples put a full URL in the address. So a
- * host that repeats a `@server` host is left to the author to judge.
- *
- * Two rules do come from the specification. A query string and a fragment
- * are both forbidden, and a channel binding expresses them instead.
- *
- * The remaining rules keep the address parseable. Braces must pair up and
- * must not nest, and a name between them must be one a TypeSpec property
- * could carry.
+ * The scheme and host are not checked. AsyncAPI states no rule against a
+ * full URL, a bare path, or a plain topic name as an address, and its own
+ * WebSocket examples put a full URL there. A query string and a fragment
+ * are forbidden by the specification; a channel binding expresses them
+ * instead. The remaining rules keep the address parseable: braces must
+ * pair up without nesting, and a name between them must fit a TypeSpec
+ * property name.
  *
  * @param address - The address as it was written, already trimmed
  * @returns The first problem, or `undefined` when the address is usable
@@ -90,13 +80,10 @@ export function checkAddress(address: string): AddressProblem | undefined {
 /**
  * Checks the braces of an address, and names the first problem among them.
  *
- * The check takes every well-formed expression out of the address first. An
- * expression holds no brace of its own, so a brace left in the remainder
- * belongs to no pair. That covers an unclosed `{`, a stray `}`, and a nested
- * pair alike, and it needs no character walk of its own.
- *
- * The names come from the parser, so the check and the emitter read one
- * address the same way.
+ * It strips every well-formed expression out first; a brace left in the
+ * remainder belongs to no pair, which covers an unclosed `{`, a stray `}`,
+ * and a nested pair alike without a character walk. Names then come from
+ * the same parser the emitter uses.
  */
 function checkAddressBraces(address: string): AddressProblem | undefined {
   const remainder = address.replaceAll(/\{[^{}]*\}/g, "");

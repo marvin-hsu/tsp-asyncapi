@@ -41,9 +41,8 @@ export { getUsedServersInternal, setUsedServers };
 /**
  * Lists every target that carries at least one `@useServer`.
  *
- * The emitter needs this to find an application that reaches no channel. A
- * `@useServer` on a target with no channel has nowhere to go, so it is
- * reported rather than dropped in silence.
+ * The emitter uses this to find a stray application: one on a target with
+ * no channel, which is reported rather than dropped in silence.
  *
  * @param program - The program to read the state from
  * @returns The state map itself, keyed by target

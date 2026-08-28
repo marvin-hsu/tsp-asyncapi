@@ -1,21 +1,14 @@
 /**
- * Answers whether a string is an absolute URL.
+ * Answers whether a string is an absolute URL, per the AsyncAPI `uri`
+ * format ("MUST be in the form of an absolute URL"). A relative reference
+ * such as `/token` fails, and so does free text.
  *
- * Several AsyncAPI fields carry the `uri` format. The specification words
- * the rule as "MUST be in the form of an absolute URL". The official parser
- * checks that format and rejects the whole document when a value fails it.
- * A relative reference such as `/token` fails. So does free text such as
- * `not a url`.
- *
- * The check is one function because several decorators need the same
- * answer. `@securityScheme` writes `openIdConnectUrl` and the OAuth flow
- * URLs. `@externalDocs` writes the link of an External Documentation
- * Object. A separate check per field would let the two drift apart.
- *
- * The value is parsed rather than matched against a pattern. A URL parser
- * is the same judge the validator uses, so the two agree. Whitespace is
- * rejected first, because the parser escapes a space instead of refusing
- * it, and the format check of the validator refuses it.
+ * One function backs every `uri` field (`@securityScheme`'s
+ * `openIdConnectUrl` and OAuth flow URLs, `@externalDocs`'s link) so the
+ * checks cannot drift apart. It parses the value rather than matching a
+ * pattern, using the same judge the AsyncAPI validator uses. Whitespace is
+ * rejected first, since the parser would otherwise escape a space instead
+ * of refusing it.
  *
  * @param value - The value the author wrote, already trimmed
  * @returns Whether the value is an absolute URL

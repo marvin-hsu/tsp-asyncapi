@@ -87,17 +87,15 @@ export { getChannelInternal, setChannel };
  * nothing picks a winner. So the first is reported per decorator, and the
  * second drops the channel outright.
  *
- * The state holds every kind that reached the target, not the one kind that
- * claimed it first. The two mistakes are two questions, and one kind cannot
- * answer both. A target that carries `@channel` twice and `@dynamicChannel`
- * once has to hear about the duplicate and about the conflict. Recording
- * only the winner would report the conflict again for each extra `@channel`,
- * and would never mention the duplicate at all.
+ * The state holds every kind that reached the target, not just the one that
+ * claimed it first, so a target carrying `@channel` twice and
+ * `@dynamicChannel` once hears about both the duplicate and the conflict.
+ * Recording only the winner would report the conflict on each extra
+ * `@channel` and never mention the duplicate.
  *
  * The claim runs before the address is checked, the same rule
- * `singleApplication` follows. An application whose address is rejected
- * still blocks a later one, so an author who wrote the decorator twice is
- * told about it whatever the addresses say.
+ * `singleApplication` follows, so a rejected address still blocks a later
+ * application of the same decorator.
  *
  * @param context - The decorator context
  * @param target - The interface or namespace the decorator was applied to
