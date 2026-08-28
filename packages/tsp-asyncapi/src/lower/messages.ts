@@ -152,8 +152,8 @@ export function lowerMessages(
  * inside `namespace Sales` next to a global `model Ev`, produces a document
  * where `components.messages["Sales.Ev"]` describes something other than
  * `components.schemas["Sales.Ev"]`. No key actually collides, so
- * `duplicate-message-key` never fires and the output stays valid. It is only
- * misleading, so this is a warning.
+ * `duplicate-message-key` never fires. It is only misleading, so this is a
+ * warning.
  *
  * This has to run in the lower half, and it has to run last. A schema key
  * is claimed while the type graph is walked, and a discriminated subtype
