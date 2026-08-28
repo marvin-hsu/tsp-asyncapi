@@ -1,18 +1,17 @@
 /**
  * This emitter's library definition.
  *
- * It exists for one reason: the compiler validates `tspconfig.yaml` options
- * against the `emitter.options` schema of the emitter package's own library.
- * So the schema has to be registered from here.
+ * The compiler validates `tspconfig.yaml` options against the
+ * `emitter.options` schema of the emitter package's own library, so the
+ * schema has to be registered from here.
  *
- * It declares no diagnostics. All 118 of them live in `tsp-asyncapi-core`,
- * including the eighteen this package reports. A reader looking up a code
- * should find every code in one place. Code here calls the
+ * It declares no diagnostics. Every diagnostic lives in `tsp-asyncapi-core`,
+ * so a reader finds every code in one place; code here calls the
  * `reportDiagnostic` that core exports.
  *
- * The name matches core's on purpose. Both are `tsp-asyncapi`, which is the
- * prefix every diagnostic code carries. Two libraries under one name is
- * supported. That keeps the codes stable across the package split.
+ * The name matches core's on purpose: both are `tsp-asyncapi`, the prefix
+ * every diagnostic code carries. Two libraries can share one name, which
+ * keeps the codes stable across the package split.
  */
 
 import { createTypeSpecLibrary } from "@typespec/compiler";

@@ -14,8 +14,6 @@ import yaml from "yaml";
  * The compiler's entry point into this emitter.
  * It runs automatically when a project specifies `--emit tsp-asyncapi`.
  *
- * The steps below are inline comments in the body, not restated here.
- *
  * @param context - Context containing the program and emitter options.
  * @public
  */

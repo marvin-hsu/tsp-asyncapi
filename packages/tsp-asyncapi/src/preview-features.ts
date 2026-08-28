@@ -1,25 +1,16 @@
 /**
- * Answering a request for a preview feature this release cannot do.
+ * Answers a request for a preview feature this release cannot honor.
  *
  * A name is reserved in `emitter-options.ts` before the provider behind it
- * exists. Reserving it early is deliberate: a project that writes `protobuf`
- * gets an answer about the feature, not a schema error about an unknown
- * value.
+ * exists, so a project that writes `protobuf` gets an answer about the
+ * feature instead of a schema error about an unknown value. The registry of
+ * providers decides which names currently work; this file is handed that
+ * set.
  *
- * Which names work is not decided here. The registry of providers decides it,
- * and this file is handed the set it produced. So a provider that lands turns
- * its own name on, and a name with no provider behind it is still refused.
- *
- * ## Why an unavailable feature is an error, not a warning
- *
- * A project that asks for a feature expects the output to change. Ignoring
- * the request quietly gives that project a document that describes something
- * else. Nothing in that file would say so.
- *
- * A diagnostic alone does not prevent it. Reporting one records the error and
- * lets the emitter carry on, so the misleading document still reaches the
- * disk. The caller stops before writing anything, and this function tells it
- * when to.
+ * An unavailable feature is an error, not a warning. A project that asks for
+ * a feature expects the output to change, and a diagnostic alone does not
+ * stop a misleading document from reaching disk. The caller stops before
+ * writing anything, and this function tells it when to.
  */
 
 import { NoTarget, Program } from "@typespec/compiler";
@@ -33,18 +24,14 @@ import type { AsyncAPIEmitterOptions, PreviewFeature } from "./emitter-options.j
  * that arrives here is one of the reserved ones. What is left to decide is
  * whether the provider behind it exists.
  *
- * Only the refused names stop the emit. A request for one available feature
- * and one unavailable one is still a request the document cannot answer, so
- * that compilation writes nothing either.
- *
  * The target is `NoTarget`, because the request is in `tspconfig.yaml` and
- * not in any TypeSpec source file. That is the same choice
- * `@typespec/openapi3` makes for a diagnostic about one of its own options.
+ * not in any TypeSpec source file. `@typespec/openapi3` makes the same
+ * choice for a diagnostic about one of its own options.
  *
  * @param program - The program, to report against
  * @param options - The emitter options as the compiler validated them
  * @param available - The features the registry of providers can honor
- * @returns Whether anything was refused. The caller writes no file when it was.
+ * @returns Whether any feature was refused; the caller writes no file when so.
  * @internal
  */
 export function reportUnavailablePreviewFeatures(

@@ -34,16 +34,15 @@ import { AsyncAPIDocument } from "./types/index.js";
  * the body work to await changes this file alone.
  *
  * @param program - The compiled program
- * @param service - The service the document describes, if the program has one
- * @param options - The emitter options that reach the document itself
- * @param artifacts - The schemas a preview feature generated for this
- * program. A build with no preview feature on passes none.
+ * @param service - The document's service, if the program has one
+ * @param options - The emitter options reaching the document
+ * @param artifacts - Schemas a preview feature generated; empty when none is on
  * @returns The document object tree
  * @internal
  */
-// The body has nothing to await yet. `async` is what makes the signature
-// honest in the meantime: a throw from either stage reaches the caller as a
-// rejection, which is what the return type states.
+// The body awaits nothing yet, but `async` keeps the signature honest: a
+// throw from either stage reaches the caller as a rejection, matching the
+// return type.
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function buildAsyncAPIDocument(
   program: Program,

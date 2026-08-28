@@ -31,14 +31,10 @@ export type PreviewFeature = "protobuf" | "avro";
 /**
  * Every reserved preview feature name, as the option schema lists them.
  *
- * The record is what makes the list and the type agree. `satisfies` requires
- * one entry per member of {@link PreviewFeature}, and it refuses a key that
- * is not a member. So a name can neither be forgotten here nor invented here.
- * Without that, a name in the type and not in the list would be a public type
- * the option schema rejects.
- *
- * `Object.keys` returns `string[]`, and the record above is what makes the
- * cast back to the names safe.
+ * `satisfies Record<PreviewFeature, true>` requires one entry per member of
+ * {@link PreviewFeature} and rejects any extra key, so the list and the type
+ * stay in sync. `Object.keys` returns `string[]`; that constraint is what
+ * makes the cast back to `PreviewFeature[]` safe.
  */
 const PREVIEW_FEATURE_NAMES = Object.keys({
   protobuf: true,
