@@ -1,3 +1,16 @@
+/**
+ * The `servers` array of one channel.
+ *
+ * It reads the channel's `@useServer` applications, in source order, and the
+ * set of server names the document declares.
+ *
+ * It decides which server names the channel is available on, dropping a
+ * repeat and a name no `@server` declares.
+ *
+ * The lower half turns each name into a Reference Object. This module
+ * carries only the name.
+ */
+
 import { Program } from "@typespec/compiler";
 import { ChannelTarget } from "../../decorators/channels/state.js";
 import { getUsedServers } from "../../decorators/index.js";
@@ -64,7 +77,7 @@ export function resolveChannelServers(
       continue;
     }
     // Only the name is carried. Turning it into a reference is a document
-    // detail, so the lower stage does it.
+    // detail, so the lower half does it.
     names.push(entry.name);
   }
   return names;

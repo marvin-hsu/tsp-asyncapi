@@ -38,10 +38,10 @@ function carrierOf(target: Type): string | undefined {
 /**
  * The applications one build placed, and the record of which they were.
  *
- * The record used to be a flag on the entry, and an entry lives in program
- * state, so it outlived the build that set it. Emitting one document per
- * version, or per service, resolves one program more than once, and the
- * earlier build's answer would then stand in for the current one.
+ * An entry lives in program state, so it outlives the build that set it.
+ * Emitting one document per version, or per service, resolves one program
+ * more than once, and the earlier build's answer would then stand in for
+ * the current one.
  *
  * A build owns one of these and passes it explicitly. Two builds of one
  * program cannot see each other's.

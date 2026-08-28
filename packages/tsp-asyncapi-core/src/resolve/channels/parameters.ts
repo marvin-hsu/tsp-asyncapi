@@ -1,3 +1,21 @@
+/**
+ * The `parameters` map of one channel, and the mismatches between its
+ * address and its operations.
+ *
+ * It reads the channel's address and every top-level parameter its
+ * operations declare, setting aside a parameter whose type carries
+ * `@message`, since that one declares a message instead of an address piece.
+ *
+ * It decides which address expression has no declaration, which declaration
+ * the address never uses, and which declarations of one name disagree, and
+ * reports each mistake. It builds the Parameter Object for every name the
+ * address holds.
+ *
+ * The lower half turns each Parameter Object into a document entry. This
+ * module names no schema and expands nothing; it only decides what belongs
+ * in the map and what each entry contains.
+ */
+
 import {
   Enum,
   Model,
@@ -197,7 +215,7 @@ function describeParameter(
 ): ChannelParameterNode {
   // A node is produced for every name in the address, including one no
   // declaration describes and one whose declarations do not hold up. The
-  // lower stage then needs no usable flag and never parses the address again.
+  // lower half then needs no usable flag and never parses the address again.
   const bare = { target: properties?.[0] ?? channel, name };
   if (properties === undefined) return bare;
   let usable = true;
