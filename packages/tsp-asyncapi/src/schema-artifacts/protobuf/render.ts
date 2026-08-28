@@ -29,7 +29,6 @@ const INDENT = "  ";
 /**
  * Renders one payload as proto3 text.
  *
- * @param payload - The payload structure to print
  * @returns The proto3 text, ending in exactly one newline
  * @internal
  */
@@ -44,22 +43,12 @@ export function renderProtoFile(payload: ProtoPayloadModel): string {
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
-/**
- * Renders one top level declaration.
- *
- * @param declaration - The message or enum to print
- * @returns The lines of the block
- */
+/** Renders one top level declaration. */
 function renderDeclaration(declaration: ProtoDeclaration): string[] {
   return declaration.kind === "message" ? renderMessage(declaration) : renderEnum(declaration);
 }
 
-/**
- * Renders one `message` block.
- *
- * @param message - The message to print
- * @returns The lines of the block
- */
+/** Renders one `message` block. */
 function renderMessage(message: ProtoMessage): string[] {
   const lines = renderDoc(message.doc, "");
   const reserved = renderReservations(message);
@@ -86,10 +75,7 @@ function renderMessage(message: ProtoMessage): string[] {
  *
  * proto3 keeps reserved numbers and reserved names apart, so a message that
  * reserves both gets two lines. A range is written with the `to` keyword,
- * which is how proto3 spells an inclusive range.
- *
- * @param message - The message to read the reservations of
- * @returns The reserved lines, which is none when the message reserves nothing
+ * proto3's spelling for an inclusive range.
  */
 function renderReservations(message: ProtoMessage): string[] {
   const lines: string[] = [];
@@ -109,23 +95,15 @@ function renderReservations(message: ProtoMessage): string[] {
 /**
  * The label a field carries, with the trailing space it needs.
  *
- * A repeated field never also takes `optional`, which is the rule the walk
- * already applied. This only writes down what the field says.
- *
- * @param field - The field to label
- * @returns `"repeated "`, `"optional "`, or nothing at all
+ * A repeated field never also takes `optional`; the walk already applies
+ * that rule, so this only writes down what the field says.
  */
 function labelOf(field: ProtoField): string {
   if (field.repeated) return "repeated ";
   return field.optional ? "optional " : "";
 }
 
-/**
- * Renders one `enum` block.
- *
- * @param target - The enum to print
- * @returns The lines of the block
- */
+/** Renders one `enum` block. */
 function renderEnum(target: ProtoEnum): string[] {
   const lines = renderDoc(target.doc, "");
   lines.push(`enum ${target.name} {`);
@@ -144,12 +122,8 @@ function renderEnum(target: ProtoEnum): string[] {
  * Renders documentation as leading `//` lines.
  *
  * Each line of the documentation gets its own comment line, so a paragraph
- * the author wrote over several lines stays several lines. Documentation the
- * type does not have renders as nothing at all, rather than an empty comment.
- *
- * @param doc - The documentation, if the type has any
- * @param indent - The indent the block sits at
- * @returns The comment lines, which is none when there is no documentation
+ * written over several lines stays several lines. A type with no
+ * documentation renders as nothing, not an empty comment.
  */
 function renderDoc(doc: string | undefined, indent: string): string[] {
   if (doc === undefined || doc === "") return [];

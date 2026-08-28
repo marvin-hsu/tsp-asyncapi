@@ -1,29 +1,20 @@
 /**
  * The Protobuf provider, as the registry holds it.
  *
- * The parts it joins already exist. The state reader says which models the
- * author marked and which package each one belongs to. The walk builds the
- * closure of one model. The printer writes that closure as proto3 text. This
- * file runs them over a whole program and hands back one artifact per model.
- *
- * One model is one payload. A payload carries the message the model names and
- * every declaration that message reaches, so two messages of one package are
- * two texts and not one shared text. The root of a text is the message the
- * payload was built for. A Protobuf reader finds that root as the declaration
- * nothing else references, which holds unless two messages reference each
+ * This file joins existing parts over a whole program: the state reader
+ * says which models the official decorators marked and which package each
+ * belongs to, the walk builds one model's closure, and the printer renders
+ * that closure as proto3 text. One model is one payload, carrying the
+ * message the model names plus every declaration it reaches; two messages
+ * of one package get two separate texts. A text's root is the message its
+ * payload was built for; a Protobuf reader finds that root as the
+ * declaration nothing else references, unless two messages reference each
  * other.
  *
- * ## Who gets told
- *
- * A payload is built only for a model the document asks one for, which is a
- * model that carries `@AsyncAPI.message` as well. A project that uses the
- * official decorators for types outside the document keeps its build green,
- * and no diagnostic names a model no message describes.
- *
- * A model the document asks about and this cannot answer for is a refusal.
- * The caller stops on one. Its payload would otherwise fall back to the
- * schema its TypeSpec type produces, which answers a request for proto3 with
- * ordinary JSON Schema and says so nowhere in the file.
+ * A payload is built only for a model the document asks about, one that
+ * also carries `@AsyncAPI.message`. A model this cannot answer for is a
+ * refusal, and the caller stops on one rather than falling back to the
+ * plain JSON Schema its TypeSpec type would otherwise produce.
  */
 
 import type { Model, Program } from "@typespec/compiler";
@@ -47,10 +38,9 @@ const PROVIDER_ID = "protobuf";
 /**
  * Builds the provider that answers the `protobuf` preview feature.
  *
- * The provider is built rather than exported as a constant, so two emits of
- * one program each get their own. Nothing in it holds state between calls.
+ * Returns a fresh provider per call, since nothing in it holds state
+ * between emits.
  *
- * @returns The provider, ready for the registry
  * @internal
  */
 export function createProtobufProvider(): SchemaArtifactProvider {
@@ -65,9 +55,7 @@ export function createProtobufProvider(): SchemaArtifactProvider {
 /**
  * Renders a payload for every message model the official decorators mark.
  *
- * @param program - The compiled program
- * @returns The payload artifact of every model that got one, and whether any
- * model the document names went unanswered
+ * `refused` is set when any model the document asks about went unanswered.
  */
 function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
   const asked = listMessages(program);
@@ -75,9 +63,8 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
 
   let refused = false;
   for (const model of listProtobufMessageModels(program)) {
-    // A model outside the document is not asked about, so it is neither
-    // rendered nor reported. The walk reports as it goes, and a report for
-    // such a model would name a message that does not exist.
+    // A model outside the document is skipped, not reported: a diagnostic
+    // for it would name a message that does not exist.
     if (!asked.has(model)) continue;
 
     const payload = buildPayloadModel(program, model);
@@ -99,13 +86,9 @@ function collectProtobufArtifacts(program: Program): CollectedSchemaArtifacts {
 /**
  * The name a Protobuf reader knows this message by.
  *
- * The identity never reaches the document. It tells two artifacts apart, and
- * two messages differ by their package as well as by their name. So the
- * package is part of it whenever the package declares one.
- *
- * @param packageName - The package name, if the package declares one
- * @param rootName - The name of the message the payload describes
- * @returns The fully qualified message name
+ * Never reaches the document; it only tells two artifacts apart. Two
+ * messages can share a name but differ by package, so the package is
+ * included whenever it declares one.
  */
 function qualifiedName(packageName: string | undefined, rootName: string): string {
   return packageName === undefined ? rootName : `${packageName}.${rootName}`;
