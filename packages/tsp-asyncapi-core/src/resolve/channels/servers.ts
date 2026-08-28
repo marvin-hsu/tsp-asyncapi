@@ -24,9 +24,9 @@ import { orderBySourceNodes } from "../../source-order.js";
  * The array holds references into the root `servers` map. AsyncAPI requires
  * a Reference Object here, so no Server Object is ever inlined.
  *
- * The order is source order, which the recorded state does not carry: the
- * compiler records the applications in the order they ran, and that differs
- * between a decorator written inline and an augment decorator.
+ * The order is source order. The recorded state does not preserve it,
+ * because the compiler records applications in the order they ran, which
+ * differs between a decorator written inline and an augment decorator.
  *
  * A name given twice contributes one reference. AsyncAPI requires the
  * entries of this array to be unique, and the repeat is reported so it is

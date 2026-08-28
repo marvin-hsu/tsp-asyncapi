@@ -35,22 +35,19 @@ export interface ChannelMessages {
 /**
  * Builds the `messages` map of one channel.
  *
- * The keys are the ones `components.messages` already uses. They arrive in
- * `messageKeys`, which the message builder returns, so no message key is
- * ever computed twice. A model that the message builder dropped, because
- * another model claimed its key, is not in that map and contributes no
- * entry. That mistake is already reported where the key was claimed.
+ * The keys reuse what `components.messages` already assigned, from
+ * `messageKeys`, so no key is computed twice. A model the message builder
+ * dropped for a key clash contributes no entry here. That mistake is
+ * already reported where the key was claimed.
  *
- * The entries follow the order the operations declare them, and a model that
- * two operations name contributes one entry. Which models reach this channel
- * at all is decided by `channelMessageModels`, which also brings in the reply
- * of an operation that sits on another channel and names this one with
- * `@replyChannel`.
+ * Entries follow the order the operations declare them, and a model two
+ * operations name contributes one entry. `channelMessageModels` decides
+ * which models reach this channel, including the reply of an operation on
+ * another channel that names this one with `@replyChannel`.
  *
- * An empty result is reported and the field is left out. AsyncAPI makes
- * `messages` optional, so a channel with none stays valid, but a channel
- * with none is almost always a payload model that lost its `@message`. That
- * is the mistake the warning names.
+ * An empty result is reported, and the field left out. AsyncAPI allows a
+ * channel with no messages, but it is almost always a payload model that
+ * lost its `@message`.
  *
  * @param program - The program to report on
  * @param target - The interface or namespace that carries the channel

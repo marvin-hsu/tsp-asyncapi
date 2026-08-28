@@ -62,11 +62,11 @@ export interface ResolvedChannels {
 /**
  * Resolves every `@channel` the program declares.
  *
- * Every channel goes to the root `channels` map. `components.channels` exists
- * in AsyncAPI for a channel no operation refers to, and this emitter does not
- * use it. A channel declared in TypeSpec is always meant to be part of the
- * application, so hoisting some of them into `components` would add a level
- * of indirection with no reader benefit.
+ * Every channel goes to the root `channels` map. AsyncAPI reserves
+ * `components.channels` for a channel no operation refers to, and this
+ * emitter does not use it. A channel declared in TypeSpec is always meant
+ * to be part of the application, so hoisting it into `components` would add
+ * indirection with no reader benefit.
  *
  * A repeated id is reported and the later channel is dropped, the same rule
  * every other key collision in this emitter follows.

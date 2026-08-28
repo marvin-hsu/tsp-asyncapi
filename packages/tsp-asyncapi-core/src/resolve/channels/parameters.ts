@@ -3,17 +3,15 @@
  * address and its operations.
  *
  * It reads the channel's address and every top-level parameter its
- * operations declare, setting aside a parameter whose type carries
- * `@message`, since that one declares a message instead of an address piece.
+ * operations declare, setting aside one whose type carries `@message`,
+ * since that declares a message instead of an address piece.
  *
- * It decides which address expression has no declaration, which declaration
- * the address never uses, and which declarations of one name disagree, and
- * reports each mistake. It builds the Parameter Object for every name the
- * address holds.
+ * It reports an address expression with no declaration, a declaration the
+ * address never uses, and declarations of one name that disagree. It builds
+ * the Parameter Object for every name the address holds.
  *
  * The lower half turns each Parameter Object into a document entry. This
- * module names no schema and expands nothing; it only decides what belongs
- * in the map and what each entry contains.
+ * module names no schema and expands nothing.
  */
 
 import {
@@ -42,24 +40,19 @@ import { channelOperations } from "./scope.js";
  * the way its address and its operations line up.
  *
  * A channel parameter is declared by a top-level parameter of an operation
- * the channel owns. A parameter whose type carries `@message` is a message
- * declaration instead, so it takes no part in the matching in either
- * direction.
+ * the channel owns. A parameter whose type carries `@message` declares a
+ * message instead, so it takes no part in the matching.
  *
- * The matching runs both ways. An expression in the address with no
- * declaration is reported, because AsyncAPI requires the `parameters` map to
- * cover the whole address. A declaration the address never uses is reported
- * too. This emitter never rewrites an address to absorb a stray parameter,
- * unlike the HTTP library's default route producer, because the author wrote
- * the address by hand and it is the address the document must carry.
+ * The matching runs both ways. An address expression with no declaration is
+ * reported, because AsyncAPI requires `parameters` to cover the whole
+ * address. A declaration the address never uses is reported too. This
+ * emitter never rewrites an address to absorb a stray parameter, unlike the
+ * HTTP library's default route producer, because the author wrote the
+ * address by hand.
  *
  * The field is emitted only when the address holds at least one expression.
- * A channel with a plain address never gets it, and a dynamic channel never
- * gets it either, because it has no address to put an expression in.
- *
- * A dynamic channel is left out of the matching altogether. It has no
- * address, so no declaration can be matched against one, and no expression
- * can be missing a declaration.
+ * A dynamic channel has no address, so it is left out of the matching
+ * altogether.
  *
  * @param program - The program to report on
  * @param target - The interface or namespace that carries the channel
@@ -190,21 +183,19 @@ function reportAddressMismatch(
  * Builds the Parameter Object of one name the address holds.
  *
  * Every declaration of the name is checked, not only the one that reaches
- * the document. Each declaration is a property the author wrote, and an
- * optional or non-string one is wrong wherever it sits. Checking the first
- * declaration alone would make the report depend on which operation happens
- * to come first in the source.
+ * the document. Each is a property the author wrote, and an optional or
+ * non-string one is wrong wherever it sits.
  *
- * The object is built from the first declaration in source order, which is
- * the same one a disagreement keeps. It is built only when every declaration
- * of the name is usable. One unusable declaration means the author still has
- * to change the type or the optionality of that name, and the emitted object
- * would describe a name the channel cannot carry yet.
+ * The object is built from the first declaration in source order, the same
+ * one a disagreement keeps, and only when every declaration of the name is
+ * usable. One unusable declaration means the type or optionality still needs
+ * a fix, so the emitted object cannot describe a name the channel cannot
+ * carry yet.
  *
- * Every name the address holds reaches the map, even when nothing usable
- * describes it. An empty Parameter Object still satisfies the rule that the
- * map covers the whole address, so the rest of the document stays readable
- * while the reported mistake is unresolved.
+ * Every name the address holds still reaches the map, even with nothing
+ * usable to describe it. An empty Parameter Object still satisfies the rule
+ * that the map covers the whole address, so the rest of the document stays
+ * readable while the mistake is unresolved.
  */
 function describeParameter(
   program: Program,
@@ -230,14 +221,13 @@ function describeParameter(
  * Collects the channel parameter declarations of one channel, keyed by name.
  *
  * Two operations of one channel may declare the same parameter. That is
- * normal: a publish and a subscribe over one address both name the same
- * piece of it. The two declarations must agree, because AsyncAPI emits one
- * Parameter Object per name. The first one in source order is kept, so the
- * rest of the document stays readable, and each disagreement is reported.
+ * normal, for example a publish and a subscribe over one address naming the
+ * same piece of it. The two must agree, because AsyncAPI emits one
+ * Parameter Object per name. The first in source order is kept, and each
+ * disagreement is reported.
  *
- * Every declaration is kept in the list, not only the first one. The caller
- * checks each of them, so a mistake in a later declaration is reported too.
- * The list holds them in source order, so its first entry is the winner.
+ * Every declaration is kept in the list, not only the first, so the caller
+ * can check each one and report a mistake in a later declaration too.
  */
 function collectDeclarations(
   program: Program,
@@ -274,20 +264,18 @@ function collectDeclarations(
 
 /**
  * Names every field two declarations of one parameter disagree about.
- * The list is empty when they agree about all five.
- * Each field is named on its own, so the message says what has to change.
+ * The list is empty when they agree on all five.
  *
- * The two are compared by what they contribute to the document, not by the
- * types and the decorators they are written with. Two declarations of one
- * name sit on two operations, so each writes its own inline type. TypeSpec
- * gives every inline union and every inline model expression an object of
- * its own, so comparing the two type objects would call two identical
- * `"eu" | "us"` unions a disagreement. The values a type allows are what the
- * Parameter Object carries, so those values are what is compared.
+ * The two are compared by what they contribute to the document, not by
+ * their types. Two declarations sit on two operations, each with its own
+ * inline type, and TypeSpec gives every inline union or model expression an
+ * object of its own. Comparing the two type objects would call two
+ * identical `"eu" | "us"` unions a disagreement, so the allowed values are
+ * compared instead.
  *
- * Two types that are not string types at all both contribute no values, so
- * they never disagree here. Each of them is reported as a non-string
- * parameter instead, which is the mistake the author has to fix first.
+ * A type that is not a string type at all contributes no values, so two of
+ * them never disagree here. Each is reported as a non-string parameter
+ * instead.
  */
 function conflictingFields(kept: ParameterFields, added: ParameterFields): string[] {
   const fields: string[] = [];
@@ -323,10 +311,9 @@ function checkDeclaration(
   let usable = true;
   if (property.optional) {
     // An address expression is a bare `{name}`. RFC 6570's operators, which
-    // let a separator disappear along with an absent value, have no
-    // equivalent here. So an optional parameter cannot be left out of any
-    // address, whatever its position, and `default` is what expresses a
-    // value that is usually the same.
+    // let a separator vanish along with an absent value, have no equivalent
+    // here, so an optional parameter cannot be left out of any address.
+    // `default` expresses a value that is usually the same.
     reportDiagnostic(program, {
       code: "optional-channel-param",
       format: { name },
@@ -385,13 +372,12 @@ function defaultOf(property: ModelProperty): string | undefined {
  * The entries are the values of `@example`, in source order, serialized the
  * same way every other example in this emitter is. AsyncAPI types the array
  * as strings, so a value that serializes to anything else is left out. An
- * example that cannot be serialized at all is dropped with the warning the
- * schema layer already uses for that.
+ * unserializable example is dropped with the same warning the schema layer
+ * uses.
  *
  * Neither drop is silent. A parameter reaches the document only when its
- * type is a string type, and the compiler rejects an example the parameter
- * type does not accept. A parameter of any other type is reported as
- * `non-string-channel-param` and is left out along with its examples.
+ * type is a string type. A parameter of any other type is reported as
+ * `non-string-channel-param` and left out along with its examples.
  */
 function buildParameterExamples(program: Program, property: ModelProperty): string[] | undefined {
   // An example that carries no usable value is dropped rather than left to
@@ -427,9 +413,7 @@ function stringValuesOf(program: Program, type: Type): string[] | undefined {
     case "EnumMember":
       // A single member stands for one string, so it names a set of one.
       // A numeric member names no string, the same rule `enumValues` follows
-      // for the whole enum. Without this case the member form fell to the
-      // default below and was reported as a non-string parameter, while the
-      // whole-enum form `region: Region` worked.
+      // for the whole enum.
       return typeof type.value === "number" ? undefined : [enumMemberValue(type)];
     case "Union":
       return unionValues(program, type);
