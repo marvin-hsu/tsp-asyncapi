@@ -35,10 +35,6 @@ export interface MqttOperationBindingConfig {
  * `messageExpiryInterval` is an MQTT 5 field. Write it as a number of
  * seconds, or as a Schema Object describing the number.
  *
- * @param context - The decorator context
- * @param target - The operation
- * @param config - The MQTT operation binding fields
- *
  * @example
  * ```typespec
  * @mqttOperation(#{ qos: 1, retain: true })

@@ -37,10 +37,6 @@ export interface MqttMessageBindingConfig {
  * `correlationData` is a Schema Object. `responseTopic` is a topic name, or a
  * Schema Object describing the name.
  *
- * @param context - The decorator context
- * @param target - The message model
- * @param config - The MQTT message binding fields
- *
  * @example
  * ```typespec
  * @mqttMessage(#{ payloadFormatIndicator: 1, contentType: "application/json" })
