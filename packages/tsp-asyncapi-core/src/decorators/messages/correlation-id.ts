@@ -29,16 +29,13 @@ const [getCorrelationIdInternal, setCorrelationId] = useStateMap<Model, Correlat
 /**
  * Sets the `correlationId` of a message.
  *
- * The emitter checks the format of `location` and nothing else. It does not
- * check that the pointer names a field that the headers or payload schema
- * declares. AsyncAPI states no such requirement, and its own examples point
- * at paths their schemas never define. A check would reject documents the
- * specification allows.
+ * The emitter checks only the format of `location`, not whether it names a
+ * field the headers or payload schema declares. AsyncAPI states no such
+ * requirement, and its own examples point at paths their schemas never
+ * define.
  *
- * Apply this decorator only once per model. A second application is an
- * error, the same rule `@message` follows. Only one of the applied locations
- * could ever reach the output, and the user has no way to tell which one
- * won.
+ * Apply this decorator only once per model, the same rule `@message`
+ * follows. A second application leaves no way to tell which location won.
  *
  * @param context - The decorator context
  * @param target - The message model
@@ -66,15 +63,12 @@ export function $correlationId(
   location: string,
   description?: string,
 ) {
-  // Decorators on one declaration run bottom-up, so the application
-  // written last in the source runs first and wins. The guard records
-  // that this decorator ran, before any value is validated, so a value
-  // that fails validation still blocks a later application.
+  // Bottom-up: the last application in source runs first. The guard claims
+  // before validation, so a rejected value still blocks a later one.
   if (guard.claim(context, target) !== "first") return;
   if (!isRuntimeExpression(location)) {
-    // Nothing is recorded, so no `correlationId` reaches the document. An
-    // expression this emitter cannot parse is one no AsyncAPI tool can
-    // follow either.
+    // An expression this emitter cannot parse is one no AsyncAPI tool can
+    // follow either, so nothing is recorded.
     reportDiagnostic(context.program, {
       code: "invalid-correlation-id-location",
       target,
@@ -82,9 +76,8 @@ export function $correlationId(
     });
     return;
   }
-  // An empty description is dropped rather than recorded. A blank description
-  // says nothing about the correlation id. The emitted field would claim the
-  // description is empty rather than absent.
+  // A blank description is dropped: the emitted field would otherwise claim
+  // the description is empty rather than absent.
   setCorrelationId(context.program, target, {
     location,
     ...(description ? { description } : {}),
@@ -102,9 +95,7 @@ export function $correlationId(
  * @public
  */
 export function getCorrelationId(program: Program, target: Model): CorrelationIdState | undefined {
-  // Hand out a copy. The stored state is what the emitter writes, so handing
-  // out the stored object would let a caller change the emitted document by
-  // changing what it was given.
+  // A copy, so a caller cannot mutate emitted state through the returned value.
   const state = getCorrelationIdInternal(program, target);
   return state === undefined ? undefined : { ...state };
 }

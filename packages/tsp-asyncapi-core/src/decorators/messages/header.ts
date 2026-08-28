@@ -8,22 +8,20 @@ const [isHeaderInternal, markHeader] = useStateSet<ModelProperty>(headerStateKey
 /**
  * Marks one field of a message model as a message header.
  *
- * The emitter lifts every marked field out of the payload schema. It
- * collects them into the message's `headers` schema. The payload keeps only
- * the fields that carry no mark.
+ * The emitter lifts every marked field out of the payload schema and into
+ * the message's `headers` schema. The payload keeps only the unmarked
+ * fields.
  *
  * Only a top-level field of a `@message` model is lifted. A field further
  * down the payload stays where it is, and the emitter reports
- * `nested-header-ignored`. `@typespec/http` sets that precedent: it reads
- * metadata off the top level of a payload only, and warns about a mark it
- * cannot honour.
+ * `nested-header-ignored`, matching `@typespec/http`, which reads metadata
+ * off the top level of a payload only.
  *
- * This is a plain marker. It carries no name of its own, unlike
- * `@typespec/http`'s `@header`. Two reasons. AsyncAPI application headers
- * have no naming convention to convert to, so there is nothing to override
- * by default. And the emitter already reads `@encodedName` for the wire name
- * of every property, so a header whose name is not a TypeSpec identifier is
- * already expressible.
+ * This is a plain marker with no name of its own, unlike `@typespec/http`'s
+ * `@header`. AsyncAPI application headers have no naming convention to
+ * convert to, and the emitter already reads `@encodedName` for the wire
+ * name of every property, so a non-identifier header name is already
+ * expressible.
  *
  * @param context - The decorator context
  * @param target - The message model field to lift into `headers`

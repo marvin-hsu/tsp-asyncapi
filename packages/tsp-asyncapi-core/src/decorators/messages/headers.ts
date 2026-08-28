@@ -14,22 +14,19 @@ const guard = singleApplication(headersAppliedKey, "duplicate-headers-decorator"
  *
  * Use this when the headers are a model of their own, rather than a few
  * flat fields of the payload model. The headers model may nest: a property
- * of it can be another model, and that model becomes a nested object in the
- * emitted headers schema. AsyncAPI's own examples describe headers that
- * way.
+ * of it can be another model, becoming a nested object in the emitted
+ * schema, the way AsyncAPI's own examples describe headers.
  *
- * The headers model must be an object type. AsyncAPI requires the `headers`
- * schema to be a key/value map. An array-backed model is reported as
+ * The headers model must be an object type; AsyncAPI requires `headers` to
+ * be a key/value map, so an array-backed model is reported as
  * `headers-not-object`.
  *
  * Do not mix this with a field-level `@header` on the same message. Two
  * sources for one field have no obvious winner, so the emitter reports
  * `duplicate-message-headers` and emits neither.
  *
- * Apply this decorator only once per model. A second application is an
- * error, the same rule `@message` follows. Only one of the applied models
- * could ever reach the output, and the user has no way to tell which one
- * won.
+ * Apply this decorator only once per model, the same rule `@message`
+ * follows. A second application leaves no way to tell which model won.
  *
  * @param context - The decorator context
  * @param target - The message model
@@ -51,10 +48,8 @@ const guard = singleApplication(headersAppliedKey, "duplicate-headers-decorator"
  * @public
  */
 export function $headers(context: DecoratorContext, target: Model, headers: Model) {
-  // Decorators on one declaration run bottom-up, so the application
-  // written last in the source runs first and wins. The guard records
-  // that this decorator ran, before any value is validated, so a value
-  // that fails validation still blocks a later application.
+  // Bottom-up: the last application in source runs first. The guard claims
+  // before validation, so a rejected value still blocks a later one.
   if (guard.claim(context, target) !== "first") return;
   setHeadersModel(context.program, target, headers);
 }
