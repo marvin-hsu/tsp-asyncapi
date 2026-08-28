@@ -37,8 +37,10 @@ import { listBindings } from "../decorators/bindings/state.js";
  * A member name is not always the protocol name. The Solace binding is
  * `solace` and the protocol it configures is `smf`, Solace Message Format.
  *
- * A `Map` rather than a `Record`, so a lookup miss types as `undefined`
- * instead of a value the guard below could be deleted as dead code for.
+ * This is a `Map`, not a `Record`. This repo does not set
+ * `noUncheckedIndexedAccess`, so a `Record` lookup would type a miss as an
+ * always-present value. A `Map` still types a miss as `undefined`, so the
+ * guard below stays live code.
  *
  * A member with no row here is not checked, since a wrong answer would be
  * worse than no answer. The generic `@binding` never reaches this table: it

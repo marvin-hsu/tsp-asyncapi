@@ -394,9 +394,9 @@ function fallbackInstanceName(program: Program, type: Model | Union): string {
  * namespace, unlike `components.schemas` keys, so two same-named message
  * models in different namespaces collide and the caller reports that.
  *
- * Everything else matches how a schema key is built, on purpose: a
- * `@friendlyName` wins outright, and a template instantiation composes its
- * argument names or falls back to the same per-argument text
+ * Everything else matches how a schema key is built, on purpose. A
+ * `@friendlyName` wins outright. A template instantiation composes its
+ * argument names, or falls back to the same per-argument text
  * `fallbackDeclarationName` uses. Taking the raw `Model.name` instead would
  * give every instantiation of one template the same bare name.
  */
@@ -430,7 +430,7 @@ export function unqualifiedDeclarationName(program: Program, type: Model | Union
  *
  * No further disambiguation happens here. This one candidate is handed to
  * `SchemaBuilder.registerNamed` (via `SchemaKeyRegistry`), which decides
- * whether it is actually free; two declarations resolving to the same
+ * whether it is actually free. Two declarations resolving to the same
  * candidate are reported there as `duplicate-schema-key`.
  *
  * @public

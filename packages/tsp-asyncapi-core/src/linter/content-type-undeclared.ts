@@ -27,8 +27,8 @@ const EMITTER_OPTIONS_KEY = "tsp-asyncapi";
  *
  * The linter runs before emit, so the options come from the compilation, not
  * from an emitter that has not started. An editor session with no emitter
- * configured reads no options, so a rule stays quiet, the same answer a
- * project gets when it leaves the feature off.
+ * configured reads no options, so a rule stays quiet. That is the same
+ * answer a project gets when it leaves the feature off.
  *
  * @param program - The compiled program
  * @param feature - The name a `preview-features` entry would carry
