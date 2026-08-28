@@ -23,10 +23,8 @@ import { channelOperations } from "../resolve/channels/scope.js";
 /**
  * The models of one operation signature, split by side.
  *
- * The parameters and the return type are the two sides of a signature. An
- * operation reads them by its action. A `@send` operation sends what its
- * parameters name and receives what its return type names. A `@receive`
- * operation is the inverse.
+ * A `@send` operation sends what its parameters name and receives what its
+ * return type names. A `@receive` operation is the inverse.
  */
 interface OperationSignatureModels {
   /** The models the top-level parameters name. */
@@ -48,10 +46,6 @@ interface OperationSignatureModels {
  *
  * Each side removes its own repeats. A model both sides name reaches both
  * lists, because the two sides describe two different directions.
- *
- * @param program - The program the operation belongs to
- * @param operation - The operation to walk
- * @returns The models of each side, with repeats removed inside each side
  */
 function operationSignatureModels(
   program: Program,
@@ -88,17 +82,9 @@ export interface OperationSides {
  * operation sends what its parameters name and receives its reply through the
  * return type. A `receive` operation is the inverse.
  *
- * Two callers need the rule. The operation builder puts the request side in
- * `messages` and the reply side in `reply.messages`. The channel message
- * collection needs the request side alone when `@replyChannel` sends the
- * reply somewhere else. A second spelling of the rule would let the channel
- * and the operation state opposite directions for one operation, so there is
- * only this one.
- *
- * @param program - The program the operation belongs to
- * @param operation - The operation to split
- * @param action - The action recorded for that operation
- * @returns The models of each direction, in source order
+ * Two callers need the rule: the operation builder, and the channel message
+ * collection when `@replyChannel` sends the reply elsewhere. A second
+ * spelling would let them state opposite directions for one operation.
  */
 export function operationSides(
   program: Program,
@@ -116,10 +102,6 @@ export function operationSides(
  *
  * The two sides of the signature are joined here, and a model that both
  * sides name contributes one entry.
- *
- * @param program - The program the operation belongs to
- * @param operation - The operation to walk
- * @returns Every model the operation names, with repeats removed
  */
 function operationModels(program: Program, operation: Operation): Model[] {
   const { parameters, returns } = operationSignatureModels(program, operation);
@@ -148,11 +130,6 @@ function operationModels(program: Program, operation: Operation): Model[] {
  * reply. An operation with no action emits no operation object, so no reply
  * is derived from it either. Both sides of such an operation stay on the
  * channel, and its messages still reach the document.
- *
- * @param program - The program the operation belongs to
- * @param operation - The operation to walk
- * @param channel - The interface or namespace that carries the channel
- * @returns The models this operation puts on that channel
  */
 function operationChannelModels(
   program: Program,
@@ -177,10 +154,8 @@ function operationChannelModels(
  * reply side.
  *
  * The second group exists because AsyncAPI requires `reply.messages` to be a
- * subset of the messages of the reply channel. The reply really does travel
- * over that channel, so the channel has to carry it. Leaving it out used to
- * force the author to declare an extra operation on the reply channel, which
- * put an operation in the document that the author never asked for.
+ * subset of the messages of the reply channel. The reply travels over that
+ * channel, so the channel must carry it.
  *
  * A replying operation with no action contributes nothing here. Such an
  * operation emits no operation object, so it emits no reply either, and both
@@ -189,10 +164,6 @@ function operationChannelModels(
  * The owned operations come first, and the replies from elsewhere follow.
  * Each group is in source order. A model that two operations name contributes
  * one entry, and the first contributor decides where it sits.
- *
- * @param program - The program the channel belongs to
- * @param target - The interface or namespace that carries the channel
- * @returns The models this channel carries, with repeats removed
  */
 export function channelMessageModels(program: Program, target: ChannelTarget): Model[] {
   const found: Model[] = [];

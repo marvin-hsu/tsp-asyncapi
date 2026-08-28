@@ -39,10 +39,6 @@ export interface ReplyContext {
  * out would make two of its own rules uncheckable. The subset rule for
  * `reply.messages` needs a channel, and so does the rule that a reply
  * address only sits on a channel with no address.
- *
- * @param program - The program to report on
- * @param context - What this operation contributes to its reply
- * @returns The reply object, or `undefined` when this operation has none
  */
 export function resolveOperationReply(
   program: Program,

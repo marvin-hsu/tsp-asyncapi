@@ -18,10 +18,6 @@ import { OperationActionState } from "../../decorators/operations/state.js";
  * cannot be a key. The interface that inherited the operation supplies the
  * missing part, which is what `@typespec/openapi3` does for every operation
  * with its default `parent-container` strategy.
- *
- * @param operation - The operation to key
- * @param record - The state the action decorator recorded for it
- * @returns The key this operation claims
  */
 export function operationId(operation: Operation, record: OperationActionState): string {
   if (record.operationId !== undefined) return record.operationId;

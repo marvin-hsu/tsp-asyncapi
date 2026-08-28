@@ -25,12 +25,6 @@ import { EmittedChannel } from "../channels.js";
  * `messages` as "every message of the channel". An empty array would say the
  * opposite, because it requires every message to match one entry of a list
  * with no entry in it.
- *
- * @param models - The models of this side of the signature, in source order
- * @param channel - The channel these references point into
- * @param messageKeys - The key each emitted message model was given
- * @returns The references, in signature order, or `undefined` when none
- * survives
  */
 export function resolveMessageRefs(
   models: readonly Model[],
@@ -45,7 +39,7 @@ export function resolveMessageRefs(
     const messageKey = channel.messageKeys.get(model);
     if (messageKey === undefined) continue;
     // Only the two keys are carried. Writing the pointer they address is a
-    // document detail, so the lower stage does it.
+    // document detail, so the lower half does it.
     refs.push({ channelKey: channel.id, messageKey });
   }
 
