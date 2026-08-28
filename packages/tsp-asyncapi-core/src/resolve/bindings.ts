@@ -38,10 +38,10 @@ function carrierOf(target: Type): string | undefined {
 /**
  * Tracks which binding applications one build placed.
  *
- * Program state outlives a single build, so resolving one program more than
- * once, for one document per version or per service, would let an earlier
- * build's answer leak into the current one. Each build owns its own
- * instance and passes it explicitly.
+ * Program state outlives a single build. One program can resolve more than
+ * once, for one document per version or per service. Without a fresh
+ * instance, an earlier build's answer would leak into the current one. Each
+ * build owns its own instance and passes it explicitly.
  *
  * @internal
  */
@@ -179,10 +179,10 @@ export function markBindingsPlaced(
 /**
  * Reports every binding that reached no object.
  *
- * A binding sits on the object its target emits. A `@kafkaOperation` with no
- * action, a `@kafkaMessage` on a model with no `@message`, a `@kafkaChannel`
- * on a plain interface, and a `@kafkaServer` on a namespace with no server
- * all have nowhere to go. Each stays silent unless reported here.
+ * A binding sits on the object its target emits. Four cases have nowhere to
+ * go: a `@kafkaOperation` with no action, a `@kafkaMessage` on a model with
+ * no `@message`, a `@kafkaChannel` on a plain interface, and a `@kafkaServer`
+ * on a namespace with no server. Each stays silent unless reported here.
  *
  * Call it once the whole document is built, so every binding had its chance
  * to be placed. Reports come out in source order, not the state layer's

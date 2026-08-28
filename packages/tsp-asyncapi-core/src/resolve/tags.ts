@@ -35,7 +35,7 @@ interface MergedTags {
  *
  * The merge itself is silent, and this is the only place that reports. A
  * service namespace can be read again for its servers, and again when it
- * carries a channel; reporting here instead of at the merge keeps one
+ * carries a channel. Reporting here instead of at the merge keeps one
  * disagreement from being reported once per caller.
  *
  * Every type that carries the decorator is walked, not only the ones that
@@ -123,15 +123,15 @@ function toTagObject(name: string, metadata: AsyncTagState | undefined): TagObje
  * Merges every `@asyncTag` on one type into one entry per tag name, and
  * reports each conflict between two of them.
  *
- * The applications are put back in source order first, since order decides
- * the outcome of a merge and has to match what the reader sees, not the
+ * The applications are put back in source order first. Order decides the
+ * outcome of a merge, and it has to match what the reader sees, not the
  * bottom-up order the decorators ran in.
  *
  * Two applications of one name merge field by field: a field only one of
  * them sets is taken from that one, the same rule the built-in `@tag` merge
  * follows. A field set to two different values is a conflict. AsyncAPI
- * emits one Tag Object per name, so one value would have to be dropped; the
- * emitter reports the conflict instead of choosing, and keeps the first
+ * emits one Tag Object per name, so one value would have to be dropped. The
+ * emitter reports the conflict instead of choosing. It keeps the first
  * application's field so the rest of the document stays readable.
  *
  * A tag of the same name on a *different* type is not a conflict. AsyncAPI
@@ -197,9 +197,9 @@ function mergeExternalDocs(
 
 /**
  * Names every field that two applications of one tag name disagree about.
- * A field only one of the two sets is not a disagreement, and each
- * disagreeing field is named on its own, so the caller can keep the first
- * value of that field and still merge the rest.
+ * A field only one of the two sets is not a disagreement. Each disagreeing
+ * field is named on its own, so the caller can keep the first value of that
+ * field and still merge the rest.
  *
  * The fields of `externalDocs` are compared the same way. Two different
  * `url` values disagree, since a Tag Object holds one link, and so do two

@@ -122,9 +122,9 @@ export function declaredServerNames(
  *
  * `security`, `externalDocs`, and `tags` come from the namespace rather than
  * from one server, so every server the namespace declares carries the same
- * value for all three. They are read once and shared here; the lower half
- * gives each server its own copy, since that is where a shared value would
- * turn into a shared object in the output.
+ * value for all three. They are read once and shared here. The lower half
+ * gives each server its own copy. That is where a shared value would
+ * otherwise turn into a shared object in the output.
  *
  * The `externalDocs` and `tags` of the namespace also reach `info`, since
  * `info` reads that same namespace. The duplication is intended: AsyncAPI

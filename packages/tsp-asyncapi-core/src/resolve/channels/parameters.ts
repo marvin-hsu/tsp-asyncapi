@@ -3,7 +3,7 @@
  * address and its operations.
  *
  * It reads the channel's address and every top-level parameter its
- * operations declare, setting aside one whose type carries `@message`,
+ * operations declare. It sets aside one whose type carries `@message`,
  * since that declares a message instead of an address piece.
  *
  * It reports an address expression with no declaration, a declaration the
