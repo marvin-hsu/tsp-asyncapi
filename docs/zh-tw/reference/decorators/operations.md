@@ -79,6 +79,8 @@ operations:
 
 參照保持簽章的順序，重複的 message 只出現一次。用 union 參數也能表達同一份清單：`event: WithdrawCompleted | WithdrawFailed` 會列出兩個成員。
 
+像 `[WithdrawCompleted, WithdrawFailed]` 這種 tuple 不是一份 message 清單。emitter 不會拆開它。該型別會回報 [`unsupported-operation-message-type`](../diagnostics#unsupported-operation-message-type)。
+
 `operationId` 覆寫這個 operation 在輸出 `operations` map 中的 key。不給時，key 是 operation 的名稱。空白的 id 回報 [`empty-operation-id`](../diagnostics#empty-operation-id)。兩個 operation 對應到同一個 key 時回報 [`duplicate-operation-id`](../diagnostics#duplicate-operation-id)，原始碼順序在前的保留該 key。
 
 interface 優先於外層的 namespace。巢狀 interface 是獨立的 channel 範圍。所在範圍沒有 channel 的 operation 回報 [`operation-without-channel`](../diagnostics#operation-without-channel) 並被丟棄。

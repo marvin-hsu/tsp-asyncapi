@@ -16,6 +16,7 @@ import type {
 import {
   enumeratedField,
   listField,
+  objectField,
   reportBindingField,
   reportMissingField,
   schemaField,
@@ -100,8 +101,9 @@ export function $jmsServer(
 /**
  * Checks the `properties` field of the server binding.
  *
- * JMS states it as a list and puts no rule on the entries, so each one passes
- * through as written. An empty list is dropped, because it states nothing.
+ * JMS requires each entry to be an object with a `name` and a `value`. An
+ * entry outside that is reported and dropped. An empty list is dropped,
+ * because it states nothing.
  *
  * @param context - The decorator context
  * @param value - The field as the author wrote it
@@ -114,7 +116,26 @@ function properties(
 ): unknown[] | undefined {
   const plain = listField(context, JMS_BINDING_PROTOCOL, "properties", value, "a list", target);
   if (plain === undefined) return undefined;
-  return plain.length > 0 ? plain : undefined;
+
+  const entries: { name: string; value: unknown }[] = [];
+  for (const [index, written] of plain.entries()) {
+    const field = `properties[${String(index)}]`;
+    const entry = objectField(context, JMS_BINDING_PROTOCOL, field, written, target);
+    if (entry === undefined) continue;
+    const name = typeof entry.name === "string" ? trimmed(entry.name) : undefined;
+    if (name === undefined || !("value" in entry)) {
+      reportBindingField(
+        context,
+        JMS_BINDING_PROTOCOL,
+        field,
+        "an object with a name and a value",
+        target,
+      );
+      continue;
+    }
+    entries.push({ name, value: entry.value });
+  }
+  return entries.length > 0 ? entries : undefined;
 }
 
 /**

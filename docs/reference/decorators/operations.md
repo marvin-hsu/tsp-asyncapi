@@ -79,6 +79,8 @@ operations:
 
 The references keep the order of the signature, and a repeated message appears once. A union parameter expresses the same list: `event: WithdrawCompleted | WithdrawFailed` names both variants.
 
+A tuple such as `[WithdrawCompleted, WithdrawFailed]` is not a list of messages. The emitter does not unwrap it. That type reports [`unsupported-operation-message-type`](../diagnostics#unsupported-operation-message-type).
+
 `operationId` overrides the key of this operation in the emitted `operations` map. Without it, the key is the name of the operation. A blank id reports [`empty-operation-id`](../diagnostics#empty-operation-id). Two operations that resolve to one key report [`duplicate-operation-id`](../diagnostics#duplicate-operation-id), and the first one in source order keeps the key.
 
 An interface wins over the namespace around it, because a nested interface is a channel scope of its own. An operation whose scope carries no channel reports [`operation-without-channel`](../diagnostics#operation-without-channel) and is dropped.

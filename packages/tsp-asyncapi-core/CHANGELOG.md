@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Patch Changes
+
+- Report a tuple used as an operation message type.
+
+  A parameter or return type such as `[OrderCreated, OrderShipped]` looks
+  like a list of messages. It is not. The emitter used to drop it with no
+  diagnostic. It now reports `unsupported-operation-message-type`. Write
+  extra parameters, or a union of models, instead.
+
+  Each JMS `properties` entry must have a `name` and a `value`. An entry
+  outside that reports `invalid-binding-field` and is dropped.
+
+  An OAuth `scopes` name that no flow lists in `availableScopes` reports
+  `unknown-oauth-scope`. The name still reaches the document.
+
+  `listMessages` now builds its sorted map once per program.
+
 ## 0.4.1
 
 ### Patch Changes

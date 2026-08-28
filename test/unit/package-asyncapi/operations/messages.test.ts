@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { TesterInstance } from "@typespec/compiler/testing";
 import { AsyncAPITester } from "#emitter/testing.js";
-import { documentFrom } from "../../../utils/test-host.js";
+import { documentFrom, emitDocumentWithDiagnostics } from "../../../utils/test-host.js";
+import { diagnosticsWith, findDiagnostic } from "../../../utils/diagnostics.js";
 
 describe("Unit: Operation messages (Phase 5.2)", () => {
   let runner: TesterInstance;
@@ -234,5 +235,37 @@ describe("Unit: Operation messages (Phase 5.2)", () => {
     expect(doc.operations?.pull.messages).toEqual([
       { $ref: "#/channels/orders.events/messages/Event" },
     ]);
+  });
+
+  it("reports a tuple used as an operation message type and does not unwrap it", async () => {
+    // A tuple looks like a list of types. It is not a list of messages.
+    // Unwrapping it would invent two messages the signature never named
+    // as variants or as extra parameters.
+    const { doc, diagnostics } = await emitDocumentWithDiagnostics(`
+      @service(#{ title: "Orders" })
+      namespace Test;
+
+      @message
+      model OrderCreated {
+        id: string;
+      }
+
+      @message
+      model OrderShipped {
+        id: string;
+      }
+
+      @channel("orders.events")
+      interface OrderChannel {
+        @send op publish(event: [OrderCreated, OrderShipped]): void;
+      }
+    `);
+
+    const reported = findDiagnostic(diagnostics, "unsupported-operation-message-type");
+    expect(reported.severity).toBe("warning");
+    expect(reported.message).toContain("Tuple");
+    expect(diagnosticsWith(diagnostics, "unsupported-operation-message-type")).toHaveLength(1);
+    expect(doc?.operations?.publish).not.toHaveProperty("messages");
+    expect(doc?.channels?.["orders.events"].messages).toBeUndefined();
   });
 });

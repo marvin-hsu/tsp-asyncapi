@@ -23,6 +23,8 @@ Apply it to the service namespace.
 
 `jmsConnectionFactory` is required. A binding without it is reported through `missing-binding-field` and dropped whole.
 
+Each entry of `properties` is an object with a `name` and a `value`. An entry outside that is reported through `invalid-binding-field` and dropped. The rest of the binding is kept.
+
 ```typespec
 @service(#{ title: "Orders" })
 @server("prod", #{ host: "jms.example.com:61616", protocol: "jms" })

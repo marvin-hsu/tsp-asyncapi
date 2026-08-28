@@ -130,6 +130,8 @@ Every URL of a scheme must be absolute. This covers `openIdConnectUrl` and the `
 
 A blank entry of `scopes` reports a [`blank-security-scope-name`](../diagnostics#blank-security-scope-name) warning and is dropped. The scheme itself survives. A blank description inside `availableScopes` is kept as an empty string, because AsyncAPI requires a value for every key of that map.
 
+A name in `scopes` that no flow lists in `availableScopes` reports [`unknown-oauth-scope`](../diagnostics#unknown-oauth-scope). The name still reaches the document.
+
 A scheme name may only use letters, digits, `.`, `-`, and `_`. Any other name reports an [`invalid-security-scheme-name`](../diagnostics#invalid-security-scheme-name) error. Two schemes that share a name report a [`duplicate-security-scheme-name`](../diagnostics#duplicate-security-scheme-name) error, and the first one in source order is kept. A required string field that is blank reports an [`empty-security-scheme-field`](../diagnostics#empty-security-scheme-field) error.
 
 ## `@useSecurity`

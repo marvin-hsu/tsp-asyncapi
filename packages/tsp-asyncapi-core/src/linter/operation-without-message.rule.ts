@@ -38,48 +38,52 @@ export const operationWithoutMessageRule = createRule({
   messages: {
     default: paramMessage`Operation '${"name"}' names no \`@message\` model, so the emitted operation carries no \`messages\` field. AsyncAPI reads that as every message of channel '${"channel"}'. Mark the model this operation carries with \`@message\`.`,
   },
-  create: (context) => ({
-    operation: (operation) => {
-      const program = context.program;
+  create: (context) => {
+    // The marked models do not change while this rule walks operations.
+    // One copy of the map is enough for every operation in the program.
+    const messages = listMessages(context.program);
+    return {
+      operation: (operation) => {
+        const program = context.program;
 
-      const action = getOperationAction(program, operation)?.action;
-      if (action === undefined) return;
+        const action = getOperationAction(program, operation)?.action;
+        if (action === undefined) return;
 
-      const target = owningChannelTarget(operation);
-      if (target === undefined) return;
-      const channel = getChannel(program, target);
-      if (channel === undefined) return;
+        const target = owningChannelTarget(operation);
+        if (target === undefined) return;
+        const channel = getChannel(program, target);
+        if (channel === undefined) return;
 
-      // The direction rule has one definition, in `operation-models.ts`.
-      // Which side is the request and which is the reply depends on the
-      // action, and a second spelling of that here would let the rule and
-      // the emitter disagree about one operation.
-      //
-      // The request side alone, because that is the side the `messages`
-      // field is built from: `resolve/operations.ts` passes `request` to
-      // `resolveMessageRefs`. The reply side reaches `reply.messages`, a
-      // different field, and having one says nothing about the other.
-      //
-      // So this also catches an inverted `@receive`. A receive operation
-      // names what it receives in its return type, and writing the message
-      // as a parameter puts it on the reply side. The operation then emits
-      // no `messages`, which is the mistake this rule is about.
-      //
-      // The side holds every model the signature names, message or not.
-      // `resolveMessageRefs` applies the message filter downstream, so the
-      // same filter is applied here rather than assumed.
-      const messages = listMessages(program);
-      const { request } = operationSides(program, operation, action);
-      if (request.some((model: Model) => messages.has(model))) return;
+        // The direction rule has one definition, in `operation-models.ts`.
+        // Which side is the request and which is the reply depends on the
+        // action, and a second spelling of that here would let the rule and
+        // the emitter disagree about one operation.
+        //
+        // The request side alone, because that is the side the `messages`
+        // field is built from: `resolve/operations.ts` passes `request` to
+        // `resolveMessageRefs`. The reply side reaches `reply.messages`, a
+        // different field, and having one says nothing about the other.
+        //
+        // So this also catches an inverted `@receive`. A receive operation
+        // names what it receives in its return type, and writing the message
+        // as a parameter puts it on the reply side. The operation then emits
+        // no `messages`, which is the mistake this rule is about.
+        //
+        // The side holds every model the signature names, message or not.
+        // `resolveMessageRefs` applies the message filter downstream, so the
+        // same filter is applied here rather than assumed.
+        const { request } = operationSides(program, operation, action);
+        if (request.some((model: Model) => messages.has(model))) return;
 
-      if (channelMessageModels(program, target).length === 0) return;
+        if (channelMessageModels(program, target).length === 0) return;
 
-      const id = channel.channelId ?? channel.address ?? target.name;
+        const id = channel.channelId ?? channel.address ?? target.name;
 
-      context.reportDiagnostic({
-        format: { name: operation.name, channel: id },
-        target: operation,
-      });
-    },
-  }),
+        context.reportDiagnostic({
+          format: { name: operation.name, channel: id },
+          target: operation,
+        });
+      },
+    };
+  },
 });

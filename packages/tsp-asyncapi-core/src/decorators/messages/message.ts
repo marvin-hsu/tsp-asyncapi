@@ -3,6 +3,14 @@ import { bySourcePosition, sourcePositionOf } from "../../source-order.js";
 import { useStateMap } from "@typespec/compiler/utils";
 import { singleApplication } from "../single-application.js";
 
+/**
+ * The sorted `@message` map of one program.
+ *
+ * The set of marked models does not change after decorators have run.
+ * One program therefore builds the map once.
+ */
+const listedMessages = new WeakMap<Program, Map<Model, MessageState>>();
+
 const messageStateKey = Symbol.for("tsp-asyncapi.message");
 
 const messageAppliedKey = Symbol.for("tsp-asyncapi.message.applied");
@@ -85,6 +93,10 @@ export function $message(context: DecoratorContext, target: Model, name?: string
  * Sorting here matches every other program-wide list the emitter reads, such
  * as the servers, the channels, and the security schemes.
  *
+ * The sorted map is built once per program. Later calls reuse it. Decorators
+ * have already run when this is first called, so a later call sees the same
+ * set of messages.
+ *
  * @param program - The program to read the state from
  *
  * @returns A map from each marked model to its recorded state, in source
@@ -93,8 +105,13 @@ export function $message(context: DecoratorContext, target: Model, name?: string
  * @public
  */
 export function listMessages(program: Program): Map<Model, MessageState> {
+  const cached = listedMessages.get(program);
+  if (cached !== undefined) return new Map(cached);
+
   const entries = [...getMessageStateMap(program)];
   const compare = bySourcePosition(program);
   entries.sort(([a], [b]) => compare(sourcePositionOf(a), sourcePositionOf(b)));
-  return new Map(entries);
+  const listed = new Map(entries);
+  listedMessages.set(program, listed);
+  return new Map(listed);
 }
