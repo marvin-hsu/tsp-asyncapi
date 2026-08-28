@@ -20,13 +20,11 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
   });
 
   it("lists exactly the identifiers of the AsyncAPI 3.1.0 schema format tables", () => {
-    // Every identifier is written out by hand here. The cases below derive
-    // themselves from the constant, so they accept whatever it holds. This is
-    // the one place that says what it must hold. A typo in a spec identifier
-    // or an invented value fails here.
+    // This is the one place that pins the constant's exact values by hand;
+    // other cases derive from it, so a typo or an invented identifier fails
+    // only here.
     //
-    // The first table is the one every implementation MUST support. The
-    // second is the one every implementation is RECOMMENDED to support.
+    // The first table is required (MUST); the second is RECOMMENDED.
     expect(MULTI_FORMAT_SCHEMA_FORMATS).toEqual([
       "application/vnd.aai.asyncapi;version=3.1.0",
       "application/vnd.aai.asyncapi+json;version=3.1.0",
@@ -72,9 +70,8 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
   });
 
   it.each(MULTI_FORMAT_SCHEMA_FORMATS)("accepts the listed format %s", async (format) => {
-    // A non-JSON format takes its schema as a string. The rule below covers
-    // the object form of it, so this case gives each format a schema the
-    // format itself allows.
+    // A non-JSON format takes its schema as a string, so this case gives
+    // each format a schema the format itself allows.
     const schema = NON_JSON_SCHEMA_FORMATS.includes(format)
       ? `"message Order {}"`
       : `#{ type: "record" }`;
@@ -106,11 +103,10 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       model OrderCreated {}
     `);
 
-    // The other half of the same sentence in the specification. A JSON based
-    // language has an object form, and the schema must be inlined as one
-    // rather than as text waiting to be parsed. Only the non-JSON direction
-    // was checked before, so a string reached the document and the official
-    // parser rejected it while this emitter exited clean.
+    // The other half of the spec's rule: a JSON based format must inline its
+    // schema as an object, not as text waiting to be parsed. Without this
+    // check a string would reach the document, and the official parser
+    // would reject it.
     const reported = findDiagnostic(diagnostics, "string-raw-schema");
     expect(reported.severity).toBe("error");
     expect(reported.message).toContain(format);
@@ -367,9 +363,8 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    // The spec requires the schema field, and the value must match the
-    // format. A null is no Avro schema. So it takes the route of a value the
-    // serializer cannot represent.
+    // The spec requires a schema value matching the format. Null is not a
+    // valid Avro schema, so it takes the route of an unrepresentable value.
     const reported = findDiagnostic(diagnostics, "invalid-raw-schema");
     expect(reported.severity).toBe("error");
 
@@ -437,8 +432,8 @@ describe("Unit: Message raw schemas: schemaFormat values (Phase 3.9)", () => {
       }
     `);
 
-    // The guard records that the decorator ran before the value is checked.
-    // So the author is told about both mistakes.
+    // The guard records that the decorator ran before checking the value, so
+    // the author is told about both mistakes.
     expect(diagnosticsWith(diagnostics, "empty-schema-format")).toHaveLength(1);
     expect(diagnosticsWith(diagnostics, "duplicate-raw-payload-decorator")).toHaveLength(1);
 

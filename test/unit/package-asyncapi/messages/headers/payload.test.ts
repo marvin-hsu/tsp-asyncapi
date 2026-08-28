@@ -33,9 +33,9 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
 
     const doc = await documentFrom(runner.program);
 
-    // Lifting is local to the message that declares the header. The entry of
-    // `OrderCreated` is shared with the payload of `OrderBatch`, so it keeps
-    // every field. The lifted field leaves a payload component of its own.
+    // Lifting is local to the message that declares the header. The shared
+    // entry of `OrderCreated` keeps every field; only its own message gets a
+    // separate payload component with the lifted field removed.
     expect(doc.components?.schemas?.OrderCreated).toEqual({
       type: "object",
       properties: { traceId: { type: "string" }, orderId: { type: "string" } },
@@ -55,7 +55,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       required: ["traceId"],
     });
     // `OrderBatch` lifts nothing, so its payload stays a reference to its own
-    // model, and the element type of `orders` is the whole `OrderCreated`.
+    // model. The element type of `orders` is the whole `OrderCreated`.
     expect(doc.components?.messages?.OrderBatch.headers).toBeUndefined();
     expect(doc.components?.messages?.OrderBatch.payload).toEqual({
       $ref: "#/components/schemas/OrderBatch",
@@ -71,10 +71,9 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
   });
 
   it("derives the payload key from the resolved schema key, not the declared name", async () => {
-    // The derived key is built from whatever the key registry resolved for
-    // the model, so `@friendlyName` and namespace qualification carry into
-    // it. Building it from `model.name` instead would emit `EvPayload`
-    // here, which no reader could connect to the `Renamed` message.
+    // The derived key is built from the resolved schema key, so `@friendlyName`
+    // and namespace qualification carry into it. Building it from `model.name`
+    // instead would emit `EvPayload`, which no reader could connect to `Renamed`.
     await runner.compile(`
       @service(#{ title: "Orders" })
       namespace Sales;
@@ -99,8 +98,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       properties: { body: { type: "string" } },
       required: ["body"],
     });
-    // Nothing else refers to the model, so its own component is not emitted.
-    // Only a reachable model reaches `components.schemas`.
+    // Nothing else refers to the model, so it emits no component of its own.
     expect(Object.keys(doc.components?.schemas ?? {})).toEqual(["RenamedPayload"]);
   });
 
@@ -126,8 +124,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     const doc = await documentFrom(runner.program);
 
     // Lifting is local to the message. `Inner` keeps its whole shape for
-    // every other reader, and the message points at a payload component of
-    // its own instead.
+    // every other reader; its own message points at a payload component instead.
     expect(doc.components?.schemas?.Inner).toEqual({
       type: "object",
       properties: { traceId: { type: "string" }, v: { type: "string" } },
@@ -145,8 +142,8 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     expect(schemaOf(schemasOf(doc).Outer).properties?.inner).toEqual({
       $ref: "#/components/schemas/Inner",
     });
-    // A nested use of a lifting message is ordinary now. Nothing about this
-    // shape is worth a diagnostic, and the derived key is free.
+    // A nested use of a lifting message needs no diagnostic, and its derived
+    // key is free.
     expect(
       runner.program.diagnostics.filter(
         (d) =>
@@ -181,11 +178,10 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
 
     const doc = await documentFrom(runner.program);
 
-    // The derived key goes through the same collision rule as every other
-    // schema key. So a model the author named `InnerPayload` is reported
-    // rather than silently replaced by the derived payload of `Inner`. The
-    // author wrote no second `InnerPayload`, so the report names the message
-    // whose payload needs the key.
+    // The derived key follows the same collision rule as every other schema
+    // key. The author's `InnerPayload` is reported rather than silently
+    // replaced by `Inner`'s derived payload, and the report names the
+    // message whose payload needs the key.
     const reported = diagnosticsWith(runner.program.diagnostics, "payload-schema-key-taken");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
@@ -198,9 +194,9 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       properties: { x: { type: "string" } },
       required: ["x"],
     });
-    // The payload has no component to point at, so it is emitted in place.
-    // A reference to the model's own component would describe `traceId` as
-    // payload data while `headers` describes it as a header.
+    // The payload has no component to point at, so it is emitted in place. A
+    // reference to the model's own component would describe `traceId` twice:
+    // once as payload data, once as a header.
     expect(doc.components?.messages?.Inner.payload).toEqual({
       type: "object",
       properties: { v: { type: "string" } },
@@ -243,10 +239,10 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
 
     const doc = await documentFrom(runner.program);
 
-    // Same clash, reached from the other side. The derived key is claimed
+    // Same clash, reached from the other side: the derived key is claimed
     // before the author's model is built, so the model is the one reported.
-    // Either order reports the clash, and either report names the message
-    // that needs the derived key, which is the half the author cannot see.
+    // Either order names the message that needs the derived key, the half
+    // the author cannot see.
     const reported = diagnosticsWith(runner.program.diagnostics, "payload-schema-key-taken");
     expect(reported).toHaveLength(1);
     expect(reported[0]?.severity).toBe("error");
@@ -321,7 +317,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
       properties: { traceId: { type: "string" } },
       required: ["traceId"],
     });
-    // A payload graph that returns to the lifting message is ordinary now.
+    // A payload graph that returns to the lifting message needs no diagnostic.
     expect(
       runner.program.diagnostics.filter(
         (d) =>
@@ -373,7 +369,7 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     });
     // `B` lifts nothing of its own, so its payload stays its own model.
     expect(doc.components?.messages?.B.payload).toEqual({ $ref: "#/components/schemas/B" });
-    // Sharing a lifting message as a `@headers` model is ordinary now.
+    // Sharing a lifting message as a `@headers` model needs no diagnostic.
     expect(
       runner.program.diagnostics.filter(
         (d) =>
@@ -441,10 +437,9 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
 
     const doc = await documentFrom(runner.program);
 
-    // `@friendlyName` decides the component key of the model, so the derived
-    // payload key must be built from that key. A payload keyed `MPayload`
-    // beside a component keyed `Renamed` would name a model the document
-    // never mentions.
+    // `@friendlyName` decides the model's component key, so the derived
+    // payload key must build from that key too. `MPayload` beside a
+    // component keyed `Renamed` would name a model the document never mentions.
     expect(doc.components?.schemas?.Renamed).toEqual({
       type: "object",
       properties: { h: { type: "string" }, body: { type: "string" } },
@@ -491,9 +486,8 @@ describe("Unit: Message headers: the derived payload component (Phase 3.3)", () 
     const doc = await documentFrom(runner.program);
 
     // Nothing reads `Inner` itself, so it emits no component of its own.
-    // Holding its key anyway would report `Other` as a duplicate of a
-    // schema that is never written. It would also leave `Outer` referring
-    // to a key with nothing behind it.
+    // Holding its key anyway would falsely flag `Other` as a duplicate and
+    // leave `Outer`'s reference pointing at nothing.
     expect(diagnosticsWith(runner.program.diagnostics, "duplicate-schema-key")).toHaveLength(0);
     expect(doc.components?.schemas?.Inner).toEqual({
       type: "object",

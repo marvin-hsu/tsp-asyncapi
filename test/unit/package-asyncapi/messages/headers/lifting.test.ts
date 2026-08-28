@@ -42,9 +42,8 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       },
       payload: { $ref: "#/components/schemas/OrderCreatedPayload" },
     });
-    // The lifted fields belong to `headers`, so the payload must not describe
-    // them. They leave a payload component of their own rather than the
-    // model's own entry, which every other reader of the model still shares.
+    // Lifted fields belong to `headers`, not the payload. The payload becomes
+    // its own component, distinct from the model's entry other readers share.
     expect(doc.components?.schemas?.OrderCreatedPayload).toEqual({
       type: "object",
       properties: {
@@ -224,8 +223,8 @@ describe("Unit: Message headers: lifting fields (Phase 3.3)", () => {
       },
       required: ["correlationId", "orderId"],
     });
-    // The cancelled field sits where the emitter does support it, so it must
-    // not also be reported as a misplaced mark.
+    // The field's position is valid, so cancelling headers must not also
+    // trigger a misplaced-mark diagnostic.
     expect(diagnosticsWith(runner.program.diagnostics, "nested-header-ignored")).toHaveLength(0);
   });
 

@@ -44,8 +44,8 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
       },
       payload: { $ref: "#/components/schemas/OrderCreated" },
     });
-    // The payload still comes from the model, with every field in it. Raw
-    // headers lift nothing out of the payload.
+    // The payload still comes from the model with every field. Raw headers
+    // lift nothing out of it.
     expect(doc.components?.schemas?.OrderCreated).toEqual({
       type: "object",
       properties: { orderId: { type: "string" } },
@@ -67,9 +67,8 @@ describe("Unit: Message raw schemas: @rawHeaders (Phase 3.9)", () => {
     const doc = await documentFrom(runner.program);
     const message = doc.components?.messages?.OrderCreated;
 
-    // The two slots are filled from one function, so identical input produces
-    // identical output. A second, hand-written container is what this asserts
-    // against.
+    // Both slots come from the same function, so identical input produces
+    // identical output, not two independently hand-written containers.
     expect(message?.payload).toEqual(message?.headers);
     expect(message?.headers).toEqual({
       schemaFormat: AVRO,

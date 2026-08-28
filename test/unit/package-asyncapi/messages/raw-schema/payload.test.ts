@@ -63,8 +63,7 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The model is a carrier for the decorators. Its own properties describe
-    // nothing the document emits, so neither the model nor the models it
+    // The model only carries the decorators, so neither it nor the models it
     // refers to claim a key.
     expect(doc.components?.schemas).toBeUndefined();
     expect(doc.components?.messages?.OrderCreated.payload).toEqual({
@@ -96,8 +95,8 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // Reachability is unchanged. The raw message simply stops being a root of
-    // the walk, and every other message still collects what it reaches.
+    // Reachability is unchanged: the raw message stops being a root of the
+    // walk, but every other message still collects what it reaches.
     expect(Object.keys(doc.components?.schemas ?? {}).sort(byCodePoint)).toEqual([
       "Address",
       "PlainOrder",
@@ -123,10 +122,10 @@ describe("Unit: Message raw schemas: @rawPayload (Phase 3.9)", () => {
 
     const doc = await documentFrom(runner.program);
 
-    // The raw model is not exempt from the schema walk. It only stops being a
-    // root of it. Another message reaches it as a property type here, so it
-    // gets its ordinary JSON Schema entry, properties and all. Leaving it out
-    // would make the other message point at nothing.
+    // The raw model is not exempt from the schema walk; it only stops being
+    // a root of it. Reached here as a property type, it still gets its
+    // ordinary JSON Schema entry. Leaving it out would make the other
+    // message point at nothing.
     expect(doc.components?.schemas?.RawOrder).toEqual({
       type: "object",
       properties: { id: { type: "string" } },
