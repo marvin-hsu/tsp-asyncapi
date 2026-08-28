@@ -1,5 +1,5 @@
 /**
- * The committed Avro payload example, read as a reader reads it.
+ * The committed Avro payload example, read as a consumer reads it.
  *
  * `examples/18-avro-payloads` is compiled by two emitters over one source.
  * `tsp-avro` writes the `.avsc` files, and this emitter inlines the same

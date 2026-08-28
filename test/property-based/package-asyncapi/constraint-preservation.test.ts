@@ -11,30 +11,32 @@ const SCHEMA_REF_PREFIX = "#/components/schemas/";
 /**
  * No declared constraint is erased by a more-derived level.
  *
- * A validation constraint can be declared at several levels of one value: a
- * base scalar, a derived scalar, and the property use site. Two constraints
- * on the same value are a JSON Schema intersection, and both must hold.
+ * A validation constraint can be declared at several levels of one value.
+ * These levels are a base scalar, a derived scalar, and the property use
+ * site. Two constraints on the same value are a JSON Schema intersection,
+ * and both must hold.
  *
- * Plain object spread would instead let the more-derived level replace the
- * ancestor's value, so the emitted schema would accept payloads the author's
- * own declaration rejects. No diagnostic catches that; the only defence is
- * the `allOf` wrap in `withDocs` and `withPropertyDocs`, whose collision set
- * is computed by hand.
+ * Plain object spread would instead let the more-derived level replace
+ * the ancestor's value. The emitted schema would then accept payloads
+ * the author's own declaration rejects. No diagnostic catches that. The
+ * only defence is the `allOf` wrap in `withDocs` and `withPropertyDocs`,
+ * whose collision set is computed by hand.
  *
- * The property is stated over the resolved schema, not the wrap rule: every
- * `(keyword, value)` pair the source declares must appear somewhere in the
- * emitted schema for that property, at any depth of `allOf`. `format` is
- * excluded, since two `format`s on one value are a contradiction rather than
- * an intersection, and last-wins is the documented intent there.
+ * The property is stated over the resolved schema, not the wrap rule.
+ * Every `(keyword, value)` pair the source declares must appear
+ * somewhere in the emitted schema for that property, at any depth of
+ * `allOf`. `format` is excluded. Two `format`s on one value are a
+ * contradiction rather than an intersection, and last-wins is the
+ * documented intent there.
  *
- * Reachability: a chain with a keyword repeated across levels enters both
- * collision branches and nests one `allOf` inside another; a chain with no
- * repeated keyword merges flat instead. Both shapes are common but not
- * universal, so each property counts runs that produced any `allOf` and runs
- * that nested one, and asserts both counts non-zero. The generators avoid
- * the three ways TypeSpec itself would reject the program: a decorator on
- * the wrong scalar kind, an inverted bound pair, and a numeric bound outside
- * an ancestor's own range.
+ * Reachability: a chain with a keyword repeated across levels enters
+ * both collision branches and nests one `allOf` inside another. A chain
+ * with no repeated keyword merges flat instead. Both shapes are common
+ * but not universal. Each property counts runs that produced any
+ * `allOf` and runs that nested one, and asserts both counts non-zero.
+ * The generators also avoid three ways TypeSpec itself would reject the
+ * program: a decorator on the wrong scalar kind, an inverted bound
+ * pair, and a numeric bound outside an ancestor's own range.
  */
 describe("Property: no declared constraint is erased", () => {
   const KEYWORDS = ["minLength", "maxLength", "pattern", "minimum", "maximum"] as const;

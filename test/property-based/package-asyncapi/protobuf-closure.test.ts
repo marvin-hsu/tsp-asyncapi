@@ -12,18 +12,18 @@ import { compileWithProtobuf, descriptorOf, renderNamed } from "../../utils/prot
  *
  * Hand-written cases pin the shapes a person thinks of: one reference, a
  * self-reaching message, and two that reach each other. The shapes that
- * break a closure walk are the ones nobody enumerates: a diamond where two
- * paths meet, a node reachable only three hops away, a cycle entered from
- * outside it. A generator finds those.
+ * break a closure walk are the ones nobody enumerates. A diamond where
+ * two paths meet, a node reachable only three hops away, a cycle
+ * entered from outside it. A generator finds those.
  *
- * The oracle is reachability computed here, over the graph the generator
- * drew, not over anything the emitter produced. So the property compares two
- * independent answers to one question.
+ * The oracle is reachability computed here, over the graph the
+ * generator drew, not over anything the emitter produced. The property
+ * compares two independent answers to one question.
  *
- * The hand-written shapes are checked every run, since a diamond appears in
- * only about one generated graph in twenty; a counter over forty runs could
- * miss one by chance and fail on nobody's mistake. The generator instead
- * searches for shapes nobody wrote down.
+ * The hand-written shapes are checked every run. A diamond appears in
+ * only about one generated graph in twenty. A counter over forty runs
+ * could miss one by chance and fail on nobody's mistake. The generator
+ * instead searches for shapes nobody wrote down.
  */
 
 /** How many models one generated program declares. */

@@ -10,19 +10,22 @@ import { resolveRef } from "../../utils/json-pointer.js";
  * What a deeply nested program does to the schema builder.
  *
  * Every other property in this directory searches width or an inheritance
- * chain. This one searches depth, which is where
- * `lower/schemas/declarations.ts` makes its three decisions: promote an
- * unspeakable declaration on its second use, claim a key part way through a
- * self-referencing build, and hand that key back when the build throws.
+ * chain. This one searches depth.
  *
- * The generator emits TypeSpec source directly rather than building IR
- * nodes, so a change to the semantic model's shape cannot break it.
+ * `lower/schemas/declarations.ts` makes three decisions at depth. It
+ * promotes an unspeakable declaration on its second use. It claims a key
+ * part way through a self-referencing build. It hands that key back when
+ * the build throws.
  *
- * Every arm is constructed rather than filtered. `buildNamedDeclaration`
- * holds the promotion, and it only sees named declarations; an anonymous
- * model goes to `buildAnonymousDeclaration`, which always inlines. The shape
- * that promotes is an alias to a template instantiation whose argument has
- * no name of its own, referenced twice.
+ * The generator emits TypeSpec source directly, not IR nodes. A change to
+ * the semantic model's shape cannot break it.
+ *
+ * Every arm is constructed, not filtered. `buildNamedDeclaration` holds
+ * the promotion, and it only sees named declarations. An anonymous model
+ * goes to `buildAnonymousDeclaration`, which always inlines.
+ *
+ * The shape that promotes is an alias to a template instantiation. Its
+ * argument has no name of its own, and it is referenced twice.
  */
 
 /** A type that needs no declaration of its own. */
@@ -31,10 +34,10 @@ const leafType = fc.constantFrom("string", "int32", "float64", "boolean");
 /**
  * A nested type expression, built by wrapping a leaf.
  *
- * The three wrappers are the ones a schema walk descends through: an array
- * descends into `items`, a `Record` into `additionalProperties`, and an
- * anonymous model into `properties`. Depth here is depth of the walk, which is
- * what the recursion guard counts.
+ * A schema walk descends through three wrappers. An array descends into
+ * `items`, a `Record` into `additionalProperties`, and an anonymous model
+ * into `properties`. Depth here is depth of the walk, and that is what
+ * the recursion guard counts.
  */
 const nestedType = fc.letrec<{ type: string }>((tie) => ({
   type: fc.oneof(
@@ -52,15 +55,17 @@ const nestedType = fc.letrec<{ type: string }>((tie) => ({
  * A declaration whose schema body is decided by a count rather than a shape.
  *
  * An empty union and an empty enum are the two places this emitter must
- * stand something in for: `anyOf: []` and `enum: []` are what "no variant"
- * and "no member" mean, and neither is legal draft-07, so both guards return
- * `{ not: {} }` instead. These are the only edits in the schema walk that
- * turn a document the official parser accepts into one it rejects, which is
- * why they are generated here instead of only at the top level.
+ * stand something in for. `anyOf: []` means "no variant", and `enum: []`
+ * means "no member", but neither is legal draft-07. Both guards return
+ * `{ not: {} }` instead.
  *
- * The three non-empty kinds keep the parser from seeing only the empty ones
- * on this path: a string-literal union collapses to one `enum`, a mixed
- * union becomes `anyOf`, and an enum carries its members.
+ * These are the only edits in the schema walk that turn an accepted
+ * document into a rejected one. That is why they are generated here, not
+ * only at the top level.
+ *
+ * The three non-empty kinds keep the parser from seeing only the empty
+ * ones on this path. A string-literal union collapses to one `enum`. A
+ * mixed union becomes `anyOf`. An enum carries its members.
  */
 type AuxKind = "empty-union" | "empty-enum" | "string-union" | "mixed-union" | "enum";
 
@@ -127,10 +132,10 @@ interface Generated {
  * The ladder: level `k` refers to level `k-1` once or twice.
  *
  * This is the shape `declarations.ts` quantifies in its own comment. Every
- * level is an alias to `Env<{...}>`, so none of them has a name of its own,
- * and a level two of its neighbours refer to is promoted to a component. A
+ * level is an alias to `Env<{...}>`, so none of them has a name of its own.
+ * A level two of its neighbours refer to is promoted to a component. A
  * level that is never referred to twice inlines instead. Both outcomes are
- * correct; what is not correct is emitting one level's body more than once.
+ * correct. Emitting one level's body more than once is not.
  */
 function ladder(
   uses: readonly number[],
@@ -164,8 +169,8 @@ function cycleArm(kind: CycleKind): { lines: string[]; field: string } {
       };
     case "anon-alias":
       // The one arm that cannot be expressed as a schema at all. `alias` needs
-      // no name for its right-hand side, so it is the only way to reach an
-      // anonymous model that contains itself, and expanding it always leaves
+      // no name for its right-hand side. That makes it the only way to reach
+      // an anonymous model that contains itself. Expanding it always leaves
       // another self-reference behind.
       return { lines: ["alias AnonCycle = { inner: AnonCycle };"], field: "ac: AnonCycle" };
     case "self-instantiation":
@@ -186,9 +191,9 @@ const generated: fc.Arbitrary<Generated> = fc
     fc.array(auxKind, { minLength: 1, maxLength: 3 }),
   )
   .map(([uses, cycle, nested, aux]): Generated => {
-    // Each auxiliary declaration is referred to from a ladder level rather
-    // than from `Root`, so its schema sits under as many wrappers as that
-    // level is deep. Level 0 is the deepest, so the first one goes there.
+    // Each auxiliary declaration is referred to from a ladder level, not from
+    // `Root`. Its schema then sits under as many wrappers as that level is
+    // deep. Level 0 is the deepest, so the first one goes there.
     const extras: string[][] = Array.from({ length: uses.length + 1 }, () => []);
     const auxLines = aux.map((kind, index) => {
       const name = `Aux${String(index)}`;
@@ -220,14 +225,14 @@ describe("Property: nested depth", () => {
   /**
    * The emitter answers, and every reference it wrote points at something.
    *
-   * Two failures are possible here that no shallow program reaches: a cycle
-   * the guard misses recurses until the stack goes, and a key claimed part
-   * way through a build that then fails leaves a `$ref` aimed at nothing.
-   * Neither shows up as a wrong value; the first throws and the second
-   * dangles.
+   * Two failures are possible here that no shallow program reaches. A cycle
+   * the guard misses recurses until the stack goes. A key claimed part way
+   * through a build, if that build then fails, leaves a `$ref` aimed at
+   * nothing. Neither shows up as a wrong value. The first throws, and the
+   * second dangles.
    *
    * The unrepresentable cycle is the one input that must be reported. The
-   * other three back-references are expressible, so the property requires an
+   * other three back-references are expressible. The property requires an
    * error exactly when the anonymous alias cycle is present, and none
    * otherwise.
    */
@@ -279,21 +284,21 @@ describe("Property: nested depth", () => {
    * No shape's body is emitted more than once.
    *
    * This is the guarantee the depth dimension exists for. A ladder where
-   * each level refers to the level below twice emits two-to-the-depth copies
-   * of the innermost shape, measured at over a megabyte from about twenty
-   * lines of TypeSpec. Promoting a shape to a component on its second use is
-   * what keeps that from happening.
+   * each level refers to the level below twice emits two-to-the-depth
+   * copies of the innermost shape. That measured at over a megabyte from
+   * about twenty lines of TypeSpec. Promoting a shape to a component on
+   * its second use is what keeps that from happening.
    *
-   * The claim is stated as duplication rather than promotion on purpose:
-   * which shapes become components is a judgement call that should not fail
-   * a test, but emitting one body twice is a defect under any such
-   * judgement. A reader suffers two copies that can drift apart with no sign
-   * they were ever the same shape.
+   * The claim is stated as duplication rather than promotion, on purpose.
+   * Which shapes become components is a judgement call that should not
+   * fail a test. Emitting one body twice is a defect under any such
+   * judgement. A reader suffers two copies that can drift apart with no
+   * sign they were ever the same shape.
    *
-   * Each ladder level carries a property name no other level uses, so
-   * counting that name over the document counts the copies of that level's
-   * body. The generator wrote those names, so nothing here reads the rule it
-   * is checking.
+   * Each ladder level carries a property name no other level uses.
+   * Counting that name over the document counts the copies of that
+   * level's body. The generator wrote those names, so nothing here reads
+   * the rule it is checking.
    */
   it("emits no shape's body more than once, however deep the nesting", async () => {
     let deep = 0;
@@ -327,30 +332,33 @@ describe("Property: nested depth", () => {
    * The official parser accepts whatever the emitter produced.
    *
    * This is the only property in the directory whose oracle is another
-   * implementation, rather than a rule this repository wrote down. The
-   * official parser was written against the specification by people who
-   * never saw this emitter, so it cannot be wrong in the same direction as
-   * the code it checks.
+   * implementation, not a rule this repository wrote down. The official
+   * parser was written against the specification by people who never saw
+   * this emitter. It cannot be wrong in the same direction as the code it
+   * checks.
    *
-   * The target is narrow, and was measured rather than assumed. The parser
-   * validates payload schemas at any depth, but almost nothing this emitter
-   * emits is actually invalid: a schema missing `type` is weaker, not
-   * illegal, and an empty `required` or `properties` is legal. The two edits
-   * that do cross the line are the guards for an empty union and an empty
-   * enum, where `anyOf: []` and `enum: []` are illegal draft-07 and get
-   * `{ not: {} }` instead. Those two guards are pinned elsewhere with a
-   * stronger assertion that fixes the stand-in value; what this property
-   * adds is reach, since here the empty union sits under as many wrappers as
-   * the ladder is deep, and the parser rather than this repository decides
-   * whether the result is a document at all.
+   * The target is narrow, and it was measured rather than assumed. The
+   * parser validates payload schemas at any depth, but almost nothing
+   * this emitter emits is actually invalid. A schema missing `type` is
+   * weaker, not illegal. An empty `required` or `properties` is legal.
    *
-   * One parse costs roughly ten compilations, and CI runs about four times
-   * slower than the machine this was written on. Sixty runs measured 4.9s
-   * here and timed out against the twenty-second ceiling in
-   * `vitest.config.ts` there, so the run count below is the floor that still
-   * reaches both guards with room. Every draw carries at least one auxiliary
-   * declaration, since at sixty runs a quarter of the draws carried none and
-   * spent a parse on a document no edit to this walk can invalidate.
+   * The two edits that do cross the line are the guards for an empty
+   * union and an empty enum. `anyOf: []` and `enum: []` are illegal
+   * draft-07, and each guard returns `{ not: {} }` instead. Those two
+   * guards are pinned elsewhere with a stronger assertion that fixes the
+   * stand-in value. What this property adds is reach. Here the empty
+   * union sits under as many wrappers as the ladder is deep, and the
+   * parser, not this repository, decides whether the result is a
+   * document at all.
+   *
+   * One parse costs roughly ten compilations, and CI runs about four
+   * times slower than the machine this was written on. Sixty runs
+   * measured 4.9s here and timed out against the twenty-second ceiling in
+   * `vitest.config.ts` there. The run count below is the floor that still
+   * reaches both guards with room. Every draw carries at least one
+   * auxiliary declaration. At sixty runs, a quarter of the draws carried
+   * none and spent a parse on a document no edit to this walk can
+   * invalidate.
    */
   it("emits a document the official parser accepts, at any depth", async () => {
     let deep = 0;

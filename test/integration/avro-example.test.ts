@@ -1,5 +1,5 @@
 /**
- * The committed Avro example, read as a reader reads it.
+ * The committed Avro example, read as a consumer reads it.
  *
  * `examples/17-avro-schemas` holds the output of a real `tsp compile`. This
  * suite recompiles the committed source and compares the bytes, so an

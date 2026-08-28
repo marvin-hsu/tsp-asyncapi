@@ -1,5 +1,5 @@
 /**
- * The committed Protobuf example, read as a reader reads it.
+ * The committed Protobuf example, read as a consumer reads it.
  *
  * `examples/16-protobuf-payloads` is compiled by two emitters over one
  * source. The official emitter writes the `.proto` files, and this emitter

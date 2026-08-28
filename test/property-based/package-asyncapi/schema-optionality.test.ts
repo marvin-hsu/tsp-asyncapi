@@ -10,30 +10,32 @@ import { schemaOf, schemasOf } from "../../utils/document.js";
  * Optionality survives, and `required` never names an undescribed key.
  *
  * `buildObjectSchemaFromProperties` decides `required` from `prop.optional`.
- * Two assembly paths call it: `buildObjectSchema` hands it one model's own
- * declared properties, and the `buildFlattenedObjectSchema` fallback hands
- * it the whole `walkPropertiesInherited` set. A mistake in either path
- * rewrites the contract silently, turning an optional field mandatory or a
- * mandatory field optional.
+ * Two assembly paths call it. `buildObjectSchema` hands it one model's
+ * own declared properties. The `buildFlattenedObjectSchema` fallback
+ * hands it the whole `walkPropertiesInherited` set. A mistake in either
+ * path rewrites the contract silently, turning an optional field
+ * mandatory or a mandatory field optional.
  *
- * This property checks two claims about the most-derived model's schema,
- * after resolving `allOf` branches and `$ref` links, against the
- * generator's own declaration records rather than the compiler's types.
+ * This property checks two claims about the most-derived model's
+ * schema, after resolving `allOf` branches and `$ref` links. It checks
+ * them against the generator's own declaration records, not the
+ * compiler's types.
  *
  * 1. The union of every `required` array equals the wire names declared
  *    without `?`.
  * 2. No single `required` array holds a duplicate entry.
  *
- * Claim 1 only holds when the declared set has no wire-name collision. When
- * two distinct TypeSpec names resolve to one wire name, the
- * `claimedWireNames` guard drops one on purpose, so the declared set no
- * longer names a single answer. Claim 2 still holds for those documents;
- * it is the claim the guard exists to keep true.
+ * Claim 1 only holds when the declared set has no wire-name collision.
+ * When two distinct TypeSpec names resolve to one wire name, the
+ * `claimedWireNames` guard drops one on purpose. The declared set then
+ * no longer names a single answer. Claim 2 still holds for those
+ * documents. It is the claim the guard exists to keep true.
  *
- * A third, weaker claim covers what claim 1 skips: every `required` entry
- * is also described under `properties` in the same resolution. A schema
- * that demands an undescribed key tells a producer nothing to send. This
- * claim only carries new information on the wire-collision documents.
+ * A third, weaker claim covers what claim 1 skips. Every `required`
+ * entry is also described under `properties` in the same resolution. A
+ * schema that demands an undescribed key tells a producer nothing to
+ * send. This claim only carries new information on the wire-collision
+ * documents.
  *
  * The chain generator and renderer live in `./model-chain.js`, shared with
  * the coverage property beside this one.

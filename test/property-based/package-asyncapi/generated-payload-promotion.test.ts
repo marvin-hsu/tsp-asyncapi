@@ -14,19 +14,21 @@ import { referencesIn } from "../../utils/references.js";
  * A generated payload lands in `components.schemas` exactly when sharing it
  * saves something.
  *
- * A preview feature hands the resolver one artifact per model, and several
- * models of one Protobuf package can get the same one. Those payloads follow
- * the rule every raw schema follows: the second use earns a component, and a
- * single use stays where it is.
+ * A preview feature hands the resolver one artifact per model, and
+ * several models of one Protobuf package can get the same one. Those
+ * payloads follow the rule every raw schema follows. The second use
+ * earns a component, and a single use stays where it is.
  *
- * The property covers only the promotion path. The artifacts are written
- * here rather than produced by another emitter, so nothing in this file
- * depends on how a version of `@typespec/protobuf` renders a package; what
- * is generated is only which message gets which artifact.
+ * The property covers only the promotion path. The artifacts are
+ * written here rather than produced by another emitter. Nothing in
+ * this file depends on how a version of `@typespec/protobuf` renders a
+ * package. What is generated is only which message gets which
+ * artifact.
  *
  * Three answers are asserted together, because one document holds all
- * three: a shared artifact is written once, a lone one is written in place,
- * and a message with no artifact keeps the schema its model produces.
+ * three. A shared artifact is written once. A lone one is written in
+ * place. A message with no artifact keeps the schema its model
+ * produces.
  */
 
 /** The AsyncAPI schema format of proto3 text. */

@@ -7,33 +7,34 @@ import { emitDocumentWithDiagnostics } from "../../utils/test-host.js";
  * No `$ref` carries a sibling keyword.
  *
  * AsyncAPI 3.x schemas default to JSON Schema draft-07. There, a `$ref`
- * replaces the whole object around it, so a reader ignores every other key
- * beside it. A sibling `description` or `minLength` is silently discarded.
- * A sibling `discriminator` or `type` is worse: it looks like a constraint
- * on the referenced schema, but constrains nothing.
+ * replaces the whole object around it, so a reader ignores every other
+ * key beside it. A sibling `description` or `minLength` is silently
+ * discarded. A sibling `discriminator` or `type` is worse. It looks
+ * like a constraint on the referenced schema, but constrains nothing.
  *
- * Four code paths each decide separately whether to wrap a `$ref` before
- * adding a sibling. `withPropertyDocs` wraps a property's `$ref` in `allOf`
- * when the property carries `@doc`, `@summary`, `@example`, use-site
- * validation, or `@jsonSchemaExtension`. `hoistAnnotationsAboveAllOf` lifts
- * annotations above that wrap. `applyExtends` puts a base model's `$ref`
- * into an `allOf` branch. `applyDiscriminator` adds `discriminator` to the
- * wrapper object, not the branch. Each can regress alone, so the rule is
- * checked over the whole document, not one function.
+ * Four code paths each decide separately whether to wrap a `$ref`
+ * before adding a sibling. `withPropertyDocs` wraps a property's `$ref`
+ * in `allOf` when the property carries `@doc`, `@summary`, `@example`,
+ * use-site validation, or `@jsonSchemaExtension`.
+ * `hoistAnnotationsAboveAllOf` lifts annotations above that wrap.
+ * `applyExtends` puts a base model's `$ref` into an `allOf` branch.
+ * `applyDiscriminator` adds `discriminator` to the wrapper object, not
+ * the branch. Each can regress alone, so the rule is checked over the
+ * whole document, not one function.
  *
  * The walk covers the whole document, not only `components.schemas`. An
  * AsyncAPI reference object forbids siblings for the same reason.
  *
- * The official AsyncAPI parser accepts a sibling beside a `$ref` without
- * complaint, so nothing else in this suite guards this rule.
+ * The official AsyncAPI parser accepts a sibling beside a `$ref`
+ * without complaint, so nothing else in this suite guards this rule.
  *
- * The generator draws properties that reach both routes into this region: a
- * bare-`$ref` wrapper, and a `$ref` buried under `items`,
- * `additionalProperties`, `anyOf`, or `oneOf`. Two counters, scoped to the
- * drawn properties, confirm both routes are reached. Counting wrappers
- * anywhere in the document would not do this: `model Derived extends Inner`
- * always produces one, so an unscoped counter would pass without ever
- * watching the drawn dimensions.
+ * The generator draws properties that reach both routes into this
+ * region. A bare-`$ref` wrapper, and a `$ref` buried under `items`,
+ * `additionalProperties`, `anyOf`, or `oneOf`. Two counters, scoped to
+ * the drawn properties, confirm both routes are reached. Counting
+ * wrappers anywhere in the document would not do this. `model Derived
+ * extends Inner` always produces one, so an unscoped counter would
+ * pass without ever watching the drawn dimensions.
  */
 
 /** One property of the generated `Root` message, before rendering. */

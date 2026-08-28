@@ -57,7 +57,7 @@ function carriesMarkerRun(name: string): boolean {
 
 describe("Unit: Schemas — key sanitizer properties", () => {
   /**
-   * Reachability: the generator is shaped to reach three cases — a name
+   * Reachability: the generator is shaped to reach three cases: a name
    * already inside the key charset, a name that reaches `sanitizeNameSegment`,
    * and a name carrying the marker inside an alphanumeric run so the
    * `SepSep` escape runs. A draw that returns from the sanitizer's first line

@@ -8,11 +8,12 @@ import { schemasOf } from "../../utils/document.js";
 /**
  * The emitted document must not depend on the order declarations appear in.
  *
- * The schema builder decides between inlining a shape and registering it as
- * a component, and that decision reacts to what it has already seen: a
- * shape inlined at one site is promoted to a component when a second site
- * refers to it. Reordering the sources therefore changes what the builder
- * meets first, while the program means the same thing either way.
+ * The schema builder decides between inlining a shape and registering it
+ * as a component, and that decision reacts to what it has already seen.
+ * A shape inlined at one site is promoted to a component when a second
+ * site refers to it. Reordering the sources therefore changes what the
+ * builder meets first, while the program means the same thing either
+ * way.
  *
  * The suite already pins a few orders by hand, one test per order. Those
  * cover the orders somebody thought of. This searches instead.
