@@ -70,7 +70,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@microsoft/api-extractor": "^7.58.12",
+    "@microsoft/api-extractor": "^7.59.0",
     "@typespec/compiler": "^1.15.0",
     "publint": "^0.3.23",
     "rimraf": "^6.1.3",
