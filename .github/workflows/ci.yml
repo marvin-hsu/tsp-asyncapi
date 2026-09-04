@@ -7,8 +7,7 @@ on:
     branches: [main]
   # Lets a run be started by hand. Needed whenever the last push already
   # happened and the result has to be produced again, such as after the
-  # workflow was disabled and re-enabled, or to redeploy the docs site
-  # without an empty commit.
+  # workflow was disabled and re-enabled.
   workflow_dispatch:
 
 # A second push to the same branch makes the first run pointless. Without
@@ -132,54 +131,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-  # Deciding this in its own job lets `deploy-docs` be skipped as a whole,
-  # rather than every one of its steps repeating the same condition.
-  changes:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    outputs:
-      docs: ${{ steps.filter.outputs.docs }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dorny/paths-filter@v4
-        id: filter
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - '**/package.json'
-
-  deploy-docs:
-    needs: [build, changes]
-    if: needs.changes.outputs.docs == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 11
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Docs
-        run: pnpm run docs:build
-
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/.vitepress/dist
-          publish_branch: gh-pages
+  # The docs site is published by `.github/workflows/docs.yml`. It used to
+  # hang off this job, which meant an advisory-endpoint outage blocked a
+  # deploy that had nothing to do with dependencies.
