@@ -31,7 +31,7 @@ npm install tsp-asyncapi-core
 
 ## More
 
-- [Documentation](https://marvin-hsu.github.io/tsp-asyncapi/)
+- [Documentation](https://tsp-asyncapi.marvinhsu.dev/)
 - [GitHub repository](https://github.com/marvin-hsu/tsp-asyncapi)
 
 Traditional Chinese: [README.zh-TW.md](./README.zh-TW.md)

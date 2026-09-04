@@ -31,7 +31,7 @@ An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://type
 
 > **Note:** This project uses direct AST traversal rather than the legacy `@typespec/asset-emitter`. The TypeSpec core team is transitioning away from this old emitter framework (EFv1) in favor of EFv2 (see [#5998](https://github.com/microsoft/typespec/issues/5998) and [#6583](https://github.com/microsoft/typespec/issues/6583)).
 
-📖 **Documentation: see the [docs site](https://marvin-hsu.github.io/tsp-asyncapi/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
+📖 **Documentation: see the [docs site](https://tsp-asyncapi.marvinhsu.dev/)** — getting started, verified schema-conversion examples, and the full decorator/options/diagnostics reference, in English and Traditional Chinese.
 
 ## Requirements
 
@@ -208,15 +208,15 @@ Eighteen worked examples live in [`examples/`](./examples/), each with its TypeS
 | [Avro schemas](./examples/17-avro-schemas/)                         | `.avsc` files alone, no AsyncAPI document      |
 | [Avro payloads](./examples/18-avro-payloads/)                       | Two Avro records, `.avsc` written too          |
 
-The [Examples page](https://marvin-hsu.github.io/tsp-asyncapi/guide/examples) describes each one in more detail.
+The [Examples page](https://tsp-asyncapi.marvinhsu.dev/guide/examples) describes each one in more detail.
 
 ## Avro emitter
 
 [`tsp-avro`](./packages/tsp-avro/) is an experimental package. It is pre-1.0, and any release can change its surface.
 
-It mainly backs the `avro` preview feature of the AsyncAPI emitter: mark a model with `@Avro.avroRecord` and its payload comes out as an Avro schema. The [Avro Payloads guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads) says how to turn it on.
+It mainly backs the `avro` preview feature of the AsyncAPI emitter: mark a model with `@Avro.avroRecord` and its payload comes out as an Avro schema. The [Avro Payloads guide](https://tsp-asyncapi.marvinhsu.dev/guide/avro-payloads) says how to turn it on.
 
-It also stands alone: it declares its own decorators, so it writes `.avsc` files with no AsyncAPI decorator present. The [Avro Schemas guide](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas) says how to use it.
+It also stands alone: it declares its own decorators, so it writes `.avsc` files with no AsyncAPI decorator present. The [Avro Schemas guide](https://tsp-asyncapi.marvinhsu.dev/guide/avro-schemas) says how to use it.
 
 ## Emitter options
 
@@ -236,10 +236,10 @@ Set these in `tspconfig.yaml`, or pass them as CLI arguments:
 
 Turn one on with `preview-features` in `tspconfig.yaml`.
 
-| Feature    | Payload format | Peer package         | Guide                                                                                  |
-| ---------- | -------------- | -------------------- | -------------------------------------------------------------------------------------- |
-| `protobuf` | proto3 text    | `@typespec/protobuf` | [Protobuf payloads](https://marvin-hsu.github.io/tsp-asyncapi/guide/protobuf-payloads) |
-| `avro`     | Avro schema    | `tsp-avro`           | [Avro payloads](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-payloads)         |
+| Feature    | Payload format | Peer package         | Guide                                                                           |
+| ---------- | -------------- | -------------------- | ------------------------------------------------------------------------------- |
+| `protobuf` | proto3 text    | `@typespec/protobuf` | [Protobuf payloads](https://tsp-asyncapi.marvinhsu.dev/guide/protobuf-payloads) |
+| `avro`     | Avro schema    | `tsp-avro`           | [Avro payloads](https://tsp-asyncapi.marvinhsu.dev/guide/avro-payloads)         |
 
 Both peer packages are optional and pinned to one minor range. A project that never turns the feature on never installs one.
 
@@ -335,7 +335,7 @@ linter:
 | `avro-content-type-undeclared`     |        ✓         | An Avro content type with no Avro payload to back it.        |
 | `unused-security-scheme`           |                  | A declared security scheme no `@useSecurity` names.          |
 
-See the [Linter reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/linter) on the docs site for each rule's message and fix.
+See the [Linter reference](https://tsp-asyncapi.marvinhsu.dev/reference/linter) on the docs site for each rule's message and fix.
 
 ## Design tradeoffs
 
@@ -346,7 +346,7 @@ See the [Linter reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/l
 | More than one `@service`             |     ✗     | One application per document is enough in practice. Give each application its own project; only the first `@service` emits.                          |
 | Multi-file output, cross-file `$ref` |     ✗     | TypeSpec splits at the source level, so the compiled document does not need splitting too.                                                           |
 
-See the [diagnostics reference](https://marvin-hsu.github.io/tsp-asyncapi/reference/diagnostics) for every code. Anything the emitter cannot represent is reported.
+See the [diagnostics reference](https://tsp-asyncapi.marvinhsu.dev/reference/diagnostics) for every code. Anything the emitter cannot represent is reported.
 
 ## Upstream bug
 

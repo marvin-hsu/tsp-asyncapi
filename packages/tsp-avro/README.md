@@ -85,7 +85,7 @@ Documentation comes from a `/** */` comment and a field default from
 
 ## More
 
-- [Documentation](https://marvin-hsu.github.io/tsp-asyncapi/guide/avro-schemas)
+- [Documentation](https://tsp-asyncapi.marvinhsu.dev/guide/avro-schemas)
 - [GitHub repository](https://github.com/marvin-hsu/tsp-asyncapi)
 
 Traditional Chinese: [README.zh-TW.md](./README.zh-TW.md)

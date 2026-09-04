@@ -103,7 +103,7 @@ components:
 
 ## 其他
 
-- [文件](https://marvin-hsu.github.io/tsp-asyncapi/)
+- [文件](https://tsp-asyncapi.marvinhsu.dev/)
 - [GitHub repo](https://github.com/marvin-hsu/tsp-asyncapi)
 
 English: [README.md](./README.md)
@@ -112,4 +112,4 @@ English: [README.md](./README.md)
 
 MIT
 
-[options]: https://marvin-hsu.github.io/tsp-asyncapi/reference/emitter-options
+[options]: https://tsp-asyncapi.marvinhsu.dev/reference/emitter-options

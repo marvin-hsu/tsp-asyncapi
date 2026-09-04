@@ -31,7 +31,7 @@
 
 > **說明：** 本專案直接走訪 AST，沒有用 `@typespec/asset-emitter`。TypeSpec 官方正在淘汰那套舊架構（EFv1），改推 EFv2（見 [#5998](https://github.com/microsoft/typespec/issues/5998) 與 [#6583](https://github.com/microsoft/typespec/issues/6583)）。
 
-📖 **完整說明在[文件網站](https://marvin-hsu.github.io/tsp-asyncapi/)**：快速開始、驗證過的 schema 轉換範例，以及 decorator、選項、診斷的完整參考。
+📖 **完整說明在[文件網站](https://tsp-asyncapi.marvinhsu.dev/)**：快速開始、驗證過的 schema 轉換範例，以及 decorator、選項、診斷的完整參考。
 
 ## 環境需求
 
@@ -208,15 +208,15 @@ components:
 | [Avro schemas](./examples/17-avro-schemas/)                         | 只產出 `.avsc`，沒有 AsyncAPI 文件          |
 | [Avro payloads](./examples/18-avro-payloads/)                       | 兩個 Avro record，同時輸出 `.avsc`          |
 
-更詳細的說明見[範例頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/examples)。
+更詳細的說明見[範例頁](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/examples)。
 
 ## Avro emitter
 
 [`tsp-avro`](./packages/tsp-avro/) 是實驗性套件，還沒到 1.0，介面隨時可能變動。
 
-主要用來支援 AsyncAPI emitter 的 `avro` 預覽功能：model 標上 `@Avro.avroRecord`，payload 就會輸出 Avro schema。開啟方式見 [Avro payload 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)。
+主要用來支援 AsyncAPI emitter 的 `avro` 預覽功能：model 標上 `@Avro.avroRecord`，payload 就會輸出 Avro schema。開啟方式見 [Avro payload 指南](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/avro-payloads)。
 
-也可以單獨使用：有自己的一套 decorator，不必相依 AsyncAPI decorator 就能輸出 `.avsc` 檔案。用法見 [Avro schema 指南](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)。
+也可以單獨使用：有自己的一套 decorator，不必相依 AsyncAPI decorator 就能輸出 `.avsc` 檔案。用法見 [Avro schema 指南](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/avro-schemas)。
 
 ## Emitter 選項
 
@@ -236,10 +236,10 @@ components:
 
 在 `tspconfig.yaml` 的 `preview-features` 開啟。
 
-| 功能       | payload 格式 | 相依套件             | 指南                                                                                        |
-| ---------- | ------------ | -------------------- | ------------------------------------------------------------------------------------------- |
-| `protobuf` | proto3 文字  | `@typespec/protobuf` | [Protobuf payload](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/protobuf-payloads) |
-| `avro`     | Avro schema  | `tsp-avro`           | [Avro payload](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-payloads)         |
+| 功能       | payload 格式 | 相依套件             | 指南                                                                                 |
+| ---------- | ------------ | -------------------- | ------------------------------------------------------------------------------------ |
+| `protobuf` | proto3 文字  | `@typespec/protobuf` | [Protobuf payload](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/protobuf-payloads) |
+| `avro`     | Avro schema  | `tsp-avro`           | [Avro payload](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/avro-payloads)         |
 
 兩個相依套件都是選用的 peer dependency，鎖在單一次版本區間。沒開對應功能的專案不必安裝。
 
@@ -334,7 +334,7 @@ linter:
 | `avro-content-type-undeclared`     |      ✓      | message 宣告 Avro content type，卻沒有對應的 Avro payload。         |
 | `unused-security-scheme`           |             | 宣告的 security scheme 沒有被任何 `@useSecurity` 用到。             |
 
-每條規則的訊息與修法，見文件網站的 [Linter 規則頁](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/linter)。
+每條規則的訊息與修法，見文件網站的 [Linter 規則頁](https://tsp-asyncapi.marvinhsu.dev/zh-tw/reference/linter)。
 
 ## 設計取捨
 
@@ -345,7 +345,7 @@ linter:
 | 多個 `@service`           |  ✗   | 建議一個應用一份文件，實務上已足夠。多個應用各開一個專案，寫了多個時只輸出第一個。                                                                |
 | 文件切成多檔、跨檔 `$ref` |  ✗   | TypeSpec 在原始碼層就能切檔，輸出的文件不需要再切。                                                                                               |
 
-完整代碼見[診斷訊息參考](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/reference/diagnostics)。轉換不了的內容一律回報。
+完整代碼見[診斷訊息參考](https://tsp-asyncapi.marvinhsu.dev/zh-tw/reference/diagnostics)。轉換不了的內容一律回報。
 
 ## 上游 bug
 

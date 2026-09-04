@@ -10,7 +10,7 @@
     "kafka",
     "event-driven"
   ],
-  "homepage": "https://marvin-hsu.github.io/tsp-asyncapi/",
+  "homepage": "https://tsp-asyncapi.marvinhsu.dev/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/marvin-hsu/tsp-asyncapi.git"

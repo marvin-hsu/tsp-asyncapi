@@ -14,7 +14,7 @@ contact_links:
       For how-to questions and anything you are not sure is a bug.
       用法問題，以及你不確定是不是錯誤的情況。
   - name: Documentation / 文件
-    url: https://marvin-hsu.github.io/tsp-asyncapi/
+    url: https://tsp-asyncapi.marvinhsu.dev/
     about: >
       The decorator reference and the diagnostic list.
       decorator 參考與 diagnostic 清單。

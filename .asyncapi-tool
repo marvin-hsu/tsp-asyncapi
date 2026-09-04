@@ -3,7 +3,7 @@ title: tsp-asyncapi
 description: A TypeSpec emitter that generates AsyncAPI 3.1 specifications. It supports multiple protocol bindings (Kafka, MQTT, AMQP, SQS, etc.) and comprehensive schema generation.
 links:
   websiteUrl: https://www.npmjs.com/package/tsp-asyncapi
-  docsUrl: https://marvin-hsu.github.io/tsp-asyncapi/
+  docsUrl: https://tsp-asyncapi.marvinhsu.dev/
   repoUrl: https://github.com/marvin-hsu/tsp-asyncapi
 filters:
   language: TypeScript

@@ -34,7 +34,7 @@
   "bugs": {
     "url": "https://github.com/marvin-hsu/tsp-asyncapi/issues"
   },
-  "homepage": "https://marvin-hsu.github.io/tsp-asyncapi/",
+  "homepage": "https://tsp-asyncapi.marvinhsu.dev/",
   "keywords": [
     "typespec",
     "asyncapi",

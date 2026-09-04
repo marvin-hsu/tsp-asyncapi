@@ -20,7 +20,6 @@ const KOFI_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
 export default defineConfig({
   title: "TypeSpec AsyncAPI",
   description: "An AsyncAPI 3.1 emitter for TypeSpec",
-  base: "/tsp-asyncapi/",
   lastUpdated: true,
   cleanUrls: true,
   head: [
@@ -37,12 +36,12 @@ export default defineConfig({
     ["meta", { property: "og:site_name", content: "TypeSpec AsyncAPI" }],
     ["meta", { property: "og:title", content: "TypeSpec AsyncAPI" }],
     ["meta", { property: "og:description", content: "An AsyncAPI 3.1 emitter for TypeSpec" }],
-    ["meta", { property: "og:url", content: "https://marvin-hsu.github.io/tsp-asyncapi/" }],
+    ["meta", { property: "og:url", content: "https://tsp-asyncapi.marvinhsu.dev/" }],
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
 
   sitemap: {
-    hostname: "https://marvin-hsu.github.io/tsp-asyncapi/",
+    hostname: "https://tsp-asyncapi.marvinhsu.dev/",
   },
 
   locales: {

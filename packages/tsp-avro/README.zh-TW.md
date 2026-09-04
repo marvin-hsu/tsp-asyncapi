@@ -82,7 +82,7 @@ doc 寫在 `/** */` 註解裡，欄位預設值寫成 `= value`，兩者都不�
 
 ## 其他
 
-- [文件](https://marvin-hsu.github.io/tsp-asyncapi/zh-tw/guide/avro-schemas)
+- [文件](https://tsp-asyncapi.marvinhsu.dev/zh-tw/guide/avro-schemas)
 - [GitHub repo](https://github.com/marvin-hsu/tsp-asyncapi)
 
 English: [README.md](./README.md)

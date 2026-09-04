@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://marvin-hsu.github.io/tsp-asyncapi/sitemap.xml
+Sitemap: https://tsp-asyncapi.marvinhsu.dev/sitemap.xml

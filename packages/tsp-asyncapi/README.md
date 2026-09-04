@@ -104,7 +104,7 @@ The [reference][options] describes each one.
 
 ## More
 
-- [Documentation](https://marvin-hsu.github.io/tsp-asyncapi/)
+- [Documentation](https://tsp-asyncapi.marvinhsu.dev/)
 - [GitHub repository](https://github.com/marvin-hsu/tsp-asyncapi)
 
 Traditional Chinese: [README.zh-TW.md](./README.zh-TW.md)
@@ -113,4 +113,4 @@ Traditional Chinese: [README.zh-TW.md](./README.zh-TW.md)
 
 MIT
 
-[options]: https://marvin-hsu.github.io/tsp-asyncapi/reference/emitter-options
+[options]: https://tsp-asyncapi.marvinhsu.dev/reference/emitter-options
