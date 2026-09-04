@@ -32,13 +32,6 @@ export default defineConfig({
       gtag('js', new Date());
       gtag('config', 'G-GPFN76W5SX');`,
     ],
-    [
-      "meta",
-      {
-        name: "google-site-verification",
-        content: "Ti9q_22-Cvtc8GWdKWTlQueydSetPmhDhFzlzg33aU4",
-      },
-    ],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:site_name", content: "TypeSpec AsyncAPI" }],
     ["meta", { property: "og:title", content: "TypeSpec AsyncAPI" }],
