@@ -48,15 +48,22 @@ export default defineConfig({
     // so one test is hundreds of compilations. That leaves too little room for
     // a cold CI runner.
     //
-    // Twenty seconds is about six times the slowest measurement, which is room
-    // for a slower machine without being a ceiling that hides a real
-    // regression. Eleven per-test ceilings of two and three minutes used to
-    // carry this, and a test that started taking a minute would have passed
-    // under every one of them.
+    // Sixty seconds, because the warm-machine measurement was the wrong one to
+    // multiply. CI runs the same properties with coverage on, and the rotation
+    // property in `order-independence.test.ts` is 240 compilations: it took
+    // 19.5s on 2026-08-28 and 19.1s on 2026-08-31 under a 20s ceiling, then
+    // 21.6s on 2026-09-04, where it timed out and failed a push that had
+    // changed no source. So the old number was not six times the slowest
+    // measurement, it was 1.02 times it.
+    //
+    // Sixty is about three times the slowest CI measurement. One ceiling still
+    // covers every file, rather than the eleven per-test ceilings of two and
+    // three minutes this replaced, under which a test that started taking a
+    // minute would have passed.
     //
     // Lower this when a property stops compiling TypeSpec, not when it gets
     // faster.
-    testTimeout: 20000,
+    testTimeout: 60000,
     // Test files share one module registry per worker instead of getting a
     // fresh one each. Measured on the full suite with coverage: 27.31s to
     // 13.02s, because `setup` falls from 74.03s of worker time to 4.68s and
