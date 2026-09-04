@@ -39,7 +39,7 @@
     "check:package": "pnpm run clean && pnpm build && pnpm api-extractor:ci && pnpm -r check:package",
     "mutation": "stryker run",
     "knip": "knip",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm build && pnpm api-extractor:ci && pnpm test:cov && pnpm check:package && pnpm audit --prod --ignore-registry-errors",
     "prepare": "husky",
     "typecheck": "tsc -b tsconfig.ws.json && tsc -p tsconfig.json"
   },

@@ -93,13 +93,32 @@ jobs:
 
       # Blocking. A vulnerability in a production dependency reaches every
       # consumer of the published package, so it fails the build.
+      #
+      # `--ignore-registry-errors` keeps a registry outage from failing the
+      # build, which is what pnpm documents the flag for. A found
+      # vulnerability still fails; only a report that never arrived passes.
+      #
+      # It is needed. On 2026-09-04 this step failed a push that had changed
+      # no dependency: npm's advisory endpoint,
+      # `/-/npm/v1/security/advisories/bulk`, accepted the connection and
+      # never answered, through two retries and four minutes. The registry
+      # itself answered in 0.14s at the same moment, a one-package payload
+      # timed out the same way, and status.npmjs.org called Security Audit
+      # operational throughout. So the outage is not observable from here and
+      # not something a push can fix or wait out.
+      #
+      # `timeout-minutes` bounds the wait. pnpm retries twice with a growing
+      # backoff, so an unanswered endpoint costs four minutes of a runner
+      # before it gives up on its own.
       - name: Audit production dependencies
-        run: pnpm audit --prod
+        timeout-minutes: 3
+        run: pnpm audit --prod --ignore-registry-errors
 
       # Reporting only. Development vulnerabilities do not reach consumers,
       # and some have no fixed version to move to, so a failure here would
       # block work that cannot fix it. Dependabot raises the pull requests.
       - name: Audit all dependencies (report only)
+        timeout-minutes: 3
         run: pnpm audit || true
 
       # Only on a push to the main branch. This organisation is on the free
