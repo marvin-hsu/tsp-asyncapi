@@ -51,7 +51,7 @@
   },
   "dependencies": {
     "tsp-asyncapi-core": "workspace:~",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "peerDependencies": {
     "@typespec/compiler": "^1.15.0",
