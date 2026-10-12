@@ -85,8 +85,11 @@ export async function $onEmit(context: EmitContext<AvroEmitterOptions>): Promise
     return;
   }
 
-  for (const file of files) {
-    await program.host.mkdirp(getDirectoryPath(file.path));
-    await program.host.writeFile(file.path, file.text);
-  }
+  // Each path is claimed by one record above, so no two writes share a file.
+  await Promise.all(
+    files.map(async (file) => {
+      await program.host.mkdirp(getDirectoryPath(file.path));
+      await program.host.writeFile(file.path, file.text);
+    }),
+  );
 }
