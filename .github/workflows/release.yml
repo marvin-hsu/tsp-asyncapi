@@ -196,13 +196,30 @@ jobs:
       # bound to the build that made the tarball and cannot be added later.
       # A no-op re-run would fail on them, which is the case the retry
       # behaviour exists to make safe.
+      #
+      # A version can be missing from the registry for minutes after the
+      # publish succeeds. On 2026-10-12 the first read returned 404 and the
+      # run failed before it pushed the tags. So a missing version is read
+      # again, for up to ten minutes. Only a version that the registry
+      # serves without an attestation fails at once.
       - name: Assert the published versions carry provenance
         run: |
           while IFS= read -r tag; do
             name=${tag%@*}
             version=${tag##*@}
-            attested=$(curl -sf "https://registry.npmjs.org/$name/$version" \
-              | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).dist?.attestations ? 'yes' : 'no'")
+            attested=missing
+            for attempt in $(seq 1 20); do
+              if body=$(curl -sf "https://registry.npmjs.org/$name/$version"); then
+                attested=$(node -p "JSON.parse(process.argv[1]).dist?.attestations ? 'yes' : 'no'" "$body")
+                break
+              fi
+              echo "$name@$version is not on the registry yet (attempt $attempt)"
+              sleep 30
+            done
+            if [ "$attested" = "missing" ]; then
+              echo "::error::$name@$version did not appear on the registry"
+              exit 1
+            fi
             if [ "$attested" != "yes" ]; then
               echo "::error::$name@$version is published without provenance"
               exit 1
