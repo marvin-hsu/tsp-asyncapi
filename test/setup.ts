@@ -45,14 +45,15 @@ expect.extend({
 });
 
 declare module "vitest" {
-  // The type parameter has to match vitest's own declaration exactly, `any`
-  // default included. TypeScript rejects an augmentation whose parameters
-  // differ, even when the difference is a stricter default.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  interface Matchers<T = any> {
+  // The type parameters have to match vitest's own declaration exactly,
+  // defaults included. TypeScript rejects an augmentation whose parameters
+  // differ, even when the difference is a stricter default. Both matchers
+  // are always async, so neither parameter is used.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown> {
     /** Passes when the official parser accepts the document as AsyncAPI 3.x. */
-    toBeValidAsyncAPI: () => Promise<T>;
+    toBeValidAsyncAPI: () => Promise<void>;
     /** Passes when the official parser rejects the document for `reason`. */
-    toBeInvalidAsyncAPI: (reason: RegExp) => Promise<T>;
+    toBeInvalidAsyncAPI: (reason: RegExp) => Promise<void>;
   }
 }

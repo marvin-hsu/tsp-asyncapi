@@ -35,7 +35,7 @@
 
 ## 環境需求
 
-- Node.js >= 20
+- Node.js >= 22
 - [pnpm](https://pnpm.io/)（`devEngines` 欄位鎖定 ^11）
 
 ## 安裝
@@ -346,27 +346,6 @@ linter:
 | 文件切成多檔、跨檔 `$ref` |  ✗   | TypeSpec 在原始碼層就能切檔，輸出的文件不需要再切。                                                                                               |
 
 完整代碼見[診斷訊息參考](https://tsp-asyncapi.marvinhsu.dev/zh-tw/reference/diagnostics)。轉換不了的內容一律回報。
-
-## 上游 bug
-
-> **注意：** 不要用 `__proto__` 當成員名稱。
-
-compiler 組 object value 時逐個成員賦值。在 JavaScript 裡，賦值給 `__proto__`
-是設定物件的原型，不是新增成員，所以這個成員在任何 decorator 執行前就消失了，
-沒有任何錯誤或警告。
-
-```typespec
-// emitter 只收到 `ok` 一個成員，另一個不見了。
-@extension("x-thing", #{ `__proto__`: "written", ok: 1 })
-```
-
-消失的成員如果是 object 或 array，那個值還會變成物件的原型，之後讀取一個
-作者從未宣告的名稱，可能拿到這份塞進去的資料。
-
-所有吃 object value 的 decorator 都受影響，`@extension` 與 `@binding` 都在內。
-emitter 拿到值時已經被改過，救不回來。
-
-上游追蹤於 [microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743)。
 
 ## 開發
 

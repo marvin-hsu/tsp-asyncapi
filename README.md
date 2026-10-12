@@ -35,7 +35,7 @@ An [AsyncAPI 3.1](https://www.asyncapi.com/) emitter for [TypeSpec](https://type
 
 ## Requirements
 
-- Node.js >= 20
+- Node.js >= 22
 - [pnpm](https://pnpm.io/) (this repo's `devEngines` field pins ^11)
 
 ## Installation
@@ -347,30 +347,6 @@ See the [Linter reference](https://tsp-asyncapi.marvinhsu.dev/reference/linter) 
 | Multi-file output, cross-file `$ref` |     ✗     | TypeSpec splits at the source level, so the compiled document does not need splitting too.                                                           |
 
 See the [diagnostics reference](https://tsp-asyncapi.marvinhsu.dev/reference/diagnostics) for every code. Anything the emitter cannot represent is reported.
-
-## Upstream bug
-
-> **Warning:** Do not use `__proto__` as a member name.
-
-The compiler marshals an object value by assigning each member in turn. In
-JavaScript, an assignment to `__proto__` sets the prototype of the object
-rather than adding a member, so the member is lost before any decorator
-runs, with no error or warning.
-
-```typespec
-// The emitter receives one member, `ok`. The other one is gone.
-@extension("x-thing", #{ `__proto__`: "written", ok: 1 })
-```
-
-When the lost member holds an object or an array, that value becomes the
-prototype of the marshalled object instead. Reading a name the author never
-declared can then return that smuggled-in data.
-
-Every decorator that takes an object value is affected, `@extension` and
-`@binding` among them. The value has already been changed by the time the
-emitter sees it, so nothing here can recover the member.
-
-Tracked upstream at [microsoft/typespec#11743](https://github.com/microsoft/typespec/issues/11743).
 
 ## Development
 

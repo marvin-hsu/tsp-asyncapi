@@ -132,13 +132,9 @@ describe("Unit: @extension", () => {
       expect(infoOf(doc)["x-boolean"]).toBe(false);
     });
 
-    // A member named `__proto__` is lost before this emitter sees the value.
-    // The compiler assigns each object member in turn, and that write lands
-    // on the prototype instead of adding a member. The argument that reaches
-    // `@extension` already holds `ok` alone. This case states what the
-    // author asked for, and fails until the compiler stops losing the name.
+    // The compiler marshals a member named `__proto__` as an own member.
     // Reported upstream as microsoft/typespec#11743.
-    it.fails("emits a member named __proto__ as a real key", async () => {
+    it("emits a member named __proto__ as a real key", async () => {
       const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-thing", #{ \`__proto__\`: "written", ok: 1 })
@@ -157,7 +153,7 @@ describe("Unit: @extension", () => {
       expect(Object.getOwnPropertyDescriptor(thing, "__proto__")?.value).toBe("written");
     });
 
-    it("keeps the rest of an object value that names a member __proto__", async () => {
+    it("keeps a nested object named __proto__ off the prototype", async () => {
       const doc = await emitDocument(`
         @service(#{ title: "Orders" })
         @extension("x-thing", #{ \`__proto__\`: #{ polluted: true }, ok: 1 })
@@ -171,12 +167,12 @@ describe("Unit: @extension", () => {
         }
       `);
 
-      // The marshaller left that member on the prototype of the argument.
-      // Reading own members only keeps it out of the document, so the loss
-      // stays a loss and never becomes a stray key.
+      // A plain assignment would make the nested object the prototype.
+      // Then `polluted` would be readable as an inherited field.
       const thing = infoOf(doc)["x-thing"] as Record<string, unknown>;
-      expect(Object.keys(thing)).toEqual(["ok"]);
-      expect(Object.hasOwn(thing, "polluted")).toBe(false);
+      expect(Object.keys(thing)).toEqual(["__proto__", "ok"]);
+      expect(Object.getPrototypeOf(thing)).toBe(Object.prototype);
+      expect(thing.polluted).toBeUndefined();
     });
   });
 

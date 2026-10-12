@@ -16,10 +16,10 @@ tsp-asyncapi 原生支援 [`@typespec/protobuf`](https://www.npmjs.com/package/@
 先在本 emitter 旁邊安裝官方套件。
 
 ```bash
-pnpm add "@typespec/protobuf@0.85.x"
+pnpm add "@typespec/protobuf@0.87.x"
 ```
 
-目前支援的版本是 `0.85.x`。`@typespec/protobuf` 尚未進入 1.0，decorator 仍可能變動，支援範圍會隨官方發佈更新。
+目前支援的版本是 `0.87.x`。`@typespec/protobuf` 尚未進入 1.0，decorator 仍可能變動，支援範圍會隨官方發佈更新。
 
 再於 `tspconfig.yaml` 啟用 `protobuf` 預覽功能。
 

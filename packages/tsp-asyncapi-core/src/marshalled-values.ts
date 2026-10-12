@@ -77,14 +77,16 @@ function convertArray(program: Program, value: readonly unknown[]): unknown {
  * @param value - The field as the author wrote it
  */
 function convertObject(program: Program, value: object): unknown {
-  const result: Record<string, unknown> = {};
+  // Built from entries: a plain assignment of a member named `__proto__`
+  // writes the prototype, and a binding reader then inherits its fields.
+  const result: [string, unknown][] = [];
   for (const [key, field] of Object.entries(value)) {
     if (field === undefined) continue;
     const plain = convert(program, field);
     if (plain === UNREPRESENTABLE) return UNREPRESENTABLE;
-    result[key] = plain;
+    result.push([key, plain]);
   }
-  return result;
+  return Object.fromEntries(result);
 }
 
 /**
@@ -121,12 +123,6 @@ function convert(program: Program, value: unknown): unknown {
  * The whole argument is rejected when any part of it cannot be represented.
  * So every caller reports one problem about the argument it was given, and
  * no partial value reaches the document.
- *
- * A member the author named `__proto__` never arrives. The marshaller assigns
- * each member of an object value in turn, and that assignment writes the
- * prototype rather than the member. So the loop above reads an object that
- * already lost the pair, and `Object.entries` skips whatever the prototype
- * now holds. Nothing here can recover the name.
  *
  * @param program - The program the value belongs to
  * @param value - One marshalled decorator argument

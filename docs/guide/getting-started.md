@@ -9,7 +9,7 @@ description: "Install tsp-asyncapi and compile a first AsyncAPI 3.1 document fro
 
 ## Requirements
 
-Node.js 20 or later. The examples use pnpm; npm and yarn work too.
+Node.js 22 or later. The examples use pnpm; npm and yarn work too.
 
 ## Installation
 

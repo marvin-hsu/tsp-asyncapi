@@ -6,6 +6,10 @@ allowBuilds:
   "@scarf/scarf": false
   esbuild: true
 
+minimumReleaseAgeExclude:
+  - "@typespec/protobuf@0.87.0"
+  - "@typespec/compiler@1.17.0"
+
 overrides:
   # DoS in qs.stringify, reached through @stryker-mutator/core. A patch
   # release inside the range its parent already asks for.
