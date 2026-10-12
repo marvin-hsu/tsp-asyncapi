@@ -342,12 +342,9 @@ describe("Unit: server variables", () => {
     });
   });
 
-  it("never receives a variable named __proto__, because the compiler drops the key", async () => {
-    // A server name and a security scheme name are plain string arguments,
-    // so `__proto__` reaches this emitter and both maps keep it. A variable
-    // name is an object key instead, and the compiler marshals an object
-    // value with `result[key] = ...`. That writes the prototype, and the
-    // entry is gone before any decorator of this library runs.
+  it("keeps a variable named __proto__ as a real entry", async () => {
+    // A variable name is an object key. The compiler marshals it as an own
+    // member, so a plain assignment here would write the prototype instead.
     const runner = await AsyncAPITester.createInstance();
     const [{ Test }, diagnostics] = await runner.compileAndDiagnose(t.code`
       @service(#{ title: "Orders" })
@@ -359,16 +356,12 @@ describe("Unit: server variables", () => {
       namespace ${t.namespace("Test")} {}
     `);
 
-    // The template survives, and it has nothing to point at.
-    expectDiagnostics(diagnostics, [
-      {
-        code: "tsp-asyncapi/undeclared-server-variable",
-        severity: "warning",
-        message: /The template '\{__proto__\}' in this server has no matching entry/,
-      },
-    ]);
-    const server = buildServersFrom(runner.program, Test)?.production;
-    expect(server).not.toHaveProperty("variables");
+    expectDiagnosticEmpty(diagnostics);
+    const variables = buildServersFrom(runner.program, Test)?.production.variables ?? {};
+    expect(Object.keys(variables)).toEqual(["__proto__"]);
+    expect(Object.getOwnPropertyDescriptor(variables, "__proto__")?.value).toEqual({
+      default: "prod",
+    });
   });
 
   it("reports a template that has no matching variable and keeps the server", async () => {

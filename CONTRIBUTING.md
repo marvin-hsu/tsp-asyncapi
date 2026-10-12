@@ -16,7 +16,7 @@ expected.
 
 ## Setting up
 
-This project needs Node 20 or newer and pnpm.
+This project needs Node 22 or newer and pnpm.
 
 ```bash
 pnpm install

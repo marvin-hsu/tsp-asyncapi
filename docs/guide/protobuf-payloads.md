@@ -16,10 +16,10 @@ This is a preview feature. It is off by default. The option that turns it on, th
 Install the official library next to this emitter.
 
 ```bash
-pnpm add "@typespec/protobuf@0.85.x"
+pnpm add "@typespec/protobuf@0.87.x"
 ```
 
-The supported version is `0.85.x`. `@typespec/protobuf` is not yet at 1.0, so its decorators can still change. The supported range follows the official releases.
+The supported version is `0.87.x`. `@typespec/protobuf` is not yet at 1.0, so its decorators can still change. The supported range follows the official releases.
 
 Then turn on the `protobuf` preview feature in `tspconfig.yaml`.
 
